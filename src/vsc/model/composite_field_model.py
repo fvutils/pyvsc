@@ -1,3 +1,5 @@
+from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope
+from vsc.model.constraint_scope_model import ConstraintScopeModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -32,8 +34,9 @@ class CompositeFieldModel():
         self.t = t
         self.parent = parent
         self.field_l = []
+        self.constraint_model_l = []
         
-      # Iterate through the fields and constraints
+        # Iterate through the fields and constraints
         # First, assign IDs to each of the randomized fields
         for f in dir(t):
             if not f.startswith("__") and not f.startswith("_int"):
@@ -64,14 +67,34 @@ class CompositeFieldModel():
         for f in dir(t):
             if not f.startswith("__") and not f.startswith("_int"):
                 fo = getattr(t, f)
-                print("f: " + f + " " + str(fo))
                 if isinstance(fo, constraint_t):
+                    push_constraint_scope(ConstraintScopeModel())
+                    print("--> constraint")
                     fo.c(t)
-                    print("Found a constraint")                
+                    print("<-- constraint")
+                    self.constraint_model_l.append(pop_constraint_scope())
+                    
+        print("btor: " + str(btor))
+                    
+    def build(self, builder):
+        # First, build the fields
+        for f in self.field_l:
+            f.build(builder)
+
+        # Next, build out the constraints
+        for c in self.constraint_model_l:
+            c.build(builder)
+
+#        for f in self.field_l:
+#            if isinstance(f, CompositeFieldModel):
+#                f.build
         
     def get_constraints(self, constraint_l):
         for f in self.field_l:
             f.get_constraints(constraint_l)
+            
+        for c in self.constraint_model_l:
+            constraint_l.append(c)
             
     def get_fields(self, field_l):
         for f in self.field_l:

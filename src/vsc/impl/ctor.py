@@ -1,3 +1,4 @@
+from vsc.model.constraint_expr_model import ConstraintExprModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -21,11 +22,10 @@ Created on Jul 23, 2019
 
 @author: ballance
 '''
-from vsc.model.rand_obj_model import RandObjModel
 
 
 rand_obj_type_m = {}
-constraint_l = []
+constraint_scope_stack = []
 expr_l = []
 
 def register_rand_obj_type(t):
@@ -42,28 +42,35 @@ def pop_exprs():
     ret = expr_l.copy()
     expr_l.clear()
     return ret
-                  
-def push_constraint(c):
-    constraint_l.append(c)
-    
-def pop_constraints(t):
-    
-    if t != None:
-        ret = []
-        t_qname = t.__qualname__
-        i=0
-        while i < len(constraint_l):
-            s = constraint_l[i]
-            s_qname = s.t.__qualname__
-            
-            if len(s_qname) > len(t_qname) and t_qname == s_qname[:s_qname.rfind('.')]:
-                ret.append(s)
-                constraint_l.remove(s)
-            else:
-                i += 1
-    else:
-        ret = constraint_l.copy()
-        constraint_l.clear()
 
-    return ret        
+def push_constraint_scope(s):
+    constraint_scope_stack.append(s)
+    
+def push_constraint_stmt(s):
+    constraint_scope_stack[-1].constraint_l.append(s)
+    
+def pop_constraint_scope():
+    for e in pop_exprs():
+        constraint_scope_stack[-1].constraint_l.append(ConstraintExprModel(e))
+    return constraint_scope_stack.pop()
+    
+# def unk():
+#     if t != None:
+#         ret = []
+#         t_qname = t.__qualname__
+#         i=0
+#         while i < len(constraint_l):
+#             s = constraint_l[i]
+#             s_qname = s.t.__qualname__
+#             
+#             if len(s_qname) > len(t_qname) and t_qname == s_qname[:s_qname.rfind('.')]:
+#                 ret.append(s)
+#                 constraint_l.remove(s)
+#             else:
+#                 i += 1
+#     else:
+#         ret = constraint_l.copy()
+#         constraint_l.clear()
+# 
+#     return ret        
     

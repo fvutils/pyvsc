@@ -26,12 +26,19 @@ class ScalarFieldModel():
     
     def __init__(self, f, parent, is_rand, btor):
         self.f = f
+        # Connect the user facade to the model
+        self.f._int_field_info.model = self
         self.is_rand = is_rand
         self.parent = parent
-        sort = btor.BitVecSort(f.width)
+        sort = btor.BitVecSort(self.f.width)
         self.var = btor.Var(sort)
+
+    def build(self, builder):
+        print("self.f.width=" + str(self.f.width))
+        pass
         
-#        self.v = btor.
+    def get_node(self):
+        return self.var
 
     def get_constraints(self, constraint_l):
         if not self.is_rand:
@@ -39,6 +46,7 @@ class ScalarFieldModel():
         pass
 
     def pre_randomize(self):
+        # TODO: need to sample non-rand field
         pass
     
     def post_randomize(self):

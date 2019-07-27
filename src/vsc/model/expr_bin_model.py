@@ -1,3 +1,4 @@
+from vsc.model.bin_expr_type import BinExprType
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -30,6 +31,9 @@ class ExprBinModel(ExprModel):
         self.op = op
         self.rhs = rhs
         self.node = None
+        self.width = 0
+        self.signed = 0
+        
         
     def build(self, builder):
         self.lhs.build(builder)
@@ -38,8 +42,34 @@ class ExprBinModel(ExprModel):
         lhs_n = self.lhs.get_node()
         rhs_n = self.rhs.get_node()
         
+        lhs_n = self.extend(lhs_n, rhs_n, self.lhs.is_signed(), builder.btor)
+        rhs_n = self.extend(rhs_n, lhs_n, self.rhs.is_signed(), builder.btor)
         
+        if self.op == BinExprType.Eq:
+            self.node = builder.btor.Eq(lhs_n, rhs_n)
+            pass
+        elif self.op == BinExprType.Ne:
+            pass
+        else:
+            raise Exception("Unsupported binary expression type \"" + str(self.op) + "\"")
+
+    def extend(self, e1, e2, signed, btor):
+        ret = e1
+        
+        if e2.width > e1.width:
+            if signed:
+                ret = btor.Sext(e1, e2.width-e1.width)
+            else:
+                ret = btor.Uext(e1, e2.width-e1.width)
+
+        return ret        
 
     def get_node(self):
         return self.node
+    
+    def is_signed(self):
+        return self.signed
+    
+    def width(self):
+        return self.width
         

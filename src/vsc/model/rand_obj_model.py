@@ -34,6 +34,7 @@ class RandObjModel(CompositeFieldModel):
     def __init__(self, t):
         self.is_elab = False;
         self.seed = 1
+        self.level = 0
 
         # Each random object gets its own Boolector instance
         self.btor = Boolector()
@@ -43,15 +44,14 @@ class RandObjModel(CompositeFieldModel):
         print("RandObjModel: " + str(t))
         super().__init__(t, None, True, self.btor)
 
- 
-        pass
+        self.build(self)
     
     def elab(self):
         if self.is_elab:
             return
         
-        
         self.is_elab = True
+        
         
     def next(self):
         self.seed ^= (self.seed >> 12)
@@ -71,6 +71,22 @@ class RandObjModel(CompositeFieldModel):
         
         print("Fields: " + str(len(field_l)))
         
+        self.btor.Pop(self.level)
+        self.level = 0
+            
+        self.btor.Push()
+        self.level += 1
+        
+        constraint_l = []
+        self.get_constraints(constraint_l)
+        
+        node_l = []
+        for c in self.constraint_model_l:
+            c.get_nodes(node_l)
+        for n in node_l:
+            print("node: " + str(n))
+            self.btor.Assert(n)
+        
         if self.btor.Sat() != self.btor.SAT:
             print("Error: failed")
             return False
@@ -83,23 +99,25 @@ class RandObjModel(CompositeFieldModel):
            
         # TODO: Now, add in some randomization
             # First, randomly select fields
-        target_field_l = []
-        sel_l = field_l.copy()
-        for i in range(n_target_fields):
-            seed = self.next()
-            print("Get rand field: " + str(len(sel_l)) + " " + str(seed%len(sel_l)))
-            target_field_l.append(sel_l.pop(seed % len(sel_l)))
-            
-        for f in target_field_l:
-            print("Rand: " + f.f._int_field_info.name)
+#         target_field_l = []
+#         sel_l = field_l.copy()
+#         for i in range(n_target_fields):
+#             seed = self.next()
+#             print("Get rand field: " + str(len(sel_l)) + " " + str(seed%len(sel_l)))
+#             target_field_l.append(sel_l.pop(seed % len(sel_l)))
+#             
+#         for f in target_field_l:
+#             print("Rand: " + f.f._int_field_info.name)
 
         bits = 2
-        success = False
-        while bits != 0:
-            # Create a series of xor slices
-            
-            
-            bits -= 0
+#         success = False
+#         while bits > 0:
+#             # Create a series of xor slices
+#             seed = self.next()
+#            
+#             # term = var[slice] ^ seed[slice]
+#             
+#             bits -= 0
         
         
         

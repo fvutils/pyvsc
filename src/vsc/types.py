@@ -14,6 +14,7 @@
 #   CONDITIONS OF ANY KIND, either express or implied.  See
 #   the License for the specific language governing
 #   permissions and limitations under the License.
+from vsc.model.expr_literal_model import ExprLiteralModel
 '''
 Created on Jul 23, 2019
 
@@ -23,22 +24,29 @@ Created on Jul 23, 2019
 from vsc.impl.ctor import push_expr, pop_expr
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+
 
 def unsigned(v, w=-1):
-    pass
+    if w == -1:
+        w = 32
+    return expr(ExprLiteralModel(v, False, w))
 
 def signed(v, w=-1):
-    pass
+    if w == -1:
+        w = 32
+    return expr(ExprLiteralModel(v, True, w))
 
 class expr():
     def __init__(self, em):
-        push_expr(self)
+        push_expr(em)
         self.em = em
 
 def to_expr(t):
-    if type(t) == int:
-        # TODO: literal int
-        pass
+    if isinstance(t, expr):
+        return t
+    elif type(t) == int:
+        return expr(ExprLiteralModel(t, True, 32))
     elif hasattr(t, "to_expr"):
         return t.to_expr()
     else:
@@ -50,6 +58,7 @@ class field_info():
         self.id = -1
         self.name = None
         self.is_rand = False
+        self.model = None
         
 class type_base():
     
@@ -66,14 +75,12 @@ class type_base():
     def bin_expr(self, op, rhs):
         to_expr(rhs)
        
-
-        # TODO: field-reference model
-#        push_expr(e)
+        push_expr(ExprFieldRefModel(self._int_field_info.model))
 
         lhs_e = pop_expr()
         rhs_e = pop_expr()
         
-        e = ExprBinModel(lhs_e.em, op, rhs_e.em)
+        e = ExprBinModel(lhs_e, op, rhs_e)
         
         return expr(e)
 
@@ -99,7 +106,7 @@ class type_base():
         return self.bin_expr(BinExprType.Add, rhs)
     
     def __sub__(self, rhs):
-        return self.bin_expr(BinExprType.Sub, rhs)    
+        return self.bin_expr(BinExprType.Sub, rhs)
         
     def __int__(self):
         return self.val

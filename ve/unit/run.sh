@@ -10,5 +10,7 @@ done
 
 export PYTHONPATH=${vsc_dir}/src:/project/fun/portaskela/boolector/inst/lib
 
+#valgrind --tool=memcheck python3 -m unittest ${@:1}
+# gdb --args python3 -m unittest ${@:1}
 python3 -m unittest ${@:1}
 

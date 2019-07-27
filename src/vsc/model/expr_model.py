@@ -28,5 +28,11 @@ class ExprModel():
         pass
     
     def get_node(self):
-        raise Exception("Expression get_node unimplemented")
+        raise Exception("Expression get_node unimplemented (" + str(self) + ")")
+    
+    def is_signed(self):
+        raise Exception("is_signed unimplemented (" + str(self) + ")")
+    
+    def width(self):
+        raise Exception("width unimplemented (" + str(self) + ")")
         

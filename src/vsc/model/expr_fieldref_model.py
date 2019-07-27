@@ -1,3 +1,4 @@
+from vsc.model.expr_model import ExprModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -22,11 +23,19 @@ Created on Jul 26, 2019
 @author: ballance
 '''
 
-class ExprFieldRefModel():
+class ExprFieldRefModel(ExprModel):
     
     def __init__(self, fm):
         self.fm = fm
-        
+
+    def build(self, builder):
+        pass
         
     def get_node(self):
-        return self.fm.var
+        return self.fm.get_node()
+    
+    def is_signed(self):
+        return self.fm.f.is_signed
+    
+    def width(self):
+        return self.fm.f.width

@@ -21,27 +21,16 @@ Created on Jul 27, 2019
 
 @author: ballance
 '''
-from vsc.model.expr_model import ExprModel
+from vsc.model.constraint_model import ConstraintModel
 
-class ExprLiteralModel(ExprModel):
+class ConstraintExprModel(ConstraintModel):
     
-    def __init__(self, val, is_signed, width):
-        self.val = val
-        self.signed = is_signed
-        self.width = width
-        self.node = None
+    def __init__(self, e):
+        self.e = e
         
     def build(self, builder):
-        self.node = builder.btor.Const(self.val, self.width)
-        pass
-    
-    def get_node(self):
-        return self.node
-        pass
-    
-    def is_signed(self):
-        return self.signed
-    
-    def width(self):
-        return self.width
-    
+        self.e.build(builder)
+        
+    def get_nodes(self, node_l):
+        print("ConstraintExprModel::get_nodes - " + str(self.e.get_node()))
+        node_l.append(self.e.get_node())
