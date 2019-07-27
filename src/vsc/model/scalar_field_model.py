@@ -43,4 +43,10 @@ class ScalarFieldModel():
     
     def post_randomize(self):
         print("post-randomize: " + str(self.var.assignment))
+        val = 0
+        for b in self.var.assignment:
+            val <<= 1
+            if b == '1':
+                val |= 1
+        self.f.val = val
             

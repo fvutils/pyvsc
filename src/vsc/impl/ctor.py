@@ -26,11 +26,23 @@ from vsc.model.rand_obj_model import RandObjModel
 
 rand_obj_type_m = {}
 constraint_l = []
+expr_l = []
 
 def register_rand_obj_type(t):
 #    rand_obj_type_m[t] = RandObjModel(t)
     pass
+   
+def push_expr(e):
+    expr_l.append(e)
     
+def pop_expr():
+    return expr_l.pop()
+    
+def pop_exprs():
+    ret = expr_l.copy()
+    expr_l.clear()
+    return ret
+                  
 def push_constraint(c):
     constraint_l.append(c)
     

@@ -72,6 +72,13 @@ class CompositeFieldModel():
     def get_constraints(self, constraint_l):
         for f in self.field_l:
             f.get_constraints(constraint_l)
+            
+    def get_fields(self, field_l):
+        for f in self.field_l:
+            if isinstance(f, CompositeFieldModel):
+                f.get_fields(field_l)
+            else:
+                field_l.append(f)
 
     def pre_randomize(self):
         # Call the user's methods

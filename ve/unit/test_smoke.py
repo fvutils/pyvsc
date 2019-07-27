@@ -37,6 +37,9 @@ class TestSmoke(TestCase):
             
             def __init__(self):
                 self.a = vsc.rand_attr(vsc.bit_t(4))
+                self.b = vsc.rand_attr(vsc.bit_t(4))
+                self.c = vsc.rand_attr(vsc.bit_t(4))
+                self.d = vsc.rand_attr(vsc.bit_t(4))
 
         @vsc.rand_obj        
         class my_rand():
@@ -44,6 +47,9 @@ class TestSmoke(TestCase):
             def __init__(self):
                 self.a = vsc.rand_attr(vsc.bit_t(4))
                 self.b = vsc.rand_attr(my_sub())
+                self.c = vsc.rand_attr(my_sub())
+                self.d = vsc.rand_attr(my_sub())
+                self.e = vsc.rand_attr(my_sub())
                 
             @vsc.constraint
             def my_c(self):
@@ -57,5 +63,7 @@ class TestSmoke(TestCase):
 #        v2.my_c.constraint_mode(0)
         vsc.randomize(v1)
         vsc.randomize(v1)
+        
+        print("v1.a=" + str(int(v1.a)))
 
         

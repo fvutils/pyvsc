@@ -33,6 +33,7 @@ class RandObjModel(CompositeFieldModel):
     
     def __init__(self, t):
         self.is_elab = False;
+        self.seed = 1
 
         # Each random object gets its own Boolector instance
         self.btor = Boolector()
@@ -52,12 +53,55 @@ class RandObjModel(CompositeFieldModel):
         
         self.is_elab = True
         
+    def next(self):
+        self.seed ^= (self.seed >> 12)
+        self.seed ^= (self.seed << 25)
+        self.seed ^= (self.seed >> 27)
+
+        self.seed &= 0xFFFFFFFF
+        
+        return ((self.seed * 0x4F6CDD1D) >> 16)        
+        
+        
     def do_randomize(self):
         self.pre_randomize()
+        
+        field_l = []
+        self.get_fields(field_l)
+        
+        print("Fields: " + str(len(field_l)))
         
         if self.btor.Sat() != self.btor.SAT:
             print("Error: failed")
             return False
+
+        bits = -1
+        if len(field_l) > 4:
+            n_target_fields = int(len(field_l)/4)
+        else:
+            n_target_fields = 1
+           
+        # TODO: Now, add in some randomization
+            # First, randomly select fields
+        target_field_l = []
+        sel_l = field_l.copy()
+        for i in range(n_target_fields):
+            seed = self.next()
+            print("Get rand field: " + str(len(sel_l)) + " " + str(seed%len(sel_l)))
+            target_field_l.append(sel_l.pop(seed % len(sel_l)))
+            
+        for f in target_field_l:
+            print("Rand: " + f.f._int_field_info.name)
+
+        bits = 2
+        success = False
+        while bits != 0:
+            # Create a series of xor slices
+            
+            
+            bits -= 0
+        
+        
         
         self.post_randomize()
 #        do_post_randomize()
