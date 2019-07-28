@@ -21,7 +21,8 @@ Created on Jul 23, 2019
 
 @author: ballance
 '''
-from vsc.types import type_base, field_info
+from vsc.types import type_base, field_info, type_enum
+from enum import Enum
 
 
 def attr(t):
@@ -31,6 +32,8 @@ def attr(t):
 def rand_attr(t):
     if isinstance(t, type_base):
         t._int_field_info.is_rand = True
+    elif isinstance(t, Enum):
+        t = type_enum(t)
     elif hasattr(t, "_int_rand_info"):
         # composite type
         t._int_field_info = field_info()

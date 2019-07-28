@@ -32,5 +32,5 @@ class ConstraintExprModel(ConstraintModel):
         self.e.build(builder)
         
     def get_nodes(self, node_l):
-        print("ConstraintExprModel::get_nodes - " + str(self.e.get_node()))
         node_l.append(self.e.get_node())
+        

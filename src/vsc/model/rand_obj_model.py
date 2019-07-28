@@ -76,7 +76,8 @@ class RandObjModel(CompositeFieldModel):
             
         self.btor.Push()
         self.level += 1
-        
+
+        # Collect the constraints and add them to the solver
         constraint_l = []
         self.get_constraints(constraint_l)
         
@@ -84,7 +85,6 @@ class RandObjModel(CompositeFieldModel):
         for c in self.constraint_model_l:
             c.get_nodes(node_l)
         for n in node_l:
-            print("node: " + str(n))
             self.btor.Assert(n)
         
         if self.btor.Sat() != self.btor.SAT:

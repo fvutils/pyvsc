@@ -61,4 +61,8 @@ class TestImplies(TestCase):
                     self.b == 16
 
         v = my_s()
-        vsc.randomize(v)    
+        vsc.randomize(v)
+        
+        self.assertEqual(v.a(), 5)
+        self.assertEqual(v.b(), 16)
+        

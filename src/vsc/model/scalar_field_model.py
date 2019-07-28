@@ -34,7 +34,6 @@ class ScalarFieldModel():
         self.var = btor.Var(sort)
 
     def build(self, builder):
-        print("self.f.width=" + str(self.f.width))
         pass
         
     def get_node(self):
@@ -50,7 +49,6 @@ class ScalarFieldModel():
         pass
     
     def post_randomize(self):
-        print("post-randomize: " + str(self.var.assignment))
         val = 0
         for b in self.var.assignment:
             val <<= 1

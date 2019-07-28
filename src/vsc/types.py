@@ -15,6 +15,7 @@
 #   the License for the specific language governing
 #   permissions and limitations under the License.
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_in_model import ExprInModel
 '''
 Created on Jul 23, 2019
 
@@ -41,6 +42,35 @@ class expr():
     def __init__(self, em):
         push_expr(em)
         self.em = em
+        
+class rangelist():
+    
+    def __init__(self, *args):
+        if len(args) == 0:
+            raise Exception("Empty rangelist specified")
+        
+        self.range_l = []
+        for i in range(-1,-(len(args)+1), -1):
+            a = args[i]
+            if isinstance(a, list):
+                # This needs to be a two-element array
+                if len(a) != 2:
+                    raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
+                to_expr(a[0])
+                to_expr(a[1])
+                e1 = pop_expr()
+                e0 = pop_expr()
+                self.range_l.append([e0, e1])
+            else:
+                to_expr(a)
+                e = pop_expr()
+                self.range_l.append(e)
+
+                # This needs to be convertioble to a
+            
+    def __contains__(self, lhs):
+        to_expr(lhs)
+        return expr(ExprInModel(pop_expr(), self.range_l))
 
 def to_expr(t):
     if isinstance(t, expr):
@@ -69,8 +99,20 @@ class type_base():
         self._int_field_info = field_info()
         
     def to_expr(self):
-        # TODO: return a field ref
-        pass
+        return expr(ExprFieldRefModel(self._int_field_info.model))
+    
+    def __call__(self, v=None):
+        '''
+        Obtains or sets the current value of the field
+        '''
+        if v != None:
+            self.val = v
+
+        return self.val
+    
+    def __int__(self):
+        return self.val
+        
     
     def bin_expr(self, op, rhs):
         to_expr(rhs)
@@ -103,14 +145,17 @@ class type_base():
         return self.bin_expr(BinExprType.Gt, rhs)
     
     def __add__(self, rhs):
+        print("ADD:")
         return self.bin_expr(BinExprType.Add, rhs)
     
     def __sub__(self, rhs):
         return self.bin_expr(BinExprType.Sub, rhs)
         
-    def __int__(self):
-        return self.val
-        
+
+class type_enum(type_base):
+    
+    def __init__(self, t):        
+        pass
         
 class bit_t(type_base):
     
