@@ -4,6 +4,7 @@ from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr,
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
+from vsc.model.constraint_unique_model import ConstraintUniqueModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -123,3 +124,10 @@ class implies():
     def __exit__(self, t, v, tb):
         pop_constraint_scope()        
 
+def unique(*args):
+    expr_l = []
+    for i in range(-1, -(len(args)+1), -1):
+        to_expr(args[i])
+        expr_l.insert(0, pop_expr())
+        
+    push_constraint_stmt(ConstraintUniqueModel(expr_l))
