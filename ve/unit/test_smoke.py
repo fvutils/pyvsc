@@ -54,7 +54,12 @@ class TestSmoke(TestCase):
             @vsc.constraint
             def my_c(self):
                 print("my_c: " + str(self))
-                self.a ==  10
+                self.a == 10
+                self.b.a == 2
+                self.b.b != 0
+                self.b.c > 2
+                self.b.d <= 2
+                self.b.d != 0
                 
         
         v1 = my_rand()

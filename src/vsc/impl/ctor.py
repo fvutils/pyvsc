@@ -47,12 +47,26 @@ def push_constraint_scope(s):
     constraint_scope_stack.append(s)
     
 def push_constraint_stmt(s):
+    for e in pop_exprs():
+        constraint_scope_stack[-1].constraint_l.append(ConstraintExprModel(e))
     constraint_scope_stack[-1].constraint_l.append(s)
     
 def pop_constraint_scope():
     for e in pop_exprs():
         constraint_scope_stack[-1].constraint_l.append(ConstraintExprModel(e))
     return constraint_scope_stack.pop()
+
+def constraint_scope():
+    return constraint_scope_stack[-1]
+
+def in_constraint_scope():
+    return len(constraint_scope_stack) > 0
+
+def last_constraint_stmt():
+    if len(constraint_scope_stack) > 0 and len(constraint_scope_stack[-1].constraint_l) > 0:
+        return constraint_scope_stack[-1].constraint_l[-1]
+    else:
+        return None
     
 # def unk():
 #     if t != None:

@@ -49,7 +49,35 @@ class ExprBinModel(ExprModel):
             self.node = builder.btor.Eq(lhs_n, rhs_n)
             pass
         elif self.op == BinExprType.Ne:
-            pass
+            self.node = builder.btor.Ne(lhs_n, rhs_n)
+        elif self.op == BinExprType.Gt:
+            if not self.lhs.is_signed() or not self.rhs.is_signed():
+                self.node = builder.btor.Ugt(lhs_n, rhs_n)
+            else:
+                self.node = builder.btor.Sgt(lhs_n, rhs_n)
+        elif self.op == BinExprType.Ge:
+            if not self.lhs.is_signed() or not self.rhs.is_signed():
+                self.node = builder.btor.Ugte(lhs_n, rhs_n)
+            else:
+                self.node = builder.btor.Sgte(lhs_n, rhs_n)
+        elif self.op == BinExprType.Lt:
+            if not self.lhs.is_signed() or not self.rhs.is_signed():
+                self.node = builder.btor.Ult(lhs_n, rhs_n)
+            else:
+                self.node = builder.btor.Slt(lhs_n, rhs_n)
+        elif self.op == BinExprType.Le:
+            if not self.lhs.is_signed() or not self.rhs.is_signed():
+                self.node = builder.btor.Ulte(lhs_n, rhs_n)
+            else:
+                self.node = builder.btor.Slte(lhs_n, rhs_n)
+        elif self.op == BinExprType.Add:
+            self.node = builder.btor.Add(lhs_n, rhs_n)
+        elif self.op == BinExprType.Sub:
+            self.node = builder.btor.Sub(lhs_n, rhs_n)
+        elif self.op == BinExprType.And:
+            self.node = builder.btor.And(lhs_n, rhs_n)
+        elif self.op == BinExprType.Or:
+            self.node = builder.btor.Or(lhs_n, rhs_n)
         else:
             raise Exception("Unsupported binary expression type \"" + str(self.op) + "\"")
 

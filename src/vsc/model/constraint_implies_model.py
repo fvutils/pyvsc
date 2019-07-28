@@ -17,34 +17,31 @@
 #   permissions and limitations under the License.
 
 '''
-Created on Jul 27, 2019
+Created on Jul 28, 2019
 
 @author: ballance
 '''
+from vsc.model.constraint_model import ConstraintModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
 
-class ConstraintModel():
+
+class ConstraintImpliesModel(ConstraintScopeModel):
     
-    def __init__(self):
-        pass
-    
+    def __init__(self, cond):
+        super().__init__()
+        self.cond = cond
+        self.node = None
+        
     def build(self, builder):
-        raise Exception("build unimplemented")
+        self.cond.build(builder)
+        super().build(builder)
+        
+        e_n = self.cond.get_node()
+        c_l = []
+        super().get_nodes(c_l)
+        c_n = ConstraintModel.and_nodelist(c_l, builder.btor)
+        
+        self.node = builder.btor.Implies(e_n, c_n)
     
     def get_nodes(self, node_l):
-        raise Exception("get_node unimplemented")
-
-    @staticmethod
-    def and_nodelist(node_l, btor):
-        ret = None
-        ret_valid = False
-        
-        for n in node_l:
-            if ret_valid:
-                ret = btor.And(ret, n)
-            else:
-                ret = n
-                ret_valid = True
-        
-        return ret
-
-        
+        node_l.append(self.node)

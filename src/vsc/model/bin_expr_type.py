@@ -34,3 +34,5 @@ class BinExprType(Enum):
     Le = auto()
     Add = auto()
     Sub = auto()
+    And = auto()
+    Or = auto()

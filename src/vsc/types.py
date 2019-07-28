@@ -116,6 +116,11 @@ class bit_t(type_base):
     
     def __init__(self, w=1):
         super().__init__(w, False)
+
+class rand_bit_t(type_base):
     
-def rand_attr(t):
-    pass
+    def __init__(self, w=1):
+        super().__init__(w, False)
+        self._int_field_info.is_rand = True
+        
+        
