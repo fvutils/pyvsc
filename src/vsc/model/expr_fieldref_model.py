@@ -27,6 +27,7 @@ class ExprFieldRefModel(ExprModel):
     
     def __init__(self, fm):
         self.fm = fm
+        self.fm.refs += 1
 
     def build(self, builder):
         pass

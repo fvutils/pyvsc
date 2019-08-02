@@ -32,12 +32,19 @@ class ScalarFieldModel():
         self.parent = parent
         sort = btor.BitVecSort(self.f.width)
         self.var = btor.Var(sort)
+        self.refs = 0
 
     def build(self, builder):
         pass
         
     def get_node(self):
         return self.var
+    
+    def width(self):
+        return self.f.width
+    
+    def name(self):
+        return self.f._int_field_info.name
 
     def get_constraints(self, constraint_l):
         if not self.is_rand:

@@ -150,6 +150,16 @@ class type_base():
     
     def __sub__(self, rhs):
         return self.bin_expr(BinExprType.Sub, rhs)
+    
+    def __getitem__(self, val):
+        print("getitem: " + str(val))
+        if isinstance(val, slice):
+            # slice
+            pass
+        else:
+            # assume single value
+            pass
+        
         
 
 class type_enum(type_base):

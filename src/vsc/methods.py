@@ -27,7 +27,6 @@ from vsc.types import field_info
 
 
 def randomize(t):
-    print("randomize: t=" + str(t))
     if not hasattr(t, "_int_rand_info"):
         raise Exception("Error: not a random class")
 

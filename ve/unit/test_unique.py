@@ -34,10 +34,10 @@ class TestUnique(TestCase):
         class my_s():
             
             def __init__(self):
-                self.a = vsc.rand_bit_t(3)
-                self.b = vsc.rand_bit_t(3)
-                self.c = vsc.rand_bit_t(3)
-                self.d = vsc.rand_bit_t(3)
+                self.a = vsc.rand_bit_t(32)
+                self.b = vsc.rand_bit_t(32)
+                self.c = vsc.rand_bit_t(32)
+                self.d = vsc.rand_bit_t(32)
                 
             @vsc.constraint
             def ab_c(self):
