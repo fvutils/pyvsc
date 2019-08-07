@@ -35,4 +35,10 @@ class ExprModel():
     
     def width(self):
         raise Exception("width unimplemented (" + str(self) + ")")
-        
+
+    def val(self):
+        '''
+        Return the value of this expression
+        '''
+        raise Exception("val unimplemented")
+    

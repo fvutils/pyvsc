@@ -22,3 +22,4 @@ from vsc.types import *
 from vsc.attrs import *
 from vsc.methods import *
 from vsc.constraints import *
+from vsc.coverage import *

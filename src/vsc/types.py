@@ -110,6 +110,12 @@ class type_base():
 
         return self.val
     
+    def get_val(self):
+        return self.val
+    
+    def set_val(self, val):
+        self.val = val
+    
     def __int__(self):
         return self.val
         
@@ -133,6 +139,7 @@ class type_base():
         return self.bin_expr(BinExprType.Ne, rhs)
     
     def __le__(self, rhs):
+        # TODO: overload for behavioral assign
         return self.bin_expr(BinExprType.Le, rhs)
     
     def __lt__(self, rhs):
@@ -172,10 +179,21 @@ class bit_t(type_base):
     def __init__(self, w=1):
         super().__init__(w, False)
 
-class rand_bit_t(type_base):
+class rand_bit_t(bit_t):
     
     def __init__(self, w=1):
-        super().__init__(w, False)
+        super().__init__(w)
+        self._int_field_info.is_rand = True
+        
+class int_t(type_base):
+    
+    def __init__(self, w=32):
+        super().__init__(w, True)
+
+class rand_int_t(int_t):
+    
+    def __init__(self, w=32):
+        super().__init__(w)
         self._int_field_info.is_rand = True
         
         
