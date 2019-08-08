@@ -1,3 +1,21 @@
+
+#   Copyright 2019 Matthew Ballance
+#   All Rights Reserved Worldwide
+#
+#   Licensed under the Apache License, Version 2.0 (the
+#   "License"); you may not use this file except in
+#   compliance with the License.  You may obtain a copy of
+#   the License at
+#
+#       http://www.apache.org/licenses/LICENSE-2.0
+#
+#   Unless required by applicable law or agreed to in
+#   writing, software distributed under the License is
+#   distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR
+#   CONDITIONS OF ANY KIND, either express or implied.  See
+#   the License for the specific language governing
+#   permissions and limitations under the License.
+
 '''
 Created on Aug 3, 2019
 
@@ -11,6 +29,7 @@ from vsc.model.rangelist_model import RangelistModel
 from vsc.model.coverpoint_bin_model import CoverpointBinModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
+from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 
 
 # marks 
@@ -32,7 +51,7 @@ class covergroup():
         for cp_n in dir(self):
             cp_o = getattr(self, cp_n)
             if isinstance(cp_o, cross):
-                cp_o.init_model()
+                self.model.cross_l.append(cp_o.build_model(cp_n))
    
     
     def sample(self):
@@ -71,7 +90,7 @@ class bin_array():
         self.range_l = args
     
     def build_model(self, name, cp):
-        ret = CoverpointBinCollectionModel()
+        ret = CoverpointBinCollectionModel(name, cp)
         
         # First, need to determine how many total bins
         # Construct a range model
@@ -79,11 +98,11 @@ class bin_array():
             # unlimited number of bins
             for r in self.range_l:
                 if isinstance(r, list):
-                    ret.bin_l.append(CoverpointBin)
+                    if len(r) != 2: 
+                        raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
+                    ret.bin_l.append(CoverpointBinArrayModel(name, cp, r[0], r[1]))
                 else:
                     pass
-            return CoverpointBinArrayModel(name, cp, self.range_l)
-            print("TODO: array-bin")
         else:
             # TODO: Calculate number of values
             # TODO: Calculate values per bin
@@ -129,6 +148,9 @@ class coverpoint():
     def get_val(self):
         return self.target.get_val()
     
+    def set_val(self, val):
+        self.target.set_val(val)
+    
     def __le__(self, rhs):
         if self.have_var:
             self.target(rhs)
@@ -144,8 +166,14 @@ class cross():
         self.target_l = target_l
         self.bins = bins
         
-    def init_model(self):
-        pass
+    def build_model(self, name):
+        coverpoint_model_l = []
+        for t in self.target_l:
+            coverpoint_model_l.append(t.model)
+            
+        print("coverpoint_model_l: " + str(coverpoint_model_l))
+
+        return CoverpointCrossModel(self, name, coverpoint_model_l)
         
 
 # Coverpoint variable
