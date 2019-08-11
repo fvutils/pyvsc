@@ -27,7 +27,6 @@ class ExprFieldRefModel(ExprModel):
     
     def __init__(self, fm):
         self.fm = fm
-        self.fm.refs += 1
 
     def build(self, builder):
         pass
@@ -40,3 +39,6 @@ class ExprFieldRefModel(ExprModel):
     
     def width(self):
         return self.fm.f.width
+    
+    def accept(self, visitor):
+        visitor.visit_expr_fieldref(self)

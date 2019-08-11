@@ -1,3 +1,4 @@
+from scipy.interpolate._bspl import _handle_lhs_derivatives
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -29,6 +30,8 @@ class ExprInModel(ExprModel):
     
     def __init__(self, lhs, rhs):
         self.expr = None
+        self.lhs = lhs
+        self.rhs = rhs
         
         for r in rhs:
             if isinstance(r, list):
@@ -50,4 +53,7 @@ class ExprInModel(ExprModel):
     def get_node(self):
         return self.expr.get_node()
     
-    
+
+    def accept(self, visitor):
+        visitor.visit_expr_in(self)
+        

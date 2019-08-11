@@ -47,4 +47,6 @@ class ConstraintModel():
         
         return ret
 
-        
+    def accept(self, visitor):
+        raise Exception("" + str(self) + "::accept unimplemented")
+    

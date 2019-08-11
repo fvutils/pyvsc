@@ -45,3 +45,7 @@ class ConstraintImpliesModel(ConstraintScopeModel):
     
     def get_nodes(self, node_l):
         node_l.append(self.node)
+        
+    def accept(self, visitor):
+        visitor.visit_constraint_implies(self)
+        

@@ -61,4 +61,6 @@ class ConstraintIfElseModel(ConstraintModel):
             ret += " else { " + str(self.false_c) + " }"
         return ret
     
-    
+
+    def accept(self, visitor):
+        visitor.visit_constraint_if_else(self)

@@ -51,3 +51,7 @@ class ConstraintUniqueModel(ConstraintModel):
     def get_nodes(self, node_l):
         node_l.append(self.expr.get_node())
         
+
+    def accept(self, visitor):
+        visitor.visit_constraint_unique(self)
+        
