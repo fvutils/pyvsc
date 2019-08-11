@@ -17,31 +17,31 @@
 #   permissions and limitations under the License.
 
 '''
-Created on Jul 26, 2019
+Created on Aug 3, 2019
 
 @author: ballance
 '''
 
-class ExprModel():
+class CovergroupModel():
     
-    def build(self, builder):
-        pass
+    def __init__(self):
+        self.coverpoint_l = []
+        self.cross_l = []
+        self.name = "<default>"
     
-    def get_node(self):
-        raise Exception("Expression get_node unimplemented (" + str(self) + ")")
-    
-    def is_signed(self):
-        raise Exception("is_signed unimplemented (" + str(self) + ")")
-    
-    def width(self):
-        raise Exception("width unimplemented (" + str(self) + ")")
+    def sample(self):
         
-    def accept(self, visitor):
-        raise Exception("" + str(self) + "::accept not implemented")
-
-    def val(self):
-        '''
-        Return the value of this expression
-        '''
-        raise Exception("val unimplemented")
-    
+        # First, sample the coverpoints
+        for cp in self.coverpoint_l:
+            cp.sample()
+            
+        for cr in self.cross_l:
+            cr.sample()
+            
+    def dump(self, ind=""):
+        print(ind + "Covergroup " + self.name)
+        for cp in self.coverpoint_l:
+            cp.dump(ind + "    ")
+        for cr in self.cross_l:
+            cr.dump(ind + "    ")
+            

@@ -17,31 +17,19 @@
 #   permissions and limitations under the License.
 
 '''
-Created on Jul 26, 2019
+Created on Aug 4, 2019
 
 @author: ballance
 '''
 
-class ExprModel():
+class CoverpointBinModelBase():
     
-    def build(self, builder):
-        pass
-    
-    def get_node(self):
-        raise Exception("Expression get_node unimplemented (" + str(self) + ")")
-    
-    def is_signed(self):
-        raise Exception("is_signed unimplemented (" + str(self) + ")")
-    
-    def width(self):
-        raise Exception("width unimplemented (" + str(self) + ")")
+    def __init__(self, name, cp):
+        self.name = name
+        self.cp = cp
         
-    def accept(self, visitor):
-        raise Exception("" + str(self) + "::accept not implemented")
-
-    def val(self):
-        '''
-        Return the value of this expression
-        '''
-        raise Exception("val unimplemented")
+    def n_bins(self):
+        return 1
     
+    def hit_idx(self):
+        return -1

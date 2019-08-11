@@ -17,31 +17,29 @@
 #   permissions and limitations under the License.
 
 '''
-Created on Jul 26, 2019
+Created on Aug 4, 2019
 
 @author: ballance
 '''
 
-class ExprModel():
+class RangelistModel():
     
-    def build(self, builder):
-        pass
+    def __init__(self, rl):
+        self.range_l = []
+        for r in rl:
+            if isinstance(r, list):
+                if len(r) == 2:
+                    self.range_l.append([r[0], r[1]])
+                else:
+                    raise Exception("Each range element must have 2 elements")
+            else:
+                self.range_l.append([int(r), int(r)])
+                
     
-    def get_node(self):
-        raise Exception("Expression get_node unimplemented (" + str(self) + ")")
-    
-    def is_signed(self):
-        raise Exception("is_signed unimplemented (" + str(self) + ")")
-    
-    def width(self):
-        raise Exception("width unimplemented (" + str(self) + ")")
+    def __contains__(self, val):
+        for r in self.range_l:
+            if val >= r[0] and val <= r[1]:
+                return True
+            
+        return False
         
-    def accept(self, visitor):
-        raise Exception("" + str(self) + "::accept not implemented")
-
-    def val(self):
-        '''
-        Return the value of this expression
-        '''
-        raise Exception("val unimplemented")
-    
