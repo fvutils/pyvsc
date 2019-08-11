@@ -57,11 +57,9 @@ class CoverpointCrossModel():
         have_cp_hit = False
         key_m = []
         for cp in self.coverpoint_model_l:
-            print("cp=" + str(cp))
             have_bin_hit = False
             idx = 0
             for b in cp.bin_model_l:
-                print("bin: " + str(b) + " hit_idx=" + str(b.hit_idx()))
                 if b.hit_idx() != -1:
                     key_m.append(b.hit_idx() + idx)
                     have_bin_hit = True
@@ -75,7 +73,6 @@ class CoverpointCrossModel():
                 have_cp_hit = False
                 break
     
-        print("key_m=" + str(key_m))        
         if have_cp_hit:
             key = tuple(key_m)
             self.hit_map[key] += 1

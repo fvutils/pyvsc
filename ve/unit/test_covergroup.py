@@ -88,18 +88,19 @@ class TestCovergroup(TestCase):
                     })
                 
                 self.cp1X2 = cross([self.cp1, self.cp2])
-                
+
         cg = my_covergroup()
         cg.init_model()
 
-        cg.cp1.set_val(4)
-        cg.cp2.set_val(4)
-        cg.sample()
-        cg.sample()
+        for i in range(100000):
+            cg.cp1.set_val(4)
+            cg.cp2.set_val(4)
+            cg.sample()
+            cg.sample()
         
-        cg.cp1.set_val(8)
-        cg.cp2.set_val(8)
-        cg.sample()
-        cg.sample()
+            cg.cp1.set_val(8)
+            cg.cp2.set_val(8)
+            cg.sample()
+            cg.sample()
         
         cg.dump()                

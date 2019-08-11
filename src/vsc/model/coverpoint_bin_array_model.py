@@ -40,7 +40,6 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         # Query value from the actual coverpoint or expression
 #        print("sample: binspec=" + str(self.binspec))
         val = self.cp.get_val()
-        print("CoverpointBinArrayModel::sample - val=" + str(val) + " low=" + str(self.low) + " high=" + str(self.high))
         if val >= self.low and val <= self.high:
             self.hit_bin_idx = val - self.low
             self.hit_list[val-self.low] += 1
@@ -50,7 +49,8 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         return self.hit_bin_idx
             
     def dump(self, ind=""):
-        print(ind + "(TODO: Array) Bin " + self.name) #  + " hits: " + str(self.n_hits))
+        for i in range(self.high-self.low+1):
+            print(ind + self.name + "[" + str(self.low+i) + "]=" + str(self.hit_list[i]))
             
     def get_hits(self, idx):
         return self.hit_list[idx]
