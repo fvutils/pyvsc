@@ -36,4 +36,6 @@ class ConstraintScopeModel(ConstraintModel):
     def get_nodes(self, node_l):
         for c in self.constraint_l:
             c.get_nodes(node_l)
-            
+
+    def accept(self, visitor):
+        visitor.visit_constraint_scope(self)

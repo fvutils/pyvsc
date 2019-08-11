@@ -36,3 +36,6 @@ class ExprModel():
     def width(self):
         raise Exception("width unimplemented (" + str(self) + ")")
         
+        
+    def accept(self, visitor):
+        raise Exception("" + str(self) + "::accept not implemented")

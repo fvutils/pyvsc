@@ -1,3 +1,4 @@
+from vsc.model.fieldref_visitor import FieldrefVisitor
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -189,6 +190,9 @@ class RandObjModel(CompositeFieldModel):
         n_target_fields = len(field_l)
         
         sel_l = field_l.copy()
+        
+        fieldref_v = FieldrefVisitor()
+        self.accept(fieldref_v)
            
         # TODO: Now, add in some randomization
             # First, randomly select fields
@@ -197,7 +201,7 @@ class RandObjModel(CompositeFieldModel):
       
         i = 0
         while i < len(sel_l):
-            if sel_l[i].refs == 0:
+            if not sel_l[i] in fieldref_v.ref_s:
                 unreferenced_l.append(sel_l.pop(i))
             else:
                 i += 1
@@ -249,9 +253,9 @@ class RandObjModel(CompositeFieldModel):
 #             tt = self.btor.Eq(self.btor.Const(const, t.width()), t.get_node())
 #             self.btor.Assert(tt)
 
+        tries = 0
         if len(target_field_l) > 0:
             success = False
-            tries = 0
             while bits > 0 and not success:
                 self.btor.Push()
                 self.level += 1
@@ -281,6 +285,7 @@ class RandObjModel(CompositeFieldModel):
         nonrep = None
         nonrep_valid = False
         for f in referenced_l:
+            t = self.btor.Ne(f.get_node(), f.get_node())
             print("Ref: " + f.name() + " = " + str(f.f()))
             
             
@@ -293,6 +298,7 @@ class RandObjModel(CompositeFieldModel):
         self.post_randomize()
 #        do_post_randomize()
         
-        
+    def accept(self, visitor):
+        visitor.visit_rand_obj(self)
         
         

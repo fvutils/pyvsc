@@ -32,7 +32,6 @@ class ScalarFieldModel():
         self.parent = parent
         sort = btor.BitVecSort(self.f.width)
         self.var = btor.Var(sort)
-        self.refs = 0
 
     def build(self, builder):
         pass

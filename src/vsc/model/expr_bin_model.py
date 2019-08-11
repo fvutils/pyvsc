@@ -101,3 +101,5 @@ class ExprBinModel(ExprModel):
     def width(self):
         return self.width
         
+    def accept(self, visitor):
+        visitor.visit_expr_bin(self)
