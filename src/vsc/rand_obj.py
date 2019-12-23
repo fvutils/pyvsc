@@ -1,4 +1,5 @@
 from vsc.model.rand_obj_model import RandObjModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -22,7 +23,8 @@ Created on Jul 23, 2019
 
 @author: ballance
 '''
-from vsc.impl.ctor import register_rand_obj_type
+from vsc.impl.ctor import register_rand_obj_type, push_constraint_scope,\
+    pop_constraint_scope
 
 # TODO: 
 def rand_obj(T):
@@ -69,8 +71,20 @@ class Base():
         model = RandObjModel(self)
         return model
     
+    def __enter__(self):
+        push_constraint_scope(ConstraintScopeModel())
+        return self
+    
+    def __exit__(self, t, v, tb):
+        c = pop_constraint_scope()
+        self.model.do_randomize([c])
+    
     def randomize_with(self):
-        pass
+        if self.model is None:
+            # Need to initialize
+            self.model = self._build_model()
+
+        return self
     
     def pre_randomize(self):
         pass

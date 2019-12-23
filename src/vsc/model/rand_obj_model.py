@@ -159,7 +159,7 @@ class RandObjModel(CompositeFieldModel):
 #            if count > 4:
 #                break
          
-    def do_randomize(self):
+    def do_randomize(self, extra_constraint_l=[]):
         self.pre_randomize()
         
         field_l = []
@@ -178,6 +178,11 @@ class RandObjModel(CompositeFieldModel):
         node_l = []
         for c in self.constraint_model_l:
             c.get_nodes(node_l)
+            
+        for c in extra_constraint_l:
+            c.build(self)
+            c.get_nodes(node_l)
+            
         for n in node_l:
             self.btor.Assert(n)
         

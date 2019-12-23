@@ -33,6 +33,12 @@ from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.rangelist_model import RangelistModel
 from vsc.types import rangelist, bit_t, to_expr, type_base
 
+class type_options_t():
+    
+    def __init__(self):
+        pass
+    
+    
 class options_t():
     
     def __init__(self, 
@@ -44,7 +50,7 @@ class options_t():
 
 class covergroup():
         
-    def __init__(self, sample_f=None, options=None):
+    def __init__(self, sample_f=None, type_options=None, options=None):
         self.finalized = False;
         self.model = None
         self.coverpoint_l = []

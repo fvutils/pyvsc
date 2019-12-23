@@ -29,7 +29,6 @@ class ModelVisitor():
     
     def visit_rand_obj(self, r):
         self.visit_composite_field(r)
-        
             
     def visit_composite_field(self, f):
         # Visit constraints
