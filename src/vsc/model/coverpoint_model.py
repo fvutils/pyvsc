@@ -34,8 +34,11 @@ class CoverpointModel():
             self.n_bins += b.get_n_bins()
         
     def sample(self):
-        for bin in self.bin_model_l:
-            bin.sample()
+        for b in self.bin_model_l:
+            b.sample()
+
+    def accept(self, v):
+        v.visit_coverpoint(self)
             
     def dump(self, ind=""):
         print(ind + "Coverpoint: " + self.name)

@@ -21,7 +21,6 @@ Created on Aug 3, 2019
 
 @author: ballance
 '''
-from readline import get_begidx
 
 class CoverpointCrossModel():
     
@@ -33,19 +32,20 @@ class CoverpointCrossModel():
         self.unhit_map = {}
     
         # Build up the hit map    
-        self.build_hit_map(0, [])
-        
-        
+        self._build_hit_map(0, [])
         pass
     
-    def build_hit_map(self, i, key_m):
+    def accept(self, v):
+        v.visit_coverpoint_cross(self)
+    
+    def _build_hit_map(self, i, key_m):
         for bin_i in range(self.coverpoint_model_l[i].get_n_bins()):
             key_m.append(bin_i)
             
             if i+1 >= len(self.coverpoint_model_l):
                 key = tuple(key_m)
                 # Reached the bottom of the list
-                print("Tuple: " + str(key))
+#                print("Tuple: " + str(key))
                 self.hit_map[key] = 0
                 self.unhit_map[key] = 0
             else:

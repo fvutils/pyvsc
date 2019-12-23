@@ -32,18 +32,18 @@ from vsc.model.composite_field_model import CompositeFieldModel
 
 class RandObjModel(CompositeFieldModel):
     
-    def __init__(self, t):
+    def __init__(self, facade_obj):
         self.is_elab = False;
         self.seed = 1
         self.level = 0
-
+        
         # Each random object gets its own Boolector instance
         self.btor = Boolector()
         self.btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
         self.btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
         
-        print("RandObjModel: " + str(t))
-        super().__init__(t, None, True, self.btor)
+        print("RandObjModel: " + str(type(facade_obj)))
+        super().__init__(facade_obj, None, True, self.btor)
 
         self.build(self)
     

@@ -1,4 +1,3 @@
-from scipy.interpolate._bspl import _handle_lhs_derivatives
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide

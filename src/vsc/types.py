@@ -22,7 +22,7 @@ Created on Jul 23, 2019
 @author: ballance
 '''
 
-from vsc.impl.ctor import push_expr, pop_expr
+from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
@@ -79,6 +79,8 @@ def to_expr(t):
         return expr(ExprLiteralModel(t, True, 32))
     elif hasattr(t, "to_expr"):
         return t.to_expr()
+    elif callable(t):
+        raise Exception("TODO: support lambda references")
     else:
         raise Exception("Element \"" + str(t) + "\" isn't recognized, and doesn't provide to_expr")
     
@@ -92,10 +94,10 @@ class field_info():
         
 class type_base():
     
-    def __init__(self, width, is_signed):
+    def __init__(self, width, is_signed, i=0):
         self.width = width
         self.is_signed = is_signed
-        self.val = 0
+        self.val = i
         self._int_field_info = field_info()
         
     def to_expr(self):
@@ -111,6 +113,7 @@ class type_base():
         return self.val
     
     def get_val(self):
+        print("type_base.get_val: " + str(self.val))
         return self.val
     
     def set_val(self, val):
@@ -140,7 +143,10 @@ class type_base():
     
     def __le__(self, rhs):
         # TODO: overload for behavioral assign
-        return self.bin_expr(BinExprType.Le, rhs)
+        if in_constraint_scope():
+            return self.bin_expr(BinExprType.Le, rhs)
+        else:
+            self.set_val(rhs)
     
     def __lt__(self, rhs):
         return self.bin_expr(BinExprType.Lt, rhs)
@@ -152,7 +158,6 @@ class type_base():
         return self.bin_expr(BinExprType.Gt, rhs)
     
     def __add__(self, rhs):
-        print("ADD:")
         return self.bin_expr(BinExprType.Add, rhs)
     
     def __sub__(self, rhs):
@@ -167,6 +172,9 @@ class type_base():
             # assume single value
             pass
         
+    def clone(self):
+        return type_base(self.width, self.is_signed)
+        
         
 
 class type_enum(type_base):
@@ -176,24 +184,24 @@ class type_enum(type_base):
         
 class bit_t(type_base):
     
-    def __init__(self, w=1):
-        super().__init__(w, False)
+    def __init__(self, w=1, i=0):
+        super().__init__(w, False, i)
 
 class rand_bit_t(bit_t):
     
-    def __init__(self, w=1):
-        super().__init__(w)
+    def __init__(self, w=1, i=0):
+        super().__init__(w, i)
         self._int_field_info.is_rand = True
         
 class int_t(type_base):
     
-    def __init__(self, w=32):
-        super().__init__(w, True)
+    def __init__(self, w=32, i=0):
+        super().__init__(w, True, i)
 
 class rand_int_t(int_t):
     
-    def __init__(self, w=32):
-        super().__init__(w)
+    def __init__(self, w=32, i=0):
+        super().__init__(w, i)
         self._int_field_info.is_rand = True
         
         

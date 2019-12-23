@@ -30,10 +30,11 @@ class TestIfElse(TestCase):
 
     def test_if_then(self):
         
-        @vsc.rand_obj
-        class my_s():
+        class my_s(vsc.Base):
             
             def __init__(self):
+                super().__init__()
+                
                 self.a = vsc.rand_bit_t(8)
                 self.b = vsc.rand_bit_t(8)
                 self.c = vsc.rand_bit_t(8)
@@ -48,7 +49,7 @@ class TestIfElse(TestCase):
                     self.b == 1
 
         v = my_s()
-        vsc.randomize(v)
+        v.randomize()
         
         print("a=" + str(int(v.a)) + " b=" + str(int(v.b)))
             

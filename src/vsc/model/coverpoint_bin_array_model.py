@@ -21,7 +21,6 @@ Created on Aug 3, 2019
 
 @author: ballance
 '''
-from Cython.Plex.Regexps import lowercase_range
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinArrayModel(CoverpointBinModelBase):

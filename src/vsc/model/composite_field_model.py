@@ -30,17 +30,17 @@ from vsc.model.scalar_field_model import ScalarFieldModel
 
 class CompositeFieldModel():
     
-    def __init__(self, t, parent, is_rand, btor):
-        self.t = t
+    def __init__(self, user_obj, parent, is_rand, btor):
+        self.user_obj = user_obj
         self.parent = parent
         self.field_l = []
         self.constraint_model_l = []
         
         # Iterate through the fields and constraints
         # First, assign IDs to each of the randomized fields
-        for f in dir(t):
+        for f in dir(user_obj):
             if not f.startswith("__") and not f.startswith("_int"):
-                fo = getattr(t, f)
+                fo = getattr(user_obj, f)
                 
                 if isinstance(fo, type_base):
                     
@@ -64,13 +64,13 @@ class CompositeFieldModel():
                                 (is_rand and fo._int_field_info.is_rand), btor))
                     
         # Now, elaborate the constraints
-        for f in dir(t):
+        for f in dir(user_obj):
             if not f.startswith("__") and not f.startswith("_int"):
-                fo = getattr(t, f)
+                fo = getattr(user_obj, f)
                 if isinstance(fo, constraint_t):
                     push_constraint_scope(ConstraintScopeModel())
                     print("--> constraint")
-                    fo.c(t)
+                    fo.c(user_obj)
                     print("<-- constraint")
                     self.constraint_model_l.append(pop_constraint_scope())
                     
@@ -105,8 +105,8 @@ class CompositeFieldModel():
 
     def pre_randomize(self):
         # Call the user's methods
-        if hasattr(self.t, "pre_randomize"):
-            self.t.pre_randomize()
+        if hasattr(self.user_obj, "pre_randomize"):
+            self.user_obj.pre_randomize()
             
         for f in self.field_l:
             f.pre_randomize()

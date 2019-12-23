@@ -38,6 +38,9 @@ class CovergroupModel():
         for cr in self.cross_l:
             cr.sample()
             
+    def accept(self, v):
+        v.visit_covergroup
+            
     def dump(self, ind=""):
         print(ind + "Covergroup " + self.name)
         for cp in self.coverpoint_l:

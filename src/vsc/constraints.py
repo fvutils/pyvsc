@@ -1,11 +1,3 @@
-from vsc.types import to_expr
-from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr,\
-    pop_constraint_scope, in_constraint_scope, last_constraint_stmt
-from vsc.model.constraint_if_else_model import ConstraintIfElseModel
-from vsc.model.constraint_scope_model import ConstraintScopeModel
-from vsc.model.constraint_implies_model import ConstraintImpliesModel
-from vsc.model.constraint_unique_model import ConstraintUniqueModel
-
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
 #
@@ -28,6 +20,14 @@ Created on Jul 23, 2019
 
 @author: ballance
 '''
+
+from vsc.types import to_expr
+from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr,\
+    pop_constraint_scope, in_constraint_scope, last_constraint_stmt
+from vsc.model.constraint_if_else_model import ConstraintIfElseModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.constraint_implies_model import ConstraintImpliesModel
+from vsc.model.constraint_unique_model import ConstraintUniqueModel
 
 class constraint_t():
     

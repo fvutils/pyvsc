@@ -1,3 +1,4 @@
+from vsc.model.rand_obj_model import RandObjModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -31,16 +32,42 @@ def rand_obj(T):
     
     return T
 
-class RandObj():
-    '''
-    Base class for all randomized classes
-    '''
-
+class Base():
+    """Base class for coverage and randomized classes"""
+    
     def __init__(self):
         self.is_rand = False
+        self.model = None
+        pass
+
+    def copy(self, rhs):
+        if not isinstance(rhs, type(self)):
+            raise Exception("Error")
+        
+        for d in dir(self):
+            do = getattr(self, d)
+            if not callable(do):
+                # Candidate for copying
+                if type(do) == int:
+                    setattr(self, d, getattr(rhs, d))
+                elif hasattr(do, "copy"):
+                    do.copy(getattr(rhs, d))
+    
+    def clone(self):
+        ret = type(self)()
+        ret.copy(self)
+        return ret    
 
     def randomize(self):
-        pass
+        if self.model is None:
+            # Need to initialize
+            self.model = self._build_model()
+            
+        return self.model.do_randomize()
+    
+    def _build_model(self):
+        model = RandObjModel(self)
+        return model
     
     def randomize_with(self):
         pass
@@ -50,5 +77,6 @@ class RandObj():
     
     def post_randomize(self):
         pass
-        
+    
+
     

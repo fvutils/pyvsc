@@ -1,4 +1,3 @@
-
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
 #
@@ -15,31 +14,62 @@
 #   CONDITIONS OF ANY KIND, either express or implied.  See
 #   the License for the specific language governing
 #   permissions and limitations under the License.
-
 '''
 Created on Aug 3, 2019
 
 @author: ballance
 '''
-from vsc.model.covergroup_model import CovergroupModel
-from vsc.types import rangelist, bit_t, to_expr, type_base
-from vsc.model.coverpoint_model import CoverpointModel
+# marks 
+
+from enum import Enum, auto
+
 from vsc.impl.ctor import pop_expr
-from vsc.model.rangelist_model import RangelistModel
-from vsc.model.coverpoint_bin_model import CoverpointBinModel
+from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
+from vsc.model.coverpoint_bin_model import CoverpointBinModel
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
+from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.rangelist_model import RangelistModel
+from vsc.types import rangelist, bit_t, to_expr, type_base
 
+class options_t():
+    
+    def __init__(self, 
+        auto_bin_max=64):
+        self.auto_bin_max = auto_bin_max
+        
+    def copy(self, rhs):
+        self.auto_bin_max = rhs.auto_bin_max
 
-# marks 
 class covergroup():
-    def __init__(self):
+        
+    def __init__(self, sample_f=None, options=None):
+        self.finalized = False;
         self.model = None
         self.coverpoint_l = []
         self.cross_l = []
+
+        self.options = options_t()
+        if options is not None:
+            self.options.copy(options)
+            
+
+        # Determine the sampling arguments
+        self.sample_var_l = []
+        if sample_f is not None:
+            c = sample_f.__code__
+            d = sample_f.__defaults__
         
-    def init_model(self):
+            for i in range(len(c.co_varnames)):
+                t = sample_f.__defaults__[i]
+                n = c.co_varnames[i]
+           
+                v = t.clone()
+                self.sample_var_l.append(v)
+                setattr(self, n, v)
+        
+    def finalize(self):
         self.model = CovergroupModel()
         
         for cp_n in dir(self):
@@ -52,26 +82,38 @@ class covergroup():
             cp_o = getattr(self, cp_n)
             if isinstance(cp_o, cross):
                 self.model.cross_l.append(cp_o.build_model(cp_n))
+                
+        self.finalized = True
+                
+    def init_model(self):
+        self.finalize()
    
     
-    def sample(self):
+    def sample(self, *args):
         '''
         Base sampling method that samples all coverpoints and crosses
         '''
         
+        if not self.finalized:
+            self.finalize()
+        
+        if len(args) != len(self.sample_var_l):
+            raise Exception("Wrong number of parameters: expect " + str(len(self.sample_var_l)) + " receive " + str(len(args)))
+        
+        for i in range(len(args)):
+            if isinstance(args[i], type(self.sample_var_l[i])):
+                # Just set the field from the arguments
+                pass
+            else:
+                raise Exception("Sample method parameter \"XX\" is of the wrong type")
+            self.sample_var_l[i].set_val(args[i])
+        
         self.model.sample()
-            
-#         for cp_n in dir(self):
-#             cp_o = getattr(self, cp_n)
-#             if isinstance(cp_o, coverpoint):
-#                 cp_o.sample()
-            
-            
+
         pass
     
     def dump(self, ind=""):
         self.model.dump(ind)
-
 
 class bin():
     def __init__(self, *args):
@@ -110,16 +152,29 @@ class bin_array():
             pass
 
         return ret
-        
+    
+class _TKind(Enum):
+    CoverVar = auto()
+    
 class coverpoint():
    
-    def __init__(self, target, iff=None, bins={}):
+    def __init__(self, target, cp_t=None, iff=None, bins={}):
         self.have_var = False
         self.target = None
         self.model = None
+        self.target_kind = None
+        self.target_type = None
+        self.get_val_f = None
+        
         if isinstance(target, type_base):
             self.have_var = True
             self.target = target
+            self.get_val_f = target.get_val
+        elif callable(target):
+            if cp_t is None:
+                raise Exception("Coverpoint with a callable target must specify type")
+            self.target = target
+            self.get_val_f = target
 #        elif isinstance(target, int_t)
         else:
             # should be an actual variable (?)
@@ -146,7 +201,10 @@ class coverpoint():
         pass
     
     def get_val(self):
-        return self.target.get_val()
+        ret = self.get_val_f()
+        print("get_val: val=" + str(ret) + " get_val_f=" + str(self.get_val_f))
+            
+        return ret
     
     def set_val(self, val):
         self.target.set_val(val)
@@ -174,11 +232,3 @@ class cross():
         print("coverpoint_model_l: " + str(coverpoint_model_l))
 
         return CoverpointCrossModel(self, name, coverpoint_model_l)
-        
-
-# Coverpoint variable
-my_coverpoint = coverpoint(bit_t(4), bins={
-    "a" : bin(rangelist(1, 2, [4,5])),
-    "b" : bin_array([], rangelist(1, 2, [8,15]))
-    })
-
