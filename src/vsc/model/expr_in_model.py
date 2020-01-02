@@ -46,13 +46,12 @@ class ExprInModel(ExprModel):
             else:
                 self.expr = ExprBinModel(self.expr, BinExprType.Or, t)
                 
-    def build(self, builder):
-        self.expr.build(builder)
+    def build(self, btor):
+        return self.expr.build(btor)
     
     def get_node(self):
         return self.expr.get_node()
     
-
     def accept(self, visitor):
         visitor.visit_expr_in(self)
         

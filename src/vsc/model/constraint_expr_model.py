@@ -28,8 +28,8 @@ class ConstraintExprModel(ConstraintModel):
     def __init__(self, e):
         self.e = e
         
-    def build(self, builder):
-        self.e.build(builder)
+    def build(self, btor):
+        return self.e.build(btor)
         
     def get_nodes(self, node_l):
         node_l.append(self.e.get_node())

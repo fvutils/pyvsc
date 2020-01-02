@@ -1,3 +1,4 @@
+from builtins import range
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -165,3 +166,37 @@ class TestCovergroup(TestCase):
             cg.sample(8, 8)
         
         cg.dump()                
+        
+    def test_binsof_cross(self):
+       
+        class my_covergroup(covergroup):
+            
+            def __init__(self):
+                super().__init__(lambda 
+                        a=bit_t(4),
+                        b=bit_t(4) : 0
+                    )
+                self.cp1 = coverpoint(self.a, bins={
+                    "a" : bin_array([], [1,15])
+                    })
+                self.cp2 = coverpoint(self.b, bins={
+                    "a" : bin_array([], [1,15])
+                    })
+                
+                self.cp1X2 = cross([self.cp1, self.cp2], bins={
+                    "a" : binsof(self.cp1.a).intersect([0,1,range(5,7)]) and binsof(self.cp2.a)
+                    })
+
+                # Finalize the model
+                self.finalize()
+
+        cg = my_covergroup()
+        
+        for i in range(100000):
+            cg.sample(4, 4)
+            cg.sample(4, 4)
+         
+            cg.sample(8, 8)
+            cg.sample(8, 8)
+        
+        cg.dump()                        

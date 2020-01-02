@@ -31,10 +31,20 @@ class ModelVisitor():
         self.visit_composite_field(r)
             
     def visit_composite_field(self, f):
+        # Visit fields
+        for fi in f.field_l:
+            fi.accept(self)
+            
         # Visit constraints
         for c in f.constraint_model_l:
             c.accept(self)
+
+    def visit_scalar_field(self, f):
+        pass
     
+    def visit_constraint_block(self, c):
+        self.visit_constraint_scope(c)
+        
     def visit_constraint_expr(self, c):
         c.e.accept(self)
         

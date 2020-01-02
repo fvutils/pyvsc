@@ -28,8 +28,8 @@ class ExprFieldRefModel(ExprModel):
     def __init__(self, fm):
         self.fm = fm
 
-    def build(self, builder):
-        pass
+    def build(self, btor):
+        return self.fm.var
         
     def get_node(self):
         return self.fm.get_node()

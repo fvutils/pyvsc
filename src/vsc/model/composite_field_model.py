@@ -1,5 +1,6 @@
 from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope
 from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.constraint_block_model import ConstraintBlockModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -30,7 +31,7 @@ from vsc.model.scalar_field_model import ScalarFieldModel
 
 class CompositeFieldModel():
     
-    def __init__(self, user_obj, parent, is_rand, btor):
+    def __init__(self, user_obj, parent, is_rand):
         self.user_obj = user_obj
         self.parent = parent
         self.field_l = []
@@ -51,7 +52,7 @@ class CompositeFieldModel():
                         fo._int_field_info.parent = self.parent.t._int_field_info
                     print("Scalar field: " + f)
                     self.field_l.append(ScalarFieldModel(fo, self, 
-                                (is_rand and fo._int_field_info.is_rand), btor))
+                                (is_rand and fo._int_field_info.is_rand)))
                 elif hasattr(fo, "_int_rand_info"):
                     # This is a composite field
                     # TODO: assign ID
@@ -61,20 +62,19 @@ class CompositeFieldModel():
                     if self.parent != None:
                         fo._int_field_info.parent = self.parent.t._int_field_info
                     self.field_l.append(CompositeFieldModel(fo, self, 
-                                (is_rand and fo._int_field_info.is_rand), btor))
+                                (is_rand and fo._int_field_info.is_rand)))
                     
         # Now, elaborate the constraints
         for f in dir(user_obj):
             if not f.startswith("__") and not f.startswith("_int"):
                 fo = getattr(user_obj, f)
                 if isinstance(fo, constraint_t):
-                    push_constraint_scope(ConstraintScopeModel())
+                    push_constraint_scope(ConstraintBlockModel(f))
                     print("--> constraint")
                     fo.c(user_obj)
                     print("<-- constraint")
                     self.constraint_model_l.append(pop_constraint_scope())
                     
-        print("btor: " + str(btor))
                     
     def build(self, builder):
         # First, build the fields

@@ -1,4 +1,11 @@
 from vsc.model.fieldref_visitor import FieldrefVisitor
+from vsc.model.constraint_builder_visitor import ConstraintBuilderVisitor
+from random import Random
+from vsc.model.field_builder_visitor import FieldBuilderVisitor
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -22,8 +29,6 @@ Created on Jul 23, 2019
 
 @author: ballance
 '''
-from vsc.constraints import constraint_t
-from vsc.types import type_base
 
 import pyboolector
 from pyboolector import Boolector
@@ -33,20 +38,16 @@ from vsc.model.composite_field_model import CompositeFieldModel
 class RandObjModel(CompositeFieldModel):
     
     def __init__(self, facade_obj):
+        super().__init__(facade_obj, None, True)
         self.is_elab = False;
         self.seed = 1
+        self.rand = Random(self.seed)
+        self.ref_fields_s = set()
+        self.unref_fields_s = set()
         self.level = 0
-        
-        # Each random object gets its own Boolector instance
-        self.btor = Boolector()
-        self.btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
-        self.btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
-        
-        print("RandObjModel: " + str(type(facade_obj)))
-        super().__init__(facade_obj, None, True, self.btor)
+        self.step = 0
+        self.is_init = False
 
-        self.build(self)
-    
     def elab(self):
         if self.is_elab:
             return
@@ -54,255 +55,231 @@ class RandObjModel(CompositeFieldModel):
         self.is_elab = True
         
         
-    def next(self):
-        self.seed ^= (self.seed >> 12)
-        self.seed ^= (self.seed << 25)
-        self.seed ^= (self.seed >> 27)
+    def _next(self):
+        ret = self.rand.randrange(0, 0xFFFFFFFF)
+        return ret
 
-        self.seed &= 0xFFFFFFFFFFFFFF
-        
-        return ((self.seed * 0x4F6CDD1D) >> 16)        
-
-    def swizzle_target_fields_comb(self, target_field_l, bits):
-        term = None
-        term_valid = False
-            
-        for t in target_field_l:
-            seed = self.next()
-            mask = ((1 << bits)-1)
-            if t.width() < bits:
-                print("  Field smaller than bits")
-                const = ((seed >> 7) & ((1 << bits-t.width())-1))
-                if (seed & 21) == 0:
-                    # Add zeros above
-                    tt = self.btor.Concat(self.btor.Const(const, (bits-t.width())), t.get_node())
-                else:
-                    # Add zeros below
-                    tt = self.btor.Concat(t.get_node(), self.btor.Const(const, (bits-t.width())))
-                        
-            elif t.width() > bits:
-                delta = (t.width() - bits)
-                offset = (seed % delta)
-                print("  Field larger than bits: slice[" + str(offset+bits-1) + ":" + str(offset) + "]")
-                # bits=2 ; width=8 ; offset=0 ; 
-                tt = self.btor.Slice(t.get_node(), (offset+bits-1), offset)
-            else:
-                print("  Field same size")
-                tt = t.get_node()
-
-            print("Xor: " + str(((seed >> 15) & mask)))
-            # >> 2 ^ << 25 ^ >> 27
-            tt = self.btor.Xor(tt, self.btor.Const(((seed >> 15) & mask), bits))
-                
-            if term_valid:
-                term = self.btor.Xor(term, tt)
-            else:
-                term = tt
-                term_valid = True
-         
-        if term_valid:                
-            seed = self.next()
-            print("Eq: " + str(((seed >> 13) & (bits-1))))
-            term = self.btor.Eq(term, self.btor.Const(((seed >> 13) & mask), bits))
-            
-            self.btor.Assert(term)        
-
-    def swizzle_target_fields(self, target_field_l, bits):
-            
-        for t in target_field_l:
-            seed = self.next()
-            mask = ((1 << bits)-1)
-            if t.width() < bits:
-                print("  Field smaller than bits")
-                const = ((seed >> 7) & ((1 << bits-t.width())-1))
-#                const = (seed & ((1 << bits-t.width())-1))
-                if (seed & 21) == 0:
-                    # Add zeros above
-                    tt = self.btor.Concat(self.btor.Const(const, (bits-t.width())), t.get_node())
-                else:
-                    # Add zeros below
-                    tt = self.btor.Concat(t.get_node(), self.btor.Const(const, (bits-t.width())))
-                        
-            elif t.width() > bits:
-                delta = (t.width() - bits)
-                offset = (seed % delta)
-                print("  Field larger than bits: slice[" + str(offset+bits-1) + ":" + str(offset) + "]")
-                # bits=2 ; width=8 ; offset=0 ; 
-                tt = self.btor.Slice(t.get_node(), (offset+bits-1), offset)
-            else:
-                print("  Field same size")
-                tt = t.get_node()
-
-            print("Xor: " + str(((seed >> 15) & mask)))
-            tt = self.btor.Xor(tt, self.btor.Const(((seed >> 15) & mask), bits))
-            tt = self.btor.Eq(tt, self.btor.Const(((seed >> 13) & mask), bits))
-            self.btor.Assert(tt)
-
-    def swizzle_unreferenced_fields(self, unreferenced_l, bits):
-        # Add in pure-random constraints for unreferenced fields
-        count = 0
-        for t in unreferenced_l:
-#            print("Unreferenced: " + t.name())
-            seed = self.next()
-            const = ((seed >> 13) & ((1 << (t.width())) - 1))
-            tt = self.btor.Eq(self.btor.Const(const, t.width()), t.get_node())
-#             if t.width() <= bits:
-#                 const = (seed & ((1 << t.width()) - 1))
-#                 tt = self.btor.Eq(self.btor.Const(const, t.width()), t.get_node())
-#             else:
-#                 const = (seed & ((1 << bits) - 1))
-#                 tt = self.btor.Eq(self.btor.Const(const, t.width()), t.get_node())
-                
-            self.btor.Assert(tt)        
-            count += 1
-            
-#            if count > 4:
-#                break
-         
     def do_randomize(self, extra_constraint_l=[]):
+        ret = False
         self.pre_randomize()
         
-        field_l = []
-        self.get_fields(field_l)
-        
-        self.btor.Pop(self.level)
-        self.level = 0
-            
-        self.btor.Push()
-        self.level += 1
+        if not self.is_init:
+            # Do a bit of initial work 
+            FieldrefVisitor.find(self, self.ref_fields_s, self.unref_fields_s)
+            self.is_init = True
 
-        # Collect the constraints and add them to the solver
-        constraint_l = []
-        self.get_constraints(constraint_l)
+        extra_constraint_ref_s = set()
         
-        node_l = []
-        for c in self.constraint_model_l:
-            c.get_nodes(node_l)
-            
-        for c in extra_constraint_l:
-            c.build(self)
-            c.get_nodes(node_l)
-            
-        for n in node_l:
-            self.btor.Assert(n)
-        
-        if self.btor.Sat() != self.btor.SAT:
-            print("Error: failed")
-            return False
+        if len(extra_constraint_l) > 0:
+            FieldrefVisitor.find(self, extra_constraint_ref_s, None)
 
-        bits = -1
-            
-        n_target_fields = len(field_l)
-        
-        sel_l = field_l.copy()
-        
-        fieldref_v = FieldrefVisitor()
-        self.accept(fieldref_v)
-           
-        # TODO: Now, add in some randomization
-            # First, randomly select fields
-        target_field_l = []
-        unreferenced_l = []
-      
-        i = 0
-        while i < len(sel_l):
-            if not sel_l[i] in fieldref_v.ref_s:
-                unreferenced_l.append(sel_l.pop(i))
-            else:
-                i += 1
+        while True:        
+            if self.step == 0:
+                # Each randomization epoch gets its own Boolector instance
+                self.btor = Boolector()
+                self.btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
+                self.btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
                 
-        referenced_l = sel_l.copy()
-                
-        if len(sel_l) > 4:
-            n_target_fields = int(len(sel_l)*2/3)
-        elif len(sel_l) > 0:
-            n_target_fields = 1
-        else:
-            n_target_fields = 0
-                 
-        bits = -1
-        if n_target_fields > 0:
-            for i in range(n_target_fields):
-                seed = self.next()
-                idx = ((seed >> 11) % len(sel_l))
-#            print("Get rand field: " + str(len(sel_l)) + " " + str(seed%len(sel_l)))
-                f = sel_l.pop(idx)
-                if f.width() > bits:
-                    bits = f.width()
-                target_field_l.append(f)
-        else:
-            bits = 1
-            
-        if bits > 2:
-            bits = int(bits/2)
+                # Build a Boolector representation for each field
+                FieldBuilderVisitor.build(self, self.btor)
 
-        rand_fields = ""             
-        for f in target_field_l:
-            rand_fields += f.f._int_field_info.name + " "
+                # Build and add base constraints
+                ConstraintBuilderVisitor.build(self, self.btor)
+        
+                if self.btor.Sat() != self.btor.SAT:
+                    print("Error: base constraints are invalid")
+                    break
 
-        print("Target Fields: " + rand_fields)
-
-        # First, push constraints for unreferenced fields        
-        self.btor.Push()
-        self.level += 1
-        if len(unreferenced_l) > 0:
-            self.swizzle_unreferenced_fields(unreferenced_l, bits)
-            
-        # Add in pure-random constraints for unreferenced fields
-#         for t in unreferenced_l:
-# #            print("Unreferenced: " + t.name())
-#             seed = self.next()
-# #            const = ((seed >> 13) & ((1 << (t.width())) - 1))
-#             const = (seed & ((1 << (t.width())) - 1))
-#                 
-#             tt = self.btor.Eq(self.btor.Const(const, t.width()), t.get_node())
-#             self.btor.Assert(tt)
-
-        tries = 0
-        if len(target_field_l) > 0:
-            success = False
-            while bits > 0 and not success:
+            if len(extra_constraint_l) > 0: 
                 self.btor.Push()
-                self.level += 1
+            
+                # Build and add inline constraints    
+                for ic in extra_constraint_l:
+                    ConstraintBuilderVisitor.build(ic, self.btor)
+            
+                if self.btor.Sat() != self.btor.SAT:
+                    print("Error: inline constraints are invalid")
+                    break
                 
-                if len(target_field_l) > 0 and bits > 0:
-                    self.swizzle_target_fields(target_field_l, bits)
-                 
-                if self.btor.Sat() == self.btor.SAT:
-                    print("Success")
-                    success = True
+            if self.step == 0:
+                # Establish some initial random values
+                expr_n_terms = self.mk_rand_c(self.ref_fields_s, self.unref_fields_s)
+        
+                expr = expr_n_terms[0]
+                n_terms = expr_n_terms[1]
+        
+                # Minimize the equation. This will result
+                # in a new frame on the solver stack
+                min_v = self.optimize_rand_c(expr, 0, n_terms)
+                print("Setup initial random result: min_v=" + str(min_v) + " n_terms=" + str(n_terms))
+                ret = True
+                break
+            else:
+                self.btor.Push()
+                
+                unref_fields_s = self.unref_fields_s.copy()
+                for ref_f in extra_constraint_ref_s:
+                    if ref_f in unref_fields_s:
+                        unref_fields_s.remove(ref_f)
+                
+                ref_fields_l = list(self.ref_fields_s)
+                    
+                if len(ref_fields_l) <= 4:
+                    n_swizzle = len(ref_fields_l)
                 else:
-                    print("Try again")
-                    self.btor.Pop()
-                    self.level -= 1
-                    bits -= 1
-                tries += 1
-        else:
-            success = True
+                    n_swizzle = int(len(ref_fields_l)/4)
+                    
+                # Change all the unreferenced fields
+                for f in unref_fields_s:
+                    e = ExprBinModel(
+                        ExprFieldRefModel(f),
+                        BinExprType.Eq,
+                        ExprLiteralModel((self._next() & (1 << f.width())-1), False, f.width())
+                    )
+#                     e = ExprBinModel(
+#                         ExprFieldRefModel(f),
+#                         BinExprType.Ne,
+#                         ExprLiteralModel(f.f.val, False, f.width())
+#                     )
+                        
+                    self.btor.Assert(e.build(self.btor))
+                    
+                for i in range(n_swizzle):
+                    f = ref_fields_l.pop(self._next()%len(ref_fields_l))
 
-        if not success:
-            print("Failed to randomize")
-            self.btor.Sat()
-        elif tries > 1:
-            print("Success after " + str(tries) + " tries")
+                    e = ExprBinModel(
+                        ExprFieldRefModel(f),
+                        BinExprType.Ne,
+                        ExprLiteralModel(f.f.val, False, f.width())
+                    )
+                        
+                    self.btor.Assert(e.build(self.btor))
+                    
+                if self.btor.Sat() != self.btor.SAT:
+                    print("Error: swizzled constraints are invalid")
+                    # Go back to the beginning
+                    self.step = 0
+                else:
+                    ret = True
+                    break
+                
+        if ret:        
+            # Capture assigned values
+            self.post_randomize()
             
-        # TODO: form a constraint for the FIFO 
-        nonrep = None
-        nonrep_valid = False
-        for f in referenced_l:
-            t = self.btor.Ne(f.get_node(), f.get_node())
-            print("Ref: " + f.name() + " = " + str(f.f()))
+            # Pop the randomization context
+            self.btor.Pop()
             
-            
-            # Create a series of xor slices
-           
-            # term = var[slice] ^ seed[slice]
-            
+            # Move to the next step in this epoch
+            if self.step > 100:
+                self.step = 0
+            else:
+                self.step += 1
+
+        # Remove the inline constraints            
+        if len(extra_constraint_l) > 0: 
+            self.btor.Pop()
         
+        return ret
+
+    def mk_rand_c(self, ref_s, unref_s):
+        n_terms = 0
+        expr = None
         
-        self.post_randomize()
-#        do_post_randomize()
+        all_rand_fields = []
+        for f in list(ref_s) + list(unref_s):
+            if f.is_rand:
+                all_rand_fields.append(f)
+                
+        print("There are " + str(len(all_rand_fields)) + " rand fields")
         
+        if len(all_rand_fields) <= 4:
+            n_swizzle_fields = len(all_rand_fields)
+        else:
+            n_swizzle_fields = int(len(all_rand_fields)/4)
+        
+        for i in range(n_swizzle_fields):
+            f = all_rand_fields.pop(self._next() % len(all_rand_fields))
+
+            bit_l = [*range(f.width())]
+            n_bits = int(f.width()-1/8)+1
+#            n_bits = int(f.width()-1/4)+1
+#            n_bits = int(f.width()-1/2)+1
+                
+            for i in range(n_bits):
+                seed = self._next()
+                # Get the bit index randomly out the remaining bits
+                bit_i = (seed % len(bit_l))
+                bit = bit_l.pop(bit_i)
+#                    val = ((seed >> 21) & 1)
+#                val = (seed & 1)
+                val = 1
+                # Evaluates to 0 if the constraint is satisfied, and
+                # 1 if the constraint cannot be satisfied. This allows
+                # us to minimize the number of constraints that cannot 
+                # be satisfied
+                e = self.btor.Cond(
+                    self.btor.Eq(
+                        self.btor.Slice(f.var, bit, bit),
+                        self.btor.Const(val, 1)),
+                    self.btor.Const(0, 32),
+                    self.btor.Const(1, 32))
+                n_terms += 1
+                
+                if expr is None:
+                    expr = e
+                else:
+                    expr = self.btor.Add(expr, e)
+                    
+        return (expr, n_terms)
+    
+    def optimize_rand_c(self, expr, min_t, max_t):
+        ret = -1
+
+        if min_t==max_t:
+            mid_point = min_t
+        else:                
+            mid_point = min_t + int((max_t-min_t+1)/2)
+        print("--> optimize_rand_c: min=" + str(min_t) + " mid_point=" +  str(mid_point) + " max=" + str(max_t))
+        
+        # Push a new constraint scope
+        self.btor.Push()
+        
+        self.btor.Assert(self.btor.Ulte(
+            expr, 
+            self.btor.Const(mid_point, 32)))
+        
+        if self.btor.Sat() == self.btor.SAT:
+            print("  SAT")
+            if mid_point > 0 and min_t != max_t:
+                self.btor.Pop()
+                # Continue making the range smaller
+                sub_r = self.optimize_rand_c(expr, min_t, mid_point-1)
+                if sub_r == -1:
+                    # re-solve, since this is the best we'll do
+                    self.btor.Push()
+                    self.btor.Sat()
+                    ret = mid_point
+                else:
+                    # The sub-solved worked out, so take that value
+                    ret = sub_r
+            else:
+                ret = mid_point
+        else:
+            print("  UNSAT")
+            self.btor.Pop()
+            if mid_point < max_t:
+                # Solve failed, so let's explore the upper portion
+                ret = self.optimize_rand_c(expr, mid_point+1, max_t)
+            else:
+                # Dead-end here
+                ret = -1
+            
+        print("<-- optimize_rand_c: ret=" + str(ret))
+        
+        return ret
+        
+                
     def accept(self, visitor):
         visitor.visit_rand_obj(self)
         

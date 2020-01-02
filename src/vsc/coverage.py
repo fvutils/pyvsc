@@ -159,6 +159,25 @@ class bin_array():
 
         return ret
     
+class binsof():
+    # TODO: future implementation of the 'binsof' operator
+    
+    def __init__(self, cp):
+        pass
+    
+
+    def intersect(self, rng):
+        pass
+
+    def __and__(self, rhs):
+        pass
+    
+    def __not__(self, rhs):
+        pass
+    
+    def __or__(self, rhs):
+        pass
+    
 class _TKind(Enum):
     CoverVar = auto()
     

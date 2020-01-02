@@ -27,59 +27,58 @@ from vsc.model.expr_model import ExprModel
 class ExprBinModel(ExprModel):
     
     def __init__(self, lhs, op, rhs):
+        super().__init__()
         self.lhs = lhs
         self.op = op
         self.rhs = rhs
-        self.node = None
         self.width = 0
         self.signed = 0
         
         
-    def build(self, builder):
-        self.lhs.build(builder)
-        self.rhs.build(builder)
+    def build(self, btor):
+        ret = None
+        lhs_n = self.lhs.build(btor)
+        rhs_n = self.rhs.build(btor)
         
-        lhs_n = self.lhs.get_node()
-        rhs_n = self.rhs.get_node()
-        
-        lhs_n = self.extend(lhs_n, rhs_n, self.lhs.is_signed(), builder.btor)
-        rhs_n = self.extend(rhs_n, lhs_n, self.rhs.is_signed(), builder.btor)
+        lhs_n = self.extend(lhs_n, rhs_n, self.lhs.is_signed(), btor)
+        rhs_n = self.extend(rhs_n, lhs_n, self.rhs.is_signed(), btor)
         
         if self.op == BinExprType.Eq:
-            self.node = builder.btor.Eq(lhs_n, rhs_n)
-            pass
+            ret = btor.Eq(lhs_n, rhs_n)
         elif self.op == BinExprType.Ne:
-            self.node = builder.btor.Ne(lhs_n, rhs_n)
+            ret = btor.Ne(lhs_n, rhs_n)
         elif self.op == BinExprType.Gt:
             if not self.lhs.is_signed() or not self.rhs.is_signed():
-                self.node = builder.btor.Ugt(lhs_n, rhs_n)
+                ret = btor.Ugt(lhs_n, rhs_n)
             else:
-                self.node = builder.btor.Sgt(lhs_n, rhs_n)
+                ret = btor.Sgt(lhs_n, rhs_n)
         elif self.op == BinExprType.Ge:
             if not self.lhs.is_signed() or not self.rhs.is_signed():
-                self.node = builder.btor.Ugte(lhs_n, rhs_n)
+                ret = btor.Ugte(lhs_n, rhs_n)
             else:
-                self.node = builder.btor.Sgte(lhs_n, rhs_n)
+                ret = btor.Sgte(lhs_n, rhs_n)
         elif self.op == BinExprType.Lt:
             if not self.lhs.is_signed() or not self.rhs.is_signed():
-                self.node = builder.btor.Ult(lhs_n, rhs_n)
+                ret = btor.Ult(lhs_n, rhs_n)
             else:
-                self.node = builder.btor.Slt(lhs_n, rhs_n)
+                ret = btor.Slt(lhs_n, rhs_n)
         elif self.op == BinExprType.Le:
             if not self.lhs.is_signed() or not self.rhs.is_signed():
-                self.node = builder.btor.Ulte(lhs_n, rhs_n)
+                ret = btor.Ulte(lhs_n, rhs_n)
             else:
-                self.node = builder.btor.Slte(lhs_n, rhs_n)
+                ret = btor.Slte(lhs_n, rhs_n)
         elif self.op == BinExprType.Add:
-            self.node = builder.btor.Add(lhs_n, rhs_n)
+            ret = btor.Add(lhs_n, rhs_n)
         elif self.op == BinExprType.Sub:
-            self.node = builder.btor.Sub(lhs_n, rhs_n)
+            ret = btor.Sub(lhs_n, rhs_n)
         elif self.op == BinExprType.And:
-            self.node = builder.btor.And(lhs_n, rhs_n)
+            ret = btor.And(lhs_n, rhs_n)
         elif self.op == BinExprType.Or:
-            self.node = builder.btor.Or(lhs_n, rhs_n)
+            ret = btor.Or(lhs_n, rhs_n)
         else:
             raise Exception("Unsupported binary expression type \"" + str(self.op) + "\"")
+        
+        return ret
 
     def extend(self, e1, e2, signed, btor):
         ret = e1

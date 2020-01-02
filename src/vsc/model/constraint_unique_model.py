@@ -32,21 +32,21 @@ class ConstraintUniqueModel(ConstraintModel):
         self.unique_l = unique_l
         self.expr = None 
         
-    def build(self, builder):
-        for u in self.unique_l:
-            u.build(builder)
+    def build(self, btor):
+        ret = None
             
         for i in range(len(self.unique_l)):
             for j in range(len(self.unique_l)):
                 if i != j:
+                    
                     t = ExprBinModel(self.unique_l[i], BinExprType.Ne, self.unique_l[j])
                     
-                    if self.expr == None:
-                        self.expr = t
+                    if ret is None:
+                        ret = t.build(btor)
                     else:
-                        self.expr = ExprBinModel(self.expr, BinExprType.And, t)
-        
-        self.expr.build(builder)                
+                        ret = btor.And(t.build(btor), ret)
+                    
+        return ret
         
     def get_nodes(self, node_l):
         node_l.append(self.expr.get_node())

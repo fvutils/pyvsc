@@ -27,7 +27,7 @@ class ConstraintModel():
     def __init__(self):
         pass
     
-    def build(self, builder):
+    def build(self, btor):
         raise Exception("build unimplemented")
     
     def get_nodes(self, node_l):

@@ -24,17 +24,20 @@ Created on Jul 24, 2019
 
 class ScalarFieldModel():
     
-    def __init__(self, f, parent, is_rand, btor):
+    def __init__(self, f, parent, is_rand):
         self.f = f
         # Connect the user facade to the model
         self.f._int_field_info.model = self
         self.is_rand = is_rand
         self.parent = parent
+        self.var = None
+        
+    def accept(self, v):
+        v.visit_scalar_field(self)
+
+    def build(self, btor):
         sort = btor.BitVecSort(self.f.width)
         self.var = btor.Var(sort)
-
-    def build(self, builder):
-        pass
         
     def get_node(self):
         return self.var
@@ -55,10 +58,10 @@ class ScalarFieldModel():
         pass
     
     def post_randomize(self):
-        val = 0
-        for b in self.var.assignment:
-            val <<= 1
-            if b == '1':
-                val |= 1
-        self.f.val = val
-            
+        if self.var is not None:
+            val = 0
+            for b in self.var.assignment:
+                val <<= 1
+                if b == '1':
+                    val |= 1
+            self.f.val = val

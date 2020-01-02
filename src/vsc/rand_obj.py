@@ -1,5 +1,6 @@
 from vsc.model.rand_obj_model import RandObjModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.constraint_block_model import ConstraintBlockModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -72,7 +73,7 @@ class Base():
         return model
     
     def __enter__(self):
-        push_constraint_scope(ConstraintScopeModel())
+        push_constraint_scope(ConstraintBlockModel("inline"))
         return self
     
     def __exit__(self, t, v, tb):

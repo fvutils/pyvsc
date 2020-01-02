@@ -29,9 +29,19 @@ class ConstraintScopeModel(ConstraintModel):
         super().__init__()
         self.constraint_l = []
         
-    def build(self, builder):
+    def build(self, btor):
+        ret = None
         for c in self.constraint_l:
-            c.build(builder)
+            if ret is None:
+                ret = c.build(btor)
+            else:
+                ret = btor.And(ret, c.build(btor))
+                
+        if ret is None:
+            # An empty block defaults to 'true'
+            ret = btor.Const(1, 1)
+
+        return ret
             
     def get_nodes(self, node_l):
         for c in self.constraint_l:

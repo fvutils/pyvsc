@@ -21,7 +21,6 @@ Created on Jul 28, 2019
 
 @author: ballance
 '''
-from vsc.model.constraint_model import ConstraintModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 
 
@@ -32,16 +31,11 @@ class ConstraintImpliesModel(ConstraintScopeModel):
         self.cond = cond
         self.node = None
         
-    def build(self, builder):
-        self.cond.build(builder)
-        super().build(builder)
+    def build(self, btor):
+        cond = self.cond.build(btor)
+        body = super().build(btor)
         
-        e_n = self.cond.get_node()
-        c_l = []
-        super().get_nodes(c_l)
-        c_n = ConstraintModel.and_nodelist(c_l, builder.btor)
-        
-        self.node = builder.btor.Implies(e_n, c_n)
+        return btor.Implies(cond, body)
     
     def get_nodes(self, node_l):
         node_l.append(self.node)

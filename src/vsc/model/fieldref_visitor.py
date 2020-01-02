@@ -22,13 +22,40 @@ Created on Aug 10, 2019
 @author: ballance
 '''
 from vsc.model.model_visitor import ModelVisitor
-from builtins import set
 
 class FieldrefVisitor(ModelVisitor):
     
-    def __init__(self):
-        self.ref_s = set()
+    def __init__(self, ref_s, unref_s):
+        self.ref_s = ref_s
+        self.unref_s = unref_s
+        self.phase = 0
+        
+    @staticmethod
+    def find(obj, ref_s, unref_s):
+        v = FieldrefVisitor(ref_s, unref_s)
+        v.visit(obj)
+        
+    def visit(self, r):
+        if self.ref_s is not None:
+            self.ref_s.clear()
+        if self.unref_s is not None:
+            self.unref_s.clear()
+        self.phase = 0
+        r.accept(self)
+        self.phase = 1
+        r.accept(self)
+        
+    def visit_inline_constraint(self, c):
+        self.phase = 0
+        c.accept(self)
+        
+    def visit_scalar_field(self, f):
+            
+        if self.phase == 1 and self.unref_s is not None:
+            if self.ref_s is not None and f not in self.ref_s:
+                self.unref_s.add(f)
     
     def visit_expr_fieldref(self, e):
-        self.ref_s.add(e.fm)
-        
+        if self.phase == 0 and self.ref_s is not None:
+            self.ref_s.add(e.fm)
+

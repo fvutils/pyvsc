@@ -24,7 +24,7 @@ Created on Jul 26, 2019
 
 class ExprModel():
     
-    def build(self, builder):
+    def build(self, btor):
         pass
     
     def get_node(self):

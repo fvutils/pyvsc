@@ -30,6 +30,10 @@ class ExprPartselectModel(ExprModel):
         self.rhs = rhs 
         pass
     
+    def build(self, btor):
+        raise Exception("ExprPartselectModel.build unimplemented")
+#        return btor.Slice()
+    
     def accept(self, visitor):
         visitor.visit_expr_partselect(self)
     

@@ -29,11 +29,9 @@ class ExprLiteralModel(ExprModel):
         self.val = val
         self.signed = is_signed
         self.width = width
-        self.node = None
         
-    def build(self, builder):
-        self.node = builder.btor.Const(self.val, self.width)
-        pass
+    def build(self, btor):
+        return btor.Const(self.val, self.width)
     
     def get_node(self):
         return self.node

@@ -26,31 +26,22 @@ from vsc.model.constraint_model import ConstraintModel
 class ConstraintIfElseModel(ConstraintModel):
     
     def __init__(self, cond):
+        super().__init__()
         self.cond = cond
         self.true_c = None
         self.false_c = None
-        self.node = None
         
-    def build(self, builder):
-        self.cond.build(builder)
-        self.true_c.build(builder)
-        
-        e_n = self.cond.get_node()
-        
-        true_n_l = []
-        self.true_c.get_nodes(true_n_l)
-        true_n = ConstraintModel.and_nodelist(true_n_l, builder.btor)
+    def build(self, btor):
+        cond = self.cond.build(btor)
+        true_c = self.true_c.build(btor)
         
         if self.false_c == None:
-            self.node = builder.btor.Implies(e_n, true_n)
+            ret = btor.Implies(cond, true_c)
         else:
-            self.false_c.build(builder)
-            false_n_l = []
-            self.false_c.get_nodes(false_n_l)
-            print("false_n_l: " + str(len(false_n_l)))
-            false_n = ConstraintModel.and_nodelist(false_n_l, builder.btor)
-            self.node = builder.btor.Cond(e_n, true_n, false_n)
-   
+            false_c = self.false_c.build(btor)
+            ret = btor.Cond(cond, true_c, false_c)
+
+        return ret
     
     def get_nodes(self, node_l):
         node_l.append(self.node)
