@@ -18,7 +18,8 @@
     parameters affect bin organization
     
 - Need a central registry for covergroup models
-- 
+- Need to collect both type and instance coverage
+
 
 
 - Sample function that accepts parameters

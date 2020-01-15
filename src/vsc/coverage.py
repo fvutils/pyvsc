@@ -14,6 +14,8 @@
 #   CONDITIONS OF ANY KIND, either express or implied.  See
 #   the License for the specific language governing
 #   permissions and limitations under the License.
+import enum
+from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
 '''
 Created on Aug 3, 2019
 
@@ -183,7 +185,7 @@ class _TKind(Enum):
     
 class coverpoint():
    
-    def __init__(self, target, cp_t=None, iff=None, bins={}):
+    def __init__(self, target, cp_t=None, iff=None, bins=None):
         self.have_var = False
         self.target = None
         self.model = None
@@ -195,12 +197,15 @@ class coverpoint():
             self.have_var = True
             self.target = target
             self.get_val_f = target.get_val
+            self.cp_t = type_base
         elif callable(target):
-            if cp_t is None:
-                raise Exception("Coverpoint with a callable target must specify type")
+#             if cp_t is None:
+#                 raise Exception("Coverpoint with a callable target must specify type")
+
+            self.cp_t = cp_t
+            
             self.target = target
             self.get_val_f = target
-#        elif isinstance(target, int_t)
         else:
             # should be an actual variable (?)
             to_expr(target)
@@ -211,19 +216,28 @@ class coverpoint():
     
     def build_model(self, name):
         bin_model_l = []
-        for bname in self.bins.keys():
-            binspec = self.bins[bname]
-          
-            if hasattr(binspec, "build_model"):
-                bin_model_l.append(binspec.build_model(bname, self))
+        if self.bins is None or len(self.bins) == 0:
+            if self.cp_t == type_base:
+                print("TODO: auto-bins from explicit type")
+            elif type(self.cp_t) == enum.EnumMeta:
+                for e in list(self.cp_t):
+                    bin_model_l.append(CoverpointBinEnumModel(e.name, self, e))
             else:
-                raise Exception("Unknown bin specification \"" + str(binspec) + "\"")
+                raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))
+        else:
+            for bname in self.bins.keys():
+                binspec = self.bins[bname]
+          
+                if hasattr(binspec, "build_model"):
+                    bin_model_l.append(binspec.build_model(bname, self))
+                else:
+                    raise Exception("Unknown bin specification \"" + str(binspec) + "\"")
                 
         self.model = CoverpointModel(self, name, bin_model_l)
         return self.model
     
-    def sample(self):
-        pass
+#     def sample(self):
+#         pass
     
     def get_val(self):
         ret = self.get_val_f()

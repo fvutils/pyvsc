@@ -1,12 +1,3 @@
-from vsc.model.fieldref_visitor import FieldrefVisitor
-from vsc.model.constraint_builder_visitor import ConstraintBuilderVisitor
-from random import Random
-from vsc.model.field_builder_visitor import FieldBuilderVisitor
-from vsc.model.expr_bin_model import ExprBinModel
-from vsc.model.bin_expr_type import BinExprType
-from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.expr_fieldref_model import ExprFieldRefModel
-
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
 #
@@ -23,6 +14,15 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 #   CONDITIONS OF ANY KIND, either express or implied.  See
 #   the License for the specific language governing
 #   permissions and limitations under the License.
+from vsc.model.fieldref_visitor import FieldrefVisitor
+from vsc.model.constraint_builder_visitor import ConstraintBuilderVisitor
+from random import Random
+from vsc.model.field_builder_visitor import FieldBuilderVisitor
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_cond_model import ExprCondModel
 
 '''
 Created on Jul 23, 2019
@@ -33,6 +33,7 @@ Created on Jul 23, 2019
 import pyboolector
 from pyboolector import Boolector
 from vsc.model.composite_field_model import CompositeFieldModel
+import numpy
 
 
 class RandObjModel(CompositeFieldModel):
@@ -46,7 +47,9 @@ class RandObjModel(CompositeFieldModel):
         self.unref_fields_s = set()
         self.level = 0
         self.step = 0
+        self.max_step = 10
         self.is_init = False
+        self.statep = [0,1]
 
     def elab(self):
         if self.is_elab:
@@ -56,7 +59,14 @@ class RandObjModel(CompositeFieldModel):
         
         
     def _next(self):
-        ret = self.rand.randrange(0, 0xFFFFFFFF)
+        ret = (self.statep[0] + self.statep[1]) & 0xFFFFFFFF
+        self.statep[1] ^= self.statep[0];
+        self.statep[0] = (((self.statep[0] << 55) | (self.statep[0] >> 9))
+            ^ self.statep[1] ^ (self.statep[1] << 14));
+        self.statep[1] = (self.statep[1] << 36) | (self.statep[1] >> 28);
+
+#        ret = self.rand.randrange(0, 0xFFFFFFFF)
+        print("NEXT: " + str(ret))
         return ret
 
     def do_randomize(self, extra_constraint_l=[]):
@@ -115,7 +125,7 @@ class RandObjModel(CompositeFieldModel):
                 ret = True
                 break
             else:
-                self.btor.Push()
+#                self.btor.Push()
                 
                 unref_fields_s = self.unref_fields_s.copy()
                 for ref_f in extra_constraint_ref_s:
@@ -123,55 +133,91 @@ class RandObjModel(CompositeFieldModel):
                         unref_fields_s.remove(ref_f)
                 
                 ref_fields_l = list(self.ref_fields_s)
-                    
+
+                # TODO: should modify up to N% of referenced fields
+                                    
                 if len(ref_fields_l) <= 4:
                     n_swizzle = len(ref_fields_l)
                 else:
                     n_swizzle = int(len(ref_fields_l)/4)
+                n_swizzle = len(ref_fields_l)
                     
                 # Change all the unreferenced fields
-                for f in unref_fields_s:
-                    e = ExprBinModel(
-                        ExprFieldRefModel(f),
-                        BinExprType.Eq,
-                        ExprLiteralModel((self._next() & (1 << f.width())-1), False, f.width())
-                    )
+#                 for f in unref_fields_s:
 #                     e = ExprBinModel(
 #                         ExprFieldRefModel(f),
-#                         BinExprType.Ne,
-#                         ExprLiteralModel(f.f.val, False, f.width())
+#                         BinExprType.Eq,
+#                         ExprLiteralModel((self._next() & (1 << f.width())-1), False, f.width())
 #                     )
-                        
-                    self.btor.Assert(e.build(self.btor))
-                    
+# #                     e = ExprBinModel(
+# #                         ExprFieldRefModel(f),
+# #                         BinExprType.Ne,
+# #                         ExprLiteralModel(f.f.val, False, f.width())
+# #                     )
+#                         
+#                     self.btor.Assert(e.build(self.btor))
+
+                dist_e = None
                 for i in range(n_swizzle):
                     f = ref_fields_l.pop(self._next()%len(ref_fields_l))
-
-                    e = ExprBinModel(
-                        ExprFieldRefModel(f),
-                        BinExprType.Ne,
-                        ExprLiteralModel(f.f.val, False, f.width())
-                    )
-                        
-                    self.btor.Assert(e.build(self.btor))
                     
-                if self.btor.Sat() != self.btor.SAT:
-                    print("Error: swizzled constraints are invalid")
-                    # Go back to the beginning
-                    self.step = 0
-                else:
-                    ret = True
-                    break
+                    print("Diff: field=" + f.name() + " val=" + str(f.f.val))
+
+                    e = ExprCondModel(
+                        ExprBinModel(
+                            ExprFieldRefModel(f),
+                            BinExprType.Gt,
+                            ExprLiteralModel(f.f.val, False, 32)
+                        ),
+                        ExprBinModel(
+                            ExprFieldRefModel(f),
+                            BinExprType.Sub,
+                            ExprLiteralModel(f.f.val, False, 32)
+                        ),
+                        ExprBinModel(
+                            ExprLiteralModel(f.f.val, False, 32),
+                            BinExprType.Sub,
+                            ExprFieldRefModel(f)
+                        )
+                    )
+                    
+                    if dist_e is None:
+                        dist_e = e
+                    else:
+                        dist_e = ExprBinModel(
+                            dist_e,
+                            BinExprType.Add,
+                            e)
+
+                dist_n = dist_e.build(self.btor)
+                if dist_n.width < 32:
+                    dist_n = self.btor.Uext(dist_n, 32-dist_n.width)
+
+                max_t = self._next()%1024
+                print("max_t=" + str(max_t))
+                max_v = self.maximize_expr(dist_n, 0, max_t)
+                print("max: " + str(max_v))
+                ret = True
+                break
+#                     self.btor.Assert(e.build(self.btor))
+#                     
+#                 if self.btor.Sat() != self.btor.SAT:
+#                     print("Error: swizzled constraints are invalid")
+#                     # Go back to the beginning
+#                     self.step = 0
+#                 else:
+#                     ret = True
+#                     break
                 
         if ret:        
             # Capture assigned values
             self.post_randomize()
             
             # Pop the randomization context
-            self.btor.Pop()
+#            self.btor.Pop()
             
             # Move to the next step in this epoch
-            if self.step > 100:
+            if self.step >= self.max_step:
                 self.step = 0
             else:
                 self.step += 1
@@ -193,18 +239,23 @@ class RandObjModel(CompositeFieldModel):
                 
         print("There are " + str(len(all_rand_fields)) + " rand fields")
         
-        if len(all_rand_fields) <= 4:
-            n_swizzle_fields = len(all_rand_fields)
-        else:
-            n_swizzle_fields = int(len(all_rand_fields)/4)
+#        if len(all_rand_fields) <= 4:
+#            n_swizzle_fields = len(all_rand_fields)
+#        else:
+#            n_swizzle_fields = int(len(all_rand_fields)/4)
+        n_swizzle_fields = len(all_rand_fields)
         
         for i in range(n_swizzle_fields):
+            seed = self._next()
             f = all_rand_fields.pop(self._next() % len(all_rand_fields))
 
             bit_l = [*range(f.width())]
-            n_bits = int(f.width()-1/8)+1
-#            n_bits = int(f.width()-1/4)+1
+#            n_bits = int(f.width()-1/8)+1
+#            n_bits = int((f.width()-1)/2)+1
 #            n_bits = int(f.width()-1/2)+1
+#            n_bits = f.width()
+            n_bits = (seed % f.width())
+            print("field: " + f.name() + " n_bits=" + str(n_bits))
                 
             for i in range(n_bits):
                 seed = self._next()
@@ -214,6 +265,9 @@ class RandObjModel(CompositeFieldModel):
 #                    val = ((seed >> 21) & 1)
 #                val = (seed & 1)
                 val = 1
+                
+                print("bit=" + str(bit) + " val=" + str(val))
+#                val = 1
                 # Evaluates to 0 if the constraint is satisfied, and
                 # 1 if the constraint cannot be satisfied. This allows
                 # us to minimize the number of constraints that cannot 
@@ -231,6 +285,21 @@ class RandObjModel(CompositeFieldModel):
                 else:
                     expr = self.btor.Add(expr, e)
                     
+            for b in bit_l:
+                e = self.btor.Cond(
+                    self.btor.Eq(
+                        self.btor.Slice(f.var, b, b),
+                        self.btor.Const(0, 1)),
+                    self.btor.Const(0, 32),
+                    self.btor.Const(1, 32))
+                n_terms += 1
+                
+                if expr is None:
+                    expr = e
+                else:
+                    expr = self.btor.Add(expr, e)
+                
+                    
         return (expr, n_terms)
     
     def optimize_rand_c(self, expr, min_t, max_t):
@@ -240,19 +309,19 @@ class RandObjModel(CompositeFieldModel):
             mid_point = min_t
         else:                
             mid_point = min_t + int((max_t-min_t+1)/2)
-        print("--> optimize_rand_c: min=" + str(min_t) + " mid_point=" +  str(mid_point) + " max=" + str(max_t))
+#        print("--> optimize_rand_c: min=" + str(min_t) + " mid_point=" +  str(mid_point) + " max=" + str(max_t))
         
         # Push a new constraint scope
-        self.btor.Push()
+#        self.btor.Push()
         
-        self.btor.Assert(self.btor.Ulte(
+        self.btor.Assume(self.btor.Ulte(
             expr, 
             self.btor.Const(mid_point, 32)))
         
         if self.btor.Sat() == self.btor.SAT:
-            print("  SAT")
+#            print("  SAT")
             if mid_point > 0 and min_t != max_t:
-                self.btor.Pop()
+#                self.btor.Pop()
                 # Continue making the range smaller
                 sub_r = self.optimize_rand_c(expr, min_t, mid_point-1)
                 if sub_r == -1:
@@ -266,8 +335,8 @@ class RandObjModel(CompositeFieldModel):
             else:
                 ret = mid_point
         else:
-            print("  UNSAT")
-            self.btor.Pop()
+#            print("  UNSAT")
+#            self.btor.Pop()
             if mid_point < max_t:
                 # Solve failed, so let's explore the upper portion
                 ret = self.optimize_rand_c(expr, mid_point+1, max_t)
@@ -275,9 +344,55 @@ class RandObjModel(CompositeFieldModel):
                 # Dead-end here
                 ret = -1
             
-        print("<-- optimize_rand_c: ret=" + str(ret))
+#        print("<-- optimize_rand_c: ret=" + str(ret))
         
         return ret
+    
+    def maximize_expr(self, expr, min_t=0, max_t=0xFFFFFFFF):
+        ret = -1
+
+        if min_t==max_t:
+            mid_point = min_t
+        else:                
+            mid_point = min_t + int((max_t-min_t+1)/2)
+        print("--> maximize_expr: min=" + str(min_t) + " mid_point=" +  str(mid_point) + " max=" + str(max_t))
+        
+        # Push a new constraint scope
+#        self.btor.Push()
+        
+        self.btor.Assume(self.btor.Ugte(
+            expr, 
+            self.btor.Const(mid_point, 32)))
+        
+        if self.btor.Sat() == self.btor.SAT:
+            print("  SAT")
+            if mid_point < max_t and min_t != max_t:
+#                self.btor.Pop()
+                # Continue moving up
+                sub_r = self.maximize_expr(expr, mid_point+1, max_t)
+                if sub_r == -1:
+                    # re-solve, since this is the best we'll do
+#                    self.btor.Push()
+                    self.btor.Sat()
+                    ret = mid_point
+                else:
+                    # The sub-solved worked out, so take that value
+                    ret = sub_r
+            else:
+                ret = mid_point
+        else:
+            print("  UNSAT")
+#            self.btor.Pop()
+            if mid_point > 0 and min_t != max_t:
+                # Solve failed, so let's explore the lower portion
+                ret = self.maximize_expr(expr, min_t, mid_point-1)
+            else:
+                # Dead-end here
+                ret = -1
+            
+        print("<-- maximize_expr: ret=" + str(ret))
+        
+        return ret    
         
                 
     def accept(self, visitor):

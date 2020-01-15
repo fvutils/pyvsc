@@ -54,6 +54,9 @@ class FieldrefVisitor(ModelVisitor):
         if self.phase == 1 and self.unref_s is not None:
             if self.ref_s is not None and f not in self.ref_s:
                 self.unref_s.add(f)
+                
+    def visit_expr_bin(self, e):
+        super().visit_expr_bin(e)
     
     def visit_expr_fieldref(self, e):
         if self.phase == 0 and self.ref_s is not None:

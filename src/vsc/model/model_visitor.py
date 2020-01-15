@@ -69,6 +69,11 @@ class ModelVisitor():
     def visit_expr_bin(self, e):
         e.lhs.accept(self)
         e.rhs.accept(self)
+        
+    def visit_expr_cond(self, e):
+        e.cond_e.accept(self)
+        e.true_e.accept(self)
+        e.false_e.accept(self)
     
     def visit_expr_fieldref(self, e):
         pass

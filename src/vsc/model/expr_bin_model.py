@@ -34,14 +34,13 @@ class ExprBinModel(ExprModel):
         self.width = 0
         self.signed = 0
         
-        
     def build(self, btor):
         ret = None
         lhs_n = self.lhs.build(btor)
         rhs_n = self.rhs.build(btor)
         
-        lhs_n = self.extend(lhs_n, rhs_n, self.lhs.is_signed(), btor)
-        rhs_n = self.extend(rhs_n, lhs_n, self.rhs.is_signed(), btor)
+        lhs_n = ExprBinModel.extend(lhs_n, rhs_n, self.lhs.is_signed(), btor)
+        rhs_n = ExprBinModel.extend(rhs_n, lhs_n, self.rhs.is_signed(), btor)
         
         if self.op == BinExprType.Eq:
             ret = btor.Eq(lhs_n, rhs_n)
@@ -80,7 +79,8 @@ class ExprBinModel(ExprModel):
         
         return ret
 
-    def extend(self, e1, e2, signed, btor):
+    @staticmethod
+    def extend(e1, e2, signed, btor):
         ret = e1
         
         if e2.width > e1.width:

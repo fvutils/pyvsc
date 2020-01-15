@@ -1,4 +1,5 @@
 from builtins import range
+from enum import IntEnum
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -52,28 +53,34 @@ class TestCovergroup(TestCase):
         
     def test_ref_covergroup(self):
         
+        class my_e(IntEnum):
+            A = auto()
+            B = auto()
+        
         class my_covergroup(covergroup):
             
-            def __init__(self, a, b):
+            def __init__(self, a, b, c): # Need to use lambda for non-reference values
                 super().__init__()
                 
-                self.cp1 = coverpoint(a, cp_t=bit_t(8), bins={
+                self.cp1 = coverpoint(a, bins={
                     "a" : bin_array([], [1,15])
                     })
                 
-                self.cp2 = coverpoint(b, cp_t=bit_t(8), bins={
+                self.cp2 = coverpoint(b, bins={
                     "b" : bin_array([], [1,15])
                     })
                 
-                self.finalize()
-
+                self.cp3 = coverpoint(c, cp_t=my_e)
+                
         a = 1;
         b = 2;
+        c = my_e.A
         
-        cg = my_covergroup(lambda:a, lambda:b)
+        cg = my_covergroup(lambda:a, lambda:b, lambda:c)
         
         cg.sample()
         a = 2
+        c = my_e.B
         cg.sample()
         a = 3
         cg.sample()
@@ -85,7 +92,7 @@ class TestCovergroup(TestCase):
         class my_item_c(Base):
             
             class my_covergroup(covergroup):
-                def __init__(self, it):
+                def __init__(self, it): # Reference values can be passed directly
                     super().__init__()
                 
                     self.cp1 = coverpoint(it.a, bins={
