@@ -1,3 +1,4 @@
+from vsc.model import expr_mode
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -31,15 +32,16 @@ class ConstraintScopeModel(ConstraintModel):
         
     def build(self, btor):
         ret = None
-        for c in self.constraint_l:
-            if ret is None:
-                ret = c.build(btor)
-            else:
-                ret = btor.And(ret, c.build(btor))
+        with expr_mode():
+            for c in self.constraint_l:
+                if ret is None:
+                    ret = c.build(btor)
+                else:
+                    ret = btor.And(ret, c.build(btor))
                 
-        if ret is None:
-            # An empty block defaults to 'true'
-            ret = btor.Const(1, 1)
+            if ret is None:
+                # An empty block defaults to 'true'
+                ret = btor.Const(1, 1)
 
         return ret
             

@@ -11,7 +11,7 @@ done
 export PYTHONPATH=${vsc_dir}/src:/project/fun/portaskela/boolector/inst/lib
 
 # valgrind --tool=memcheck --suppressions=./valgrind-python.supp ${vsc_dir}/packages/python/bin/python3 -m unittest ${@:1}
-valgrind --tool=memcheck python3 -m unittest ${@:1}
+# valgrind --tool=memcheck python3 -m unittest ${@:1}
 # gdb --args python3 -m unittest ${@:1}
-# ${vsc_dir}/packages/python/bin/python3 -m unittest ${@:1}
+${vsc_dir}/packages/python/bin/python3 -m unittest ${@:1}
 

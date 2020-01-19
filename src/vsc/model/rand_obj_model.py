@@ -33,7 +33,6 @@ Created on Jul 23, 2019
 import pyboolector
 from pyboolector import Boolector
 from vsc.model.composite_field_model import CompositeFieldModel
-import numpy
 
 
 class RandObjModel(CompositeFieldModel):

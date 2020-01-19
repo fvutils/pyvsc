@@ -1,6 +1,10 @@
 from vsc.model.rand_obj_model import RandObjModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.types import type_base
+from vsc.model import _expr_mode, get_expr_mode, expr_mode
+import traceback
+import sys
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -35,14 +39,15 @@ def rand_obj(T):
     
     return T
 
-class Base():
+class Base(expr_mode):
     """Base class for coverage and randomized classes"""
-    
+   
     def __init__(self):
+        super().__init__()
         self.is_rand = False
         self.model = None
         pass
-
+    
     def copy(self, rhs):
         if not isinstance(rhs, type(self)):
             raise Exception("Error")
@@ -60,6 +65,34 @@ class Base():
         ret = type(self)()
         ret.copy(self)
         return ret    
+    
+    def __getattribute__(self, a):
+        ret = super().__getattribute__(a)
+        
+        if isinstance(ret, type_base) and get_expr_mode() == 0:
+            # We're not in an expression, so the user
+            # wants the value of this field
+            ret = ret.get_val()
+            
+        return ret
+    
+    def __setattr__(self, field, val):
+        try:
+            # Retrieve the field object so we can check if it's 
+            # a type_base object. This will throw an exception
+            # if the field doesn't exist
+            fo = super().__getattribute__(field)
+        except:
+            super().__setattr__(field, val)
+        else:
+#            super().__setattr__(field, val)
+            if isinstance(fo, type_base) and get_expr_mode() == 0:
+                # We're not in an expression context, so the 
+                # user really wants us to set the actual value
+                # of the field
+                fo.set_val(val)
+            else:
+                super().__setattr__(field, val)
 
     def randomize(self):
         if self.model is None:
@@ -73,11 +106,13 @@ class Base():
         return model
     
     def __enter__(self):
+        super().__enter__()
         push_constraint_scope(ConstraintBlockModel("inline"))
         return self
     
     def __exit__(self, t, v, tb):
         c = pop_constraint_scope()
+        super().__exit__(t, v, tb)
         self.model.do_randomize([c])
     
     def randomize_with(self):

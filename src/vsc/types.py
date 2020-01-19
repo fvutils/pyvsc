@@ -86,6 +86,7 @@ def to_expr(t):
     
     
 class field_info():
+    """Model-specific information about the field"""
     def __init__(self):
         self.id = -1
         self.name = None
@@ -93,6 +94,7 @@ class field_info():
         self.model = None
         
 class type_base():
+    """Base type for all primitive-type fields that participate in constraints"""
     
     def __init__(self, width, is_signed, i=0):
         self.width = width
@@ -103,25 +105,11 @@ class type_base():
     def to_expr(self):
         return expr(ExprFieldRefModel(self._int_field_info.model))
     
-    def __call__(self, v=None):
-        '''
-        Obtains or sets the current value of the field
-        '''
-        if v != None:
-            self.val = v
-
-        return self.val
-    
     def get_val(self):
-        print("type_base.get_val: " + str(self.val))
         return self.val
     
     def set_val(self, val):
         self.val = val
-    
-    def __int__(self):
-        return self.val
-        
     
     def bin_expr(self, op, rhs):
         to_expr(rhs)
@@ -142,11 +130,7 @@ class type_base():
         return self.bin_expr(BinExprType.Ne, rhs)
     
     def __le__(self, rhs):
-        # TODO: overload for behavioral assign
-        if in_constraint_scope():
-            return self.bin_expr(BinExprType.Le, rhs)
-        else:
-            self.set_val(rhs)
+        return self.bin_expr(BinExprType.Le, rhs)
     
     def __lt__(self, rhs):
         return self.bin_expr(BinExprType.Lt, rhs)
@@ -178,9 +162,23 @@ class type_base():
         
 
 class type_enum(type_base):
+    """Base class for enumerated-type fields"""
     
-    def __init__(self, t):        
-        pass
+    def __init__(self, t, i=None):
+        # TODO: determine size of enum
+        super().__init__(32, False, i)
+        self.t = t
+    
+class enum_t(type_enum):
+    
+    def __init__(self, t, i=None):
+        super().__init__(t, i)
+        
+class rand_enum_t(enum_t):
+    
+    def __init__(self, t, i=None):
+        super().__init__(t, i)
+        self._int_field_info.is_rand = True
         
 class bit_t(type_base):
     

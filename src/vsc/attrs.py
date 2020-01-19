@@ -26,17 +26,20 @@ from enum import Enum
 
 
 def attr(t):
+    """Wraps a recognized datatype as a non-rand field"""
     # TODO: why do this?
     return t
 
 def rand_attr(t):
+    """Wraps a VSC datatype, or recognized datatype, as a rand field"""
     if isinstance(t, type_base):
         t._int_field_info.is_rand = True
     elif isinstance(t, Enum):
         t = type_enum(t)
+        t._int_field_info.is_rand = True
     elif hasattr(t, "_int_rand_info"):
         # composite type
-        t._int_field_info = field_info()
+#        t._int_field_info = field_info()
         t._int_field_info.is_rand = True
         print("t=" + str(t) + " field_info=" + str(t._int_field_info))
     else:

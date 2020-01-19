@@ -50,8 +50,13 @@ class TestIfElse(TestCase):
 
         v = my_s()
         v.randomize()
+
+        v.a = 1
         
-        print("a=" + str(int(v.a)) + " b=" + str(int(v.b)))
+        print("a=" + str(v.a) + " b=" + str(v.b))
+        v.a = 2
+        print("a=" + str(v.a) + " b=" + str(v.b))
+        print("a=" + str(type(v.a)))
             
     def test_else_if(self):
         
