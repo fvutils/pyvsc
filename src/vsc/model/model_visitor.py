@@ -29,7 +29,7 @@ class ModelVisitor():
     
     def visit_rand_obj(self, r):
         self.visit_composite_field(r)
-            
+        
     def visit_composite_field(self, f):
         # Visit fields
         for fi in f.field_l:
@@ -42,29 +42,45 @@ class ModelVisitor():
     def visit_scalar_field(self, f):
         pass
     
+    def visit_constraint_stmt_enter(self, c):
+        """Called for all types of constraint statements"""
+        pass
+    
+    def visit_constraint_stmt_leave(self, c):
+        """Called for all types of constraint statements"""
+        pass
+    
     def visit_constraint_block(self, c):
         self.visit_constraint_scope(c)
         
     def visit_constraint_expr(self, c):
+        self.visit_constraint_stmt_enter(c)
         c.e.accept(self)
+        self.visit_constraint_stmt_leave(c)
         
     def visit_constraint_if_else(self, c):
+        self.visit_constraint_stmt_enter(c)
         c.cond.accept(self)
         c.true_c.accept(self)
         if c.false_c != None:
             c.false_c.accept(self)
+        self.visit_constraint_stmt_leave(c)
             
     def visit_constraint_implies(self, c):
+        self.visit_constraint_stmt_enter(c)
         c.cond.accept(self)
         self.visit_constraint_scope(c)
+        self.visit_constraint_stmt_leave(c)
         
     def visit_constraint_scope(self, c):
         for cc in c.constraint_l:
             cc.accept(self)
             
     def visit_constraint_unique(self, c):
+        self.visit_constraint_stmt_enter(c)
         for e in c.unique_l:
             e.accept(self)
+        self.visit_constraint_stmt_leave(c)
             
     def visit_expr_bin(self, e):
         e.lhs.accept(self)

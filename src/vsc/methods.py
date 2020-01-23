@@ -1,3 +1,5 @@
+from vsc.rand_obj import RandObj
+from vsc.model import expr_mode
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -23,21 +25,32 @@ Created on Jul 23, 2019
 '''
 
 from vsc.model.rand_obj_model import RandObjModel
-from vsc.types import field_info
+from vsc.types import field_info, type_base
 
-
-def randomize(t):
-    if not hasattr(t, "_int_rand_info"):
-        raise Exception("Error: not a random class")
-
-    # Build a model for this object if one doesn't exist already
-    if not hasattr(t, "_int_model") or t._int_model is None:
-        t._int_field_info = field_info()
-        t._int_model = RandObjModel(t)
-        
-    t._int_model.do_randomize()
+def randomize_with(*args):
+    """Randomize a list of variables with an inline constraint"""
+    for a in args:
+        if not isinstance(a, (RandObj, type_base)):
+            raise Exception("Argument is of type " + str(type(a)) + " not RandObj or type_base")
     
-    pass
+    class inline_constraint_collector(expr_mode):
+        
+        def __init__(self, *args):
+            self.args = args
+            pass
+        
+        def __enter__(self):
+            # Go into 'expression' mode
+            super().__enter__()
+        
+        def __exit__(self, t, v, tb):
+            super().__exit__(t, v, tb)
+    
+    return inline_constraint_collector(args)
 
-def randomize_with(t):
-    pass
+def randomize(*args):
+    """Randomize a list of variables"""
+    
+    with randomize_with(*args):
+        pass
+    

@@ -8,6 +8,7 @@ Contents:
    
    introduction
    quickstart
+   data_types
    
    
 Indices and tables

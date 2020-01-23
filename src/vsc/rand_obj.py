@@ -5,6 +5,7 @@ from vsc.types import type_base
 from vsc.model import _expr_mode, get_expr_mode, expr_mode
 import traceback
 import sys
+from statistics import mode
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -32,14 +33,14 @@ from vsc.impl.ctor import register_rand_obj_type, push_constraint_scope,\
     pop_constraint_scope
 
 # TODO: 
-def rand_obj(T):
-    if not hasattr(T, "_int_rand_info"):
-        T._int_rand_info = True
-    register_rand_obj_type(T)
-    
-    return T
+#def rand_obj(T):
+#    if not hasattr(T, "_int_rand_info"):
+#        T._int_rand_info = True
+#    register_rand_obj_type(T)
+#    
+#    return T
 
-class Base(expr_mode):
+class RandObj(expr_mode):
     """Base class for coverage and randomized classes"""
    
     def __init__(self):
@@ -86,15 +87,20 @@ class Base(expr_mode):
             super().__setattr__(field, val)
         else:
 #            super().__setattr__(field, val)
-            if isinstance(fo, type_base) and get_expr_mode() == 0:
-                # We're not in an expression context, so the 
-                # user really wants us to set the actual value
-                # of the field
-                fo.set_val(val)
+            if isinstance(fo, type_base):
+                if get_expr_mode() == 0:
+                    # We're not in an expression context, so the 
+                    # user really wants us to set the actual value
+                    # of the field
+                    fo.set_val(val)
+                else:
+                    raise Exception("Attempting to use '=' in a constraint")
             else:
                 super().__setattr__(field, val)
 
     def randomize(self):
+        
+        model = self._build_model()
         if self.model is None:
             # Need to initialize
             self.model = self._build_model()
@@ -104,6 +110,14 @@ class Base(expr_mode):
     def _build_model(self):
         model = RandObjModel(self)
         return model
+    
+    def get_model(self):
+        with expr_mode():
+            if self.model is None:
+                self.model = self._build_model()
+            
+            return self.model
+        
     
     def __enter__(self):
         super().__enter__()

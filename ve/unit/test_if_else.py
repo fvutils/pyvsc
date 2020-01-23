@@ -61,7 +61,7 @@ class TestIfElse(TestCase):
     def test_else_if(self):
         
         @vsc.rand_obj
-        class my_s():
+        class my_s(vsc.RandObj):
             
             def __init__(self):
                 self.a = vsc.rand_bit_t(8)

@@ -6,6 +6,7 @@ Created on Jan 1, 2020
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 
 class ConstraintBlockModel(ConstraintScopeModel):
+    """Information about a top-level constraint block described by the user"""
     
     def __init__(self, name):
         super().__init__()

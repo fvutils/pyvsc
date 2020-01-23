@@ -31,7 +31,7 @@ class TestIn(TestCase):
     
     def test_single(self):
         @vsc.rand_obj
-        class my_s():
+        class my_s(vsc.rand_obj):
             
             def __init__(self):
                 self.a = vsc.rand_bit_t(8)
