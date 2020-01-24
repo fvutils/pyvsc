@@ -15,6 +15,12 @@ class RandInfo():
     def add_randset(self, r):
         self.randset_l.append(r)
         
+    def randsets(self):
+        return self.randset_l
+        
     def add_field(self, f):
         self.unconstrained_l.append(f)
+        
+    def unconstrained(self):
+        return self.unconstrained_l
         

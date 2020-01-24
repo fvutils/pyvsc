@@ -6,6 +6,7 @@ from vsc.model import _expr_mode, get_expr_mode, expr_mode
 import traceback
 import sys
 from statistics import mode
+from vsc.model.randomizer import Randomizer
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -99,14 +100,9 @@ class RandObj(expr_mode):
                 super().__setattr__(field, val)
 
     def randomize(self):
+        model = self.get_model()
+        Randomizer.do_randomize([model])
         
-        model = self._build_model()
-        if self.model is None:
-            # Need to initialize
-            self.model = self._build_model()
-            
-        return self.model.do_randomize()
-    
     def _build_model(self):
         model = RandObjModel(self)
         return model
@@ -121,13 +117,14 @@ class RandObj(expr_mode):
     
     def __enter__(self):
         super().__enter__()
+        self.get_model() # Ensure model is constructed
         push_constraint_scope(ConstraintBlockModel("inline"))
         return self
     
     def __exit__(self, t, v, tb):
         c = pop_constraint_scope()
         super().__exit__(t, v, tb)
-        self.model.do_randomize([c])
+        Randomizer.do_randomize([self.model], [c])
     
     def randomize_with(self):
         if self.model is None:

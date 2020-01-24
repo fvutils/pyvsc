@@ -32,6 +32,9 @@ class ScalarFieldModel():
         self.parent = parent
         self.var = None
         
+    def dispose(self):
+        self.var = None
+        
     def accept(self, v):
         v.visit_scalar_field(self)
 
@@ -57,6 +60,12 @@ class ScalarFieldModel():
         # TODO: need to sample non-rand field
         pass
     
+    def set_val(self, val):
+        self.f.val = val
+        
+    def get_val(self):
+        return self.f.val
+    
     def post_randomize(self):
         if self.var is not None:
             val = 0
@@ -64,4 +73,4 @@ class ScalarFieldModel():
                 val <<= 1
                 if b == '1':
                     val |= 1
-            self.f.val = val
+            self.set_val(val)

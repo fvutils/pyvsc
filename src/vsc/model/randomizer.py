@@ -6,49 +6,155 @@ Created on Jan 21, 2020
 from vsc.model.field_model import FieldModel
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.model_visitor import ModelVisitor
+from vsc.model.rand_info_builder import RandInfoBuilder
+from vsc.model.rand_info import RandInfo
+from pyboolector import Boolector
+import pyboolector
 
 class Randomizer():
+    """Implements the core randomization algorithm"""
     
-    class VarCollectVisitor(ModelVisitor):
-        def __init__(self, field_s):
-            super().__init__()
-            self.field_s = field_s
+    _state_p = [0,1]
+    
+    
+    def randomize(self, ri : RandInfo):
+        """Randomize the variables and constraints in a RandInfo collection"""
         
-        def visit_scalar_field(self, f):
-            self.field_l.add(f)
+        for rs in ri.randsets():
+            btor = Boolector()
+            self.btor = btor
+            btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
+            btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
             
-    class FieldSet():
-        def __init__(self):
-            self.constraint_l = []
-            self.var_s = set()
+            for f in rs.fields():
+                f.build(btor)
+                
+            for c in rs.constraints():
+                btor.Assert(c.build(btor))
             
-        def add_var(self, var):
-            self.var_s.add(var)
+            # Perform an initial solve to establish correctness
+            if btor.Sat() != btor.SAT:
+                # Ensure we clean up
+                for f in rs.fields():
+                    f.dispose()
+                    
+                raise Exception("solve failure")
             
-        def add_constraint(self, c):
-            self.constraint_l.append(c)
+            # Form the swizzle expression around bits in the
+            # target randset variables. The resulting expression
+            # enables us to minimize the deviations from the selected
+            # bit values
+            expr = None
+            n_terms = 0
+            for f in rs.fields():
+
+                if f.width() < 8:
+                    bit_n = f.width()
+                else:
+                    bit_n = int(f.width() / 2)
+                bit_l = [*range(f.width())]
+                for i in range(bit_n):
+                    seed = Randomizer._next()
+                    bit_i = (seed % len(bit_l))
+                    bit = bit_l.pop(bit_i)
+                    
+                    val = 1 if (seed & 20) != 0 else 0
+                    
+                    e = btor.Cond(
+                        btor.Eq(
+                            btor.Slice(f.var, bit, bit),
+                            btor.Const(val, 1)),
+                        btor.Const(0, 32),
+                        btor.Const(1, 32))
+                    n_terms += 1
+                    
+                    if expr is None:
+                        expr = e
+                    else:
+                        expr = self.btor.Add(expr, e)
+                        
+            min_v = self.minimize(expr, 0, n_terms)
+
+            # Finalize the value of the field
+            for f in rs.fields():
+                f.post_randomize()
+                f.dispose() # Get rid of the solver var, since we're done with it
             
-    class ConstraintSetBuilder(ModelVisitor):
-        def __init__(self, field_s):
-            super().__init__()
-            self.field_s = field_s
-            self.field_set_m = {}
-            self.field_set_l = []
+        for uf in ri.unconstrained():
+            v = Randomizer._next() & ((1 << uf.width())-1);
+            uf.set_val(v)
             
-        def visit_constraint_expr(self, c):
-            
-    
-    
-    def randomize(self, 
-        field_model_l : [FieldModel], 
-        constraint_l : [ConstraintModel]):
-        """Randomize a top-level set of variables and additional constraints"""
+    def minimize(self, expr, min_t, max_t):
+        ret = -1
+
+        if min_t==max_t:
+            mid_point = min_t
+        else:                
+            mid_point = min_t + int((max_t-min_t+1)/2)
+#        print("--> optimize_rand_c: min=" + str(min_t) + " mid_point=" +  str(mid_point) + " max=" + str(max_t))
         
-        # Collect all variables from the list provided$
-        all_field_s = set()
-        var_collector_visitor = Randomizer.VarCollectVisitor(all_field_s)
+        # Push a new constraint scope
+#        self.btor.Push()
+        
+        self.btor.Assume(self.btor.Ulte(
+            expr, 
+            self.btor.Const(mid_point, 32)))
+        
+        if self.btor.Sat() == self.btor.SAT:
+#            print("  SAT")
+            if mid_point > 0 and min_t != max_t:
+#                self.btor.Pop()
+                # Continue making the range smaller
+                sub_r = self.minimize(expr, min_t, mid_point-1)
+                if sub_r == -1:
+                    # re-solve, since this is the best we'll do
+                    self.btor.Push()
+                    self.btor.Sat()
+                    ret = mid_point
+                else:
+                    # The sub-solved worked out, so take that value
+                    ret = sub_r
+            else:
+                ret = mid_point
+        else:
+#            print("  UNSAT")
+#            self.btor.Pop()
+            if mid_point < max_t:
+                # Solve failed, so let's explore the upper portion
+                ret = self.minimize(expr, mid_point+1, max_t)
+            else:
+                # Dead-end here
+                ret = -1
+            
+#        print("<-- optimize_rand_c: ret=" + str(ret))
+        
+        return ret        
+
+    @staticmethod            
+    def _next():
+        ret = (Randomizer._state_p[0] + Randomizer._state_p[1]) & 0xFFFFFFFF
+        Randomizer._state_p[1] ^= Randomizer._state_p[0]
+        Randomizer._state_p[0] = (((Randomizer._state_p[0] << 55) | (Randomizer._state_p[0] >> 9))
+            ^ Randomizer._state_p[1] ^ (Randomizer._state_p[1] << 14))
+        Randomizer._state_p[1] = (Randomizer._state_p[1] << 36) | (Randomizer._state_p[1] >> 28)
+        
+        return ret
+        
+        
+    @staticmethod
+    def do_randomize(
+            field_model_l : [FieldModel],
+            constraint_l : [ConstraintModel] = []):
+        # First, invoke pre_randomize on all elements
         for fm in field_model_l:
-            fm.accept(var_collector_visitor)
+            fm.pre_randomize()
+
+        r = Randomizer()
+        ri = RandInfoBuilder.build(field_model_l, constraint_l)
+        r.randomize(ri)
+        
+        for fm in field_model_l:
+            fm.post_randomize()
         
         
         # Process constraints to identify variable/constraint sets

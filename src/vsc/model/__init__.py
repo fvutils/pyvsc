@@ -25,11 +25,9 @@ class expr_mode():
     
     def __enter__(self):
         global _expr_mode
-        print("enter")
         _expr_mode += 1
         
     def __exit__(self, t, v, tb):
         global _expr_mode
-        print("exit")
         _expr_mode -= 1
-        
+

@@ -142,4 +142,57 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.randset_l[0].field_l), 4)
         self.assertEqual(len(info.randset_l[0].constraint_l), 3)
         self.assertEqual(len(info.unconstrained_l), 0)        
+
+    def test_connected_ite_cond(self):
+        
+        class my_cls(RandObj):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = rand_bit_t(8)
+                self.b = rand_bit_t(8)
+                self.c = rand_bit_t(8)
+                self.d = rand_bit_t(8)
+                
+            @vsc.constraint
+            def a_c(self):
+                self.a < self.b
+                with vsc.if_then (self.b < self.c):
+                    self.c < self.d
+                
+        my_cls_i = my_cls()
+        
+        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+        self.assertEqual(len(info.randset_l), 1)
+        self.assertEqual(len(info.randset_l[0].field_l), 4)
+        self.assertEqual(len(info.randset_l[0].constraint_l), 2)
+        self.assertEqual(len(info.unconstrained_l), 0)
+
+    def test_connected_ite_cross_block(self):
+        
+        class my_cls(RandObj):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = rand_bit_t(8)
+                self.b = rand_bit_t(8)
+                self.c = rand_bit_t(8)
+                self.d = rand_bit_t(8)
+                
+            @vsc.constraint
+            def a_c(self):
+                self.a < self.b
+                    
+            @vsc.constraint
+            def b_c(self):
+                with vsc.if_then (self.b < self.c):
+                    self.c < self.d
+                
+        my_cls_i = my_cls()
+        
+        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+        self.assertEqual(len(info.randset_l), 1)
+        self.assertEqual(len(info.randset_l[0].field_l), 4)
+        self.assertEqual(len(info.randset_l[0].constraint_l), 2)
+        self.assertEqual(len(info.unconstrained_l), 0)        
         

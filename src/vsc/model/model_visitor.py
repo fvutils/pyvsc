@@ -96,7 +96,8 @@ class ModelVisitor():
     
     def visit_expr_in(self, e):
         e.lhs.accept(self)
-        e.rhs.accept(self)
+        for i in e.rhs:
+            i.accept(self)
         
     def visit_expr_literal(self, e):
         pass

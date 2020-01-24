@@ -71,12 +71,10 @@ class CompositeFieldModel():
                     fo = getattr(user_obj, f)
                     if isinstance(fo, constraint_t):
                         push_constraint_scope(ConstraintBlockModel(f))
-                        print("--> constraint: " + str(get_expr_mode()))
                         try:
                             fo.c(user_obj)
                         except Exception as e:
-                            print("Exception: " + str(e))
-                        print("<-- constraint: " + str(get_expr_mode()))
+                            print("Exception while processing constraint: " + str(e))
                         self.constraint_model_l.append(pop_constraint_scope())
                     
                     
