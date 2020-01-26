@@ -1,3 +1,5 @@
+from vsc.model.expr_rangelist_model import ExprRangelistModel
+from vsc.model.expr_range_model import ExprRangeModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -28,30 +30,34 @@ from vsc.model.bin_expr_type import BinExprType
 class ExprInModel(ExprModel):
     
     def __init__(self, lhs, rhs):
-        self.expr = None
         self.lhs = lhs
         self.rhs = rhs
         
-        for r in rhs:
-            if isinstance(r, list):
-                t = ExprBinModel(
-                    ExprBinModel(lhs, BinExprType.Ge, r[0]),
-                    BinExprType.And,
-                    ExprBinModel(lhs, BinExprType.Le, r[1]))
-            else:
-                t = ExprBinModel(lhs, BinExprType.Eq, r)
-            
-            if self.expr == None:
-                self.expr = t
-            else:
-                self.expr = ExprBinModel(self.expr, BinExprType.Or, t)
-                
     def build(self, btor):
-        return self.expr.build(btor)
+        t = None
+        expr = None
+        for r in self.rhs.rl:
+            if isinstance(r, ExprRangeModel):
+                t = ExprBinModel(
+                    ExprBinModel(self.lhs, BinExprType.Ge, r.lhs),
+                    BinExprType.And,
+                    ExprBinModel(self.lhs, BinExprType.Le, r.rhs))
+            else:
+                t = ExprBinModel(self.lhs, BinExprType.Eq, r)
+                
+            if expr is None:
+                expr = t 
+            else:
+                expr = ExprBinModel(expr, BinExprType.Or, t)
+                
+        return expr.build(btor)
     
     def get_node(self):
         return self.expr.get_node()
     
     def accept(self, visitor):
         visitor.visit_expr_in(self)
+        
+    def __str__(self):
+        return "ExprIn: " + str(self.lhs) + " in " + str(self.rhs)
         

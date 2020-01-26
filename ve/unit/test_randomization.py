@@ -28,10 +28,10 @@ class TestRandomization(TestCase):
                         
     def test_simple(self):
         
-        @vsc.rand_obj
-        class my_s():
+        class my_s(vsc.RandObj):
             
             def __init__(self):
+                super().__init__()
                 self.a = vsc.rand_bit_t(16)
                 self.b = vsc.rand_bit_t(8)
                 self.c = vsc.rand_bit_t(2)
@@ -58,7 +58,7 @@ class TestRandomization(TestCase):
         v = my_s()
         
         for i in range(1000):
-            vsc.randomize(v)
+            v.randomize()
             
-            print("a=" + str(v.a()) + " b=" + str(v.b()) + " c=" + str(v.c()) + " d=" + str(v.d()) + " e=" + str(v.e()) + " f=" + str(v.f()))
+            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d) + " e=" + str(v.e) + " f=" + str(v.f))
         

@@ -29,6 +29,8 @@ class ExprFieldRefModel(ExprModel):
         self.fm = fm
 
     def build(self, btor):
+        if self.fm.var is None:
+            raise Exception("Field " + str(self.fm) + " has not been built")
         return self.fm.var
         
     def get_node(self):
@@ -42,3 +44,6 @@ class ExprFieldRefModel(ExprModel):
     
     def accept(self, visitor):
         visitor.visit_expr_fieldref(self)
+        
+    def __str__(self):
+        return "Field: " + self.fm.name()

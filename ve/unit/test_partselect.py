@@ -29,27 +29,35 @@ class TestPartSelect(TestCase):
 
     def test_simple(self):
         
-        @vsc.rand_obj
-        class my_s():
+        class my_s(vsc.RandObj):
             
             def __init__(self):
-                self.a = vsc.rand_bit_t(32)
-                self.b = vsc.rand_bit_t(32)
-                self.c = vsc.rand_bit_t(32)
-                self.d = vsc.rand_bit_t(32)
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def ab_c(self):
                 
-                self.a[7:3] != 0
-                self.a[4] != 0
-                self.b != 0
+                self.a[7:4] == 1
+                self.a[2:0] == 0
+                self.b[0] == 1
                 self.c != 0
                 self.d != 0
                 
                 vsc.unique(self.a, self.b, self.c, self.d)
 
         v = my_s()
-        vsc.randomize(v)
+        v.randomize()
         
-        print("a=" + str(v.a()) + " b=" + str(v.b()) + " c=" + str(v.c()) + " d=" + str(v.d()))
+        print("a=" + hex(v.a) + " b=" + hex(v.b) + " c=" + hex(v.c) + " d=" + hex(v.d))
+
+        try:
+            with v.randomize_with() as it:
+                self.a[7:3] == 0
+        except:
+            print("expected failure")
+ 
+

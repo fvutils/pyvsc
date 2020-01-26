@@ -54,9 +54,9 @@ class TestExamplesUbus(TestCase):
         xfer = ubus_transfer()
         for i in range(100):
             xfer.randomize()
-            print("size=" + str(xfer.size) + " transmit_delay=" + str(xfer.transmit_delay))
+            print("size=%d transmit_delay=%d addr=%x" % (xfer.size, xfer.transmit_delay, xfer.addr))
             
         for i in range(100):
             with xfer.randomize_with() as it:
                 it.size == 1
-            print("size=" + str(xfer.size) + " transmit_delay=" + str(xfer.transmit_delay))
+            print("size=%d transmit_delay=%d addr=%x" % (xfer.size, xfer.transmit_delay, xfer.addr))

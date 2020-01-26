@@ -50,6 +50,9 @@ class ScalarFieldModel():
     
     def name(self):
         return self.f._int_field_info.name
+    
+    def __str__(self):
+        return "ScalarFieldModel(" + self.name() + ")"
 
     def get_constraints(self, constraint_l):
         if not self.is_rand:
@@ -61,10 +64,10 @@ class ScalarFieldModel():
         pass
     
     def set_val(self, val):
-        self.f.val = val
+        self.f._set_val(val)
         
     def get_val(self):
-        return self.f.val
+        return self.f._get_val()
     
     def post_randomize(self):
         if self.var is not None:

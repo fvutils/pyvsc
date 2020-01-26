@@ -11,7 +11,7 @@ class TestRandomizeWith(TestCase):
     
     def test_smoke(self):
         
-        class my_class(vsc.Base):
+        class my_class(vsc.RandObj):
             
             def __init__(self):
                 super().__init__()

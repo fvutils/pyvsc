@@ -24,8 +24,11 @@ Created on Jul 26, 2019
 
 class ExprModel():
     
-    def build(self, btor):
+    def __init__(self):
         pass
+    
+    def build(self, btor):
+        raise Exception("Expression build() unimplemented")
     
     def get_node(self):
         raise Exception("Expression get_node unimplemented (" + str(self) + ")")

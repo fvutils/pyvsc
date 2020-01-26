@@ -46,18 +46,15 @@ class CompositeFieldModel():
                 
                     if isinstance(fo, type_base):
                     
-                        print("ATTR field: " + f)
                         fo._int_field_info.name = f
                         fo._int_field_info.id = len(self.field_l)
                         if self.parent != None:
                             fo._int_field_info.parent = self.parent.t._int_field_info
-                        print("Scalar field: " + f)
                         self.field_l.append(ScalarFieldModel(fo, self, 
                                 (is_rand and fo._int_field_info.is_rand)))
                     elif hasattr(fo, "_int_rand_info"):
                         # This is a composite field
                         # TODO: assign ID
-                        print("Composite field: " + f)
                         fo._int_field_info.name = f
                         fo._int_field_info.id = len(self.field_l)
                         if self.parent != None:
@@ -75,6 +72,7 @@ class CompositeFieldModel():
                             fo.c(user_obj)
                         except Exception as e:
                             print("Exception while processing constraint: " + str(e))
+                            raise e
                         self.constraint_model_l.append(pop_constraint_scope())
                     
                     

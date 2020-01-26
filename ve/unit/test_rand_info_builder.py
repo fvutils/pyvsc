@@ -43,8 +43,8 @@ class TestRandInfoBuilder(TestCase):
         
         info = RandInfoBuilder.build([my_cls_i.get_model()], [])
         self.assertEqual(len(info.randset_l), 1)
-        self.assertEqual(len(info.randset_l[0].field_l), 1)
-        self.assertEqual(len(info.randset_l[0].constraint_l), 1)
+        self.assertEqual(len(info.randset_l[0].fields()), 1)
+        self.assertEqual(len(info.randset_l[0].constraints()), 1)
         self.assertEqual(len(info.unconstrained_l), 1)
         
     def test_multi_indep_var_ref(self):
@@ -65,10 +65,10 @@ class TestRandInfoBuilder(TestCase):
         
         info = RandInfoBuilder.build([my_cls_i.get_model()], [])
         self.assertEqual(len(info.randset_l), 2)
-        self.assertEqual(len(info.randset_l[0].field_l), 1)
-        self.assertEqual(len(info.randset_l[0].constraint_l), 1)
-        self.assertEqual(len(info.randset_l[1].field_l), 1)
-        self.assertEqual(len(info.randset_l[1].constraint_l), 1)
+        self.assertEqual(len(info.randset_l[0].fields()), 1)
+        self.assertEqual(len(info.randset_l[0].constraints()), 1)
+        self.assertEqual(len(info.randset_l[1].fields()), 1)
+        self.assertEqual(len(info.randset_l[1].constraints()), 1)
         self.assertEqual(len(info.unconstrained_l), 0)
         
     def test_multi_dep_var_ref(self):
@@ -88,8 +88,8 @@ class TestRandInfoBuilder(TestCase):
         
         info = RandInfoBuilder.build([my_cls_i.get_model()], [])
         self.assertEqual(len(info.randset_l), 1)
-        self.assertEqual(len(info.randset_l[0].field_l), 2)
-        self.assertEqual(len(info.randset_l[0].constraint_l), 1)
+        self.assertEqual(len(info.randset_l[0].fields()), 2)
+        self.assertEqual(len(info.randset_l[0].constraints()), 1)
         self.assertEqual(len(info.unconstrained_l), 0)
 
     def test_two_randsets(self):
@@ -112,10 +112,10 @@ class TestRandInfoBuilder(TestCase):
         
         info = RandInfoBuilder.build([my_cls_i.get_model()], [])
         self.assertEqual(len(info.randset_l), 2)
-        self.assertEqual(len(info.randset_l[0].field_l), 2)
-        self.assertEqual(len(info.randset_l[0].constraint_l), 1)
-        self.assertEqual(len(info.randset_l[1].field_l), 2)
-        self.assertEqual(len(info.randset_l[1].constraint_l), 1)
+        self.assertEqual(len(info.randset_l[0].fields()), 2)
+        self.assertEqual(len(info.randset_l[0].constraints()), 1)
+        self.assertEqual(len(info.randset_l[1].fields()), 2)
+        self.assertEqual(len(info.randset_l[1].constraints()), 1)
         self.assertEqual(len(info.unconstrained_l), 0)        
 
     def test_connected_top_level(self):
@@ -139,8 +139,8 @@ class TestRandInfoBuilder(TestCase):
         
         info = RandInfoBuilder.build([my_cls_i.get_model()], [])
         self.assertEqual(len(info.randset_l), 1)
-        self.assertEqual(len(info.randset_l[0].field_l), 4)
-        self.assertEqual(len(info.randset_l[0].constraint_l), 3)
+        self.assertEqual(len(info.randset_l[0].fields()), 4)
+        self.assertEqual(len(info.randset_l[0].constraints()), 3)
         self.assertEqual(len(info.unconstrained_l), 0)        
 
     def test_connected_ite_cond(self):
@@ -164,8 +164,8 @@ class TestRandInfoBuilder(TestCase):
         
         info = RandInfoBuilder.build([my_cls_i.get_model()], [])
         self.assertEqual(len(info.randset_l), 1)
-        self.assertEqual(len(info.randset_l[0].field_l), 4)
-        self.assertEqual(len(info.randset_l[0].constraint_l), 2)
+        self.assertEqual(len(info.randset_l[0].fields()), 4)
+        self.assertEqual(len(info.randset_l[0].constraints()), 2)
         self.assertEqual(len(info.unconstrained_l), 0)
 
     def test_connected_ite_cross_block(self):
@@ -192,7 +192,7 @@ class TestRandInfoBuilder(TestCase):
         
         info = RandInfoBuilder.build([my_cls_i.get_model()], [])
         self.assertEqual(len(info.randset_l), 1)
-        self.assertEqual(len(info.randset_l[0].field_l), 4)
-        self.assertEqual(len(info.randset_l[0].constraint_l), 2)
+        self.assertEqual(len(info.randset_l[0].fields()), 4)
+        self.assertEqual(len(info.randset_l[0].constraints()), 2)
         self.assertEqual(len(info.unconstrained_l), 0)        
         

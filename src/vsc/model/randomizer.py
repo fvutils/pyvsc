@@ -10,17 +10,24 @@ from vsc.model.rand_info_builder import RandInfoBuilder
 from vsc.model.rand_info import RandInfo
 from pyboolector import Boolector
 import pyboolector
+import random
 
 class Randomizer():
     """Implements the core randomization algorithm"""
     
     _state_p = [0,1]
+    _rng = random.Random()
     
     
     def randomize(self, ri : RandInfo):
         """Randomize the variables and constraints in a RandInfo collection"""
         
         for rs in ri.randsets():
+#             print("RandSet:")
+#             for f in rs.fields():
+#                 print("  Field: " + f.name())
+#             for c in rs.constraints():
+#                 print("  Constraint: " + str(c))
             btor = Boolector()
             self.btor = btor
             btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
@@ -54,11 +61,10 @@ class Randomizer():
                     bit_n = int(f.width() / 2)
                 bit_l = [*range(f.width())]
                 for i in range(bit_n):
-                    seed = Randomizer._next()
-                    bit_i = (seed % len(bit_l))
+                    bit_i = self.randint(0, len(bit_l)-1)
                     bit = bit_l.pop(bit_i)
-                    
-                    val = 1 if (seed & 20) != 0 else 0
+
+                    val = self.randint(0, 1)                    
                     
                     e = btor.Cond(
                         btor.Eq(
@@ -81,8 +87,7 @@ class Randomizer():
                 f.dispose() # Get rid of the solver var, since we're done with it
             
         for uf in ri.unconstrained():
-            v = Randomizer._next() & ((1 << uf.width())-1);
-            uf.set_val(v)
+            uf.set_val(self.randbits(uf.width()))
             
     def minimize(self, expr, min_t, max_t):
         ret = -1
@@ -129,14 +134,21 @@ class Randomizer():
 #        print("<-- optimize_rand_c: ret=" + str(ret))
         
         return ret        
+    
+    def randint(self, low, high):
+        return Randomizer._rng.randint(low, high)
+    
+    def randbits(self, nbits):
+        return Randomizer._rng.randint(0, (1<<nbits)-1)
 
     @staticmethod            
     def _next():
-        ret = (Randomizer._state_p[0] + Randomizer._state_p[1]) & 0xFFFFFFFF
-        Randomizer._state_p[1] ^= Randomizer._state_p[0]
-        Randomizer._state_p[0] = (((Randomizer._state_p[0] << 55) | (Randomizer._state_p[0] >> 9))
-            ^ Randomizer._state_p[1] ^ (Randomizer._state_p[1] << 14))
-        Randomizer._state_p[1] = (Randomizer._state_p[1] << 36) | (Randomizer._state_p[1] >> 28)
+        ret = Randomizer._rng.randint(0, 0xFFFFFFFF)
+#         ret = (Randomizer._state_p[0] + Randomizer._state_p[1]) & 0xFFFFFFFF
+#         Randomizer._state_p[1] ^= Randomizer._state_p[0]
+#         Randomizer._state_p[0] = (((Randomizer._state_p[0] << 55) | (Randomizer._state_p[0] >> 9))
+#             ^ Randomizer._state_p[1] ^ (Randomizer._state_p[1] << 14))
+#         Randomizer._state_p[1] = (Randomizer._state_p[1] << 36) | (Randomizer._state_p[1] >> 28)
         
         return ret
         

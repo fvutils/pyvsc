@@ -37,7 +37,12 @@ class ExprBinModel(ExprModel):
     def build(self, btor):
         ret = None
         lhs_n = self.lhs.build(btor)
+        if lhs_n is None:
+            raise Exception("Expression " + str(self.lhs) + " build returned None")
+        
         rhs_n = self.rhs.build(btor)
+        if rhs_n is None:
+            raise Exception("Expression " + str(self.rhs) + " build returned None")
         
         lhs_n = ExprBinModel.extend(lhs_n, rhs_n, self.lhs.is_signed(), btor)
         rhs_n = ExprBinModel.extend(rhs_n, lhs_n, self.rhs.is_signed(), btor)
@@ -99,6 +104,9 @@ class ExprBinModel(ExprModel):
     
     def width(self):
         return self.width
+    
+    def __str__(self):
+        return "ExprBin: " + str(self.lhs) + " " + str(self.op) + " " + str(self.rhs)
         
     def accept(self, visitor):
         visitor.visit_expr_bin(self)

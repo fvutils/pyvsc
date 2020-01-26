@@ -1,6 +1,9 @@
 
 - Data Types
   - Enumerated types
+    - Use cases
+      - Comparison against same type (f.a != MODE_A)
+      - Using as an integral quantity (f.a in range([COEFF_A:COEFF_B]))
   - Arrays
     - Fixed-sized
     - Variable-sized
@@ -17,7 +20,7 @@
   - std::randomize() and std::randomize() with equivalents
     - operate on 'vsc' variables
     - build inline constraints on-the-fly
-  - 
+  - Checking (randomize(None))
   
 - Model
   - Programmatic construction mixed with eDSL construction

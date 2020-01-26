@@ -18,7 +18,7 @@ class RandInfoBuilder(ModelVisitor):
         self._field_s = set()
         self._active_constraint = None
         self._active_randset = None
-        self._randset_l = []
+        self._randset_s = set()
         self._randset_field_m = {} # map<field,randset>
         self._constraint_s = []
         
@@ -35,12 +35,15 @@ class RandInfoBuilder(ModelVisitor):
             
         # Now, build the randset
         builder._pass = 1
+        # Visit the field objects passed in, as well
+        # as their constraints
         for fm in field_model_l:
             fm.accept(builder)
+        # Visit standalone constraints passed to the function
         for c in constraint_l:
             c.accept(builder)
             
-        return RandInfo(builder._randset_l, list(builder._field_s))
+        return RandInfo(list(builder._randset_s), list(builder._field_s))
     
     def visit_constraint_block(self, c):
         # Null out the randset on entry to a constraint block
@@ -66,21 +69,41 @@ class RandInfoBuilder(ModelVisitor):
     
     def visit_constraint_expr(self, c):
         super().visit_constraint_expr(c)
-
+        
     def visit_expr_fieldref(self, e):
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint
             # relationships
-            if self._active_randset is None:
-                if e.fm in self._randset_field_m.keys():
-                    self._active_randset = self._randset_field_m[e.fm]
-                else:
+
+            # If the field is already referenced by an existing randset
+            # that is not this one, we need to merge the sets
+            if e.fm in self._randset_field_m.keys():
+                # There's an existing randset that holds this field
+                ex_randset = self._randset_field_m[e.fm]
+                if self._active_randset is None:
+                    self._active_randset = ex_randset
+                elif ex_randset is not self._active_randset:
+                    for f in self._active_randset.fields():
+                        # Relink to the new consolidated randset
+                        self._randset_field_m[f] = ex_randset
+                        ex_randset.add_field(f)
+                    # TODO: this might be later
+                    for c in self._active_randset.constraints():
+                        ex_randset.add_constraint(c)
+
+                    # Remove the previous randset
+                    self._randset_s.remove(self._active_randset)                    
+                    self._active_randset = ex_randset
+            else:
+                # No existing randset holds this field
+                if self._active_randset is None:
                     self._active_randset = RandSet()
-                    self._randset_l.append(self._active_randset)
+                    self._randset_s.add(self._active_randset)
                     
-            if not e.fm in self._randset_field_m.keys():
+                # Need to register this field/randset mapping
                 self._active_randset.add_field(e.fm)
                 self._randset_field_m[e.fm] = self._active_randset
+                
             if e.fm in self._field_s:
                 self._field_s.remove(e.fm)
 

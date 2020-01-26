@@ -46,3 +46,6 @@ class ExprLiteralModel(ExprModel):
     def accept(self, visitor):
         visitor.visit_expr_literal(self)
         
+    def __str__(self):
+        return "Literal: " + str(self.val)
+        

@@ -1,3 +1,4 @@
+from vsc.types import rangelist
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -30,7 +31,7 @@ class TestIfElse(TestCase):
 
     def test_if_then(self):
         
-        class my_s(vsc.Base):
+        class my_s(vsc.RandObj):
             
             def __init__(self):
                 super().__init__()
@@ -43,8 +44,6 @@ class TestIfElse(TestCase):
             @vsc.constraint
             def ab_c(self):
                 
-                self.a == 4
-                
                 with vsc.if_then(self.a == 1):
                     self.b == 1
 
@@ -52,18 +51,14 @@ class TestIfElse(TestCase):
         v.randomize()
 
         v.a = 1
-        
-        print("a=" + str(v.a) + " b=" + str(v.b))
         v.a = 2
-        print("a=" + str(v.a) + " b=" + str(v.b))
-        print("a=" + str(type(v.a)))
             
     def test_else_if(self):
         
-        @vsc.rand_obj
         class my_s(vsc.RandObj):
             
             def __init__(self):
+                super().__init__()
                 self.a = vsc.rand_bit_t(8)
                 self.b = vsc.rand_bit_t(8)
                 self.c = vsc.rand_bit_t(8)
@@ -72,26 +67,27 @@ class TestIfElse(TestCase):
             @vsc.constraint
             def ab_c(self):
                 
-                self.a == 5
+                self.a in rangelist(1,5)
                 
                 with vsc.if_then(self.a == 1):
-                    self.b == 1
+                    self.b in rangelist(0,10)
                 with vsc.else_if(self.a == 2):
-                    self.b == 2
+                    self.b in rangelist(11,20)
                 with vsc.else_if(self.a == 3):
-                    self.b == 4
+                    self.b in rangelist(21,30)
                 with vsc.else_if(self.a == 4):
-                    self.b == 8
+                    self.b in rangelist(31,40)
                 with vsc.else_if(self.a == 5):
-                    self.b == 16
+                    self.b in rangelist(41,50)
 
         v = my_s()
-        vsc.randomize(v)
+        for i in range(8):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b))
         
     def test_else_then(self):
         
-        @vsc.rand_obj
-        class my_s():
+        class my_s(vsc.RandObj):
             
             def __init__(self):
                 self.a = vsc.rand_bit_t(8)

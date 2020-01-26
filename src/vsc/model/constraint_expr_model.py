@@ -34,6 +34,9 @@ class ConstraintExprModel(ConstraintModel):
     def get_nodes(self, node_l):
         node_l.append(self.e.get_node())
         
+    def __str__(self):
+        return "ConstraintExpr " + str(self.e)
+        
     def accept(self, visitor):
         visitor.visit_constraint_expr(self)
         

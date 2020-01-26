@@ -30,14 +30,14 @@ class TestUnique(TestCase):
 
     def test_simple(self):
         
-        @vsc.rand_obj
-        class my_s():
+        class my_s(vsc.RandObj):
             
             def __init__(self):
-                self.a = vsc.rand_bit_t(32)
-                self.b = vsc.rand_bit_t(32)
-                self.c = vsc.rand_bit_t(32)
-                self.d = vsc.rand_bit_t(32)
+                super().__init__()
+                self.a = vsc.rand_bit_t(4)
+                self.b = vsc.rand_bit_t(4)
+                self.c = vsc.rand_bit_t(4)
+                self.d = vsc.rand_bit_t(4)
                 
             @vsc.constraint
             def ab_c(self):
@@ -50,8 +50,8 @@ class TestUnique(TestCase):
                 vsc.unique(self.a, self.b, self.c, self.d)
 
         v = my_s()
-        vsc.randomize(v)
+        v.randomize()
         
-        print("a=" + str(v.a()) + " b=" + str(v.b()) + " c=" + str(v.c()) + " d=" + str(v.d()))
+        print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))
         
         

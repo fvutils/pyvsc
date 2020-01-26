@@ -16,6 +16,9 @@
 #   permissions and limitations under the License.
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_in_model import ExprInModel
+from vsc.model.expr_rangelist_model import ExprRangelistModel
+from vsc.model.expr_range_model import ExprRangeModel
+from vsc.model.expr_partselect_model import ExprPartselectModel
 '''
 Created on Jul 23, 2019
 
@@ -48,8 +51,8 @@ class rangelist():
     def __init__(self, *args):
         if len(args) == 0:
             raise Exception("Empty rangelist specified")
-        
-        self.range_l = []
+
+        self.range_l = ExprRangelistModel()
         for i in range(-1,-(len(args)+1), -1):
             a = args[i]
             if isinstance(a, list):
@@ -60,11 +63,11 @@ class rangelist():
                 to_expr(a[1])
                 e1 = pop_expr()
                 e0 = pop_expr()
-                self.range_l.append([e0, e1])
+                self.range_l.add_range(ExprRangeModel(e0, e1))
             else:
                 to_expr(a)
                 e = pop_expr()
-                self.range_l.append(e)
+                self.range_l.add_range(e)
 
                 # This needs to be convertioble to a
             
@@ -110,6 +113,12 @@ class type_base():
     
     def set_val(self, val):
         self.val = val
+        
+    def _get_val(self):
+        return self.val
+    
+    def _set_val(self, val):
+        self.val = val
     
     def bin_expr(self, op, rhs):
         to_expr(rhs)
@@ -148,13 +157,20 @@ class type_base():
         return self.bin_expr(BinExprType.Sub, rhs)
     
     def __getitem__(self, val):
-        print("getitem: " + str(val))
+        raise Exception("part-select unsupported")
+    
         if isinstance(val, slice):
             # slice
-            pass
+            to_expr(val.start)
+            to_expr(val.stop)
+            e0 = pop_expr()
+            e1 = pop_expr()
+            return expr(ExprPartselectModel(e0, e1))
         else:
-            # assume single value
-            pass
+            # single value
+            to_expr(val)
+            e = pop_expr()
+            return expr(ExprPartselectModel(e, None))
         
     def clone(self):
         return type_base(self.width, self.is_signed)
@@ -166,8 +182,33 @@ class type_enum(type_base):
     
     def __init__(self, t, i=None):
         # TODO: determine size of enum
-        super().__init__(32, False, i)
         self.t = t
+        n_enums = len(t)
+        
+        width = 0
+        while n_enums > 0:
+            width += 1
+            n_enums >>= 1
+            
+        super().__init__(width, False, i)
+
+        # The value of an enum field is stored in two ways
+        # The enum_id is the index into the enum type
+        # The 'val' field is the actual enum value        
+        self.enum_id = 0
+        if i is not None:
+            # TODO
+#            self.enum_id = list(t).f
+            pass
+        
+    def _get_val(self):
+        """Returns the enum id"""
+        return self.enum_id
+    
+    def _set_val(self, val):
+        """Sets the enum id"""
+        self.enum_id = val
+#        self.val = list(self.t)[val][0]
     
 class enum_t(type_enum):
     

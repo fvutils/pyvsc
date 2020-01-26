@@ -31,8 +31,7 @@ class TestImplies(TestCase):
 
     def test_simple(self):
         
-        @vsc.rand_obj
-        class my_s(vsc.Base):
+        class my_s(vsc.RandObj):
             
             def __init__(self):
                 super().__init__()
@@ -65,6 +64,6 @@ class TestImplies(TestCase):
         
         v.randomize()
         
-        self.assertEqual(v.a(), 5)
-        self.assertEqual(v.b(), 16)
+        self.assertEqual(v.a, 5)
+        self.assertEqual(v.b, 16)
         

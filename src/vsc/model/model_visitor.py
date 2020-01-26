@@ -94,17 +94,25 @@ class ModelVisitor():
     def visit_expr_fieldref(self, e):
         pass
     
+    def visit_expr_range(self, r):
+        r.lhs.accept(self)
+        r.rhs.accept(self)
+    
+    def visit_expr_rangelist(self, r):
+        for ri in r.rl:
+            ri.accept(self)
+    
     def visit_expr_in(self, e):
         e.lhs.accept(self)
-        for i in e.rhs:
-            i.accept(self)
+        e.rhs.accept(self)
         
     def visit_expr_literal(self, e):
         pass
     
     def visit_expr_partselect(self, e):
         e.lhs.accept(self)
-        e.rhs.accept(self)
+        if e.rhs is not None:
+            e.rhs.accept(self)
         
     def visit_covergroup_registry(self, rgy):
         

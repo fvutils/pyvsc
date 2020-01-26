@@ -30,10 +30,11 @@ import vsc
 class TestIn(TestCase):
     
     def test_single(self):
-        @vsc.rand_obj
-        class my_s(vsc.rand_obj):
+        
+        class my_s(vsc.RandObj):
             
             def __init__(self):
+                super().__init__()
                 self.a = vsc.rand_bit_t(8)
                 self.b = vsc.rand_bit_t(8)
                 self.c = vsc.rand_bit_t(8)
@@ -68,7 +69,7 @@ class TestIn(TestCase):
 #                     self.b == 16
 
         v = my_s()
-        vsc.randomize(v)    
-        
-        print("a=" + str(v.a()) + " b=" + str(v.b()) + " c=" + str(v.c()) + " d=" + str(v.d()))        
+        for i in range(100):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))        
         
