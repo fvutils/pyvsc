@@ -222,9 +222,24 @@ class rand_enum_t(enum_t):
         self._int_field_info.is_rand = True
         
 class bit_t(type_base):
-    
     def __init__(self, w=1, i=0):
         super().__init__(w, False, i)
+
+class uint8_t(bit_t):
+    def __init__(self, i=0):
+        super().__init__(8, i)
+        
+class uint16_t(bit_t):
+    def __init__(self, i=0):
+        super().__init__(16, i)
+        
+class uint32_t(bit_t):
+    def __init__(self, i=0):
+        super().__init__(32, i)
+        
+class uint64_t(bit_t):
+    def __init__(self, i=0):
+        super().__init__(64, i)
 
 class rand_bit_t(bit_t):
     
@@ -232,15 +247,62 @@ class rand_bit_t(bit_t):
         super().__init__(w, i)
         self._int_field_info.is_rand = True
         
+class rand_uint8_t(rand_bit_t):
+    def __init__(self, i=0):
+        super().__init__(8, i)
+        
+class rand_uint16_t(rand_bit_t):
+    def __init__(self, i=0):
+        super().__init__(16, i)
+        
+class rand_uint32_t(rand_bit_t):
+    def __init__(self, i=0):
+        super().__init__(32, i)
+        
+class rand_uint64_t(rand_bit_t):
+    def __init__(self, i=0):
+        super().__init__(64, i)
+        
 class int_t(type_base):
     
     def __init__(self, w=32, i=0):
         super().__init__(w, True, i)
-
+        
+class int8_t(int_t):
+    def __init__(self, i=0):
+        super().__init__(8, i)
+        
+class int16_t(int_t):
+    def __init__(self, i=0):
+        super().__init__(16, i)
+        
+class int32_t(int_t):
+    def __init__(self, i=0):
+        super().__init__(32, i)
+        
+class int64_t(int_t):
+    def __init__(self, i=0):
+        super().__init__(64, i)
+        
 class rand_int_t(int_t):
     
     def __init__(self, w=32, i=0):
         super().__init__(w, i)
         self._int_field_info.is_rand = True
+
+class rand_int8_t(rand_int_t):
+    def __init__(self, i=0):
+        super().__init__(8, i)
         
+class rand_int16_t(rand_int_t):
+    def __init__(self, i=0):
+        super().__init__(16, i)
+        
+class rand_int32_t(rand_int_t):
+    def __init__(self, i=0):
+        super().__init__(32, i)
+        
+class rand_int64_t(rand_int_t):
+    def __init__(self, i=0):
+        super().__init__(64, i)        
         
