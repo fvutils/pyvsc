@@ -15,6 +15,7 @@
   - Part select (a[3:0], a[1])
   - Constraint enable/disable
   - soft constraints
+  - constraint_mode
     
 - Public API
   - std::randomize() and std::randomize() with equivalents
@@ -31,7 +32,8 @@
     - Transition
     - ignore_bins, illegal_bins
   - Type coverage
-  - Covergroup options
-  - Coverpoint options
+  - Covergroup instance options
+  - Covergroup type options
+  - Coverpoint instance options
   - Cross exclusion bins
   

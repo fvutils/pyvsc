@@ -37,11 +37,9 @@ def rand_attr(t):
     elif isinstance(t, Enum):
         t = type_enum(t)
         t._int_field_info.is_rand = True
-    elif hasattr(t, "_int_rand_info"):
+    elif hasattr(t, "_int_field_info"):
         # composite type
-#        t._int_field_info = field_info()
         t._int_field_info.is_rand = True
-        print("t=" + str(t) + " field_info=" + str(t._int_field_info))
     else:
         raise Exception("Attempting to decorate \"" + str(t) + "\" of type \"" + str(type(t)) + "\" as rand")
     

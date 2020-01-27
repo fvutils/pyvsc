@@ -63,12 +63,9 @@ class TestSmoke(TestCase):
                 
         
         v1 = my_rand()
-#        v1.my_c.constraint_mode(0)
-        v2 = my_rand()
-#        v2.my_c.constraint_mode(0)
-        v1.randomize()
+        for i in range(10):
+            v1.randomize()
+            print("a=" + str(v1.a) + " b.a=" + str(v1.b.a) + " b.d=" + str(v1.b.d))
 #        vsc.randomize(v1)
         
 #        print("v1.a=" + str(int(v1.a)))
-
-        

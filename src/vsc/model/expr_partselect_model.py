@@ -35,5 +35,6 @@ class ExprPartselectModel(ExprModel):
 #        return btor.Slice()
     
     def accept(self, visitor):
+        print("ExprPartselectMode::accept " + str(self.lhs) + " " + str(self.rhs))
         visitor.visit_expr_partselect(self)
     

@@ -49,10 +49,10 @@ class CompositeFieldModel():
                         fo._int_field_info.name = f
                         fo._int_field_info.id = len(self.field_l)
                         if self.parent != None:
-                            fo._int_field_info.parent = self.parent.t._int_field_info
+                            fo._int_field_info.parent = self.parent.user_obj._int_field_info
                         self.field_l.append(ScalarFieldModel(fo, self, 
                                 (is_rand and fo._int_field_info.is_rand)))
-                    elif hasattr(fo, "_int_rand_info"):
+                    elif hasattr(fo, "_int_field_info"):
                         # This is a composite field
                         # TODO: assign ID
                         fo._int_field_info.name = f
@@ -114,4 +114,7 @@ class CompositeFieldModel():
     def post_randomize(self):
         for f in self.field_l:
             f.post_randomize()
+
+    def accept(self, visitor):
+        visitor.visit_composite_field(self)
             
