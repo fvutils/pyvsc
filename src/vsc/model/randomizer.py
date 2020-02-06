@@ -22,12 +22,15 @@ class Randomizer():
     def randomize(self, ri : RandInfo):
         """Randomize the variables and constraints in a RandInfo collection"""
         
+        print("Num Randsets: " + str(len(ri.randsets())))
+        
         for rs in ri.randsets():
 #             print("RandSet:")
 #             for f in rs.fields():
 #                 print("  Field: " + f.name())
 #             for c in rs.constraints():
 #                 print("  Constraint: " + str(c))
+            print("Randset: n_fields=" + str(len(rs.fields())))
             btor = Boolector()
             self.btor = btor
             btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
@@ -51,35 +54,35 @@ class Randomizer():
             # target randset variables. The resulting expression
             # enables us to minimize the deviations from the selected
             # bit values
-            expr = None
-            n_terms = 0
-            for f in rs.fields():
-
-                if f.width() < 8:
-                    bit_n = f.width()
-                else:
-                    bit_n = int(f.width() / 2)
-                bit_l = [*range(f.width())]
-                for i in range(bit_n):
-                    bit_i = self.randint(0, len(bit_l)-1)
-                    bit = bit_l.pop(bit_i)
-
-                    val = self.randint(0, 1)                    
-                    
-                    e = btor.Cond(
-                        btor.Eq(
-                            btor.Slice(f.var, bit, bit),
-                            btor.Const(val, 1)),
-                        btor.Const(0, 32),
-                        btor.Const(1, 32))
-                    n_terms += 1
-                    
-                    if expr is None:
-                        expr = e
-                    else:
-                        expr = self.btor.Add(expr, e)
-                        
-            min_v = self.minimize(expr, 0, n_terms)
+#             expr = None
+#             n_terms = 0
+#             for f in rs.fields():
+#  
+#                 if f.width() < 8:
+#                     bit_n = f.width()
+#                 else:
+#                     bit_n = int(f.width() / 2)
+#                 bit_l = [*range(f.width())]
+#                 for i in range(bit_n):
+#                     bit_i = self.randint(0, len(bit_l)-1)
+#                     bit = bit_l.pop(bit_i)
+#  
+#                     val = self.randint(0, 1)                    
+#                      
+#                     e = btor.Cond(
+#                         btor.Eq(
+#                             btor.Slice(f.var, bit, bit),
+#                             btor.Const(val, 1)),
+#                         btor.Const(0, 32),
+#                         btor.Const(1, 32))
+#                     n_terms += 1
+#                      
+#                     if expr is None:
+#                         expr = e
+#                     else:
+#                         expr = self.btor.Add(expr, e)
+#                          
+#             min_v = self.minimize(expr, 0, n_terms)
 
             # Finalize the value of the field
             for f in rs.fields():

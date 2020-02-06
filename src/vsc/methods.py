@@ -1,4 +1,3 @@
-from vsc.rand_obj import RandObj
 from vsc.model import expr_mode
 
 #   Copyright 2019 Matthew Ballance
@@ -27,26 +26,26 @@ Created on Jul 23, 2019
 from vsc.model.rand_obj_model import RandObjModel
 from vsc.types import field_info, type_base
 
-def randomize_with(*args):
-    """Randomize a list of variables with an inline constraint"""
-    for a in args:
-        if not isinstance(a, (RandObj, type_base)):
-            raise Exception("Argument is of type " + str(type(a)) + " not RandObj or type_base")
-    
-    class inline_constraint_collector(expr_mode):
-        
-        def __init__(self, *args):
-            self.args = args
-            pass
-        
-        def __enter__(self):
-            # Go into 'expression' mode
-            super().__enter__()
-        
-        def __exit__(self, t, v, tb):
-            super().__exit__(t, v, tb)
-    
-    return inline_constraint_collector(args)
+# def randomize_with(*args):
+#     """Randomize a list of variables with an inline constraint"""
+#     for a in args:
+#         if not isinstance(a, (RandObj, type_base)):
+#             raise Exception("Argument is of type " + str(type(a)) + " not RandObj or type_base")
+#     
+#     class inline_constraint_collector(expr_mode):
+#         
+#         def __init__(self, *args):
+#             self.args = args
+#             pass
+#         
+#         def __enter__(self):
+#             # Go into 'expression' mode
+#             super().__enter__()
+#         
+#         def __exit__(self, t, v, tb):
+#             super().__exit__(t, v, tb)
+#     
+#     return inline_constraint_collector(args)
 
 def randomize(*args):
     """Randomize a list of variables"""

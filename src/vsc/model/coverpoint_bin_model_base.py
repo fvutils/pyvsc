@@ -24,9 +24,9 @@ Created on Aug 4, 2019
 
 class CoverpointBinModelBase():
     
-    def __init__(self, name, cp):
+    def __init__(self, parent, name):
+        self.parent = parent
         self.name = name
-        self.cp = cp
         
     def n_bins(self):
         return 1

@@ -4,7 +4,12 @@
 # file directly. Hence, all special build steps here are only relevant for
 # local builds, not for RTD builds. Add all build steps which should be executed
 # in RTD builds as Python code into the conf.py file.
-#
+
+DOC_DIR=$(dir $(dirname $(MAKEFILE_LIST)))
+VSC_DIR=$(abspath $(DOC_DIR)/..)
+
+PATH:=$(VSC_DIR)/packages/python/bin:$(PATH)
+export PATH
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
@@ -13,14 +18,15 @@ SOURCEDIR     = source
 BUILDDIR      = build
 
 # Put it first so that "make" without argument is like "make help".
-help: .venv
+help: .venv.bld
 	@$(SPHINXBUILD) -M help "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
-.venv: requirements.txt
+.venv.bld: requirements.txt
 	@echo Creating Python venv for Sphinx build
 	python3 -m venv .venv
 	.venv/bin/pip -q install --upgrade pip
 	.venv/bin/pip -q install -r requirements.txt
+	@touch .venv.bld
 
 .PHONY: clean
 clean: .venv Makefile
@@ -28,7 +34,7 @@ clean: .venv Makefile
 
 .PHONY: distclean
 distclean:
-	-rm -rf .venv build sphinxext/__pycache__
+	-rm -rf .venv* build sphinxext/__pycache__
 
 .PHONY: help Makefile
 

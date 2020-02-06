@@ -26,7 +26,7 @@ from vsc.model.expr_model import ExprModel
 class ExprLiteralModel(ExprModel):
     
     def __init__(self, val, is_signed, width):
-        self.val = val
+        self._val = val
         self.signed = is_signed
         self.width = width
         
@@ -45,6 +45,9 @@ class ExprLiteralModel(ExprModel):
    
     def accept(self, visitor):
         visitor.visit_expr_literal(self)
+        
+    def val(self):
+        return self._val
         
     def __str__(self):
         return "Literal: " + str(self.val)

@@ -53,5 +53,112 @@ class TestUnique(TestCase):
         v.randomize()
         
         print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))
+
+    def test_linked(self):
         
+        class my_s(vsc.RandObj):
+            
+            def __init__(self):
+                super().__init__()
+                self.v1_1 = vsc.rand_bit_t(4)
+                self.v1_2 = vsc.rand_bit_t(4)
+                self.v1_3 = vsc.rand_bit_t(4)
+                self.v1_4 = vsc.rand_bit_t(4)
+                self.v1_5 = vsc.rand_bit_t(4)
+                self.v1_6 = vsc.rand_bit_t(4)
+                self.v1_7 = vsc.rand_bit_t(4)
+                self.v1_8 = vsc.rand_bit_t(4)
+                self.v1_9 = vsc.rand_bit_t(4)
+                self.v1_10 = vsc.rand_bit_t(4)
+                self.v1_11 = vsc.rand_bit_t(4)
+                self.v1_12 = vsc.rand_bit_t(4)
+                self.v1_13 = vsc.rand_bit_t(4)
+                self.v1_14 = vsc.rand_bit_t(4)
+                self.v1_15 = vsc.rand_bit_t(4)
+                self.v1_16 = vsc.rand_bit_t(4)
+                self.v2_1 = vsc.rand_bit_t(4)
+                self.v2_2 = vsc.rand_bit_t(4)
+                self.v2_3 = vsc.rand_bit_t(4)
+                self.v2_4 = vsc.rand_bit_t(4)
+                self.v2_5 = vsc.rand_bit_t(4)
+                self.v2_6 = vsc.rand_bit_t(4)
+                self.v2_7 = vsc.rand_bit_t(4)
+                self.v2_8 = vsc.rand_bit_t(4)
+                self.v2_9 = vsc.rand_bit_t(4)
+                self.v2_10 = vsc.rand_bit_t(4)
+                self.v2_11 = vsc.rand_bit_t(4)
+                self.v2_12 = vsc.rand_bit_t(4)
+                self.v2_13 = vsc.rand_bit_t(4)
+                self.v2_14 = vsc.rand_bit_t(4)
+                self.v2_15 = vsc.rand_bit_t(4)
+                self.v2_16 = vsc.rand_bit_t(4)                
+                self.v3_1 = vsc.rand_bit_t(4)
+                self.v3_2 = vsc.rand_bit_t(4)
+                self.v3_3 = vsc.rand_bit_t(4)
+                self.v3_4 = vsc.rand_bit_t(4)
+                self.v3_5 = vsc.rand_bit_t(4)
+                self.v3_6 = vsc.rand_bit_t(4)
+                self.v3_7 = vsc.rand_bit_t(4)
+                self.v3_8 = vsc.rand_bit_t(4)
+                self.v3_9 = vsc.rand_bit_t(4)
+                self.v3_10 = vsc.rand_bit_t(4)
+                self.v3_11 = vsc.rand_bit_t(4)
+                self.v3_12 = vsc.rand_bit_t(4)
+                self.v3_13 = vsc.rand_bit_t(4)
+                self.v3_14 = vsc.rand_bit_t(4)
+                self.v3_15 = vsc.rand_bit_t(4)
+                self.v3_16 = vsc.rand_bit_t(4)                
+                self.v4_1 = vsc.rand_bit_t(4)
+                self.v4_2 = vsc.rand_bit_t(4)
+                self.v4_3 = vsc.rand_bit_t(4)
+                self.v4_4 = vsc.rand_bit_t(4)
+                self.v4_5 = vsc.rand_bit_t(4)
+                self.v4_6 = vsc.rand_bit_t(4)
+                self.v4_7 = vsc.rand_bit_t(4)
+                self.v4_8 = vsc.rand_bit_t(4)
+                self.v4_9 = vsc.rand_bit_t(4)
+                self.v4_10 = vsc.rand_bit_t(4)
+                self.v4_11 = vsc.rand_bit_t(4)
+                self.v4_12 = vsc.rand_bit_t(4)
+                self.v4_13 = vsc.rand_bit_t(4)
+                self.v4_14 = vsc.rand_bit_t(4)
+                self.v4_15 = vsc.rand_bit_t(4)
+                self.v4_16 = vsc.rand_bit_t(4)                
+                
+            @vsc.constraint
+            def ab_c(self):
+                vsc.unique(
+                    self.v1_1, self.v1_2, self.v1_3, self.v1_4,
+                    self.v1_5, self.v1_6, self.v1_7, self.v1_8,
+                    self.v1_9, self.v1_10, self.v1_11, self.v1_12,
+                    self.v1_13, self.v1_14, self.v1_15, self.v1_16)
+#                vsc.unique(self.v1_16, self.v2_1)
+                vsc.unique(
+                    self.v2_1, self.v2_2, self.v2_3, self.v2_4,
+                    self.v2_5, self.v2_6, self.v2_7, self.v2_8,
+                    self.v2_9, self.v2_10, self.v2_11, self.v2_12,
+                    self.v2_13, self.v2_14, self.v2_15, self.v2_16)
+#                vsc.unique(self.v2_16, self.v3_1)
+                vsc.unique(
+                    self.v3_1, self.v3_2, self.v3_3, self.v3_4,
+                    self.v3_5, self.v3_6, self.v3_7, self.v3_8,
+                    self.v3_9, self.v3_10, self.v3_11, self.v3_12,
+                    self.v3_13, self.v3_14, self.v3_15, self.v3_16)
+#                vsc.unique(self.v3_16, self.v4_1)
+                vsc.unique(
+                    self.v4_1, self.v4_2, self.v4_3, self.v4_4,
+                    self.v4_5, self.v4_6, self.v4_7, self.v4_8,
+                    self.v4_9, self.v4_10, self.v4_11, self.v4_12,
+                    self.v4_13, self.v4_14, self.v4_15, self.v4_16)
+
+        v = my_s()
+        for i in range(10):
+            v.randomize()
+        
+            print("v1_1=%d v1_2=%d v1_3=%d v1_4=%d" %
+              (v.v1_1, v.v1_2, v.v1_3, v.v1_4))
+            print("v2_1=%d v2_2=%d v2_3=%d v2_4=%d" %
+              (v.v2_1, v.v2_2, v.v2_3, v.v2_4))
+            print("v3_1=%d v3_2=%d v3_3=%d v3_4=%d" %
+              (v.v3_1, v.v3_2, v.v3_3, v.v3_4))
         

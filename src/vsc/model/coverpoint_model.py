@@ -14,6 +14,9 @@
 #   CONDITIONS OF ANY KIND, either express or implied.  See
 #   the License for the specific language governing
 #   permissions and limitations under the License.
+from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
+import enum
+from vsc.model import expr_mode
 
 '''
 Created on Aug 3, 2019
@@ -23,18 +26,51 @@ Created on Aug 3, 2019
 
 class CoverpointModel():
     
-    def __init__(self, cp, name, bin_model_l):
-        self.cp = cp
+    def __init__(self, parent, facade_obj, name):
+        from vsc.types import type_base
+        self.parent = parent
+        self.fo = facade_obj
         self.name = name
-        self.bin_model_l = bin_model_l
-       
+        
+        self.bin_model_l = []
+        
+        with expr_mode():
+            print("self.fo.bins=" + str(self.fo.bins))        
+            if self.fo.bins is None or len(self.fo.bins) == 0:
+                if self.bins is None or len(self.bins) == 0:
+                    if self.cp_t == type_base:
+                        print("TODO: auto-bins from explicit type")
+                elif type(self.cp_t) == enum.EnumMeta:
+                    for e in list(self.cp_t):
+                        self.bin_model_l.append(CoverpointBinEnumModel(e.name, self, e))
+                else:
+                    raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))       
+            else:
+                for bin_name,bin_spec in self.fo.bins.items():
+                    if not hasattr(bin_spec, "_build_model"):
+                        raise Exception("Bin specification doesn't have a _build_model method")
+                    print("bin: " + bin_name + " spec=" + str(bin_spec))
+                    bin_m = bin_spec._build_model(self, bin_name)
+                    self.bin_model_l.append(bin_m)
+                
         self.n_bins = 0
         for b in self.bin_model_l:
             self.n_bins += b.get_n_bins()
+            
+    def get_coverage(self):
+        raise Exception("get_coverage unimplemented")
+        pass
+    
+    def get_inst_coverage(self):
+        raise Exception("get_inst_coverage unimplemented")
+        pass
         
     def sample(self):
         for b in self.bin_model_l:
             b.sample()
+            
+    def get_val(self):
+        return self.fo.get_val()
 
     def accept(self, v):
         v.visit_coverpoint(self)

@@ -24,10 +24,17 @@ Created on Aug 3, 2019
 
 class CoverpointCrossModel():
     
-    def __init__(self, cp, name, coverpoint_model_l):
-        self.cp = cp
+    def __init__(self, parent, facade_obj, name):
+        self.parent = parent
+        self.fo = facade_obj
         self.name = name
-        self.coverpoint_model_l = coverpoint_model_l
+        self.coverpoint_model_l = []
+        
+        for cp in self.fo.target_l:
+            m = cp.get_model()
+            print("cp m=" + str(m))
+            self.coverpoint_model_l.append(m)
+            
         self.hit_map = {}
         self.unhit_map = {}
     
@@ -49,7 +56,7 @@ class CoverpointCrossModel():
                 self.hit_map[key] = 0
                 self.unhit_map[key] = 0
             else:
-                self.build_hit_map(i+1, key_m)
+                self._build_hit_map(i+1, key_m)
                 
             key_m.pop()
     

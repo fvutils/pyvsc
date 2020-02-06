@@ -8,3 +8,6 @@ sphinxcontrib-spelling
 pyenchant
 sphinx-issues
 sphinx-argparse
+pyboolector
+jinja2
+

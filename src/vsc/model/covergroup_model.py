@@ -1,3 +1,5 @@
+from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -24,10 +26,37 @@ Created on Aug 3, 2019
 
 class CovergroupModel():
     
-    def __init__(self):
+    def __init__(self, facade_obj):
+        self.fo = facade_obj
         self.coverpoint_l = []
         self.cross_l = []
         self.name = "<default>"
+
+#        for f in self.locals():
+#            print("Field: " + str(f))
+
+        obj_name_m = {}
+        for n in dir(self.fo):
+            obj = getattr(self.fo, n)
+            if hasattr(obj, "_build_model"):
+                obj_name_m[obj] = n
+
+        if hasattr(self.fo, "buildable_l"):
+            for b in self.fo.buildable_l:
+                print("b: " + str(b))
+            
+                cp_m = b._build_model(self, obj_name_m[b])
+                
+                if isinstance(cp_m, CoverpointModel):
+                    self.coverpoint_l.append(cp_m)
+                elif isinstance(cp_m, CoverpointCrossModel):
+                    self.cross_l.append(cp_m)
+                else:
+                    raise Exception("Unsupported model type %s" % (str(type(cp_m))))
+ 
+    
+        # We're done, so lock the covergroup
+        self.fo._lock()
     
     def sample(self):
         
@@ -37,6 +66,12 @@ class CovergroupModel():
             
         for cr in self.cross_l:
             cr.sample()
+            
+    def get_coverage(self):
+        return 0.0
+    
+    def get_inst_coverage(self):
+        return 0.0
             
     def accept(self, v):
         v.visit_covergroup

@@ -1,3 +1,4 @@
+from vsc.model.coverpoint_model import CoverpointModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -25,11 +26,16 @@ from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinArrayModel(CoverpointBinModelBase):
     
-    def __init__(self, name, cp, low, high):
-        super().__init__(name, cp)
+    def __init__(self, parent, name, low, high):
+        super().__init__(parent, name)
         self.low = low 
         self.high = high 
         self.hit_bin_idx = -1
+        
+        cp = parent
+        while cp is not None and not isinstance(cp, CoverpointModel):
+            cp = cp.parent
+        self.cp = cp
 
         self.hit_list = []
         for i in range(self.high-self.low+1):

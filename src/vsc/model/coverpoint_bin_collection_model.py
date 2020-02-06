@@ -1,3 +1,4 @@
+from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
@@ -26,11 +27,29 @@ from _functools import reduce
 
 class CoverpointBinCollectionModel(CoverpointBinModelBase):
     
-    def __init__(self, name, cp):
-        super().__init__(name, cp)
+    def __init__(self, parent, name, bo):
+        super().__init__(parent, name)
         self.bin_l = []
         self.hit_bin_idx = -1
         self.n_bins = -1
+        
+        # First, need to determine how many total bins
+        # Construct a range model
+        if len(bo.nbins) == 0:
+            # unlimited number of bins
+            for r in bo.range_l:
+                if isinstance(r, list):
+                    if len(r) != 2: 
+                        raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
+                    self.bin_l.append(CoverpointBinArrayModel(self, name, r[0], r[1]))
+                else:
+                    pass
+        else:
+            # TODO: Calculate number of values
+            # TODO: Calculate values per bin
+            print("TODO: limited-value bins")
+            pass            
+            
         
     def sample(self):
         self.hit_bin_idx = -1

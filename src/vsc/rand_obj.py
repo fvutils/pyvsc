@@ -2,7 +2,7 @@ from vsc.model.rand_obj_model import RandObjModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.types import type_base, field_info
-from vsc.model import _expr_mode, get_expr_mode, expr_mode
+from vsc.model import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth
 import traceback
 import sys
 from statistics import mode
@@ -41,7 +41,57 @@ from vsc.impl.ctor import register_rand_obj_type, push_constraint_scope,\
 #    
 #    return T
 
-class RandObj(expr_mode):
+def randobj(T):
+    
+    if not hasattr(T, "_randcls"):
+        setattr(T, "_randcls", True)
+        
+    class randcls_w(T):
+        
+        def __init__(self, *args, **kwargs):
+            
+            super().__init__(*args, **kwargs)
+
+            if get_expr_mode_depth() == 0:
+                print("TODO: construct")
+        
+
+        def __getattribute__(self, a):
+            ret = super().__getattribute__(a)
+        
+            if isinstance(ret, type_base) and get_expr_mode() == 0:
+                # We're not in an expression, so the user
+                # wants the value of this field
+                ret = ret.get_val()
+            
+            return ret
+    
+        def __setattr__(self, field, val):
+            try:
+                # Retrieve the field object so we can check if it's 
+                # a type_base object. This will throw an exception
+                # if the field doesn't exist
+                fo = super().__getattribute__(field)
+            except:
+                super().__setattr__(field, val)
+            else:
+                if isinstance(fo, type_base):
+                    if get_expr_mode() == 0:
+                        # We're not in an expression context, so the 
+                        # user really wants us to set the actual value
+                        # of the field
+                        fo.set_val(val)
+                    else:
+                        raise Exception("Attempting to use '=' in a constraint")
+                else:
+                    super().__setattr__(field, val)        
+                    
+    ret = type(T.__name__, (randcls_w,), dict())
+    
+    return ret
+    
+
+class _RandObj(expr_mode):
     """Base class for coverage and randomized classes"""
    
     def __init__(self):
@@ -50,23 +100,23 @@ class RandObj(expr_mode):
         self.model = None
         pass
     
-    def copy(self, rhs):
-        if not isinstance(rhs, type(self)):
-            raise Exception("Error")
-        
-        for d in dir(self):
-            do = getattr(self, d)
-            if not callable(do):
-                # Candidate for copying
-                if type(do) == int:
-                    setattr(self, d, getattr(rhs, d))
-                elif hasattr(do, "copy"):
-                    do.copy(getattr(rhs, d))
-    
-    def clone(self):
-        ret = type(self)()
-        ret.copy(self)
-        return ret    
+#     def copy(self, rhs):
+#         if not isinstance(rhs, type(self)):
+#             raise Exception("Error")
+#         
+#         for d in dir(self):
+#             do = getattr(self, d)
+#             if not callable(do):
+#                 # Candidate for copying
+#                 if type(do) == int:
+#                     setattr(self, d, getattr(rhs, d))
+#                 elif hasattr(do, "copy"):
+#                     do.copy(getattr(rhs, d))
+#     
+#     def clone(self):
+#         ret = type(self)()
+#         ret.copy(self)
+#         return ret    
     
     def __getattribute__(self, a):
         ret = super().__getattribute__(a)

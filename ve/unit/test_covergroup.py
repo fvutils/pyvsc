@@ -61,14 +61,20 @@ class TestCovergroup(TestCase):
             
             def __init__(self, a, b, c): # Need to use lambda for non-reference values
                 super().__init__()
+                self.type_options.weight = 1
+                self.options.auto_bin_max = 32
                 
-                self.cp1 = coverpoint(a, bins={
-                    "a" : bin_array([], [1,15])
-                    })
+                self.cp1 = coverpoint(a, 
+                    options=options(
+                        auto_bin_max=64
+                    ),
+                    bins=dict(
+                        a = bin_array([], [1,15])
+                    ))
                 
-                self.cp2 = coverpoint(b, bins={
-                    "b" : bin_array([], [1,15])
-                    })
+                self.cp2 = coverpoint(b, bins=dict(
+                    b = bin_array([], [1,15])
+                    ))
                 
                 self.cp3 = coverpoint(c, cp_t=my_e)
                 
@@ -89,30 +95,83 @@ class TestCovergroup(TestCase):
 
     def test_emb_covergroup(self):
         
-        class my_item_c(Base):
-            
-            class my_covergroup(covergroup):
+        class my_item_c(RandObj):
+
+            @covergroup
+            class my_covergroup():
                 def __init__(self, it): # Reference values can be passed directly
                     super().__init__()
                 
                     self.cp1 = coverpoint(it.a, bins={
                         "a" : bin_array([], [1,15])
                     })
-                    self.finalize()
+#                    self.finalize()
             
             def __init__(self):
                 self.a = rand_bit_t(8)
                 self.cg = my_item_c.my_covergroup(self)
 
-                self.a <= 1
+                self.a = 1
                 self.cg.sample()
-                self.a <= 2
+                self.a = 2
                 self.cg.sample()
-                self.a <= 3
+                self.a = 3
                 self.cg.sample()
                 
         c = my_item_c()
         c.cg.dump()
+        
+    def test_ext_covergroup(self):
+
+        @randobj
+        class my_item_c():
+
+            @covergroup
+            class my_covergroup():
+                def __init__(self, it): # Reference values can be passed directly
+                    super().__init__()
+                    
+                    self.with_sample(dict(
+                        c=uint8_t(),
+                        d=uint8_t()))
+
+                    self.options.per_instance = True
+                
+                    self.cp1 = coverpoint(it.a, bins={
+                        "a" : bin_array([], [1,15])
+                    })
+#                    self.finalize()
+
+            @covergroup
+            class my_covergroup2(my_covergroup):
+                def __init__(self, it): # Reference values can be passed directly
+                    super().__init__(it)
+                
+                    self.cp2 = coverpoint(it.a, bins={
+                        "b" : bin_array([], [1,3])
+                    })
+                    
+                    self.cp3 = coverpoint(self.c, bins={
+                        "c" : bin_array([], [1,3])
+                    })
+
+                    print("cp1=" + str(self.cp1) + " cp2=" + str(self.cp2))
+                    self.cp1_cp2 = cross([self.cp1, self.cp2])
+            
+            def __init__(self):
+                self.a = rand_bit_t(8)
+                self.cg = my_item_c.my_covergroup2(self)
+
+                self.a = 1
+                self.cg.sample(1,2)
+                self.a = 2
+                self.cg.sample(2,3)
+                self.a = 3
+                self.cg.sample(3,4)
+                
+        c = my_item_c()
+        print("Coverage: " + str(c.cg.get_coverage()))
+        c.cg.dump()        
                 
     def test_class_covergroup(self):
        
