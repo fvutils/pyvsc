@@ -192,39 +192,62 @@ class _covergroup():
         model = self.get_model()
         model.dump(ind)
         
+class covergroup_int():
+    """Internal data used by a covergroup """
+    
+    def __init__(self, facade_obj):
+        print("covergroup_int")
+        self.fo = facade_obj
+        self.sample_var_l = []
+        self.model = None
+        self.ctor_level = 0
+        self.locked = False
+        pass
+    
+    def __enter__(self):
+        enter_expr_mode()
+        self.ctor_level += 1
+        
+    def __exit__(self, t, v, tb):
+        leave_expr_mode()
+        self.ctor_level -= 1
+        
 def covergroup(T):
     
     name = T.__name__
     
     print("covergroup: " + str(T))
 
-    if not hasattr(T, "_covergroup_base"):
+    if not hasattr(T, "_cg_init"):
 
+        def dump(self, ind=""):
+            model = self.get_model()
+            model.dump(ind)
+            
         # TODO: Make adding sample parameters additive?
         def with_sample(self, params):
-            if not hasattr(self, "sample_var_l"):
-                setattr(self, "sample_var_l", [])
-            
+            cg_i = self._get_int()
             for pn,pt in params.items():
                 print("parameter: " + pn)
                 setattr(self, pn, pt)
-                self.sample_var_l.append(pn)
-            print("self=" + str(self) + " sample_var_l=" + str(len(self.sample_var_l)))
+                cg_i.sample_var_l.append(pn)
+            print("self=" + str(self) + " sample_var_l=" + str(len(cg_i.sample_var_l)))
                 
         def sample(self, *args, **kwargs):
             """Base sampling method that samples all coverpoints and crosses"""
             # Build the model if we haven't yet
+            cg_i = self._get_int()
             
             # TODO: Need to propagate values to base classes
             model = self.get_model()
             
-            sample_var_len = len(self.sample_var_l) if hasattr(self, "sample_var_l") else 0
+            sample_var_len = len(cg_i.sample_var_l)
             
             if len(args) != sample_var_len:
                 raise Exception("Wrong number of parameters: expect " + str(sample_var_len) + " receive " + str(len(args)))
         
             for i in range(len(args)):
-                getattr(self, self.sample_var_l[i]).set_val(args[i])
+                getattr(self, cg_i.sample_var_l[i]).set_val(args[i])
 
 #             print("Class: " + str(self.__class__))
 #             c = self.__class__
@@ -243,6 +266,24 @@ def covergroup(T):
         def get_inst_coverage(self):
             return self.get_model().get_inst_coverage()
         
+        def get_model(self):
+            cg_i = self._get_int()
+            if cg_i.model is None:
+                cg_i.model = CovergroupModel(self)
+            
+            return cg_i.model
+        
+        def _get_int(self):
+            if not hasattr(self, "_cg_int"):
+                self._cg_int = covergroup_int(self)
+            return self._cg_int
+        
+        def _lock(self):
+            cg_i = self._get_int()
+            cg_i.locked = True
+            self.options._lock()
+            self.type_options._lock()
+        
         def _setattr(self, field, val):
             if hasattr(val, "_build_model"):
                 if not hasattr(self, "buildable_l"):
@@ -250,76 +291,41 @@ def covergroup(T):
                 self.buildable_l.append(val)
             object.__setattr__(self, field, val)
         
+        setattr(T, "dump", dump)
         setattr(T, "with_sample", with_sample)
         setattr(T, "sample", sample)
         setattr(T, "get_coverage", get_coverage)
         setattr(T, "get_inst_coverage", get_inst_coverage)
+        setattr(T, "get_model", get_model)
+        setattr(T, "_get_int", _get_int)
+        setattr(T, "_lock", _lock)
         setattr(T, "__setattr__", _setattr)
-        setattr(T, "_covergroup_base", True)
+        setattr(T, "_cg_init", True)
 
     # This is the interposer class that wraps a user-defined
     # covergroup class
-    class covergroup_w(T):
+    class covergroup_interposer(T):
         
         def __init__(self, *args, **kwargs):
+            cg_i = self._get_int()
+            
             # Ensure options/type_options created before 
-            # calling (user) base-class init
+            # calling (user) base-class __init__
             if not hasattr(self, "options"):
                 self.options = options_t()
             if not hasattr(self, "type_options"):
                 self.type_options = type_options_t()
                 
             self.buildable_l = []
-                
-            with expr_mode():
+
+            with cg_i:                
                 super().__init__(*args, **kwargs)
 
-            self.model = None
-            self.locked = False
-            
-            print("type=" + str(type(self)) + " expr_mode=" + str(get_expr_mode()))
-        
-#             # Determine the sampling arguments
-#         self.sample_var_l = []
-#         if sample_f is not None:
-#             c = sample_f.__code__
-#             d = sample_f.__defaults__
-#         
-#             for i in range(len(c.co_varnames)):
-#                 t = sample_f.__defaults__[i]
-#                 n = c.co_varnames[i]
-#            
-#                 v = t.clone()
-#                 self.sample_var_l.append(v)
-#                 setattr(self, n, v)
-
-            # TODO: probably shouldn't use expression depth here
-            # Should use 'covergroup depth' instead                            
-            if get_expr_mode_depth() == 0:
-                print("Time to construct: " + str(self))
+            # Construct the model once we've reached the top level
+            if cg_i.ctor_level == 0:
                 self.model = self.get_model()
-            print("<-- __init__: " + str(type(self)))
-                
-        def get_model(self):
-            if self.model is None:
-                self.model = CovergroupModel(self)
-            
-            return self.model
-        
- 
-        
-        def _lock(self):
-            self.locked = True
-            self.options._lock()
-            self.type_options._lock()        
-                
-
     
-        def dump(self, ind=""):
-            model = self.get_model()
-            model.dump(ind)                    
-    
-    ret = type(name, (covergroup_w,), dict())
+    ret = type(name, (covergroup_interposer,), dict())
     
     return ret
 
