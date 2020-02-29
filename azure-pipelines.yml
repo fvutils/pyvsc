@@ -9,14 +9,14 @@ jobs:
     value: $(Build.BuildNumber)
   steps:
   - script: |
-      python --version
-      python -m pip install --upgrade pip wheel twine ivpm pylint pyboolector
-      python -m pip install pytest pytest-cov
+      python3 --version
+      python3 -m pip install --upgrade pip wheel twine ivpm pylint pyboolector
+      python3 -m pip install pytest pytest-cov
     displayName: 'Install Python packages'
     
   - script: |
      export PYTHONPATH=$(Build.Repository.LocalPath)/src
-     python -m pytest ve/unit --doctest-modules --junitxml=junit/test-results.xml
+     python3 -m pytest ve/unit --doctest-modules --junitxml=junit/test-results.xml
     displayName: 'Run Unit Tests'
    
   - task: PublishTestResults@2
@@ -30,7 +30,7 @@ jobs:
 #    displayName: 'Run PyLint'
 
   - script: |
-      python setup.py bdist_wheel --universal
+      python3 setup.py bdist_wheel --universal
     displayName: 'Build Wheel'
 
   - task: TwineAuthenticate@1
