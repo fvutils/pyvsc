@@ -46,9 +46,6 @@ class ConstraintIfElseModel(ConstraintModel):
 
         return ret
     
-    def get_nodes(self, node_l):
-        node_l.append(self.node)
-        
     def __str__(self):
         ret = "if (" + str(self.cond) + ") { " + str(self.true_c) + " }"
         if self.false_c != None:

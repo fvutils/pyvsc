@@ -98,9 +98,6 @@ class ExprBinModel(ExprModel):
 
         return ret        
 
-    def get_node(self):
-        return self.node
-    
     def is_signed(self):
         return self.signed
     

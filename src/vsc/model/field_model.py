@@ -28,6 +28,12 @@ class FieldModel():
     
     def build(self, builder):
         raise Exception("build unimplemented")
+
+    def pre_randomize(self):
+        pass
+
+    def post_randomize(self):
+        pass
     
     def get_node(self):
         raise Exception("get_node unimplemented")

@@ -61,6 +61,7 @@ class if_then():
 class else_if():
 
     def __init__(self, e):
+        self.stmt = None
         
         if not in_constraint_scope():
             raise Exception("Attempting to use if_then constraint outside constraint scope")
@@ -78,8 +79,9 @@ class else_if():
         last_stmt.false_c = self.stmt
         
     def __enter__(self):
-        self.stmt.true_c = ConstraintScopeModel()
-        push_constraint_scope(self.stmt.true_c)
+        if self.stmt is not None:
+            self.stmt.true_c = ConstraintScopeModel()
+            push_constraint_scope(self.stmt.true_c)
         
     def __exit__(self, t, v, tb):
         pop_constraint_scope()
@@ -87,6 +89,7 @@ class else_if():
 class else_then():
 
     def __init__(self):
+        self.stmt = None
         if not in_constraint_scope():
             raise Exception("Attempting to use if_then constraint outside constraint scope")
         

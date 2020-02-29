@@ -317,5 +317,7 @@ class list_t():
     
 class rand_list_t(list_t):
     
-    def __init__(self, ):
+    def __init__(self):
+        pass
+
 

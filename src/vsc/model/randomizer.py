@@ -27,6 +27,7 @@ from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_info_builder import RandInfoBuilder
 from vsc.model.rand_info import RandInfo
 from pyboolector import Boolector
+from typing import List
 import pyboolector
 import random
 
@@ -176,8 +177,8 @@ class Randomizer():
         
     @staticmethod
     def do_randomize(
-            field_model_l : [FieldModel],
-            constraint_l : [ConstraintModel] = []):
+            field_model_l : List[FieldModel],
+            constraint_l : List[ConstraintModel] = []):
         # First, invoke pre_randomize on all elements
         for fm in field_model_l:
             fm.pre_randomize()

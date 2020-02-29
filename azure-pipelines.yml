@@ -9,12 +9,17 @@ jobs:
     value: $(Build.BuildNumber)
   steps:
   - script: |
-      python -m pip install wheel twine ivpm
-    displayName: 'Install wheel+twine'
+      python -m pip install wheel twine ivpm pylint
+    displayName: 'Install Python packages'
+
+  - script: |
+      python scripts/run_pylint.py
+    displayName: 'Run PyLint'
 
   - script: |
       python setup.py bdist_wheel --universal
     displayName: 'Build Wheel'
+
 #  - task: TwineAuthenticate@1
 #    condition: eq(variables['Build.SourceBranchName'], 'master')
 #    inputs:

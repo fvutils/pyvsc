@@ -52,10 +52,7 @@ class ExprInModel(ExprModel):
             else:
                 expr = ExprBinModel(expr, BinExprType.Or, t)
                 
-        return expr.build(btor)
-    
-    def get_node(self):
-        return self.expr.get_node()
+        return expr.build(btor) if expr is not None else None
     
     def accept(self, visitor):
         visitor.visit_expr_in(self)
