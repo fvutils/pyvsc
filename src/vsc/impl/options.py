@@ -48,5 +48,5 @@ class Options():
             raise Exception("Failed to set option \"%s\" since covergroup is locked" % (field))
         object.__setattr__(self, field, val)
         
-    def _lock(self):
+    def lock(self):
         self.locked = True

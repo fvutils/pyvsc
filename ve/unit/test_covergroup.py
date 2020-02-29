@@ -58,8 +58,9 @@ class TestCovergroup(TestCase):
         class my_e(IntEnum):
             A = auto()
             B = auto()
-        
-        class my_covergroup(covergroup):
+
+        @covergroup
+        class my_covergroup(object):
             
             def __init__(self, a, b, c): # Need to use lambda for non-reference values
                 super().__init__()
@@ -67,7 +68,7 @@ class TestCovergroup(TestCase):
                 self.options.auto_bin_max = 32
                 
                 self.cp1 = coverpoint(a, 
-                    options=options(
+                    options=dict(
                         auto_bin_max=64
                     ),
                     bins=dict(
@@ -236,14 +237,19 @@ class TestCovergroup(TestCase):
         cg.dump()                
         
     def test_binsof_cross(self):
-       
-        class my_covergroup(covergroup):
+      
+        @covergroup
+        class my_covergroup(object):
             
             def __init__(self):
-                super().__init__(lambda 
-                        a=bit_t(4),
-                        b=bit_t(4) : 0
-                    )
+#                 super().__init__(lambda 
+#                         a=bit_t(4),
+#                         b=bit_t(4) : 0
+#                     )
+                self.with_sample(dict(
+                    a=bit_t(4),
+                    b=bit_t(4)
+                ))
                 self.cp1 = coverpoint(self.a, bins={
                     "a" : bin_array([], [1,15])
                     })
@@ -252,11 +258,8 @@ class TestCovergroup(TestCase):
                     })
                 
                 self.cp1X2 = cross([self.cp1, self.cp2], bins={
-                    "a" : binsof(self.cp1.a).intersect([0,1,range(5,7)]) and binsof(self.cp2.a)
+#                    "a" : binsof(self.cp1.a).intersect([0,1,range(5,7)]) and binsof(self.cp2.a)
                     })
-
-                # Finalize the model
-                self.finalize()
 
         cg = my_covergroup()
         

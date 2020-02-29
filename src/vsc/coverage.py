@@ -52,6 +52,7 @@ class _covergroup(object):
         self.model = None
         self.coverpoint_l = []
         self.cross_l = []
+        self.locked = False
 
         self.options = Options()
         self.type_options = TypeOptions()
@@ -78,7 +79,14 @@ class _covergroup(object):
                 
     def get_model(self):
         if self.model is None:
-            self.model = CovergroupModel(self)
+            self.model = CovergroupModel()
+
+            obj_name_m = {}            
+            for n in dir(self):
+                obj = getattr(self, n)
+                if hasattr(obj, "_build_model"):
+                    obj_name_m[obj] = n
+                    
             
         return self.model
         
@@ -105,7 +113,7 @@ class _covergroup(object):
         
     def _lock(self):
         self.locked = True
-        self.options._lock()
+        self.options.lock()
         self.type_options._lock()
    
     
@@ -189,7 +197,7 @@ def covergroup(T):
 
             model.sample()
 
-        pass            
+        pass
         
         def get_coverage(self):
             return self.get_model().get_coverage()
@@ -200,7 +208,22 @@ def covergroup(T):
         def get_model(self):
             cg_i = self._get_int()
             if cg_i.model is None:
-                cg_i.model = CovergroupModel(self)
+                cg_i.model = CovergroupModel()
+
+                obj_name_m = {}            
+                for n in dir(self):
+                    obj = getattr(self, n)
+                    if hasattr(obj, "_build_model"):
+                        obj_name_m[obj] = n
+                        
+                for b in self.buildable_l:
+                    print("b: " + str(b))
+            
+                    cp_m = b._build_model(cg_i.model, obj_name_m[b])
+                    cg_i.model.add_coverpoint(cp_m)
+
+                # We're done, so lock the covergroup
+                self.lock()
             
             return cg_i.model
         
@@ -209,10 +232,10 @@ def covergroup(T):
                 self._cg_int = CovergroupInt(self)
             return self._cg_int
         
-        def _lock(self):
+        def lock(self):
             cg_i = self._get_int()
             cg_i.locked = True
-            self.options._lock()
+            self.options.lock()
             self.type_options._lock()
         
         def _setattr(self, field, val):
@@ -229,7 +252,7 @@ def covergroup(T):
         setattr(T, "get_inst_coverage", get_inst_coverage)
         setattr(T, "get_model", get_model)
         setattr(T, "_get_int", _get_int)
-        setattr(T, "_lock", _lock)
+        setattr(T, "lock", lock)
         setattr(T, "__setattr__", _setattr)
         setattr(T, "_cg_init", True)
 
@@ -279,7 +302,24 @@ class bin_array(object):
         self.range_l = args
     
     def _build_model(self, parent, name):
-        ret = CoverpointBinCollectionModel(parent, name, self)
+        ret = CoverpointBinCollectionModel(parent, name)
+        
+        # First, need to determine how many total bins
+        # Construct a range model
+        if len(self.nbins) == 0:
+            # unlimited number of bins
+            for r in self.range_l:
+                if isinstance(r, list):
+                    if len(r) != 2: 
+                        raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
+                    ret.add_bin(CoverpointBinArrayModel(ret, name, r[0], r[1]))
+                else:
+                    pass
+        else:
+            # TODO: Calculate number of values
+            # TODO: Calculate values per bin
+            print("TODO: limited-value bins")
+            pass                    
 
         return ret
     
@@ -363,13 +403,32 @@ class coverpoint(object):
     def _build_model(self, parent, name):
         if self.model is None:
             self.model = CoverpointModel(parent, self, name)
+
+            with expr_mode():
+                if self.bins is None or len(self.bins) == 0:
+                    if self.bins is None or len(self.bins) == 0:
+                        if self.cp_t == type_base:
+                            print("TODO: auto-bins from explicit type")
+                    elif type(self.cp_t) == enum.EnumMeta:
+                        for e in list(self.cp_t):
+                            self.model.add_bin_model(CoverpointBinEnumModel(e.name, self, e))
+                    else:
+                        raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))                       
+                else:
+                    for bin_name,bin_spec in self.bins.items():
+                        if not hasattr(bin_spec, "_build_model"):
+                            raise Exception("Bin specification doesn't have a _build_model method")
+                        print("bin: " + bin_name + " spec=" + str(bin_spec))
+                        bin_m = bin_spec._build_model(self.model, bin_name)
+                        self.model.add_bin_model(bin_m)
+         
         print("coverpoint::_build_model: " + str(self) + " " + str(self.model))
         return self.model
     
     def get_model(self):
         return self.model
     
-    def get_val(self):
+    def get_val(self, cp_m):
         ret = int(self.get_val_f())
         print("get_val: val=" + str(ret) + " get_val_f=" + str(self.get_val_f))
             
@@ -385,7 +444,7 @@ class coverpoint(object):
             raise Exception("Attempting to set value of non-variable coverpoint")
         
     def _lock(self):
-        self.options._lock()
+        self.options.lock()
         self.type_options._lock()
     
 class cross(object):
