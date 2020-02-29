@@ -2,7 +2,7 @@
 jobs:
 - job: PyVSC_Linux
   pool:
-   vmImage: 'ubuntu-18.04'
+   vmImage: 'ubuntu-16.04'
 
   variables:
   - name: build_num
@@ -15,7 +15,7 @@ jobs:
     
   - script: |
      export PYTHONPATH=$(Build.Repository.LocalPath)/src
-     pytest ve/unit --doctest-modules --junitxml=junit/test-results.xml
+     python -m pytest ve/unit --doctest-modules --junitxml=junit/test-results.xml
     displayName: 'Run Unit Tests'
    
   - task: PublishTestResults@2
