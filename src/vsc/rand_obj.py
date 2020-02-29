@@ -17,13 +17,10 @@
 # under the License.
 
 from vsc.model.rand_obj_model import RandObjModel
-from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.types import type_base, field_info
 from vsc.model import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth
-import traceback
 import sys
-from statistics import mode
 from vsc.model.randomizer import Randomizer
 
 

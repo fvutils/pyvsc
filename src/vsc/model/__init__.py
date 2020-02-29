@@ -31,7 +31,7 @@ def leave_expr_mode():
     _expr_mode.pop()
     
 
-class expr_mode():
+class expr_mode(object):
     
     def __enter__(self, is_expr_mode=True):
         enter_expr_mode(is_expr_mode)

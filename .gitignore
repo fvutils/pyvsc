@@ -104,3 +104,6 @@ venv.bak/
 .mypy_cache/
 
 packages/
+.pytype/pyi/
+.pytype/imports/
+doc/source/_build/
