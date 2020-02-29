@@ -13,5 +13,8 @@ sys.argv.append("-E")
 sys.argv.append("--extension-pkg-whitelist=pyboolector")
 sys.argv.append(os.path.join(vsc_dir, "src"))
 
+for a in sys.argv:
+    print("Argument: " + str(a))
+
 run_pylint()
 
