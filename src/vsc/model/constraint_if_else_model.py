@@ -22,10 +22,11 @@ Created on Jul 28, 2019
 @author: ballance
 '''
 from vsc.model.constraint_model import ConstraintModel
+from vsc.model.expr_model import ExprModel
 
 class ConstraintIfElseModel(ConstraintModel):
     
-    def __init__(self, cond):
+    def __init__(self, cond : ExprModel):
         super().__init__()
         self.cond = cond
         self.true_c = None

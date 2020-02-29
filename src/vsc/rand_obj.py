@@ -43,21 +43,9 @@ from vsc.impl.ctor import register_rand_obj_type, push_constraint_scope,\
 
 def randobj(T):
     
-    if not hasattr(T, "_randcls"):
-        setattr(T, "_randcls", True)
-        
-    class randcls_w(T):
-        
-        def __init__(self, *args, **kwargs):
-            
-            super().__init__(*args, **kwargs)
-
-            if get_expr_mode_depth() == 0:
-                print("TODO: construct")
-        
-
+    if not hasattr(T, "_ro_init"):
         def __getattribute__(self, a):
-            ret = super().__getattribute__(a)
+            ret = object.__getattribute__(self, a)
         
             if isinstance(ret, type_base) and get_expr_mode() == 0:
                 # We're not in an expression, so the user
@@ -71,9 +59,9 @@ def randobj(T):
                 # Retrieve the field object so we can check if it's 
                 # a type_base object. This will throw an exception
                 # if the field doesn't exist
-                fo = super().__getattribute__(field)
+                fo = object.__getattribute__(self, field)
             except:
-                super().__setattr__(field, val)
+                object.__setattr__(self, field, val)
             else:
                 if isinstance(fo, type_base):
                     if get_expr_mode() == 0:
@@ -84,15 +72,80 @@ def randobj(T):
                     else:
                         raise Exception("Attempting to use '=' in a constraint")
                 else:
-                    super().__setattr__(field, val)        
+                    object.__setattr__(self, field, val)                
                     
-    ret = type(T.__name__, (randcls_w,), dict())
+        def randomize(self):
+            model = self.get_model()
+            Randomizer.do_randomize([model])
+            
+        def _build_model(self):
+            model = RandObjModel(self)
+            return model
+        
+        def get_model(self):
+            with expr_mode():
+                if not hasattr(self, "model") or self.model is None:
+                    self.model = self._build_model()
+                
+                return self.model
+            
+        
+        def __enter__(self):
+            super().__enter__()
+            self.get_model() # Ensure model is constructed
+            push_constraint_scope(ConstraintBlockModel("inline"))
+            return self
+        
+        def __exit__(self, t, v, tb):
+            c = pop_constraint_scope()
+            super().__exit__(t, v, tb)
+            Randomizer.do_randomize([self.model], [c])
+        
+        def randomize_with(self):
+            if self.model is None:
+                # Need to initialize
+                self.model = self._build_model()
+    
+            return self
+        
+        def pre_randomize(self):
+            pass
+        
+        def post_randomize(self):
+            pass                    
+
+        setattr(T, "__getattribute__", __getattribute__)
+        setattr(T, "__setattr__", __setattr__)
+        setattr(T, "randomize", randomize)
+        setattr(T, "randomize_with", randomize_with)
+        setattr(T, "_build_model", _build_model)
+        setattr(T, "get_model", get_model)
+        setattr(T, "__enter__", __enter__)
+        setattr(T, "__exit__", __exit__)
+        setattr(T, "pre_randomize", pre_randomize)
+        setattr(T, "post_randomize", post_randomize)
+        setattr(T, "_ro_init", True)
+        
+#     class randcls_w(T):
+#         
+#         def __init__(self, *args, **kwargs):
+#             
+#             super().__init__(*args, **kwargs)
+# 
+#             if get_expr_mode_depth() == 0:
+#                 print("TODO: construct")
+#  
+#                     
+#     ret = type(T.__name__, (randcls_w,), dict())
+    ret = T
     
     return ret
     
 
-class _RandObj(expr_mode):
+class RandObj(expr_mode):
     """Base class for coverage and randomized classes"""
+    
+    _ro_init = True
    
     def __init__(self):
         super().__init__()

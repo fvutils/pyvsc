@@ -31,7 +31,7 @@ class ExprLiteralModel(ExprModel):
         self.width = width
         
     def build(self, btor):
-        return btor.Const(self.val, self.width)
+        return btor.Const(self.val(), self.width)
     
     def get_node(self):
         return self.node

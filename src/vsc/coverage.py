@@ -18,6 +18,9 @@ import enum
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
 from vsc.model import expr_mode, get_expr_mode, enter_expr_mode, leave_expr_mode,\
     get_expr_mode_depth
+from vsc.impl.covergroup_int import CovergroupInt
+from vsc.impl.options import Options
+from vsc.impl.type_options import TypeOptions
 '''
 Created on Aug 3, 2019
 
@@ -37,58 +40,9 @@ from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.rangelist_model import RangelistModel
 from vsc.types import rangelist, bit_t, to_expr, type_base
 
-class options_t():
-    
-    def __init__(self):
-        self.locked = False
-        self.name = ""
-        self.weight = 1
-        self.goal = 100
-        self.comment = ""
-        self.at_least = 1
-        self.auto_bin_max = 64
-        self.cross_num_print_missing = False
-        self.detect_overlap = False
-        self.per_instance = False
-        self.get_inst_coverage = False
 
-    def set(self, values):
-        for key in values.keys():
-            if not hasattr(self, key):
-                raise AttributeError("Option %s is invalid" % (key))
-            setattr(self, key, values[key])
-    
-    def __setattr__(self, field, val):
-        if field == "locked" and hasattr(self, "locked") and self.locked:
-            raise Exception("Failed to set option \"%s\" since covergroup is locked" % (field))
-        object.__setattr__(self, field, val)
-        
-    def _lock(self):
-        self.locked = True
             
-class type_options_t():
-    
-    def __init__(self):
-        self.locked = False
-        self.weight = 1
-        self.goal = 100
-        self.comment = ""
-        self.merge_instances = False
-        self.distribute_first = False
-        
-    def set(self, values):
-        for key in values.keys():
-            if not hasattr(self, key):
-                raise AttributeError("Option %s is invalid" % (key))
-            setattr(self, key, values[key])
-    
-    def __setattr__(self, field, val):
-        if field == "locked" and hasattr(self, "locked") and self.locked:
-            raise Exception("Failed to set option \"%s\" since covergroup is locked" % (field))
-        object.__setattr__(self, field, val)
-        
-    def _lock(self):
-        self.locked = True
+
 
 class _covergroup():
         
@@ -97,8 +51,8 @@ class _covergroup():
         self.coverpoint_l = []
         self.cross_l = []
 
-        self.options = options_t()
-        self.type_options = type_options_t()
+        self.options = Options()
+        self.type_options = TypeOptions()
         
         if type_options is not None:
             self.type_options.set(type_options)
@@ -192,29 +146,11 @@ class _covergroup():
         model = self.get_model()
         model.dump(ind)
         
-class covergroup_int():
-    """Internal data used by a covergroup """
-    
-    def __init__(self, facade_obj):
-        print("covergroup_int")
-        self.fo = facade_obj
-        self.sample_var_l = []
-        self.model = None
-        self.ctor_level = 0
-        self.locked = False
-        pass
-    
-    def __enter__(self):
-        enter_expr_mode()
-        self.ctor_level += 1
-        
-    def __exit__(self, t, v, tb):
-        leave_expr_mode()
-        self.ctor_level -= 1
+
         
 def covergroup(T):
+    """Covergroup decorator marks as class as being a covergroup"""
     
-    name = T.__name__
     
     print("covergroup: " + str(T))
 
@@ -249,13 +185,6 @@ def covergroup(T):
             for i in range(len(args)):
                 getattr(self, cg_i.sample_var_l[i]).set_val(args[i])
 
-#             print("Class: " + str(self.__class__))
-#             c = self.__class__
-#             while c != object:
-#                 print("  Class: " + str(c))
-#                 if 
-#                 c = c.__bases__
-        
             model.sample()
 
         pass            
@@ -275,7 +204,7 @@ def covergroup(T):
         
         def _get_int(self):
             if not hasattr(self, "_cg_int"):
-                self._cg_int = covergroup_int(self)
+                self._cg_int = CovergroupInt(self)
             return self._cg_int
         
         def _lock(self):
@@ -303,7 +232,8 @@ def covergroup(T):
         setattr(T, "_cg_init", True)
 
     # This is the interposer class that wraps a user-defined
-    # covergroup class
+    # covergroup class. It ensures that the coverage model is
+    # created while field refs are treated as expressions
     class covergroup_interposer(T):
         
         def __init__(self, *args, **kwargs):
@@ -312,9 +242,9 @@ def covergroup(T):
             # Ensure options/type_options created before 
             # calling (user) base-class __init__
             if not hasattr(self, "options"):
-                self.options = options_t()
+                self.options = Options()
             if not hasattr(self, "type_options"):
-                self.type_options = type_options_t()
+                self.type_options = TypeOptions()
                 
             self.buildable_l = []
 
@@ -325,7 +255,7 @@ def covergroup(T):
             if cg_i.ctor_level == 0:
                 self.model = self.get_model()
     
-    ret = type(name, (covergroup_interposer,), dict())
+    ret = type(T.__name__, (covergroup_interposer,), dict())
     
     return ret
 
@@ -379,8 +309,8 @@ class coverpoint():
         self.target_kind = None
         self.target_type = None
         self.get_val_f = None
-        self.options = options_t()
-        self.type_options = type_options_t()
+        self.options = Options()
+        self.type_options = TypeOptions()
         
         if options is not None:
             self.options.set(options)

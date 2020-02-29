@@ -49,7 +49,8 @@ from vsc.types import field_info, type_base
 
 def randomize(*args):
     """Randomize a list of variables"""
+    pass
     
-    with randomize_with(*args):
-        pass
+#    with randomize_with(*args):
+#        pass
     

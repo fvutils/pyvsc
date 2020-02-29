@@ -53,23 +53,38 @@ class TestIn(TestCase):
                 self.c < self.d
                 self.b in vsc.rangelist([self.c,self.d])
                 
-#                 with vsc.implies(self.a == 1):
-#                     self.b == 1
-#                      
-#                 with vsc.implies(self.a == 2):
-#                     self.b == 2
-#                      
-#                 with vsc.implies(self.a == 3):
-#                     self.b == 4
-#                      
-#                 with vsc.implies(self.a == 4):
-#                     self.b == 8
-#                      
-#                 with vsc.implies(self.a == 5):
-#                     self.b == 16
-
         v = my_s()
         for i in range(100):
             v.randomize()
             print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))        
         
+
+    def test_single_d(self):
+
+        @vsc.randobj        
+        class my_s():
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
+                
+            @vsc.constraint
+            def ab_c(self):
+                
+#                self.a in vsc.rangelist(self.b+1, [self.b+2,self.c], 8)
+                self.a in vsc.rangelist(1, 2, 4, 8)
+               
+
+                self.c != 0
+                self.d != 0
+                
+                self.c < self.d
+                self.b in vsc.rangelist([self.c,self.d])
+                
+        v = my_s()
+        for i in range(100):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))       

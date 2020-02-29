@@ -306,3 +306,14 @@ class rand_int64_t(rand_int_t):
     def __init__(self, i=0):
         super().__init__(64, i)        
         
+class list_t():
+    def __init__(self, t, is_rand, sz):
+        pass
+    
+    def size(self):
+        pass
+    
+class rand_list_t(list_t):
+    
+    def __init__(self, ):
+

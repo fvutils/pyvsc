@@ -1,6 +1,3 @@
-from vsc.model.coverpoint_model import CoverpointModel
-from vsc.model.coverpoint_cross_model import CoverpointCrossModel
-
 #   Copyright 2019 Matthew Ballance
 #   All Rights Reserved Worldwide
 #
@@ -17,6 +14,9 @@ from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 #   CONDITIONS OF ANY KIND, either express or implied.  See
 #   the License for the specific language governing
 #   permissions and limitations under the License.
+
+from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 
 '''
 Created on Aug 3, 2019
