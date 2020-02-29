@@ -23,7 +23,7 @@ Created on Jan 22, 2020
 '''
 from builtins import set
 
-class RandSet():
+class RandSet(object):
     """Contains information about one set of related fields and constraints"""
     
     def __init__(self):

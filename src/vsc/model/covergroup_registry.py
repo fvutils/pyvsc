@@ -22,7 +22,7 @@ Created on Dec 23, 2019
 @author: ballance
 '''
 
-class CovergroupRegistry():
+class CovergroupRegistry(object):
     
     _inst = None
     

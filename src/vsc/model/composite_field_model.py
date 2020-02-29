@@ -29,7 +29,7 @@ from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model import expr_mode, _expr_mode, get_expr_mode
 
 
-class CompositeFieldModel():
+class CompositeFieldModel(object):
     
     def __init__(self, user_obj, parent, is_rand):
         self.user_obj = user_obj

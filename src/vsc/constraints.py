@@ -28,7 +28,7 @@ from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
 
-class constraint_t():
+class constraint_t(object):
     
     def __init__(self, c):
         self.c = c
@@ -40,7 +40,7 @@ class constraint_t():
 def constraint(c):
     return constraint_t(c)
 
-class if_then():
+class if_then(object):
 
     def __init__(self, e):
         if not in_constraint_scope():
@@ -58,7 +58,7 @@ class if_then():
         pop_constraint_scope()
         
         
-class else_if():
+class else_if(object):
 
     def __init__(self, e):
         self.stmt = None
@@ -86,7 +86,7 @@ class else_if():
     def __exit__(self, t, v, tb):
         pop_constraint_scope()
         
-class else_then():
+class else_then(object):
 
     def __init__(self):
         self.stmt = None
@@ -110,7 +110,7 @@ class else_then():
     def __exit__(self, t, v, tb):
         pop_constraint_scope()        
 
-class implies():
+class implies(object):
 
     def __init__(self, e):
         if not in_constraint_scope():

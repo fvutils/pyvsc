@@ -46,7 +46,7 @@ from vsc.types import rangelist, bit_t, to_expr, type_base
             
 
 
-class _covergroup():
+class _covergroup(object):
         
     def __init__(self, sample_f=None, type_options=None, options=None):
         self.model = None
@@ -262,7 +262,7 @@ def covergroup(T):
     return ret
 
         
-class bin():
+class bin(object):
     def __init__(self, *args):
         self.range_l = args
         
@@ -272,7 +272,7 @@ class bin():
         return CoverpointBinModel(name, cp, range_l)
         
 
-class bin_array():
+class bin_array(object):
     
     def __init__(self, nbins, *args):
         self.nbins = nbins
@@ -283,7 +283,7 @@ class bin_array():
 
         return ret
     
-class binsof():
+class binsof(object):
     # TODO: future implementation of the 'binsof' operator
     
     def __init__(self, cp):
@@ -302,7 +302,7 @@ class binsof():
     def __or__(self, rhs):
         pass
     
-class coverpoint():
+class coverpoint(object):
    
     def __init__(self, target, cp_t=None, iff=None, bins=None, options=None, type_options=None):
         self.have_var = False
@@ -388,7 +388,7 @@ class coverpoint():
         self.options._lock()
         self.type_options._lock()
     
-class cross():
+class cross(object):
     
     def __init__(self, target_l, bins={}):
         for t in target_l:

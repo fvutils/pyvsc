@@ -24,7 +24,7 @@ Created on Jul 27, 2019
 @author: ballance
 '''
 
-class FieldModel():
+class FieldModel(object):
     
     def build(self, builder):
         raise Exception("build unimplemented")

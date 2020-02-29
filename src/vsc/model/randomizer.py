@@ -31,7 +31,7 @@ from typing import List
 import pyboolector
 import random
 
-class Randomizer():
+class Randomizer(object):
     """Implements the core randomization algorithm"""
     
     _state_p = [0,1]

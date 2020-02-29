@@ -24,7 +24,7 @@ Created on Aug 3, 2019
 @author: ballance
 '''
 
-class CoverpointCrossModel():
+class CoverpointCrossModel(object):
     
     def __init__(self, parent, facade_obj, name):
         self.parent = parent

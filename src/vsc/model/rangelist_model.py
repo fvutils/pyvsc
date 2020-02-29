@@ -24,7 +24,7 @@ Created on Aug 4, 2019
 @author: ballance
 '''
 
-class RangelistModel():
+class RangelistModel(object):
     
     def __init__(self, rl):
         self.range_l = []

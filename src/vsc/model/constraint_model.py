@@ -24,7 +24,7 @@ Created on Jul 27, 2019
 @author: ballance
 '''
 
-class ConstraintModel():
+class ConstraintModel(object):
     
     def __init__(self):
         pass

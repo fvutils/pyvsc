@@ -24,7 +24,7 @@ Created on Aug 10, 2019
 @author: ballance
 '''
 
-class ModelVisitor():
+class ModelVisitor(object):
     
     def __init__(self):
         pass

@@ -26,7 +26,7 @@ Created on Aug 3, 2019
 @author: ballance
 '''
 
-class CoverpointModel():
+class CoverpointModel(object):
     
     def __init__(self, parent, facade_obj, name):
         from vsc.types import type_base

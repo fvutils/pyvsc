@@ -22,7 +22,7 @@ Created on Jan 22, 2020
 @author: ballance
 '''
 
-class RandInfo():
+class RandInfo(object):
     """Contains information about a set of variables and constraints"""
     
     def __init__(self, randset_l, unconstrained_l, floating_constraint_l = []):

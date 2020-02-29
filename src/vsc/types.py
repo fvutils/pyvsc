@@ -43,12 +43,12 @@ def signed(v, w=-1):
         w = 32
     return expr(ExprLiteralModel(v, True, w))
 
-class expr():
+class expr(object):
     def __init__(self, em):
         push_expr(em)
         self.em = em
         
-class rangelist():
+class rangelist(object):
     
     def __init__(self, *args):
         if len(args) == 0:
@@ -90,7 +90,7 @@ def to_expr(t):
         raise Exception("Element \"" + str(t) + "\" isn't recognized, and doesn't provide to_expr")
     
     
-class field_info():
+class field_info(object):
     """Model-specific information about the field"""
     def __init__(self):
         self.id = -1
@@ -98,7 +98,7 @@ class field_info():
         self.is_rand = False
         self.model = None
         
-class type_base():
+class type_base(object):
     """Base type for all primitive-type fields that participate in constraints"""
     
     def __init__(self, width, is_signed, i=0):
@@ -308,7 +308,7 @@ class rand_int64_t(rand_int_t):
     def __init__(self, i=0):
         super().__init__(64, i)        
         
-class list_t():
+class list_t(object):
     def __init__(self, t, is_rand, sz):
         pass
     

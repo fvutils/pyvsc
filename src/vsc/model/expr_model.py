@@ -24,7 +24,7 @@ Created on Jul 26, 2019
 @author: ballance
 '''
 
-class ExprModel():
+class ExprModel(object):
     
     def __init__(self):
         pass

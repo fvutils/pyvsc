@@ -24,7 +24,7 @@ Created on Aug 4, 2019
 @author: ballance
 '''
 
-class CoverpointBinModelBase():
+class CoverpointBinModelBase(object):
     
     def __init__(self, parent, name):
         self.parent = parent

@@ -26,7 +26,7 @@ Created on Aug 3, 2019
 @author: ballance
 '''
 
-class CovergroupModel():
+class CovergroupModel(object):
     
     def __init__(self, facade_obj):
         self.fo = facade_obj
