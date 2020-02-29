@@ -9,8 +9,20 @@ jobs:
     value: $(Build.BuildNumber)
   steps:
   - script: |
-      python -m pip install wheel twine ivpm pylint pyboolector
+      python -m pip install --upgrade pip wheel twine ivpm pylint pyboolector
+      python -m pip install pytest pytest-cov
     displayName: 'Install Python packages'
+    
+   - script: |
+     export PYTHONPATH=$(Build.Repository.LocalPath)/src
+     pytest ve/unit --doctest-modules --junitxml=junit/test-results.xml
+   displayName: 'Run Unit Tests'
+   
+   - task: PublishTestResults@2
+     condition: succeededOrFailed()
+     inputs:
+       testResultsFiles: '**/test-*.xml'
+       testRunTitle: 'Publish test results'
 
 #  - script: |
 #      python scripts/run_pylint.py

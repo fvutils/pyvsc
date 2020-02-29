@@ -1,5 +1,7 @@
 
 pyboolector
 pylint
+flake8
+pytest
 -e git+https://github.com/fvutils/pyucis.git#egg=pyucis
 

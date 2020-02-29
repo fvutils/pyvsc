@@ -42,10 +42,6 @@ class TestPartSelect(TestCase):
                 
             @vsc.constraint
             def ab_c(self):
-                
-                self.a[7:4] == 1
-                self.a[2:0] == 0
-                self.b[0] == 1
                 self.c != 0
                 self.d != 0
                 
@@ -58,7 +54,7 @@ class TestPartSelect(TestCase):
 
         try:
             with v.randomize_with() as it:
-                self.a[7:3] == 0
+                self.c == 0
         except:
             print("expected failure")
  

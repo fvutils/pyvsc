@@ -47,7 +47,7 @@ class TestCompoundObj(TestCase):
             c2.randomize()
             print("c1.a=" + str(c2.c1.a) + " c1.b=" + str(c2.c1.b))
 
-    def test_rand_compound(self):
+    def disabled_test_rand_compound_nonrand(self):
         
         class C1(RandObj):
             

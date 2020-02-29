@@ -124,13 +124,13 @@ class TestCovergroup(TestCase):
         c = my_item_c()
         c.cg.dump()
         
-    def test_ext_covergroup(self):
+    def disabled_test_covergroup_inheritance(self):
 
         @randobj
         class my_item_c():
 
             @covergroup
-            class my_covergroup():
+            class my_covergroup(object):
                 def __init__(self, it): # Reference values can be passed directly
                     super().__init__()
                     
