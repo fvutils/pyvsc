@@ -13,16 +13,16 @@ jobs:
       python -m pip install pytest pytest-cov
     displayName: 'Install Python packages'
     
-   - script: |
+  - script: |
      export PYTHONPATH=$(Build.Repository.LocalPath)/src
      pytest ve/unit --doctest-modules --junitxml=junit/test-results.xml
-   displayName: 'Run Unit Tests'
+    displayName: 'Run Unit Tests'
    
-   - task: PublishTestResults@2
-     condition: succeededOrFailed()
-     inputs:
-       testResultsFiles: '**/test-*.xml'
-       testRunTitle: 'Publish test results'
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFiles: '**/test-*.xml'
+      testRunTitle: 'Publish test results'
 
 #  - script: |
 #      python scripts/run_pylint.py
