@@ -26,23 +26,23 @@ Created on Aug 3, 2019
 
 class CoverpointCrossModel(object):
     
-    def __init__(self, parent, facade_obj, name):
+    def __init__(self, parent, name):
         self.parent = parent
-        self.fo = facade_obj
         self.name = name
         self.coverpoint_model_l = []
+        self.finalized = False
         
-        for cp in self.fo.target_l:
-            m = cp.get_model()
-            print("cp m=" + str(m))
-            self.coverpoint_model_l.append(m)
-            
         self.hit_map = {}
         self.unhit_map = {}
+        
+    def add_coverpoint(self, cp_m):
+        self.coverpoint_model_l.append(cp_m)
+        
     
-        # Build up the hit map    
-        self._build_hit_map(0, [])
-        pass
+    def finalize(self):
+        if not self.finalized:
+            self._build_hit_map(0, [])
+        self.finalized = True
     
     def accept(self, v):
         v.visit_coverpoint_cross(self)
@@ -63,6 +63,10 @@ class CoverpointCrossModel(object):
             key_m.pop()
     
     def sample(self):
+        
+        if not self.finalized:
+            raise Exception("Cross sampled before finalization")
+        
         have_cp_hit = False
         key_m = []
         for cp in self.coverpoint_model_l:

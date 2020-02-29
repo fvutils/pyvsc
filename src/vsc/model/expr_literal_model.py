@@ -38,9 +38,6 @@ class ExprLiteralModel(ExprModel):
     def is_signed(self):
         return self.signed
     
-    def width(self):
-        return self.width
-   
     def accept(self, visitor):
         visitor.visit_expr_literal(self)
         

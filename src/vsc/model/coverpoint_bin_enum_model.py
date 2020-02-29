@@ -33,6 +33,7 @@ class CoverpointBinEnumModel(CoverpointBinModelBase):
         
         self.hit_bin_idx = -1
         self.n_hits = 0
+        self.cp = None
 
     def sample(self):
         # Query value from the actual coverpoint or expression

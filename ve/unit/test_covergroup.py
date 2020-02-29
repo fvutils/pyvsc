@@ -33,17 +33,18 @@ from vsc import *
 class TestCovergroup(TestCase):
     
     def test_simple_coverpoint(self):
-        
-        class my_covergroup(covergroup):
+
+        @covergroup        
+        class my_covergroup(object):
             
             def __init__(self):
-                super().__init__(lambda a=bit_t(4) : 0)
+                self.with_sample(dict(
+                    a=bit_t(4)
+                    ))
                 self.cp1 = coverpoint(self.a, bins={
                     "a" : bin(1, 2, 4),
                     "b" : bin(8, [12,15])
                     })
-                
-                self.finalize()
                 
         cg = my_covergroup()
         
@@ -108,7 +109,6 @@ class TestCovergroup(TestCase):
                     self.cp1 = coverpoint(it.a, bins={
                         "a" : bin_array([], [1,15])
                     })
-#                    self.finalize()
             
             def __init__(self):
                 self.a = rand_bit_t(8)
@@ -143,7 +143,6 @@ class TestCovergroup(TestCase):
                     self.cp1 = coverpoint(it.a, bins={
                         "a" : bin_array([], [1,15])
                     })
-#                    self.finalize()
 
             @covergroup
             class my_covergroup2(my_covergroup):
@@ -178,22 +177,23 @@ class TestCovergroup(TestCase):
                 
     def test_class_covergroup(self):
        
-        @rand_obj
+        @randobj
         class my_rand():
             
             def __init__(self):
                 self.a = rand_bit_t(4)
                 self.b = rand_bit_t(4)
-        
-        class my_covergroup(covergroup):
+
+        @covergroup        
+        class my_covergroup(object):
             
             def __init__(self):
-                super().__init__(lambda cls=my_rand() : 0)
+                self.with_sample(dict(
+                    cls=my_rand()
+                ))
                 self.cp1 = coverpoint(self.cls.a, bins={
                     "a" : bin_array([], [1,15])
                     })
-                
-                self.finalize()
                 
         cg = my_covergroup()
         
@@ -205,14 +205,15 @@ class TestCovergroup(TestCase):
         cg.dump()        
         
     def test_simple_cross(self):
-       
-        class my_covergroup(covergroup):
+      
+        @covergroup
+        class my_covergroup(object):
             
             def __init__(self):
-                super().__init__(lambda 
-                        a=bit_t(4),
-                        b=bit_t(4) : 0
-                    )
+                self.with_sample(dict(
+                    a=bit_t(4),
+                    b=bit_t(4)
+                ))
                 self.cp1 = coverpoint(self.a, bins={
                     "a" : bin_array([], [1,15])
                     })
@@ -221,9 +222,6 @@ class TestCovergroup(TestCase):
                     })
                 
                 self.cp1X2 = cross([self.cp1, self.cp2])
-
-                # Finalize the model
-                self.finalize()
 
         cg = my_covergroup()
         

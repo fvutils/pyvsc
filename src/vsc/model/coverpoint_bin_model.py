@@ -1,3 +1,6 @@
+from vsc.types import rangelist
+from vsc.model.rangelist_model import RangelistModel
+from vsc.model.coverpoint_model import CoverpointModel
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -27,16 +30,21 @@ from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinModel(CoverpointBinModelBase):
     
-    def __init__(self, name, cp, binspec):
-        super().__init__(name, cp)
+    def __init__(self, parent, name, binspec : RangelistModel):
+        super().__init__(parent, name)
         self.bins = []
         self.binspec = binspec
         self.hit_bin_idx = -1
         self.n_hits = 0
         
+        cp = parent
+        while cp is not None and not isinstance(cp, CoverpointModel):
+            cp = cp.parent
+            
+        self.cp = cp
+        
     def sample(self):
         # Query value from the actual coverpoint or expression
-        print("sample: binspec=" + str(self.binspec))
         val = self.cp.get_val()
         if val in self.binspec:
             self.hit_bin_idx = 0

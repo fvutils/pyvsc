@@ -43,121 +43,6 @@ from vsc.model.rangelist_model import RangelistModel
 from vsc.types import rangelist, bit_t, to_expr, type_base
 
 
-            
-
-
-class _covergroup(object):
-        
-    def __init__(self, sample_f=None, type_options=None, options=None):
-        self.model = None
-        self.coverpoint_l = []
-        self.cross_l = []
-        self.locked = False
-
-        self.options = Options()
-        self.type_options = TypeOptions()
-        
-        if type_options is not None:
-            self.type_options.set(type_options)
-            
-        if options is not None:
-            self.options.set(options)
-
-        # Determine the sampling arguments
-#         self.sample_var_l = []
-#         if sample_f is not None:
-#             c = sample_f.__code__
-#             d = sample_f.__defaults__
-#         
-#             for i in range(len(c.co_varnames)):
-#                 t = sample_f.__defaults__[i]
-#                 n = c.co_varnames[i]
-#            
-#                 v = t.clone()
-#                 self.sample_var_l.append(v)
-#                 setattr(self, n, v)
-                
-    def get_model(self):
-        if self.model is None:
-            self.model = CovergroupModel()
-
-            obj_name_m = {}            
-            for n in dir(self):
-                obj = getattr(self, n)
-                if hasattr(obj, "_build_model"):
-                    obj_name_m[obj] = n
-                    
-            
-        return self.model
-        
-    def finalize(self):
-        self.get_model()
-        
-#         self.model = CovergroupModel(self)
-#         
-# #         for cp_n in dir(self):
-# #             cp_o = getattr(self, cp_n)
-# #             if isinstance(cp_o, coverpoint):
-# #                 self.model.coverpoint_l.append(cp_o.build_model(cp_n))
-# #    
-# #         # Initialize the cross models second         
-# #         for cp_n in dir(self):
-# #             cp_o = getattr(self, cp_n)
-# #             if isinstance(cp_o, cross):
-# #                 self.model.cross_l.append(cp_o.build_model(cp_n))
-#                 
-#         self.finalized = True
-                
-    def init_model(self):
-        self.get_model()
-        
-    def _lock(self):
-        self.locked = True
-        self.options.lock()
-        self.type_options._lock()
-   
-    
-    def sample(self, *args):
-        '''
-        Base sampling method that samples all coverpoints and crosses
-        '''
-
-        # Build the model if we haven't yet
-        model = self.get_model()
-        
-        if len(args) != len(self.sample_var_l):
-            raise Exception("Wrong number of parameters: expect " + str(len(self.sample_var_l)) + " receive " + str(len(args)))
-        
-        for i in range(len(args)):
-            if isinstance(args[i], type(self.sample_var_l[i])):
-                # Just set the field from the arguments
-                pass
-            else:
-                raise Exception("Sample method parameter \"XX\" is of the wrong type")
-            self.sample_var_l[i].set_val(args[i])
-        
-        model.sample()
-
-        pass
-    
-    def get_coverage(self):
-        raise Exception("get_coverage unimplemented")
-        pass
-    
-    def get_inst_coverage(self):
-        raise Exception("get_inst_coverage unimplemented")
-        pass
-    
-    def set_inst_name(self, name):
-        raise Exception("set_inst_name unimplemented")
-        pass
-    
-    def dump(self, ind=""):
-        model = self.get_model()
-        model.dump(ind)
-        
-
-        
 def covergroup(T):
     """Covergroup decorator marks as class as being a covergroup"""
     
@@ -193,7 +78,8 @@ def covergroup(T):
                 raise Exception("Wrong number of parameters: expect " + str(sample_var_len) + " receive " + str(len(args)))
         
             for i in range(len(args)):
-                getattr(self, cg_i.sample_var_l[i]).set_val(args[i])
+                setattr(self, cg_i.sample_var_l[i], args[i])
+#                getattr(self, cg_i.sample_var_l[i]).set_val(args[i])
 
             model.sample()
 
@@ -213,17 +99,20 @@ def covergroup(T):
                 obj_name_m = {}            
                 for n in dir(self):
                     obj = getattr(self, n)
-                    if hasattr(obj, "_build_model"):
+                    if hasattr(obj, "build_cov_model"):
                         obj_name_m[obj] = n
                         
                 for b in self.buildable_l:
                     print("b: " + str(b))
             
-                    cp_m = b._build_model(cg_i.model, obj_name_m[b])
+                    cp_m = b.build_cov_model(cg_i.model, obj_name_m[b])
                     cg_i.model.add_coverpoint(cp_m)
 
                 # We're done, so lock the covergroup
                 self.lock()
+
+            # Finalize the contents of the covergroup                
+            cg_i.model.finalize()
             
             return cg_i.model
         
@@ -239,7 +128,7 @@ def covergroup(T):
             self.type_options._lock()
         
         def _setattr(self, field, val):
-            if hasattr(val, "_build_model"):
+            if hasattr(val, "build_cov_model"):
                 if not hasattr(self, "buildable_l"):
                     object.__setattr__(self, "buildable_l", [])
                 self.buildable_l.append(val)
@@ -289,10 +178,10 @@ class bin(object):
     def __init__(self, *args):
         self.range_l = args
         
-    def build_model(self, name, cp):
+    def build_cov_model(self, parent, name):
         # Construct a range model
         range_l = RangelistModel(self.range_l)
-        return CoverpointBinModel(name, cp, range_l)
+        return CoverpointBinModel(parent, name, range_l)
         
 
 class bin_array(object):
@@ -301,7 +190,7 @@ class bin_array(object):
         self.nbins = nbins
         self.range_l = args
     
-    def _build_model(self, parent, name):
+    def build_cov_model(self, parent, name):
         ret = CoverpointBinCollectionModel(parent, name)
         
         # First, need to determine how many total bins
@@ -400,7 +289,7 @@ class coverpoint(object):
         else:
             return self.model.get_inst_coverage()
     
-    def _build_model(self, parent, name):
+    def build_cov_model(self, parent, name):
         if self.model is None:
             self.model = CoverpointModel(parent, self, name)
 
@@ -416,13 +305,13 @@ class coverpoint(object):
                         raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))                       
                 else:
                     for bin_name,bin_spec in self.bins.items():
-                        if not hasattr(bin_spec, "_build_model"):
-                            raise Exception("Bin specification doesn't have a _build_model method")
+                        if not hasattr(bin_spec, "build_cov_model"):
+                            raise Exception("Bin specification doesn't have a build_cov_model method")
                         print("bin: " + bin_name + " spec=" + str(bin_spec))
-                        bin_m = bin_spec._build_model(self.model, bin_name)
+                        bin_m = bin_spec.build_cov_model(self.model, bin_name)
                         self.model.add_bin_model(bin_m)
          
-        print("coverpoint::_build_model: " + str(self) + " " + str(self.model))
+        print("coverpoint::build_cov_model: " + str(self) + " " + str(self.model))
         return self.model
     
     def get_model(self):
@@ -430,8 +319,7 @@ class coverpoint(object):
     
     def get_val(self, cp_m):
         ret = int(self.get_val_f())
-        print("get_val: val=" + str(ret) + " get_val_f=" + str(self.get_val_f))
-            
+
         return ret
     
     def set_val(self, val):
@@ -449,19 +337,18 @@ class coverpoint(object):
     
 class cross(object):
     
-    def __init__(self, target_l, bins={}):
+    def __init__(self, target_l, bins=None):
         for t in target_l:
             if not isinstance(t, coverpoint):
                 raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint")
         self.target_l = target_l
         self.bins = bins
         
-    def _build_model(self, parent, name):
-        ret = CoverpointCrossModel(parent, self, name)
-#         coverpoint_model_l = []
-#         for t in self.target_l:
-#             coverpoint_model_l.append(t.model)
+    def build_cov_model(self, parent, name):
+        ret = CoverpointCrossModel(parent, name)
+        
+        for cp in self.target_l:
+            m = cp.get_model()
+            ret.add_coverpoint(m)
             
-#        print("coverpoint_model_l: " + str(coverpoint_model_l))
-
         return ret

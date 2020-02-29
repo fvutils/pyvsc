@@ -36,7 +36,7 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
         self.n_bins = -1
         
     def finalize(self):
-        pass
+        self.n_bins = reduce(lambda x,y: x+y, map(lambda b: b.get_n_bins(), self.bin_l))
     
     def add_bin(self, bin_m):
         self.bin_l.append(bin_m)
@@ -59,11 +59,10 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
             b.dump(ind + "    ")
             
     def get_hits(self, idx):
-        # TODO
-        return self.n_hits
+        return self.bin_l[idx].get_hits()
         
     def get_n_bins(self):
-        return reduce(lambda x,y: x+y, map(lambda b: b.get_n_bins(), self.bin_l))
+        return self.n_bins
     
     def hit_idx(self):
         return self.hit_bin_idx

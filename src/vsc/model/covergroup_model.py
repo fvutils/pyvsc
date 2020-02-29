@@ -34,7 +34,11 @@ class CovergroupModel(object):
         self.name = "<default>"
         
     def finalize(self):
-        pass
+        for cp in self.coverpoint_l:
+            cp.finalize()
+            
+        for cp in self.cross_l:
+            cp.finalize()
 
     def sample(self):
         

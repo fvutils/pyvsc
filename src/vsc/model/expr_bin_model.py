@@ -101,9 +101,6 @@ class ExprBinModel(ExprModel):
     def is_signed(self):
         return self.signed
     
-    def width(self):
-        return self.width
-    
     def __str__(self):
         return "ExprBin: " + str(self.lhs) + " " + str(self.op) + " " + str(self.rhs)
         
