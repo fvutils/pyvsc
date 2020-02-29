@@ -15,8 +15,10 @@ sys.argv.append("--extension-pkg-whitelist=pyboolector")
 sys.argv.append("--disable=missing-super-argument")
 sys.argv.append(os.path.join(vsc_dir, "src", "vsc"))
 
-for a in sys.argv:
-    print("Argument: " + str(a))
+#for a in sys.argv:
+#    print("Argument: " + str(a))
 
 run_pylint()
+
+print("PyLint Complete")
 

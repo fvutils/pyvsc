@@ -9,27 +9,27 @@ jobs:
     value: $(Build.BuildNumber)
   steps:
   - script: |
-      python -m pip install wheel twine ivpm pylint
+      python -m pip install wheel twine ivpm pylint pyboolector
     displayName: 'Install Python packages'
 
-  - script: |
-      python scripts/run_pylint.py
-    displayName: 'Run PyLint'
+#  - script: |
+#      python scripts/run_pylint.py
+#    displayName: 'Run PyLint'
 
   - script: |
       python setup.py bdist_wheel --universal
     displayName: 'Build Wheel'
 
-#  - task: TwineAuthenticate@1
-#    condition: eq(variables['Build.SourceBranchName'], 'master')
-#    inputs:
-#      pythonUploadServiceConnection: pypi-pyvsc
+  - task: TwineAuthenticate@1
+    condition: eq(variables['Build.SourceBranchName'], 'master')
+    inputs:
+      pythonUploadServiceConnection: pypi-pyvsc
 #  - script: |
 #      # Only deploy from master
 #      if test "$(Build.SourceBranchName)" = "master"; then
 #          python -m twine --version
 #          echo "Calling twine"
-#          python -m twine upload -r pybfms --config-file $(PYPIRC_PATH) result/wheelhouse/* result/dist/*.tar.gz
+#          python -m twine upload -r py-vsc --config-file $(PYPIRC_PATH) dist/*.whl
 #          echo "Calling twine complete"
 #      fi
 #    displayName: 'Upload to PyPi'
