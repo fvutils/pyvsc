@@ -1,6 +1,6 @@
 #!/bin/env python3
 
-copyright = """
+license = """
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -24,6 +24,7 @@ import os
 def process_dir(d):
     for l in os.listdir(d):
         if l.endswith(".py"):
+            has_license = False
             has_copyright = False
             content = ""
             with open(os.path.join(d, l), "r") as fp:
@@ -35,20 +36,57 @@ def process_dir(d):
                     if line == "":
                         break
                 
-                    if line.find("Copyright") != -1 or line.find("Licensed") != -1:
+                    if line.find("Copyright") != -1:
                         has_copyright = True
                         break
+                    if line.find("Licensed") != -1:
+                        has_license = True
+                        break
+
+                if has_copyright:
+                    # File has the old copyright. Save the content,
+                    # while skipping the old header.
+                    fp.seek(0)
+                    content = ""
                     
-                if not has_copyright:
+                    # Read any lines before the original comment header
+                    while True:
+                        line = fp.readline()
+                        
+                        if line == "" or line[0] == "#":
+                            break
+                        else:
+                            content += line
+
+                    # Read all the old copyright-header lines
+                    while True:
+                        line = fp.readline()
+                        
+                        if line == "" or line[0] != "#":
+                            break
+                        else:
+                            print("SKIP: " + line[:-1])
+                        
+                    if line != "":
+                        content += line
+                        
+                        while True:
+                            line = fp.readline()
+                            
+                            if line == "":
+                                break
+                            else:
+                                content += line
+                elif not has_license:
                     fp.seek(0)
                     content = fp.read()
                     
                         
-            if not has_copyright:
-                print("Need to add copyright on " + l)
+            if has_copyright or not has_license:
+                print("Need to add license on " + l)
                 
                 with open(os.path.join(d, l), "w") as fp:
-                    fp.write(copyright)
+                    fp.write(license)
                     fp.write("\n")
                     fp.write(content)
                     
