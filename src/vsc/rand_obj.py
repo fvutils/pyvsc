@@ -73,7 +73,7 @@ def randobj(T):
             Randomizer.do_randomize([model])
             
         def build_field_model(self, name):
-            self.model = RandObjModel(name, self)
+            model = RandObjModel(name, self)
             
             # Iterate through the fields and constraints
             # First, assign IDs to each of the randomized fields
@@ -82,27 +82,12 @@ def randobj(T):
                     if not f.startswith("__") and not f.startswith("_int"):
                         fo = getattr(self, f)
                         
-                        if hasattr(fo, "build_field_model"):
-                            self.model.add_field(fo.build_field_model(f))
+                        if hasattr(fo, "_int_field_info"):
+                            if fo._int_field_info.model is None:
+                                fo._int_field_info.model = fo.build_field_model(f)
+
+                            model.add_field(fo._int_field_info.model)
                 
-#                         if isinstance(fo, type_base):
-#                             fo._int_field_info.name = f
-#                             fo._int_field_info.id = len(model.field_l)
-#                             if model.parent is not None:
-#                                 # TODO: need a little help here
-#                                 fo._int_field_info.parent = self.parent.user_obj._int_field_info
-#                             self.add_field(ScalarFieldModel(modelfo, self, 
-#                                 (is_rand and fo._int_field_info.is_rand)))
-#                         elif hasattr(fo, "_int_field_info"):
-#                             # This is a composite field
-#                             # TODO: assign ID
-#                             fo._int_field_info.name = f
-#                             fo._int_field_info.id = len(model.field_l)
-#                             if model.parent != None:
-#                                 fo._int_field_info.parent = model.parent.t._int_field_info
-#                             model.add_field(CompositeFieldModel(fo, self, 
-#                                 (is_rand and fo._int_field_info.is_rand)))
-                    
                 # Now, elaborate the constraints
                 for f in dir(self):
                     if not f.startswith("__") and not f.startswith("_int"):
@@ -114,16 +99,16 @@ def randobj(T):
                             except Exception as e:
                                 print("Exception while processing constraint: " + str(e))
                                 raise e
-                            self.model.add_constraint(pop_constraint_scope())
+                            model.add_constraint(pop_constraint_scope())
                                     
-                return self.model
+            return model
         
         def get_model(self):
             with expr_mode():
-                if not hasattr(self, "model") or self.model is None:
-                    self.model = self.build_field_model(None)
+                if self._int_field_info.model is None:
+                    self._int_field_info.model = self.build_field_model(None)
                 
-                return self.model
+            return self._int_field_info.model
             
         
         def __enter__(self):
@@ -135,7 +120,8 @@ def randobj(T):
         def __exit__(self, t, v, tb):
             c = pop_constraint_scope()
             leave_expr_mode()
-            Randomizer.do_randomize([self.model], [c])
+            model = self.get_model() # Ensure model is constructed
+            Randomizer.do_randomize([model], [c])
         
         def randomize_with(self):
             # Ensure the 'model' data structures have been built
