@@ -109,7 +109,7 @@ class Randomizer(object):
                 f.dispose() # Get rid of the solver var, since we're done with it
             
         for uf in ri.unconstrained():
-            uf.set_val(self.randbits(uf.width()))
+            uf.set_val(self.randbits(uf.width))
             
     def minimize(self, expr, min_t, max_t):
         ret = -1

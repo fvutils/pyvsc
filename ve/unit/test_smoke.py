@@ -33,8 +33,9 @@ import vsc
 class TestSmoke(TestCase):
     
     def test_smoke(self):
-        
-        class my_sub(vsc.RandObj):
+
+        @vsc.randobj        
+        class my_sub(object):
             
             def __init__(self):
                 super().__init__()
@@ -43,7 +44,8 @@ class TestSmoke(TestCase):
                 self.c = vsc.rand_bit_t(4)
                 self.d = vsc.rand_bit_t(4)
 
-        class my_rand(vsc.RandObj):
+        @vsc.randobj
+        class my_rand(object):
             
             def __init__(self):
                 super().__init__()

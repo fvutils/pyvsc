@@ -26,10 +26,9 @@ from vsc.model.composite_field_model import CompositeFieldModel
 
 
 class RandObjModel(CompositeFieldModel):
-    
-    def __init__(self, facade_obj):
-        super().__init__(facade_obj, None, True)
-        self.is_elab = False;
+
+    def __init__(self, name, is_rand, rand_if : 'RandObjModelIF' = None):
+        super().__init__(name, is_rand, rand_if)
         self.seed = 1
         self.ref_fields_s = set()
         self.unref_fields_s = set()
@@ -38,11 +37,6 @@ class RandObjModel(CompositeFieldModel):
         self.max_step = 10
         self.is_init = False
 
-    def elab(self):
-        if self.is_elab:
-            return
-        self.is_elab = True
-        
     def accept(self, visitor):
         visitor.visit_rand_obj(self)
         

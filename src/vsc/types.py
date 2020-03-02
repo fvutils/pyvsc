@@ -21,6 +21,7 @@ from vsc.model.expr_in_model import ExprInModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
 from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
+from vsc.model.scalar_field_model import ScalarFieldModel
 '''
 Created on Jul 23, 2019
 
@@ -106,6 +107,23 @@ class type_base(object):
         self.is_signed = is_signed
         self.val = i
         self._int_field_info = field_info()
+        
+    def build_field_model(self, name):
+        self._int_field_info.name = name
+        self._int_field_info.model = ScalarFieldModel(
+            name,
+            self.width,
+            self.is_signed,
+            self._int_field_info.is_rand,
+            self
+        )
+        return self._int_field_info.model
+    
+    def pre_randomize(self):
+        self._int_field_info.model.set_val(self.val)
+    
+    def post_randomize(self):
+        self.val = self._int_field_info.model.get_val()
         
     def to_expr(self):
         return expr(ExprFieldRefModel(self._int_field_info.model))

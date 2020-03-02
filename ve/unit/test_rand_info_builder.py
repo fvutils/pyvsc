@@ -22,7 +22,6 @@ Created on Jan 22, 2020
 @author: ballance
 '''
 from unittest.case import TestCase
-from vsc.rand_obj import RandObj
 from vsc.types import rand_bit_t
 from vsc.model.rand_info_builder import RandInfoBuilder
 import vsc
@@ -30,11 +29,11 @@ import vsc
 class TestRandInfoBuilder(TestCase):
     
     def test_no_refs(self):
-        
-        class my_cls(RandObj):
+       
+        @vsc.randobj 
+        class my_cls(object):
             
             def __init__(self):
-                super().__init__()
                 self.a = rand_bit_t(8)
                 self.b = rand_bit_t(8)
                 
@@ -45,8 +44,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 2)
         
     def test_single_var_ref(self):
-        
-        class my_cls(RandObj):
+       
+        @vsc.randobj
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -66,8 +66,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 1)
         
     def test_multi_indep_var_ref(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -90,8 +91,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 0)
         
     def test_multi_dep_var_ref(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -111,8 +113,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 0)
 
     def test_two_randsets(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -137,8 +140,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 0)        
 
     def test_connected_top_level(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -162,8 +166,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 0)        
 
     def test_connected_ite_cond(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -187,8 +192,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 0)
 
     def test_connected_ite_cross_block(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()

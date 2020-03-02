@@ -23,13 +23,20 @@ Created on Jul 24, 2019
 
 class ScalarFieldModel():
     
-    def __init__(self, f, parent, is_rand):
-        self.f = f
-        # Connect the user facade to the model
-        self.f._int_field_info.model = self
+    def __init__(self, 
+        name,
+        width,
+        is_signed,
+        is_rand,
+        rand_if): 
+        self.name = name
+        self.width = width
+        self.is_signed = is_signed
         self.is_rand = is_rand
-        self.parent = parent
+        self.rand_if = rand_if
+        self.parent = None
         self.var = None
+        self.val = 0
         
     def dispose(self):
         self.var = None
@@ -38,17 +45,12 @@ class ScalarFieldModel():
         v.visit_scalar_field(self)
 
     def build(self, btor):
-        sort = btor.BitVecSort(self.f.width)
+        sort = btor.BitVecSort(self.width)
         self.var = btor.Var(sort)
         
     def get_node(self):
+        """Returns the node that represents the solver field"""
         return self.var
-    
-    def width(self):
-        return self.f.width
-    
-    def name(self):
-        return self.f._int_field_info.name
     
     def __str__(self):
         return "ScalarFieldModel(" + self.name() + ")"
@@ -59,14 +61,14 @@ class ScalarFieldModel():
         pass
 
     def pre_randomize(self):
-        # TODO: need to sample non-rand field
-        pass
+        if self.rand_if is not None:
+            self.rand_if.pre_randomize()
     
     def set_val(self, val):
-        self.f._set_val(val)
+        self.val = val
         
     def get_val(self):
-        return self.f._get_val()
+        return self.val
     
     def post_randomize(self):
         if self.var is not None:
@@ -76,3 +78,6 @@ class ScalarFieldModel():
                 if b == '1':
                     val |= 1
             self.set_val(val)
+            
+        if self.rand_if is not None:
+            self.rand_if.post_randomize()

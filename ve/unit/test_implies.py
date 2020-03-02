@@ -32,8 +32,9 @@ import vsc
 class TestImplies(TestCase):
 
     def test_simple(self):
-        
-        class my_s(vsc.RandObj):
+
+        @vsc.randobj
+        class my_s(object):
             
             def __init__(self):
                 super().__init__()

@@ -28,8 +28,9 @@ from vsc.types import rand_bit_t
 class TestRandomizeWith(TestCase):
     
     def test_smoke(self):
-        
-        class my_class(vsc.RandObj):
+
+        @vsc.randobj
+        class my_class(object):
             
             def __init__(self):
                 super().__init__()

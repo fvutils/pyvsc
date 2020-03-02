@@ -20,61 +20,19 @@ Created on Jul 24, 2019
 
 @author: ballance
 '''
-from vsc.constraints import constraint_t
-from vsc.types import type_base
-from vsc.model.scalar_field_model import ScalarFieldModel
-from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope
-from vsc.model.constraint_scope_model import ConstraintScopeModel
-from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.model import expr_mode, _expr_mode, get_expr_mode
-
 
 class CompositeFieldModel(object):
     
-    def __init__(self, user_obj, parent, is_rand):
-        self.user_obj = user_obj
-        self.parent = parent
+    def __init__(self, name, is_rand=False, rand_if=None):
+        self.name = name
+        self.is_rand = is_rand
+        self.rand_if = rand_if
+        self.parent = None
         self.field_l = []
         self.constraint_model_l = []
-        
-        # Iterate through the fields and constraints
-        # First, assign IDs to each of the randomized fields
-        with expr_mode():
-            for f in dir(user_obj):
-                if not f.startswith("__") and not f.startswith("_int"):
-                    fo = getattr(user_obj, f)
-                
-                    if isinstance(fo, type_base):
-                    
-                        fo._int_field_info.name = f
-                        fo._int_field_info.id = len(self.field_l)
-                        if self.parent != None:
-                            fo._int_field_info.parent = self.parent.user_obj._int_field_info
-                        self.field_l.append(ScalarFieldModel(fo, self, 
-                                (is_rand and fo._int_field_info.is_rand)))
-                    elif hasattr(fo, "_int_field_info"):
-                        # This is a composite field
-                        # TODO: assign ID
-                        fo._int_field_info.name = f
-                        fo._int_field_info.id = len(self.field_l)
-                        if self.parent != None:
-                            fo._int_field_info.parent = self.parent.t._int_field_info
-                        self.field_l.append(CompositeFieldModel(fo, self, 
-                                (is_rand and fo._int_field_info.is_rand)))
-                    
-                # Now, elaborate the constraints
-            for f in dir(user_obj):
-                if not f.startswith("__") and not f.startswith("_int"):
-                    fo = getattr(user_obj, f)
-                    if isinstance(fo, constraint_t):
-                        push_constraint_scope(ConstraintBlockModel(f))
-                        try:
-                            fo.c(user_obj)
-                        except Exception as e:
-                            print("Exception while processing constraint: " + str(e))
-                            raise e
-                        self.constraint_model_l.append(pop_constraint_scope())
-                    
+
+    def finalize(self):
+        pass
                     
     def build(self, builder):
         # First, build the fields
@@ -88,6 +46,14 @@ class CompositeFieldModel(object):
 #        for f in self.field_l:
 #            if isinstance(f, CompositeFieldModel):
 #                f.build
+
+    def add_field(self, f):
+        f.parent = self
+        self.field_l.append(f)
+        
+    def add_constraint(self, c):
+        c.parent = self
+        self.constraint_model_l.append(c)
         
     def get_constraints(self, constraint_l):
         for f in self.field_l:
@@ -104,14 +70,22 @@ class CompositeFieldModel(object):
                 field_l.append(f)
 
     def pre_randomize(self):
-        # Call the user's methods
-        if hasattr(self.user_obj, "pre_randomize"):
-            self.user_obj.pre_randomize()
+        """Called during the randomization process to propagate pre_randomize event"""
+        
+        # Perform a phase callback if available
+        if self.rand_if is not None:
+            self.rand_if.pre_randomize()
             
         for f in self.field_l:
             f.pre_randomize()
     
     def post_randomize(self):
+        """Called during the randomization process to propagate post_randomize event"""
+        
+        # Perform a phase callback if available
+        if self.rand_if is not None:
+            self.rand_if.post_randomize()
+            
         for f in self.field_l:
             f.post_randomize()
 

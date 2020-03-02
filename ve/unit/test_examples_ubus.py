@@ -24,7 +24,6 @@ Created on Jan 23, 2020
 from unittest.case import TestCase
 
 import vsc
-from vsc.rand_obj import RandObj
 from vsc.types import rand_enum_t, rand_bit_t, rangelist
 from enum import Enum, auto
 
@@ -36,11 +35,11 @@ class TestExamplesUbus(TestCase):
         class ubus_read_write_enum(Enum):
             READ = auto()
             WRITE = auto()
-        
-        class ubus_transfer(RandObj):
+
+        @vsc.randobj        
+        class ubus_transfer(object):
             
             def __init__(self):
-                super().__init__()
                 self.addr = rand_bit_t(16)
                 self.read_write = rand_enum_t(ubus_read_write_enum)
                 self.size = rand_bit_t(32)

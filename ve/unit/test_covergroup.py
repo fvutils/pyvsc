@@ -16,6 +16,7 @@
 # specific language governing permissions and limitations
 # under the License.
 
+import vsc
 from builtins import range
 from enum import IntEnum
 
@@ -98,8 +99,9 @@ class TestCovergroup(TestCase):
         cg.dump()
 
     def test_emb_covergroup(self):
-        
-        class my_item_c(RandObj):
+
+        @vsc.randobj        
+        class my_item_c(object):
 
             @covergroup
             class my_covergroup():
