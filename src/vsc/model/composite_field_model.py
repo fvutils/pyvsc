@@ -24,6 +24,8 @@ Created on Jul 24, 2019
 class CompositeFieldModel(object):
     
     def __init__(self, name, is_rand=False, rand_if=None):
+        if name is None:
+            name = "root"
         self.name = name
         # Captures whether this field was declared rand
         self.is_declared_rand = is_rand
@@ -81,8 +83,10 @@ class CompositeFieldModel(object):
     def pre_randomize(self):
         """Called during the randomization process to propagate pre_randomize event"""
         
-        # Perform a phase callback if available
-        if self.rand_if is not None:
+        # Perform a phase callback if available. Note,
+        # only trigger pre_randomize callbacks on composite
+        # fields that are actually being used as random
+        if self.is_used_rand and self.rand_if is not None:
             self.rand_if.do_pre_randomize()
             
         for f in self.field_l:
@@ -92,8 +96,7 @@ class CompositeFieldModel(object):
         """Called during the randomization process to propagate post_randomize event"""
         
         # Perform a phase callback if available
-        print("CompositeField PostRandomize: rand_if=" + str(self.rand_if))
-        if self.rand_if is not None:
+        if self.is_used_rand and self.rand_if is not None:
             self.rand_if.do_post_randomize()
             
         for f in self.field_l:

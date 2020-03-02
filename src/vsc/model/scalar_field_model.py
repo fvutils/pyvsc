@@ -49,11 +49,27 @@ class ScalarFieldModel():
         v.visit_scalar_field(self)
 
     def build(self, btor):
-        sort = btor.BitVecSort(self.width)
-        self.var = btor.Var(sort)
+        if self.is_used_rand:
+            sort = btor.BitVecSort(self.width)
+            self.var = btor.Var(sort)
+        else:
+            print("Non-rand var")
+            self.var = btor.Const(self.val, self.width)
+        return self.var
+    
+    def get_full_name(self):
+        ret = self.name
+        p = self.parent
+        
+        while p is not None:
+            ret = p.name + "." + ret
+            p = p.parent
+
+        return ret
+        
         
     def __str__(self):
-        return "ScalarFieldModel(" + self.name() + ")"
+        return "ScalarFieldModel(" + self.get_full_name() + ")"
 
     def get_constraints(self, constraint_l):
         pass

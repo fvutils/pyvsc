@@ -38,8 +38,11 @@ class TestRandInfoBuilder(TestCase):
                 self.b = rand_bit_t(8)
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)
+                
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 0)
         self.assertEqual(len(info.unconstrained_l), 2)
         
@@ -58,8 +61,10 @@ class TestRandInfoBuilder(TestCase):
                 self.a < 5
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 1)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
@@ -81,8 +86,10 @@ class TestRandInfoBuilder(TestCase):
                 self.b ==  5
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 2)
         self.assertEqual(len(info.randset_l[0].fields()), 1)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
@@ -105,8 +112,10 @@ class TestRandInfoBuilder(TestCase):
                 self.a < self.b
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 2)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
@@ -130,8 +139,10 @@ class TestRandInfoBuilder(TestCase):
                 self.c < self.d
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+       
+        model = my_cls_i.get_model()
+        model.set_used_rand(True) 
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 2)
         self.assertEqual(len(info.randset_l[0].fields()), 2)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
@@ -158,8 +169,10 @@ class TestRandInfoBuilder(TestCase):
                 self.c < self.d
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 4)
         self.assertEqual(len(info.randset_l[0].constraints()), 3)
@@ -185,7 +198,10 @@ class TestRandInfoBuilder(TestCase):
                 
         my_cls_i = my_cls()
         
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)
+        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 4)
         self.assertEqual(len(info.randset_l[0].constraints()), 2)
@@ -213,8 +229,10 @@ class TestRandInfoBuilder(TestCase):
                     self.c < self.d
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 4)
         self.assertEqual(len(info.randset_l[0].constraints()), 2)
