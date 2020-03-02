@@ -1,3 +1,4 @@
+from vsc.constraints import constraint
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -107,7 +108,7 @@ class Randomizer(object):
             for f in rs.fields():
                 f.post_randomize()
                 f.dispose() # Get rid of the solver var, since we're done with it
-            
+
         for uf in ri.unconstrained():
             uf.set_val(self.randbits(uf.width))
             
@@ -178,7 +179,15 @@ class Randomizer(object):
     @staticmethod
     def do_randomize(
             field_model_l : List[FieldModel],
-            constraint_l : List[ConstraintModel] = []):
+            constraint_l : List[ConstraintModel] = None):
+        # All fields passed to do_randomize are treated
+        # as randomizable
+        for f in field_model_l:
+            f.set_used_rand(True, 0)
+            
+        if constraint_l is None:
+            constraint_l = []
+            
         # First, invoke pre_randomize on all elements
         for fm in field_model_l:
             fm.pre_randomize()

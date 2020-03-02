@@ -32,11 +32,15 @@ class ScalarFieldModel():
         self.name = name
         self.width = width
         self.is_signed = is_signed
-        self.is_rand = is_rand
+        self.is_declared_rand = is_rand
+        self.is_used_rand = is_rand
         self.rand_if = rand_if
         self.parent = None
         self.var = None
         self.val = 0
+        
+    def set_used_rand(self, is_rand, level):
+        self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
         
     def dispose(self):
         self.var = None
@@ -48,21 +52,15 @@ class ScalarFieldModel():
         sort = btor.BitVecSort(self.width)
         self.var = btor.Var(sort)
         
-    def get_node(self):
-        """Returns the node that represents the solver field"""
-        return self.var
-    
     def __str__(self):
         return "ScalarFieldModel(" + self.name() + ")"
 
     def get_constraints(self, constraint_l):
-        if not self.is_rand:
-            print("TODO: need to add constraint")
         pass
 
     def pre_randomize(self):
         if self.rand_if is not None:
-            self.rand_if.pre_randomize()
+            self.rand_if.do_pre_randomize()
     
     def set_val(self, val):
         self.val = val
@@ -80,4 +78,4 @@ class ScalarFieldModel():
             self.set_val(val)
             
         if self.rand_if is not None:
-            self.rand_if.post_randomize()
+            self.rand_if.do_post_randomize()

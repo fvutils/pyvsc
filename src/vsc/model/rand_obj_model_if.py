@@ -7,8 +7,8 @@ Created on Feb 29, 2020
 class RandObjModelIF(object):
     """Implements a callback interface to notify about randomization phases"""
     
-    def pre_randomize(self):
+    def do_pre_randomize(self):
         pass
     
-    def post_randomize(self):
+    def do_post_randomize(self):
         pass

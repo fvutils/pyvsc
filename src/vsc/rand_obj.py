@@ -73,7 +73,7 @@ def randobj(T):
             Randomizer.do_randomize([model])
             
         def build_field_model(self, name):
-            model = RandObjModel(name, self)
+            model = RandObjModel(name, self._int_field_info.is_rand, self)
             
             # Iterate through the fields and constraints
             # First, assign IDs to each of the randomized fields
@@ -129,11 +129,13 @@ def randobj(T):
     
             return self
         
-        def pre_randomize(self):
-            pass
+        def do_pre_randomize(self): 
+            if hasattr(self, "pre_randomize"):
+                self.pre_randomize()
         
-        def post_randomize(self):
-            pass                    
+        def do_post_randomize(self):
+            if hasattr(self, "post_randomize"):
+                self.post_randomize()
 
         setattr(T, "__getattribute__", __getattribute__)
         setattr(T, "__setattr__", __setattr__)
@@ -143,8 +145,8 @@ def randobj(T):
         setattr(T, "get_model", get_model)
         setattr(T, "__enter__", __enter__)
         setattr(T, "__exit__", __exit__)
-        setattr(T, "pre_randomize", pre_randomize)
-        setattr(T, "post_randomize", post_randomize)
+        setattr(T, "do_pre_randomize", do_pre_randomize)
+        setattr(T, "do_post_randomize", do_post_randomize)
         setattr(T, "_int_field_info", field_info())
         setattr(T, "_ro_init", True)
         

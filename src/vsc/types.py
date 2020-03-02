@@ -119,10 +119,10 @@ class type_base(object):
         )
         return self._int_field_info.model
     
-    def pre_randomize(self):
+    def do_pre_randomize(self):
         self._int_field_info.model.set_val(self.val)
     
-    def post_randomize(self):
+    def do_post_randomize(self):
         self.val = self._int_field_info.model.get_val()
         
     def to_expr(self):
