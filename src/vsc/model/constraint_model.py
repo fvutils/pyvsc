@@ -25,6 +25,7 @@ Created on Jul 27, 2019
 '''
 
 class ConstraintModel(object):
+    """Base class for all constraint models"""
     
     def __init__(self):
         pass
@@ -37,6 +38,7 @@ class ConstraintModel(object):
 
     @staticmethod
     def and_nodelist(node_l, btor):
+        """Creates a boolean AND across a list of expression nodes"""
         ret = None
         ret_valid = False
         
@@ -50,5 +52,5 @@ class ConstraintModel(object):
         return ret
 
     def accept(self, visitor):
-        raise Exception("" + str(self) + "::accept unimplemented")
+        raise NotImplementedError("" + str(self) + "::accept unimplemented")
     
