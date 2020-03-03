@@ -32,7 +32,19 @@ class constraint_t(object):
     
     def __init__(self, c):
         self.c = c
+        self.enabled = True
+        self.model = None
         pass
+    
+    def constraint_mode(self, en):
+        self.enabled = en
+        if self.model is not None:
+            self.model.set_constraint_enabled(en)
+            
+    def set_model(self, m):
+        self.model = m
+        self.model.set_constraint_enabled(self.enabled)
+            
     
     def elab(self):
         print("elab")

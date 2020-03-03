@@ -99,7 +99,8 @@ def randobj(T):
                             except Exception as e:
                                 print("Exception while processing constraint: " + str(e))
                                 raise e
-                            model.add_constraint(pop_constraint_scope())
+                            fo.set_model(pop_constraint_scope())
+                            model.add_constraint(fo.model)
                                     
             return model
         
