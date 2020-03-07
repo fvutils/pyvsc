@@ -35,6 +35,7 @@ part select
 -----------
 
 .. code-block:: python3
+
      class my_s():
          
          def __init__(self):
@@ -88,6 +89,7 @@ implies
 -------
 
 .. code-block:: python3
+
      class my_s(vsc.Base):
          
          def __init__(self):

@@ -10,6 +10,7 @@ With Py-VSC, a covergroup is declared as a Python class that is decorated
 with the `@covergroup` decorator.
 
 .. code-block:: python3
+
        @covergroup        
         class my_covergroup(object):
             
@@ -40,6 +41,7 @@ The `with_sample` method should be called early in the __init__
 method body to ensure that the sample parameters are declared early.
 
 .. code-block:: python3
+
        @covergroup        
         class my_covergroup(object):
             
@@ -77,6 +79,7 @@ is used to connect the calling context to the data used for coverage
 sampling. See the example below.
 
 .. code-block:: python3
+
        @covergroup
         class my_covergroup(object):
             
@@ -129,6 +132,7 @@ parameter to the `cross` method is a list of the coverpoints that
 compose the coverpoint cross. 
 
 .. code-block:: python3
+
         @covergroup
         class my_covergroup(object):
             
