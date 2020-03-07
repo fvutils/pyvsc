@@ -17,6 +17,7 @@
 # under the License.
 
 from vsc.model.coverpoint_facade_if import CoverpointFacadeIF
+from vsc.model.expr_model import ExprModel
 
 '''
 Created on Aug 3, 2019
@@ -28,10 +29,10 @@ class CoverpointModel(object):
     
     def __init__(self, 
             parent, 
-            facade_if : CoverpointFacadeIF, 
+            target : ExprModel,
             name : str):
         self.parent = parent
-        self.fi = facade_if
+        self.target = target
         self.name = name
         self.n_bins = 0
         self.bin_model_l = []
@@ -41,10 +42,20 @@ class CoverpointModel(object):
         
     def finalize(self):
         for b in self.bin_model_l:
+            b.finalize()
+            
+        for b in self.bin_model_l:
             self.n_bins += b.get_n_bins()
             
     def get_coverage(self):
-        raise Exception("get_coverage unimplemented")
+        coverage = 0.0
+        
+        for bin in self.bin_model_l:
+            coverage += bin.get_coverage()
+        
+        coverage /= len(self.bin_model_l)
+        
+        return coverage
     
     def get_inst_coverage(self):
         raise Exception("get_inst_coverage unimplemented")
@@ -54,7 +65,7 @@ class CoverpointModel(object):
             b.sample()
             
     def get_val(self):
-        return self.fi.get_val(self)
+        return self.target.val()
 
     def accept(self, v):
         v.visit_coverpoint(self)

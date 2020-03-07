@@ -4,9 +4,12 @@ Created on Mar 1, 2020
 @author: ballance
 '''
 from unittest.case import TestCase
-import vsc
 
-class TestSegmentedRandomization(TestCase):
+import vsc
+from vsc_test_case import VscTestCase
+
+
+class TestSegmentedRandomization(VscTestCase):
     
     def test_postrand_randomization(self):
         """

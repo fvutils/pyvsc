@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,24 +15,22 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from vsc.model.rand_obj_model import RandObjModel
-from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.types import type_base, field_info
-from vsc.model import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth,\
-    enter_expr_mode, leave_expr_mode
-import sys
-from vsc.model.randomizer import Randomizer
-from vsc.model.scalar_field_model import ScalarFieldModel
-from vsc.constraints import constraint_t
-
-
 '''
 Created on Jul 23, 2019
 
 @author: ballance
 '''
-from vsc.impl.ctor import register_rand_obj_type, push_constraint_scope,\
-    pop_constraint_scope
+
+from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.types import type_base, field_info
+from vsc.model import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth,\
+    enter_expr_mode, leave_expr_mode
+from vsc.model.randomizer import Randomizer
+from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.constraints import constraint_t
+from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope,\
+    clear_exprs
 
 def randobj(T):
     
@@ -73,36 +70,41 @@ def randobj(T):
             Randomizer.do_randomize([model])
             
         def build_field_model(self, name):
-            model = RandObjModel(name, self._int_field_info.is_rand, self)
+            if self._int_field_info.model is None:
+                model = CompositeFieldModel(name, self._int_field_info.is_rand, self)
+                self._int_field_info.model = model
             
-            # Iterate through the fields and constraints
-            # First, assign IDs to each of the randomized fields
-            with expr_mode():
-                for f in dir(self):
-                    if not f.startswith("__") and not f.startswith("_int"):
-                        fo = getattr(self, f)
+                # Iterate through the fields and constraints
+                # First, assign IDs to each of the randomized fields
+                with expr_mode():
+                    for f in dir(self):
+                        if not f.startswith("__") and not f.startswith("_int"):
+                            fo = getattr(self, f)
                         
-                        if hasattr(fo, "_int_field_info"):
-                            if fo._int_field_info.model is None:
-                                fo._int_field_info.model = fo.build_field_model(f)
+                            if hasattr(fo, "_int_field_info"):
+                                if fo._int_field_info.model is None:
+                                    fo._int_field_info.model = fo.build_field_model(f)
 
-                            model.add_field(fo._int_field_info.model)
+                                model.add_field(fo._int_field_info.model)
                 
-                # Now, elaborate the constraints
-                for f in dir(self):
-                    if not f.startswith("__") and not f.startswith("_int"):
-                        fo = getattr(self, f)
-                        if isinstance(fo, constraint_t):
-                            push_constraint_scope(ConstraintBlockModel(f))
-                            try:
-                                fo.c(self)
-                            except Exception as e:
-                                print("Exception while processing constraint: " + str(e))
-                                raise e
-                            fo.set_model(pop_constraint_scope())
-                            model.add_constraint(fo.model)
+                            # Now, elaborate the constraints
+                    for f in dir(self):
+                        if not f.startswith("__") and not f.startswith("_int"):
+                            fo = getattr(self, f)
+                            if isinstance(fo, constraint_t):
+                                clear_exprs()
+                                push_constraint_scope(ConstraintBlockModel(f))
+                                try:
+                                    fo.c(self)
+                                except Exception as e:
+                                    print("Exception while processing constraint: " + str(e))
+                                    raise e
+                                fo.set_model(pop_constraint_scope())
+                                model.add_constraint(fo.model)
+                                clear_exprs()
                                     
-            return model
+            self._int_field_info.model.name = name
+            return self._int_field_info.model
         
         def get_model(self):
             with expr_mode():

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.field_model import FieldModel
 
 '''
 Created on Jul 24, 2019
@@ -21,7 +22,7 @@ Created on Jul 24, 2019
 @author: ballance
 '''
 
-class ScalarFieldModel():
+class ScalarFieldModel(FieldModel):
     
     def __init__(self, 
         name,
@@ -29,13 +30,13 @@ class ScalarFieldModel():
         is_signed,
         is_rand,
         rand_if): 
+        super().__init__(name)
         self.name = name
         self.width = width
         self.is_signed = is_signed
         self.is_declared_rand = is_rand
         self.is_used_rand = is_rand
         self.rand_if = rand_if
-        self.parent = None
         self.var = None
         self.val = 0
         

@@ -45,11 +45,11 @@ class Randomizer(object):
         print("Num Randsets: " + str(len(ri.randsets())))
         
         for rs in ri.randsets():
-#             print("RandSet:")
-#             for f in rs.fields():
-#                 print("  Field: " + f.name())
-#             for c in rs.constraints():
-#                 print("  Constraint: " + str(c))
+            print("RandSet:")
+            for f in rs.fields():
+                print("  Field: " + f.name)
+            for c in rs.constraints():
+                print("  Constraint: " + str(c))
             print("Randset: n_fields=" + str(len(rs.fields())))
             btor = Boolector()
             self.btor = btor
@@ -60,7 +60,12 @@ class Randomizer(object):
                 f.build(btor)
                 
             for c in rs.constraints():
-                btor.Assert(c.build(btor))
+                try:
+                    btor.Assert(c.build(btor))
+                except Exception as e:
+                    print("Error: The following constraint failed:\n" + str(c))
+                    raise e
+                        
             
             # Perform an initial solve to establish correctness
             if btor.Sat() != btor.SAT:

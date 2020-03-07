@@ -19,6 +19,7 @@
 
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
+from vsc.model.composite_field_model import CompositeFieldModel
 
 '''
 Created on Aug 3, 2019
@@ -26,9 +27,10 @@ Created on Aug 3, 2019
 @author: ballance
 '''
 
-class CovergroupModel(object):
+class CovergroupModel(CompositeFieldModel):
     
     def __init__(self):
+        super().__init__(None)
         self.coverpoint_l = []
         self.cross_l = []
         self.name = "<default>"

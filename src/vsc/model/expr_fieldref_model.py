@@ -30,6 +30,9 @@ class ExprFieldRefModel(ExprModel):
     def __init__(self, fm):
         super().__init__()
         self.fm = fm
+        
+        if fm is None:
+            raise Exception("Field Model None specified")
 
     def build(self, btor):
         if self.fm.var is None:
@@ -45,5 +48,8 @@ class ExprFieldRefModel(ExprModel):
     def accept(self, visitor):
         visitor.visit_expr_fieldref(self)
         
+    def val(self):
+        return self.fm.val
+        
     def __str__(self):
-        return "Field: " + self.fm.name()
+        return "Field: " + self.fm.name

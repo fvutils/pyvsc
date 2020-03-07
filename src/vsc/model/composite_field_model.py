@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.field_model import FieldModel
 
 '''
 Created on Jul 24, 2019
@@ -21,18 +22,17 @@ Created on Jul 24, 2019
 @author: ballance
 '''
 
-class CompositeFieldModel(object):
+class CompositeFieldModel(FieldModel):
     
     def __init__(self, name, is_rand=False, rand_if=None):
         if name is None:
             name = "root"
-        self.name = name
+        super().__init__(name)
         # Captures whether this field was declared rand
         self.is_declared_rand = is_rand
         # Captures whether this field is being used as rand
         self.is_used_rand = is_rand
         self.rand_if = rand_if
-        self.parent = None
         self.field_l = []
         self.constraint_model_l = []
 
@@ -60,7 +60,16 @@ class CompositeFieldModel(object):
 
     def add_field(self, f):
         f.parent = self
+        f.idx    = len(self.field_l)
         self.field_l.append(f)
+        
+    def get_field(self, idx):
+        return self.field_l[idx]
+    
+    def set_field(self, idx, f):
+        f.parent = self
+        f.idx = idx
+        self.field_l[idx] = f
         
     def add_constraint(self, c):
         c.parent = self
@@ -102,6 +111,6 @@ class CompositeFieldModel(object):
         for f in self.field_l:
             f.post_randomize()
 
-    def accept(self, visitor):
-        visitor.visit_composite_field(self)
+    def accept(self, v):
+        v.visit_composite_field(self)
             

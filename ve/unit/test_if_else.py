@@ -17,6 +17,7 @@
 # under the License.
 
 from vsc.types import rangelist
+from vsc_test_case import VscTestCase
 
 
 '''
@@ -29,7 +30,7 @@ import unittest
 from unittest.case import TestCase
 import vsc
 
-class TestIfElse(TestCase):
+class TestIfElse(VscTestCase):
 
     def test_if_then(self):
 

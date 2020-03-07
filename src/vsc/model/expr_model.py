@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -32,21 +31,18 @@ class ExprModel(object):
     def build(self, btor):
         raise Exception("Expression build() unimplemented")
     
-    def get_node(self):
-        raise Exception("Expression get_node unimplemented (" + str(self) + ")")
-    
     def is_signed(self):
         raise Exception("is_signed unimplemented (" + str(self) + ")")
     
     def width(self):
         raise Exception("width unimplemented (" + str(self) + ")")
         
-    def accept(self, visitor):
+    def accept(self, v):
         raise Exception("" + str(self) + "::accept not implemented")
 
-    def val(self):
+    def val(self, parent=None):
         '''
         Return the value of this expression
         '''
-        raise Exception("val unimplemented")
+        raise Exception("val unimplemented for " + str(type(self)))
     

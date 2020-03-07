@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,9 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-
 '''
 Created on Jul 28, 2019
 
@@ -25,9 +21,12 @@ Created on Jul 28, 2019
 '''
 
 from unittest import TestCase
-import vsc
 
-class TestPartSelect(TestCase):
+import vsc
+from vsc_test_case import VscTestCase
+
+
+class TestPartSelect(VscTestCase):
 
     def test_simple(self):
 

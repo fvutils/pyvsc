@@ -41,6 +41,16 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
     def add_bin(self, bin_m):
         self.bin_l.append(bin_m)
         
+    def get_coverage(self):
+        coverage = 0.0
+        
+        for bin in self.bin_l:
+            coverage += bin.get_coverage()
+            
+#        coverage /= len(self.bin_l)
+        
+        return coverage
+        
     def sample(self):
         self.hit_bin_idx = -1
 
@@ -59,7 +69,14 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
             b.dump(ind + "    ")
             
     def get_hits(self, idx):
-        return self.bin_l[idx].get_hits()
+        b = None
+        for i in range(len(self.bin_l)):
+            b = self.bin_l[i]
+            if b.get_n_bins() > idx:
+                break;
+            idx -= b.get_n_bins()
+            
+        return b.get_hits(idx)
         
     def get_n_bins(self):
         return self.n_bins

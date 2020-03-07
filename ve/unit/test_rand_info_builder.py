@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -12,21 +11,24 @@
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
+# KIND, either express or implied.  See the License fjor the
 # specific language governing permissions and limitations
 # under the License.
-
 '''
 Created on Jan 22, 2020
 
 @author: ballance
 '''
-from unittest.case import TestCase
-from vsc.types import rand_bit_t
-from vsc.model.rand_info_builder import RandInfoBuilder
-import vsc
 
-class TestRandInfoBuilder(TestCase):
+from unittest.case import TestCase
+
+import vsc
+from vsc.model.rand_info_builder import RandInfoBuilder
+from vsc.types import rand_bit_t
+from vsc_test_case import VscTestCase
+
+
+class TestRandInfoBuilder(VscTestCase):
     
     def test_no_refs(self):
        

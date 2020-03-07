@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 
 
 
@@ -26,6 +26,11 @@ Created on Jul 27, 2019
 
 class FieldModel(object):
     
+    def __init__(self, name):
+        self.parent = None
+        self.idx    = -1
+        self.name   = name
+    
     def build(self, builder):
         raise Exception("build unimplemented")
 
@@ -35,5 +40,17 @@ class FieldModel(object):
     def post_randomize(self):
         pass
     
-    def get_node(self):
-        raise Exception("get_node unimplemented")
+    def get_indexed_fieldref_expr(self):
+        if self.parent is None:
+            raise Exception("Field has no parent")
+        else:
+            idx_l = []
+            p = self.parent
+            s = self
+            while p is not None:
+                idx_l.insert(0, s.idx)
+                s = p
+                p = p.parent
+            
+            return ExprIndexedFieldRefModel(s, idx_l)
+        

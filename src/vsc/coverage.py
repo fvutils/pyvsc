@@ -23,6 +23,10 @@ from vsc.model import expr_mode, get_expr_mode, enter_expr_mode, leave_expr_mode
 from vsc.impl.covergroup_int import CovergroupInt
 from vsc.impl.options import Options
 from vsc.impl.type_options import TypeOptions
+from vsc.model.expr_ref_model import ExprRefModel
+from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.impl import ctor
 '''
 Created on Aug 3, 2019
 
@@ -57,11 +61,17 @@ def covergroup(T):
             
         # TODO: Make adding sample parameters additive?
         def with_sample(self, params):
+            model = self.get_model()
             cg_i = self._get_int()
             for pn,pt in params.items():
                 print("parameter: " + pn)
+                pm = pt.build_field_model(pn)
                 setattr(self, pn, pt)
                 cg_i.sample_var_l.append(pn)
+                
+                # Add a field to the covergroup model
+                model.add_field(pm)
+                
             print("self=" + str(self) + " sample_var_l=" + str(len(cg_i.sample_var_l)))
                 
         def sample(self, *args, **kwargs):
@@ -76,8 +86,20 @@ def covergroup(T):
             
             if len(args) != sample_var_len:
                 raise Exception("Wrong number of parameters: expect " + str(sample_var_len) + " receive " + str(len(args)))
-        
+
+            model = self.get_model()        
             for i in range(len(args)):
+                # TODO: need to account for inheritance
+                ex_f = model.get_field(i)
+                if isinstance(ex_f, CompositeFieldModel):
+                    # TODO: probably need to do something a bit more than this?
+                    model.set_field(i, args[i].get_model())
+                elif isinstance(ex_f, ScalarFieldModel):
+                    if isinstance(args[i], type_base):
+                        ex_f.set_val(args[i].get_val())
+                    else:
+                        ex_f.set_val(int(args[i]))
+                    
                 setattr(self, cg_i.sample_var_l[i], args[i])
 #                getattr(self, cg_i.sample_var_l[i]).set_val(args[i])
 
@@ -96,25 +118,31 @@ def covergroup(T):
             if cg_i.model is None:
                 cg_i.model = CovergroupModel()
 
-                obj_name_m = {}            
-                for n in dir(self):
-                    obj = getattr(self, n)
-                    if hasattr(obj, "build_cov_model"):
-                        obj_name_m[obj] = n
-                        
-                for b in self.buildable_l:
-                    print("b: " + str(b))
             
-                    cp_m = b.build_cov_model(cg_i.model, obj_name_m[b])
-                    cg_i.model.add_coverpoint(cp_m)
+            return cg_i.model
+        
+        def build_model(self):
+            cg_i = self._get_int()
+            self.get_model()
+            
+            obj_name_m = {}            
+            for n in dir(self):
+                obj = getattr(self, n)
+                if hasattr(obj, "build_cov_model"):
+                    obj_name_m[obj] = n
+                    
+            for b in self.buildable_l:
+                print("b: " + str(b))
+          
+                cp_m = b.build_cov_model(cg_i.model, obj_name_m[b])
+                cg_i.model.add_coverpoint(cp_m)
 
-                # We're done, so lock the covergroup
-                self.lock()
+            # We're done, so lock the covergroup
+            self.lock()
 
             # Finalize the contents of the covergroup                
             cg_i.model.finalize()
             
-            return cg_i.model
         
         def _get_int(self):
             if not hasattr(self, "_cg_int"):
@@ -140,6 +168,7 @@ def covergroup(T):
         setattr(T, "get_coverage", get_coverage)
         setattr(T, "get_inst_coverage", get_inst_coverage)
         setattr(T, "get_model", get_model)
+        setattr(T, "build_model", build_model)
         setattr(T, "_get_int", _get_int)
         setattr(T, "lock", lock)
         setattr(T, "__setattr__", _setattr)
@@ -152,6 +181,11 @@ def covergroup(T):
         
         def __init__(self, *args, **kwargs):
             cg_i = self._get_int()
+
+            self.buildable_l = []
+            
+            # Construct the model            
+            self.get_model()
             
             # Ensure options/type_options created before 
             # calling (user) base-class __init__
@@ -160,14 +194,17 @@ def covergroup(T):
             if not hasattr(self, "type_options"):
                 self.type_options = TypeOptions()
                 
-            self.buildable_l = []
+            for a in args:
+                if hasattr(a, "_ro_init"):
+                    # Ensure the model is constructed
+                    a.get_model()
 
             with cg_i:                
                 super().__init__(*args, **kwargs)
 
-            # Construct the model once we've reached the top level
             if cg_i.ctor_level == 0:
-                self.model = self.get_model()
+                # TODO: need to actually elaborate the model
+                self.build_model()
     
     ret = type(T.__name__, (covergroup_interposer,), dict())
     
@@ -189,6 +226,9 @@ class bin_array(object):
     def __init__(self, nbins, *args):
         self.nbins = nbins
         self.range_l = args
+        
+        if len(args) == 0:
+            raise Exception("No bins range specified")
     
     def build_cov_model(self, parent, name):
         ret = CoverpointBinCollectionModel(parent, name)
@@ -243,6 +283,8 @@ class coverpoint(object):
         self.options = Options()
         self.type_options = TypeOptions()
         
+        ctor.clear_exprs()
+        
         if options is not None:
             self.options.set(options)
             
@@ -253,8 +295,7 @@ class coverpoint(object):
             print("target=" + str(target))
             if isinstance(target, type_base):
                 self.have_var = True
-                self.target = target
-                self.get_val_f = target.get_val
+                self.target = target.to_expr().em
                 self.cp_t = type_base
             elif callable(target):
 #             if cp_t is None:
@@ -266,6 +307,7 @@ class coverpoint(object):
                 self.get_val_f = target
             else:
                 # should be an actual variable (?)
+                # TODO: or, could be an expression
                 print("TODO: handle actual variables")
                 to_expr(target)
                 self.target = pop_expr()
@@ -276,12 +318,13 @@ class coverpoint(object):
         self.iff = iff
         self.bins = bins
         
+        ctor.clear_exprs()
+        
     def get_coverage(self):
         if self.model is None:
             return 0.0
         else:
             return self.model.get_coverage()
-        pass
     
     def get_inst_coverage(self):
         if self.model is None:
@@ -291,7 +334,25 @@ class coverpoint(object):
     
     def build_cov_model(self, parent, name):
         if self.model is None:
-            self.model = CoverpointModel(parent, self, name)
+            if self.get_val_f is not None:
+                if self.cp_t is not None and isinstance(self.cp_t, type_base):
+                    width = self.cp_t.width
+                    is_signed = self.cp_t.is_signed
+                else:
+                    width = 32
+                    is_signed = True
+                    
+                sample_expr = ExprRefModel(
+                    self.get_val_f, 
+                    width,
+                    is_signed)
+            else:
+                sample_expr = self.target
+            
+            self.model = CoverpointModel(
+                parent, 
+                sample_expr,
+                name)
 
             with expr_mode():
                 if self.bins is None or len(self.bins) == 0:

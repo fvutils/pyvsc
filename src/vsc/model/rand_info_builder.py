@@ -85,12 +85,13 @@ class RandInfoBuilder(ModelVisitor):
         super().visit_constraint_stmt_enter(c)
         
     def visit_constraint_stmt_leave(self, c):
+        c_blk = self._constraint_s[0]
         self._constraint_s.pop()
         if self._pass == 1 and len(self._constraint_s) == 1:
             if self._active_randset is not None:
                 self._active_randset.add_constraint(c)
             else:
-                print("TODO: handle no-reference constraint: " + str(c))
+                print("TODO: handle no-reference constraint: " + str(c_blk.name))
         super().visit_constraint_stmt_leave(c)
     
     def visit_constraint_expr(self, c):

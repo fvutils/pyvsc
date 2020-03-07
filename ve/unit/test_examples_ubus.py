@@ -1,3 +1,4 @@
+from vsc_test_case import VscTestCase
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -28,7 +29,7 @@ from vsc.types import rand_enum_t, rand_bit_t, rangelist
 from enum import Enum, auto
 
 
-class TestExamplesUbus(TestCase):
+class TestExamplesUbus(VscTestCase):
     
     def test_ubus(self):
         

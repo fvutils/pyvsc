@@ -20,9 +20,10 @@ from unittest.case import TestCase
 from vsc.types import rand_uint16_t
 from vsc.attrs import rand_attr, attr
 import vsc
+from vsc_test_case import VscTestCase
 
 
-class TestCompoundObj(TestCase):
+class TestCompoundObj(VscTestCase):
     
     def test_rand_compound(self):
 
