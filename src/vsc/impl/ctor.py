@@ -27,10 +27,20 @@ rand_obj_type_m = {}
 constraint_scope_stack = []
 expr_l = []
 
-def register_rand_obj_type(t):
-#    rand_obj_type_m[t] = RandObjModel(t)
-    pass
-   
+def test_setup():
+    rand_obj_type_m.clear()
+    constraint_scope_stack.clear()
+    expr_l.clear()
+    
+def test_teardown():
+    rand_obj_type_m.clear()
+    if len(expr_l) != 0:
+        print("Error: Leftbehind expressions")
+        for ex in expr_l:
+            print("Expr: " + str(ex))
+        raise Exception("Leftbehind expressions")
+    
+
 def push_expr(e):
     expr_l.append(e)
     
@@ -41,6 +51,9 @@ def pop_exprs():
     ret = expr_l.copy()
     expr_l.clear()
     return ret
+
+def clear_exprs():
+    expr_l.clear()
 
 def push_constraint_scope(s):
     constraint_scope_stack.append(s)

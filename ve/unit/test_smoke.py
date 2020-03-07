@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,9 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-
 '''
 Created on Jul 23, 2019
 
@@ -28,13 +24,15 @@ import unittest
 from unittest.case import TestCase
 
 import vsc
+from vsc_test_case import VscTestCase
 
 
-class TestSmoke(TestCase):
+class TestSmoke(VscTestCase):
     
     def test_smoke(self):
-        
-        class my_sub(vsc.RandObj):
+
+        @vsc.randobj        
+        class my_sub(object):
             
             def __init__(self):
                 super().__init__()
@@ -43,7 +41,8 @@ class TestSmoke(TestCase):
                 self.c = vsc.rand_bit_t(4)
                 self.d = vsc.rand_bit_t(4)
 
-        class my_rand(vsc.RandObj):
+        @vsc.randobj
+        class my_rand(object):
             
             def __init__(self):
                 super().__init__()

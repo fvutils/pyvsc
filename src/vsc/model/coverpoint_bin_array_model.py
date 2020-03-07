@@ -43,6 +43,16 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         for i in range(self.high-self.low+1):
             self.hit_list.append(0)
             
+    def get_coverage(self):
+        coverage = 0.0
+        
+        for h in self.hit_list:
+            coverage += 1 if h != 0 else 0
+
+        coverage /= len(self.hit_list)
+        
+        return coverage
+            
     def sample(self):
         # Query value from the actual coverpoint or expression
 #        print("sample: binspec=" + str(self.binspec))

@@ -28,6 +28,10 @@ class ConstraintBlockModel(ConstraintScopeModel):
     def __init__(self, name):
         super().__init__()
         self.name = name
+        self.enabled = True
+
+    def set_constraint_enabled(self, en):
+        self.enabled = en
         
     def accept(self, v):
         v.visit_constraint_block(self)

@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,21 +14,25 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 '''
 Created on Dec 23, 2019
 
 @author: ballance
 '''
+
 from unittest.case import TestCase
+
 import vsc
 from vsc.types import rand_bit_t
+from vsc_test_case import VscTestCase
 
-class TestRandomizeWith(TestCase):
+
+class TestRandomizeWith(VscTestCase):
     
     def test_smoke(self):
-        
-        class my_class(vsc.RandObj):
+
+        @vsc.randobj
+        class my_class(object):
             
             def __init__(self):
                 super().__init__()
@@ -59,6 +62,7 @@ class TestRandomizeWith(TestCase):
 #            c.randomize()
             with c.randomize_with() as it:
                 it.a == (i%10)
+            self.assertEquals(it.a, (i%10))
         
             print("i=" + str(i) + " c.a=" + hex(c.a) + " c.b=" + hex(c.b) + " c.c=" + hex(c.c) + " c.d=" + hex(c.d))
             

@@ -39,6 +39,7 @@ class RandInfoBuilder(ModelVisitor):
         self._randset_s = set()
         self._randset_field_m = {} # map<field,randset>
         self._constraint_s = []
+        self._used_rand = True
         
     @staticmethod
     def build(
@@ -53,10 +54,12 @@ class RandInfoBuilder(ModelVisitor):
             
         # Now, build the randset
         builder._pass = 1
+        builder._used_rand = True
         # Visit the field objects passed in, as well
         # as their constraints
         for fm in field_model_l:
             fm.accept(builder)
+
         # Visit standalone constraints passed to the function
         for c in constraint_l:
             c.accept(builder)
@@ -64,11 +67,16 @@ class RandInfoBuilder(ModelVisitor):
         return RandInfo(list(builder._randset_s), list(builder._field_s))
     
     def visit_constraint_block(self, c):
+        if not c.enabled:
+            print("Skip constraint block " + c.name)
+            return
+        
         # Null out the randset on entry to a constraint block
-        self._active_randset = None
-        self._constraint_s.append(c)
-        super().visit_constraint_block(c)
-        self._constraint_s.clear()
+        if self._used_rand:
+            self._active_randset = None
+            self._constraint_s.append(c)
+            super().visit_constraint_block(c)
+            self._constraint_s.clear()
         
     def visit_constraint_stmt_enter(self, c):
         if self._pass == 1 and len(self._constraint_s) == 1:
@@ -77,18 +85,20 @@ class RandInfoBuilder(ModelVisitor):
         super().visit_constraint_stmt_enter(c)
         
     def visit_constraint_stmt_leave(self, c):
+        c_blk = self._constraint_s[0]
         self._constraint_s.pop()
         if self._pass == 1 and len(self._constraint_s) == 1:
             if self._active_randset is not None:
                 self._active_randset.add_constraint(c)
             else:
-                print("TODO: handle no-reference constraint: " + str(c))
+                print("TODO: handle no-reference constraint: " + str(c_blk.name))
         super().visit_constraint_stmt_leave(c)
     
     def visit_constraint_expr(self, c):
         super().visit_constraint_expr(c)
         
     def visit_expr_fieldref(self, e):
+
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint
             # relationships
@@ -126,6 +136,12 @@ class RandInfoBuilder(ModelVisitor):
                 self._field_s.remove(e.fm)
 
         super().visit_expr_fieldref(e)
+        
+    def visit_composite_field(self, f):
+        old_used_rand = self._used_rand
+        self._used_rand = f.is_used_rand
+        super().visit_composite_field(f)
+        self._used_rand = old_used_rand
 
     def visit_scalar_field(self, f):
         if self._pass == 0:

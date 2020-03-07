@@ -9,7 +9,7 @@
 </listAttribute>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_LOCATION" value="${workspace_loc:py-vsc/scripts/run_pylint.py}"/>
 <stringAttribute key="org.eclipse.ui.externaltools.ATTR_OTHER_WORKING_DIRECTORY" value=""/>
-<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value=""/>
+<stringAttribute key="org.eclipse.ui.externaltools.ATTR_TOOL_ARGUMENTS" value="--load-plugins vsc.pylint"/>
 <stringAttribute key="org.python.pydev.debug.ATTR_INTERPRETER" value="py-vsc"/>
 <stringAttribute key="org.python.pydev.debug.ATTR_PROJECT" value="py-vsc"/>
 <stringAttribute key="process_factory_id" value="org.python.pydev.debug.processfactory.PyProcessFactory"/>

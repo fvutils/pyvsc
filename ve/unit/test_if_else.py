@@ -17,6 +17,7 @@
 # under the License.
 
 from vsc.types import rangelist
+from vsc_test_case import VscTestCase
 
 
 '''
@@ -29,11 +30,12 @@ import unittest
 from unittest.case import TestCase
 import vsc
 
-class TestIfElse(TestCase):
+class TestIfElse(VscTestCase):
 
     def test_if_then(self):
-        
-        class my_s(vsc.RandObj):
+
+        @vsc.randobj
+        class my_s(object):
             
             def __init__(self):
                 super().__init__()
@@ -56,8 +58,9 @@ class TestIfElse(TestCase):
         v.a = 2
             
     def test_else_if(self):
-        
-        class my_s(vsc.RandObj):
+
+        @vsc.randobj
+        class my_s(object):
             
             def __init__(self):
                 super().__init__()
@@ -88,8 +91,9 @@ class TestIfElse(TestCase):
             print("a=" + str(v.a) + " b=" + str(v.b))
         
     def test_else_then(self):
-        
-        class my_s(vsc.RandObj):
+
+        @vsc.randobj
+        class my_s(object):
             
             def __init__(self):
                 self.a = vsc.rand_bit_t(8)

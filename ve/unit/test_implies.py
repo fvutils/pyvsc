@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,9 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-
 '''
 Created on Jul 28, 2019
 
@@ -26,14 +22,16 @@ Created on Jul 28, 2019
 
 import unittest
 from unittest.case import TestCase
-
 import vsc
+from vsc_test_case import VscTestCase
 
-class TestImplies(TestCase):
+
+class TestImplies(VscTestCase):
 
     def test_simple(self):
-        
-        class my_s(vsc.RandObj):
+
+        @vsc.randobj
+        class my_s(object):
             
             def __init__(self):
                 super().__init__()

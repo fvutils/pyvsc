@@ -32,7 +32,19 @@ class constraint_t(object):
     
     def __init__(self, c):
         self.c = c
+        self.enabled = True
+        self.model = None
         pass
+    
+    def constraint_mode(self, en):
+        self.enabled = en
+        if self.model is not None:
+            self.model.set_constraint_enabled(en)
+            
+    def set_model(self, m):
+        self.model = m
+        self.model.set_constraint_enabled(self.enabled)
+            
     
     def elab(self):
         print("elab")
@@ -133,3 +145,15 @@ def unique(*args):
         expr_l.insert(0, pop_expr())
         
     push_constraint_stmt(ConstraintUniqueModel(expr_l))
+
+class forall(object):
+    
+    def __init__(self, target_type):
+        self.target_type = target_type
+        pass
+    
+    def __enter__(self):
+        pass
+    
+    def __exit__(self, t, v, tb):
+        pass

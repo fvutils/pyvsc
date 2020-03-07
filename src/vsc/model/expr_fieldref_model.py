@@ -28,24 +28,28 @@ Created on Jul 26, 2019
 class ExprFieldRefModel(ExprModel):
     
     def __init__(self, fm):
+        super().__init__()
         self.fm = fm
+        
+        if fm is None:
+            raise Exception("Field Model None specified")
 
     def build(self, btor):
         if self.fm.var is None:
             raise Exception("Field " + str(self.fm) + " has not been built")
         return self.fm.var
         
-    def get_node(self):
-        return self.fm.get_node()
-    
     def is_signed(self):
-        return self.fm.f.is_signed
+        return self.fm.is_signed
     
     def width(self):
-        return self.fm.f.width
+        return self.fm.width
     
     def accept(self, visitor):
         visitor.visit_expr_fieldref(self)
         
+    def val(self):
+        return self.fm.val
+        
     def __str__(self):
-        return "Field: " + self.fm.name()
+        return "Field: " + self.fm.name

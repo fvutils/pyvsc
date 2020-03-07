@@ -21,6 +21,8 @@ from vsc.model.expr_in_model import ExprInModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
 from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
+from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.model import get_expr_mode
 '''
 Created on Jul 23, 2019
 
@@ -107,8 +109,31 @@ class type_base(object):
         self.val = i
         self._int_field_info = field_info()
         
+    def get_model(self):
+        if self._int_field_info.model is None:
+            raise Exception("Field hasn't yet been constructed")
+        return self._int_field_info.model
+        
+    def build_field_model(self, name):
+        self._int_field_info.name = name
+        self._int_field_info.model = ScalarFieldModel(
+            name,
+            self.width,
+            self.is_signed,
+            self._int_field_info.is_rand,
+            self
+        )
+        return self._int_field_info.model
+    
+    def do_pre_randomize(self):
+        self._int_field_info.model.set_val(self.val)
+    
+    def do_post_randomize(self):
+        self.val = self._int_field_info.model.get_val()
+        
     def to_expr(self):
         return expr(ExprFieldRefModel(self._int_field_info.model))
+#        return expr(self._int_field_info.model.get_indexed_fieldref_expr())
     
     def get_val(self):
         return self.val
@@ -309,15 +334,73 @@ class rand_int64_t(rand_int_t):
         super().__init__(64, i)        
         
 class list_t(object):
+    
+    def __init__(self, t, sz=0, init=True):
+        self.t = t
+        self.sz = sz
+        self.init = init
+        self._int_field_info = field_info()
+        if sz is None:
+            self.arr = []
+        else:
+            self.arr = [None]*sz
+        pass
+    
+    def build_field_model(self, name):
+        pass
+    
+    def size(self):
+        if get_expr_mode():
+            # TODO: return a size expression of the model
+            pass
+        else:
+            return len(self.arr)
+    
+    def __getitem__(self, k):
+        return self.arr[k]
+    
+    def __setitem__(self, k, v):
+        self.arr[k] = v
+        
+    def clear(self):
+        # TODO: changing size should trigger behavior
+        self.arr.clear()
+
+    def append(self, v):
+        # TODO: changing size should trigger behavior
+        self.arr.append(v)
+    
+def rand_list_t(list_t):
+    
+    def __init__(self, t, sz, init=True):
+        super().__init__(t, sz, init)
+        self._int_field_info.is_rand = True
+        
+class queue(object):
     def __init__(self, t, is_rand, sz):
         pass
     
     def size(self):
         pass
     
-class rand_list_t(list_t):
+class array(object):
     
-    def __init__(self):
+    def __init__(self, t, sz, init=True):
+        self.sz = sz
+        self.t = t
+        self.arr = []*sz
+        self.init = init
+        if init:
+            for i in range(sz):
+                self.arr[i] = t()
         pass
-
-
+    
+    def size(self):
+        if get_expr_mode():
+            pass
+        else:
+            return self.sz
+        
+    def build_field_model(self, name):
+        pass
+        

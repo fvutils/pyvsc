@@ -16,17 +16,14 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from vsc.model import expr_mode
-
-
 '''
 Created on Jul 23, 2019
 
 @author: ballance
 '''
 
-from vsc.model.rand_obj_model import RandObjModel
 from vsc.types import field_info, type_base
+from vsc.model import expr_mode
 
 # def randomize_with(*args):
 #     """Randomize a list of variables with an inline constraint"""

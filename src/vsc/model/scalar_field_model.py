@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.field_model import FieldModel
 
 '''
 Created on Jul 24, 2019
@@ -21,15 +22,26 @@ Created on Jul 24, 2019
 @author: ballance
 '''
 
-class ScalarFieldModel():
+class ScalarFieldModel(FieldModel):
     
-    def __init__(self, f, parent, is_rand):
-        self.f = f
-        # Connect the user facade to the model
-        self.f._int_field_info.model = self
-        self.is_rand = is_rand
-        self.parent = parent
+    def __init__(self, 
+        name,
+        width,
+        is_signed,
+        is_rand,
+        rand_if): 
+        super().__init__(name)
+        self.name = name
+        self.width = width
+        self.is_signed = is_signed
+        self.is_declared_rand = is_rand
+        self.is_used_rand = is_rand
+        self.rand_if = rand_if
         self.var = None
+        self.val = 0
+        
+    def set_used_rand(self, is_rand, level):
+        self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
         
     def dispose(self):
         self.var = None
@@ -38,35 +50,40 @@ class ScalarFieldModel():
         v.visit_scalar_field(self)
 
     def build(self, btor):
-        sort = btor.BitVecSort(self.f.width)
-        self.var = btor.Var(sort)
-        
-    def get_node(self):
+        if self.is_used_rand:
+            sort = btor.BitVecSort(self.width)
+            self.var = btor.Var(sort)
+        else:
+            print("Non-rand var")
+            self.var = btor.Const(self.val, self.width)
         return self.var
     
-    def width(self):
-        return self.f.width
-    
-    def name(self):
-        return self.f._int_field_info.name
-    
+    def get_full_name(self):
+        ret = self.name
+        p = self.parent
+        
+        while p is not None:
+            ret = p.name + "." + ret
+            p = p.parent
+
+        return ret
+        
+        
     def __str__(self):
-        return "ScalarFieldModel(" + self.name() + ")"
+        return "ScalarFieldModel(" + self.get_full_name() + ")"
 
     def get_constraints(self, constraint_l):
-        if not self.is_rand:
-            print("TODO: need to add constraint")
         pass
 
     def pre_randomize(self):
-        # TODO: need to sample non-rand field
-        pass
+        if self.rand_if is not None:
+            self.rand_if.do_pre_randomize()
     
     def set_val(self, val):
-        self.f._set_val(val)
+        self.val = val
         
     def get_val(self):
-        return self.f._get_val()
+        return self.val
     
     def post_randomize(self):
         if self.var is not None:
@@ -76,3 +93,6 @@ class ScalarFieldModel():
                 if b == '1':
                     val |= 1
             self.set_val(val)
+            
+        if self.rand_if is not None:
+            self.rand_if.do_post_randomize()

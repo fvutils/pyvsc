@@ -43,6 +43,10 @@ class CoverpointBinModel(CoverpointBinModelBase):
             
         self.cp = cp
         
+    def finalize(self):
+        for b in self.bins:
+            b.finalize()
+        
     def sample(self):
         # Query value from the actual coverpoint or expression
         val = self.cp.get_val()

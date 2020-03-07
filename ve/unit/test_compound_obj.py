@@ -17,24 +17,26 @@
 # under the License.
 
 from unittest.case import TestCase
-from vsc.rand_obj import RandObj
 from vsc.types import rand_uint16_t
 from vsc.attrs import rand_attr, attr
 import vsc
+from vsc_test_case import VscTestCase
 
 
-class TestCompoundObj(TestCase):
+class TestCompoundObj(VscTestCase):
     
     def test_rand_compound(self):
-        
-        class C1(RandObj):
+
+        @vsc.randobj        
+        class C1(object):
             
             def __init__(self):
                 super().__init__()
                 self.a = rand_uint16_t()
                 self.b = rand_uint16_t()
-                
-        class C2(RandObj):
+
+        @vsc.randobj                
+        class C2(object):
             
             def __init__(self):
                 super().__init__()
@@ -48,15 +50,17 @@ class TestCompoundObj(TestCase):
             print("c1.a=" + str(c2.c1.a) + " c1.b=" + str(c2.c1.b))
 
     def disabled_test_rand_compound_nonrand(self):
-        
-        class C1(RandObj):
+
+        @vsc.randobj        
+        class C1(object):
             
             def __init__(self):
                 super().__init__()
                 self.a = rand_uint16_t()
                 self.b = rand_uint16_t()
                 
-        class C2(RandObj):
+        @vsc.randobj
+        class C2(object):
             
             def __init__(self):
                 super().__init__()

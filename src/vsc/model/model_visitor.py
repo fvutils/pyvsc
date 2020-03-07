@@ -96,6 +96,9 @@ class ModelVisitor(object):
     def visit_expr_fieldref(self, e):
         pass
     
+    def visit_expr_indexed_fieldref(self, e):
+        pass
+    
     def visit_expr_range(self, r):
         r.lhs.accept(self)
         r.rhs.accept(self)

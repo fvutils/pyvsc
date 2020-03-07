@@ -1,3 +1,4 @@
+from vsc_test_case import VscTestCase
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -15,22 +16,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from builtins import range
-from enum import IntEnum
-
-
 '''
 Created on Aug 4, 2019
 
 @author: ballance
 '''
 
+import vsc
+from builtins import range
+from enum import IntEnum
 import unittest
 from unittest.case import TestCase
 from vsc import *
 
-class TestCovergroup(TestCase):
+class TestCovergroup(VscTestCase):
     
     def test_simple_coverpoint(self):
 
@@ -98,8 +97,9 @@ class TestCovergroup(TestCase):
         cg.dump()
 
     def test_emb_covergroup(self):
-        
-        class my_item_c(RandObj):
+
+        @vsc.randobj        
+        class my_item_c(object):
 
             @covergroup
             class my_covergroup():

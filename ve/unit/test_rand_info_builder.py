@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -12,41 +11,47 @@
 # Unless required by applicable law or agreed to in writing,
 # software distributed under the License is distributed on an
 # "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
+# KIND, either express or implied.  See the License fjor the
 # specific language governing permissions and limitations
 # under the License.
-
 '''
 Created on Jan 22, 2020
 
 @author: ballance
 '''
-from unittest.case import TestCase
-from vsc.rand_obj import RandObj
-from vsc.types import rand_bit_t
-from vsc.model.rand_info_builder import RandInfoBuilder
-import vsc
 
-class TestRandInfoBuilder(TestCase):
+from unittest.case import TestCase
+
+import vsc
+from vsc.model.rand_info_builder import RandInfoBuilder
+from vsc.types import rand_bit_t
+from vsc_test_case import VscTestCase
+
+
+class TestRandInfoBuilder(VscTestCase):
     
     def test_no_refs(self):
-        
-        class my_cls(RandObj):
+       
+        @vsc.randobj 
+        class my_cls(object):
             
             def __init__(self):
-                super().__init__()
                 self.a = rand_bit_t(8)
                 self.b = rand_bit_t(8)
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)
+                
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 0)
         self.assertEqual(len(info.unconstrained_l), 2)
         
     def test_single_var_ref(self):
-        
-        class my_cls(RandObj):
+       
+        @vsc.randobj
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -58,16 +63,19 @@ class TestRandInfoBuilder(TestCase):
                 self.a < 5
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 1)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
         self.assertEqual(len(info.unconstrained_l), 1)
         
     def test_multi_indep_var_ref(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -80,8 +88,10 @@ class TestRandInfoBuilder(TestCase):
                 self.b ==  5
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 2)
         self.assertEqual(len(info.randset_l[0].fields()), 1)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
@@ -90,8 +100,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 0)
         
     def test_multi_dep_var_ref(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -103,16 +114,19 @@ class TestRandInfoBuilder(TestCase):
                 self.a < self.b
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 2)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
         self.assertEqual(len(info.unconstrained_l), 0)
 
     def test_two_randsets(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -127,8 +141,10 @@ class TestRandInfoBuilder(TestCase):
                 self.c < self.d
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+       
+        model = my_cls_i.get_model()
+        model.set_used_rand(True) 
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 2)
         self.assertEqual(len(info.randset_l[0].fields()), 2)
         self.assertEqual(len(info.randset_l[0].constraints()), 1)
@@ -137,8 +153,9 @@ class TestRandInfoBuilder(TestCase):
         self.assertEqual(len(info.unconstrained_l), 0)        
 
     def test_connected_top_level(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -154,16 +171,19 @@ class TestRandInfoBuilder(TestCase):
                 self.c < self.d
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 4)
         self.assertEqual(len(info.randset_l[0].constraints()), 3)
         self.assertEqual(len(info.unconstrained_l), 0)        
 
     def test_connected_ite_cond(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -180,15 +200,19 @@ class TestRandInfoBuilder(TestCase):
                 
         my_cls_i = my_cls()
         
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)
+        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 4)
         self.assertEqual(len(info.randset_l[0].constraints()), 2)
         self.assertEqual(len(info.unconstrained_l), 0)
 
     def test_connected_ite_cross_block(self):
-        
-        class my_cls(RandObj):
+
+        @vsc.randobj        
+        class my_cls(object):
             
             def __init__(self):
                 super().__init__()
@@ -207,8 +231,10 @@ class TestRandInfoBuilder(TestCase):
                     self.c < self.d
                 
         my_cls_i = my_cls()
-        
-        info = RandInfoBuilder.build([my_cls_i.get_model()], [])
+
+        model = my_cls_i.get_model()
+        model.set_used_rand(True)        
+        info = RandInfoBuilder.build([model], [])
         self.assertEqual(len(info.randset_l), 1)
         self.assertEqual(len(info.randset_l[0].fields()), 4)
         self.assertEqual(len(info.randset_l[0].constraints()), 2)
