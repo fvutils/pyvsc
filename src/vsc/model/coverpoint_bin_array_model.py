@@ -43,6 +43,9 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         for i in range(self.high-self.low+1):
             self.hit_list.append(0)
             
+    def finalize(self):
+        pass
+            
     def get_coverage(self):
         coverage = 0.0
         

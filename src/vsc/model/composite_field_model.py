@@ -62,6 +62,7 @@ class CompositeFieldModel(FieldModel):
         f.parent = self
         f.idx    = len(self.field_l)
         self.field_l.append(f)
+        return f
         
     def get_field(self, idx):
         return self.field_l[idx]

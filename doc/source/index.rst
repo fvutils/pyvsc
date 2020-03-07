@@ -9,6 +9,8 @@ Contents:
    introduction
    quickstart
    data_types
+   constraints
+   coverage
    reference
    
    

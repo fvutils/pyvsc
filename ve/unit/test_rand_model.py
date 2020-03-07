@@ -5,12 +5,54 @@ Created on Feb 29, 2020
 '''
 from unittest.case import TestCase
 
+from vsc.model.bin_expr_type import BinExprType
 from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.model.constraint_expr_model import ConstraintExprModel
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.randomizer import Randomizer
+from vsc.model.scalar_field_model import ScalarFieldModel
 from vsc_test_case import VscTestCase
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 
 class TestRandModel(VscTestCase):
     
     def test_smoke(self):
-        
         obj = CompositeFieldModel("obj")
+        a = obj.add_field(ScalarFieldModel("a", 8, False, True))
+        b = obj.add_field(ScalarFieldModel("a", 8, False, True))
+        obj.add_constraint(ConstraintBlockModel("c", [
+            ConstraintExprModel(
+                ExprBinModel(
+                    a.expr(),
+                    BinExprType.Lt,
+                    b.expr()))
+            ]))
+        
+        rand = Randomizer()
+        
+        rand.do_randomize([obj])
+
+        self.assertLess(a.val, b.val)
+
+    def test_wide_var(self):
+        obj = CompositeFieldModel("obj")
+        a = obj.add_field(ScalarFieldModel("a", 1024, False, True))
+        obj.add_constraint(ConstraintBlockModel("c", [
+            ConstraintExprModel(
+                ExprBinModel(
+                    a.expr(),
+                    BinExprType.Gt,
+                    ExprLiteralModel(0x80000000000000000, False, 72)
+                    )
+                )
+            ]))
+        
+        rand = Randomizer()
+        
+        rand.do_randomize([obj])
+
+        print("a=" + hex(a.val))
+        self.assertGreater(a.val, 0x80000000000000000)
+        

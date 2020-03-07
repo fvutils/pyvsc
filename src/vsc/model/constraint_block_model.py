@@ -25,10 +25,14 @@ from vsc.model.constraint_scope_model import ConstraintScopeModel
 class ConstraintBlockModel(ConstraintScopeModel):
     """Information about a top-level constraint block described by the user"""
     
-    def __init__(self, name):
+    def __init__(self, name, constraints = None):
         super().__init__()
         self.name = name
         self.enabled = True
+        
+        if constraints is not None:
+            for c in constraints:
+                self.constraint_l.append(c)
 
     def set_constraint_enabled(self, en):
         self.enabled = en

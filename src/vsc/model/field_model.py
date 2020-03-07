@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
 
 
 
@@ -39,6 +40,10 @@ class FieldModel(object):
 
     def post_randomize(self):
         pass
+    
+    def expr(self):
+        """Returns a field-reference expression for this field"""
+        return ExprFieldRefModel(self)
     
     def get_indexed_fieldref_expr(self):
         if self.parent is None:

@@ -52,6 +52,7 @@ class CovergroupModel(CompositeFieldModel):
             cr.sample()
             
     def add_coverpoint(self, cp):
+        cp.parent = self
         if isinstance(cp, CoverpointModel):
             self.coverpoint_l.append(cp)
         elif isinstance(cp, CoverpointCrossModel):
@@ -59,8 +60,15 @@ class CovergroupModel(CompositeFieldModel):
         else:
             raise Exception("Unsupported model type %s" % (str(type(cp))))
         
+        return cp
+        
     def get_coverage(self):
-        return 0.0
+        ret = 0.0
+        for cp in self.coverpoint_l:
+            ret += cp.get_coverage()
+        for cp in self.cross_l:
+            ret += cp.get_coverage()
+        return (ret / (len(self.coverpoint_l) + len(self.cross_l)))
     
     def get_inst_coverage(self):
         return 0.0

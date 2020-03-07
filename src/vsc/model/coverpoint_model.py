@@ -38,7 +38,9 @@ class CoverpointModel(object):
         self.bin_model_l = []
             
     def add_bin_model(self, bin_m):
+        bin_m.parent = self
         self.bin_model_l.append(bin_m)
+        return bin_m
         
     def finalize(self):
         for b in self.bin_model_l:
