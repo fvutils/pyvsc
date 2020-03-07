@@ -4,50 +4,73 @@ PyVSC Features
 Constraint Features
 
 
-========================  ======  =============  ===========
-Feature                   Py-VSC  SystemVerilog  Description
-<                         Y       Y              X
->                         Y       Y              X
-<=                        Y       Y              X
->=                        Y       Y              X
-<=                        Y       Y              X
->=                        Y       Y              X
-==                        Y       Y              X
-!=                        Y       Y              X
-`+`                       Y       Y              X
-`-`                       Y       Y              X
-/                         Y       Y              X
-`*`                       Y       Y              X
-%                         Y       Y              X
-&                         Y       Y              X
-`|`                       Y       Y              X
-&&                        Y       Y              X
-||                        Y       Y              X
-unary |                   N       Y
-unary &                   N       Y
-unary ^                   N       Y
-scalar fixed-size array   N       Y 
-scalar dynamic array      N       Y 
-class fixed-size array    N       Y 
-class dynamic array       N       Y 
-array sum                 N       Y 
-array size                N       Y 
-array reduction OR        N       Y 
-array reduction AND       N       Y 
-array reduction XOR       N       Y 
-part select `[bit]`       N       Y
-part select `[msb:lsb]`   N       Y
-default                   N       N              X
-dist                      N       Y              X
-dynamic                   N       N              X
-inside                    Y       Y              X
-soft                      N       Y              X
-solve before              N       Y              X
-unique                    Y       Y              X
-foreach                   N       Y              X
-pre_randomize             N       Y              X
-post_randomize            N       Y              X
-constraint override       Y       Y  
-constraint_mode           N       Y  
-========================  ======  =============  ===========
+========================  ======  =============  ===  ===========
+Feature                   Py-VSC  SystemVerilog  PSS  Description
+<                         Y       Y              Y
+>                         Y       Y              Y
+<=                        Y       Y              Y
+>=                        Y       Y              Y
+<=                        Y       Y              Y
+>=                        Y       Y              Y
+==                        Y       Y              Y
+!=                        Y       Y              Y
+`+`                       Y       Y              Y
+`-`                       Y       Y              Y
+/                         Y       Y              Y
+`*`                       Y       Y              Y
+%                         Y       Y              Y
+&                         Y       Y              Y
+`|`                       Y       Y              Y
+&&                        Y       Y              Y
+||                        Y       Y              Y
+unary |                   N       Y              N
+unary &                   N       Y              N
+unary ^                   N       Y              N
+scalar fixed-size array   N       Y              Y
+scalar dynamic array      N       Y              N
+class fixed-size array    N       Y              Y
+class dynamic array       N       Y              N
+array sum                 N       Y              Y
+array size                N       Y              Y
+array reduction OR        N       Y              N
+array reduction AND       N       Y              N
+array reduction XOR       N       Y              N
+part select `[bit]`       N       Y              Y
+part select `[msb:lsb]`   N       Y              Y
+default                   N       N              Y
+dist                      N       Y              N
+dynamic                   N       N              Y
+inside (in)               Y       Y              Y
+soft                      N       Y              N
+solve before              N       Y              N
+unique                    Y       Y              Y
+foreach                   N       Y              Y
+forall                    N       Y              Y
+pre_randomize             N       Y              Y
+post_randomize            N       Y              Y
+constraint override       Y       Y              Y
+constraint_mode           Y       Y              N
+========================  ======  =============  ===  ===========
 
+
+Coverage Features
+
+
+============================  ======  =============  ===  ===========
+Feature                       Py-VSC  SystemVerilog  PSS  Description
+covergroup type               Y       Y              Y
+covergroup inline type        N       N              Y
+bins                          Y       Y              Y
+ignore_bins                   N       Y              Y
+illegal_bins                  N       Y              Y
+coverpoint                    Y       Y              Y
+coverpoint single bin         Y       Y              Y 
+coverpoint array bin          Y       Y              Y 
+coverpoint auto binsn         N       Y              Y 
+coverpoint transition bin     N       Y              N 
+cross auto bins               Y       Y              Y
+cross bin expressions         N       Y              Y
+cross explicit bins           N       Y              Y
+cross ignore_bins             N       Y              Y
+cross illegal_bins            N       Y              Y
+============================  ======  =============  ===  ===========

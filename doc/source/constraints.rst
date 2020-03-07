@@ -1,12 +1,13 @@
-==================
+##################
 Py-VSC Constraints
-==================
+##################
 
 
 Expressions
------------
+===========
 
-- in
+in
+--
 
 .. code-block:: python3
 
@@ -30,7 +31,8 @@ Expressions
             self.c < self.d
             self.b in vsc.rangelist([self.c,self.d])
 
-- part select
+part select
+-----------
 
 .. code-block:: python3
      class my_s():
@@ -50,13 +52,11 @@ Expressions
              self.c != 0
              self.d != 0
 
-- unique
-
-
 Statements
-----------
+==========
 
-- if/else
+if/else
+-------
 
 .. code-block:: python3
 
@@ -84,7 +84,8 @@ Statements
              with vsc.else_if(self.a == 5):
                  self.b == 16
 
-- implies
+implies
+-------
 
 .. code-block:: python3
      class my_s(vsc.Base):
@@ -116,7 +117,8 @@ Statements
              with vsc.implies(self.a == 5):
                  self.b == 16
 
-- unqiue
+unique
+------
 
 .. code-block:: python3
 
