@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,23 +14,39 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-
 '''
 Created on Aug 4, 2019
 
 @author: ballance
 '''
 
+from vsc.model.coverpoint_model import CoverpointModel
+
+
 class CoverpointBinModelBase(object):
     
-    def __init__(self, parent, name):
-        self.parent = parent
+    def __init__(self, name):
+        self.parent = None
         self.name = name
-        
+        self.cp = None
+
+    def finalize(self):
+        cp = self.parent
+        print("CoverpointBinModelBase::finalize parent=" + str(self.parent))
+        while cp is not None and not isinstance(cp, CoverpointModel):
+            cp = cp.parent
+        self.cp = cp
+                
     def n_bins(self):
         return 1
     
     def hit_idx(self):
         return -1
+    
+    def equals(self, oth):
+        eq = isinstance(oth, CoverpointBinModelBase)
+        
+        if eq:
+            eq &= self.name == oth.name
+        
+        return eq

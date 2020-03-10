@@ -1,7 +1,3 @@
-from vsc.types import rangelist
-from vsc.model.rangelist_model import RangelistModel
-from vsc.model.coverpoint_model import CoverpointModel
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -20,32 +16,27 @@ from vsc.model.coverpoint_model import CoverpointModel
 # under the License.
 
 
-
 '''
 Created on Aug 3, 2019
 
 @author: ballance
 '''
+from vsc.types import rangelist
+from vsc.model.rangelist_model import RangelistModel
+from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinModel(CoverpointBinModelBase):
+    """Coverpoint single bin that is triggered on a set of values or value ranges"""
     
-    def __init__(self, parent, name, binspec : RangelistModel):
-        super().__init__(parent, name)
-        self.bins = []
+    def __init__(self, name, binspec : RangelistModel):
+        super().__init__(name)
         self.binspec = binspec
         self.hit_bin_idx = -1
         self.n_hits = 0
         
-        cp = parent
-        while cp is not None and not isinstance(cp, CoverpointModel):
-            cp = cp.parent
-            
-        self.cp = cp
-        
     def finalize(self):
-        for b in self.bins:
-            b.finalize()
+        super().finalize()
         
     def sample(self):
         # Query value from the actual coverpoint or expression
@@ -67,5 +58,21 @@ class CoverpointBinModel(CoverpointBinModelBase):
     
     def hit_idx(self):
         return self.hit_bin_idx
+    
+    def accept(self, v):
+        v.visit_coverpoint_bin(self)
+
+    def equals(self, oth)->bool:
+        eq = isinstance(oth, CoverpointBinModel)
+        
+        if eq:
+            eq &= self.binspec.equals(oth.binspec)
+            
+        return eq
+    
+    def clone(self)->'CoverpointBinModel':
+        ret = CoverpointBinModel(self.name, self.binspec.clone())
+        
+        return ret
     
     

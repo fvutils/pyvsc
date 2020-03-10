@@ -28,29 +28,25 @@ from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinArrayModel(CoverpointBinModelBase):
     
-    def __init__(self, parent, name, low, high):
-        super().__init__(parent, name)
+    def __init__(self, name, low, high):
+        super().__init__(name)
         self.low = low 
         self.high = high 
         self.hit_bin_idx = -1
         
-        cp = parent
-        while cp is not None and not isinstance(cp, CoverpointModel):
-            cp = cp.parent
-        self.cp = cp
-
         self.hit_list = []
         for i in range(self.high-self.low+1):
             self.hit_list.append(0)
             
     def finalize(self):
-        pass
+        print("CoverpointBinArrayModel::finalize")
+        super().finalize()
             
     def get_coverage(self):
         coverage = 0.0
         
         for h in self.hit_list:
-            coverage += 1 if h != 0 else 0
+            coverage += 100.0 if h != 0 else 0
 
         coverage /= len(self.hit_list)
         
@@ -81,3 +77,20 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
     def hit_idx(self):
         return self.hit_bin_idx    
     
+    def accept(self, v):
+        v.visit_coverpoint_bin_array(self)
+
+    def equals(self, oth):
+        eq = isinstance(oth, CoverpointBinArrayModel)
+        
+        if eq:
+            eq &= super().equals(oth)
+            eq &= self.low == oth.low 
+            eq &= self.high == oth.high 
+            
+        return eq
+
+    def clone(self)->'CoverpointBinArrayModel':
+        ret = CoverpointBinArrayModel(self.name, self.low, self.high)
+        
+        return ret

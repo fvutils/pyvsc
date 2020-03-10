@@ -13,14 +13,14 @@ class TestCoverageModel(VscTestCase):
     
     def test_coverpoint_array_bin(self):
         
-        cg = CovergroupModel()
+        cg = CovergroupModel("cg")
 
         a = 0        
         a_cp = CoverpointModel(
-            cg, ExprRefModel(lambda: a, 32, False), "a_cp")
+            ExprRefModel(lambda: a, 32, False), "a_cp")
         cg.add_coverpoint(a_cp)
         
-        bins = a_cp.add_bin_model(CoverpointBinArrayModel(a_cp, "a", 0, 15))
+        bins = a_cp.add_bin_model(CoverpointBinArrayModel("a", 0, 15))
         
         cg.finalize()
         
@@ -34,8 +34,8 @@ class TestCoverageModel(VscTestCase):
             else:
                 self.assertEqual(bins.get_hits(i), 0)
                 
-        self.assertEqual(a_cp.get_coverage(), 0.5)
-        self.assertEqual(cg.get_coverage(), 0.5)
+        self.assertEqual(a_cp.get_coverage(), 50.0)
+        self.assertEqual(cg.get_coverage(), 50.0)
             
                              
         

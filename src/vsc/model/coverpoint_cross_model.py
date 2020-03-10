@@ -26,8 +26,8 @@ Created on Aug 3, 2019
 
 class CoverpointCrossModel(object):
     
-    def __init__(self, parent, name):
-        self.parent = parent
+    def __init__(self, name):
+        self.parent = None
         self.name = name
         self.coverpoint_model_l = []
         self.finalized = False
@@ -96,4 +96,22 @@ class CoverpointCrossModel(object):
         print(ind + "Cross: " + self.name)
         for key in self.hit_map.keys():
             print(ind + "    " + str(key) + "=" + str(self.hit_map[key]))
-    
+            
+    def equals(self, oth : 'CoverpointCrossModel')->bool:
+        eq = True
+        
+        if len(self.coverpoint_model_l) == len(oth.coverpoint_model_l):
+            for i in range(len(self.coverpoint_model_l)):
+                eq &= self.coverpoint_model_l[i].equals(oth.coverpoint_model_l[i])
+        else:
+            eq = False
+            
+        return eq
+
+    def clone(self)->'CoverpointCrossModel':
+        ret = CoverpointCrossModel(self.name)
+        
+        for cp in self.coverpoint_model_l:
+            ret.add_coverpoint(cp.clone())
+        
+        return ret

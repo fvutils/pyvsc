@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.impl.coverage_registry import CoverageRegistry
 
 '''
 Created on Jul 23, 2019
@@ -31,6 +32,7 @@ def test_setup():
     rand_obj_type_m.clear()
     constraint_scope_stack.clear()
     expr_l.clear()
+    CoverageRegistry._inst = None
     
 def test_teardown():
     rand_obj_type_m.clear()
@@ -39,6 +41,7 @@ def test_teardown():
         for ex in expr_l:
             print("Expr: " + str(ex))
         raise Exception("Leftbehind expressions")
+    CoverageRegistry._inst = None
     
 
 def push_expr(e):
