@@ -27,6 +27,8 @@ from vsc.model.expr_ref_model import ExprRefModel
 from vsc.model.scalar_field_model import ScalarFieldModel
 from vsc.model.composite_field_model import CompositeFieldModel
 from vsc.impl import ctor
+import inspect
+from vsc.model.source_info import SourceInfo
 '''
 Created on Aug 3, 2019
 
@@ -51,10 +53,8 @@ def covergroup(T):
     """Covergroup decorator marks as class as being a covergroup"""
     
     
-    print("covergroup: " + str(T))
 
     if not hasattr(T, "_cg_init"):
-
         def dump(self, ind=""):
             model = self.get_model()
             model.dump(ind)
@@ -174,6 +174,11 @@ def covergroup(T):
         setattr(T, "__setattr__", _setattr)
         setattr(T, "_cg_init", True)
 
+    # Store declaration information on the type
+    file = inspect.getsourcefile(T)
+    lineno = inspect.getsourcelines(T)[1]
+    setattr(T, "_srcinfo_decl", SourceInfo(file, lineno))
+
     # This is the interposer class that wraps a user-defined
     # covergroup class. It ensures that the coverage model is
     # created while field refs are treated as expressions
@@ -181,6 +186,18 @@ def covergroup(T):
         
         def __init__(self, *args, **kwargs):
             cg_i = self._get_int()
+            
+            print("covergroup_inst: " + str(type(self)))
+            frame = inspect.stack()[1]
+            print("  Created: " + frame.filename + ":" + str(frame.lineno))
+            print("  Declared: " + str(type(self)._srcinfo_decl))
+#            module = inspect.getmodule(frame[0])
+#            print("frame=" + str(frame) + " module=" + str(module))
+#             file = inspect.getsourcefile(self)
+#             lines = inspect.getsourcelines(T)
+#             print("lines:\n" + str(lines))
+#             lineno = lines[1]
+#             print("  source: " + file + ":" + str(lineno))
 
             self.buildable_l = []
             
@@ -243,7 +260,7 @@ class bin_array(object):
                         raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
                     ret.add_bin(CoverpointBinArrayModel(ret, name, r[0], r[1]))
                 else:
-                    pass
+                    raise Exception("Single-value bins unimplemented")
         else:
             # TODO: Calculate number of values
             # TODO: Calculate values per bin

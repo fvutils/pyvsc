@@ -59,4 +59,7 @@ class CoverpointBinEnumModel(CoverpointBinModelBase):
     
     def hit_idx(self):
         return self.hit_bin_idx    
-    
+
+    def accept(self, v):
+        v.visit_coverpoint_bin_enum(self)
+        

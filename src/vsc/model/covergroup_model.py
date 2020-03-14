@@ -33,7 +33,10 @@ class CovergroupModel(CompositeFieldModel):
         super().__init__(None)
         self.coverpoint_l = []
         self.cross_l = []
-        self.name = "<default>"
+        self.name = None # User-specified name of this covergroup
+        self.typename = None # Typename of this covergroup
+        self.du_name = None # Design-unit typename in which this covergroup is instanced
+        self.instname = None # Design-unit instance name in which this covergroup is instanced
         
     def finalize(self):
         for cp in self.coverpoint_l:

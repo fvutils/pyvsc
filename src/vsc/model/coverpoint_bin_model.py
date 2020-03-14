@@ -29,10 +29,10 @@ Created on Aug 3, 2019
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinModel(CoverpointBinModelBase):
+    """Coverpoint single bin that is triggered on a set of values or value ranges"""
     
     def __init__(self, parent, name, binspec : RangelistModel):
         super().__init__(parent, name)
-        self.bins = []
         self.binspec = binspec
         self.hit_bin_idx = -1
         self.n_hits = 0
@@ -44,8 +44,7 @@ class CoverpointBinModel(CoverpointBinModelBase):
         self.cp = cp
         
     def finalize(self):
-        for b in self.bins:
-            b.finalize()
+        pass
         
     def sample(self):
         # Query value from the actual coverpoint or expression
@@ -67,5 +66,9 @@ class CoverpointBinModel(CoverpointBinModelBase):
     
     def hit_idx(self):
         return self.hit_bin_idx
+    
+    def accept(self, v):
+        v.visit_coverpoint_bin(self)
+        
     
     
