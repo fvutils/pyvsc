@@ -170,6 +170,19 @@ class ModelVisitor(object):
     def visit_coverpoint_bin_enum(self, bn : CoverpointBinEnumModel):
         pass
     
+    def visit_coverpoint_bin_collection(self, bn : CoverpointBinCollectionModel):
+        for sb in bn.bin_l:
+            sb.accept(self)
+            
+    def visit_coverpoint_bin(self, bn : CoverpointBinModel):
+        pass
+            
+    def visit_coverpoint_bin_enum(self, bn : CoverpointBinEnumModel):
+        pass
+    
+    
+            
+    
     def visit_coverpoint_cross(self, cp):
         pass
     
