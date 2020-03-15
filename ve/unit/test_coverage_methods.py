@@ -40,4 +40,4 @@ class TestCoverageMethods(VscTestCase):
         for i in range(8):
             self.assertEqual(1, cp.get_bin_hits(i))
             
-        self.assertEqual(cg_i.a_cp.get_coverage(), 0.5)
+        self.assertEqual(cg_i.a_cp.get_coverage(), 50.0)

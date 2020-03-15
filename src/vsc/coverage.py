@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -29,6 +28,7 @@ from vsc.model.composite_field_model import CompositeFieldModel
 from vsc.impl import ctor
 import inspect
 from vsc.model.source_info import SourceInfo
+from vsc.impl.coverage_registry import CoverageRegistry
 '''
 Created on Aug 3, 2019
 
@@ -52,8 +52,6 @@ from vsc.types import rangelist, bit_t, to_expr, type_base
 def covergroup(T):
     """Covergroup decorator marks as class as being a covergroup"""
     
-    
-
     if not hasattr(T, "_cg_init"):
         def dump(self, ind=""):
             model = self.get_model()
@@ -116,8 +114,7 @@ def covergroup(T):
         def get_model(self):
             cg_i = self._get_int()
             if cg_i.model is None:
-                cg_i.model = CovergroupModel()
-
+                cg_i.model = CovergroupModel(T.__name__)
             
             return cg_i.model
         
@@ -125,7 +122,7 @@ def covergroup(T):
             cg_i = self._get_int()
             self.get_model()
             
-            obj_name_m = {}            
+            obj_name_m = {}
             for n in dir(self):
                 obj = getattr(self, n)
                 if hasattr(obj, "build_cov_model"):
@@ -136,7 +133,14 @@ def covergroup(T):
           
                 cp_m = b.build_cov_model(cg_i.model, obj_name_m[b])
                 cg_i.model.add_coverpoint(cp_m)
-
+                
+            # Register the covergroup in the registry. This will ensure that
+            # this coverage instance is properly connected to the type coverage
+            # If the instance covergroup happens to be parameterized,
+            # then the type covergroup must have the same parameterization
+            CoverageRegistry.inst().register_cg(self.get_model())
+            
+                
             # We're done, so lock the covergroup
             self.lock()
 
@@ -173,7 +177,7 @@ def covergroup(T):
         setattr(T, "lock", lock)
         setattr(T, "__setattr__", _setattr)
         setattr(T, "_cg_init", True)
-
+        
     # Store declaration information on the type
     file = inspect.getsourcefile(T)
     lineno = inspect.getsourcelines(T)[1]
@@ -235,7 +239,7 @@ class bin(object):
     def build_cov_model(self, parent, name):
         # Construct a range model
         range_l = RangelistModel(self.range_l)
-        return CoverpointBinModel(parent, name, range_l)
+        return CoverpointBinModel(name, range_l)
         
 
 class bin_array(object):
@@ -248,7 +252,7 @@ class bin_array(object):
             raise Exception("No bins range specified")
     
     def build_cov_model(self, parent, name):
-        ret = CoverpointBinCollectionModel(parent, name)
+        ret = CoverpointBinCollectionModel(name)
         
         # First, need to determine how many total bins
         # Construct a range model
@@ -258,7 +262,7 @@ class bin_array(object):
                 if isinstance(r, list):
                     if len(r) != 2: 
                         raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
-                    ret.add_bin(CoverpointBinArrayModel(ret, name, r[0], r[1]))
+                    ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
                 else:
                     raise Exception("Single-value bins unimplemented")
         else:
@@ -367,7 +371,6 @@ class coverpoint(object):
                 sample_expr = self.target
             
             self.model = CoverpointModel(
-                parent, 
                 sample_expr,
                 name)
 
@@ -378,7 +381,7 @@ class coverpoint(object):
                             print("TODO: auto-bins from explicit type")
                     elif type(self.cp_t) == enum.EnumMeta:
                         for e in list(self.cp_t):
-                            self.model.add_bin_model(CoverpointBinEnumModel(e.name, self, e))
+                            self.model.add_bin_model(CoverpointBinEnumModel(e.name, e))
                     else:
                         raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))                       
                 else:
@@ -423,7 +426,7 @@ class cross(object):
         self.bins = bins
         
     def build_cov_model(self, parent, name):
-        ret = CoverpointCrossModel(parent, name)
+        ret = CoverpointCrossModel(name)
         
         for cp in self.target_l:
             m = cp.get_model()

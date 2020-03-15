@@ -16,7 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from vsc.model.coverpoint_facade_if import CoverpointFacadeIF
 from vsc.model.expr_model import ExprModel
 
 '''
@@ -27,12 +26,14 @@ Created on Aug 3, 2019
 
 class CoverpointModel(object):
     
-    def __init__(self, 
-            parent, 
-            target : ExprModel,
-            name : str):
-        self.parent = parent
+    def __init__(self, target : ExprModel, name : str):
+        self.parent = None
         self.target = target
+
+        # Cached value Target-ref field. This is used to retrieve values for
+        # type covergroups
+        self.target_val_cache = 0
+
         self.name = name
         self.n_bins = 0
         self.bin_model_l = []
@@ -43,6 +44,7 @@ class CoverpointModel(object):
         return bin_m
         
     def finalize(self):
+        print("CoverpointModel::finalize")
         for b in self.bin_model_l:
             b.finalize()
             
@@ -54,8 +56,11 @@ class CoverpointModel(object):
         
         for bin in self.bin_model_l:
             coverage += bin.get_coverage()
-        
-        coverage /= len(self.bin_model_l)
+
+        if len(self.bin_model_l) != 0:
+            coverage /= len(self.bin_model_l)
+        else:
+            coverage = 100.0
         
         return coverage
     
@@ -67,8 +72,10 @@ class CoverpointModel(object):
             b.sample()
             
     def get_val(self):
-        return self.target.val()
-
+        if self.target is not None:
+            self.target_val_cache = self.target.val()
+        return self.target_val_cache
+            
     def accept(self, v):
         v.visit_coverpoint(self)
             
@@ -96,4 +103,27 @@ class CoverpointModel(object):
             if b.hit_idx() != -1:
                 bin_l.append(bin_idx + b.hit_idx())
             bin_idx += b.n_bins()
+
+    def equals(self, oth:'CoverpointModel')->bool:
+        eq = True
+        
+        eq &= self.name == oth.name
+        
+        if len(self.bin_model_l) == len(oth.bin_model_l):
+            for s,o in zip(self.bin_model_l, oth.bin_model_l):
+                eq &= s.equals(o)
+        else:
+            eq= False
+            
+        return eq
+    
+    def clone(self)->'CoverpointModel':
+        ret = CoverpointModel(self.target, self.name)
+        
+        for bn in self.bin_model_l:
+            ret.add_bin_model(bn.clone())
+
+        # TODO: must be more complete        
+        
+        return ret
         

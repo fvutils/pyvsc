@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -28,15 +27,16 @@ class RangelistModel(object):
     
     def __init__(self, rl):
         self.range_l = []
-        for r in rl:
-            if isinstance(r, list):
-                if len(r) == 2:
-                    self.range_l.append([r[0], r[1]])
+
+        if rl is not None:
+            for r in rl:
+                if isinstance(r, list):
+                    if len(r) == 2:
+                        self.range_l.append([r[0], r[1]])
+                    else:
+                        raise Exception("Each range element must have 2 elements")
                 else:
-                    raise Exception("Each range element must have 2 elements")
-            else:
-                self.range_l.append([int(r), int(r)])
-                
+                    self.range_l.append([int(r), int(r)])
     
     def __contains__(self, val):
         for r in self.range_l:
@@ -44,4 +44,23 @@ class RangelistModel(object):
                 return True
             
         return False
+    
+    def equals(self, oth)->bool:
+        eq = isinstance(oth, RangelistModel)
+
+        if len(self.range_l) == len(oth.range_l):
+            for i in range(len(self.range_l)):
+                eq &= self.range_l[i][0] == oth.range_l[i][0]
+                eq &= self.range_l[i][1] == oth.range_l[i][1]
+        else:
+            eq = False
+            
+        return eq
+
+    def clone(self):
+        ret = RangelistModel(None)
         
+        for r in self.range_l:
+            ret.range_l.append([r[0], r[1]])
+            
+        return ret

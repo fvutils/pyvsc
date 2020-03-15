@@ -16,7 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 
 
 '''
@@ -29,16 +28,20 @@ from _functools import reduce
 
 class CoverpointBinCollectionModel(CoverpointBinModelBase):
     
-    def __init__(self, parent, name):
-        super().__init__(parent, name)
+    def __init__(self, name):
+        super().__init__(name)
         self.bin_l = []
         self.hit_bin_idx = -1
         self.n_bins = -1
         
     def finalize(self):
+        super().finalize()
         self.n_bins = reduce(lambda x,y: x+y, map(lambda b: b.get_n_bins(), self.bin_l))
+        for b in self.bin_l:
+            b.finalize()
     
     def add_bin(self, bin_m):
+        bin_m.parent = self
         self.bin_l.append(bin_m)
         
     def get_coverage(self):
@@ -86,4 +89,23 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
     
     def accept(self, v):
         v.visit_coverpoint_bin_collection(self)
+
+    def equals(self, oth)->bool:
+        eq = isinstance(oth, CoverpointBinCollectionModel)
         
+        if eq:
+            eq &= super().equals(oth)
+            
+            if len(self.bin_l) == len(oth.bin_l):
+                for i in range(len(self.bin_l)):
+                    eq &= self.bin_l[i].equals(oth.bin_l[i])
+            
+        return eq
+    
+    def clone(self)->'CoverpointBinCollectionModel':
+        ret = CoverpointBinCollectionModel(self.name)
+        
+        for bn in self.bin_l:
+            ret.add_bin(bn.clone())
+
+        return ret
