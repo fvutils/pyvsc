@@ -125,6 +125,9 @@ class CovergroupModel(CompositeFieldModel):
     def clone(self)->'CovergroupModel':
         ret = CovergroupModel(self.name)
         
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
+        ret.srcinfo_inst = None if self.srcinfo_inst is None else self.srcinfo_inst.clone()
+        
         ret.du_name = self.du_name
         ret.instname = self.instname
         

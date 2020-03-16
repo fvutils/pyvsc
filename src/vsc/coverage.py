@@ -115,6 +115,8 @@ def covergroup(T):
             cg_i = self._get_int()
             if cg_i.model is None:
                 cg_i.model = CovergroupModel(T.__name__)
+                cg_i.model.srcinfo_decl = getattr(type(self), "_srcinfo_decl")
+                cg_i.model.srcinfo_inst = cg_i.srcinfo_inst
             
             return cg_i.model
         
@@ -190,18 +192,10 @@ def covergroup(T):
         
         def __init__(self, *args, **kwargs):
             cg_i = self._get_int()
-            
-            print("covergroup_inst: " + str(type(self)))
+
+            # Capture the instantiation location of this covergroup            
             frame = inspect.stack()[1]
-            print("  Created: " + frame.filename + ":" + str(frame.lineno))
-            print("  Declared: " + str(type(self)._srcinfo_decl))
-#            module = inspect.getmodule(frame[0])
-#            print("frame=" + str(frame) + " module=" + str(module))
-#             file = inspect.getsourcefile(self)
-#             lines = inspect.getsourcelines(T)
-#             print("lines:\n" + str(lines))
-#             lineno = lines[1]
-#             print("  source: " + file + ":" + str(lineno))
+            cg_i.srcinfo_inst = SourceInfo(frame.filename, frame.lineno)
 
             self.buildable_l = []
             
@@ -236,10 +230,17 @@ class bin(object):
     def __init__(self, *args):
         self.range_l = args
         
+        # Capture the declaration location of this bin
+        frame = inspect.stack()[1]
+        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        
     def build_cov_model(self, parent, name):
         # Construct a range model
         range_l = RangelistModel(self.range_l)
-        return CoverpointBinModel(name, range_l)
+        ret = CoverpointBinModel(name, range_l)
+        ret.srcinfo_decl = self.srcinfo_decl
+        
+        return ret
         
 
 class bin_array(object):
@@ -250,6 +251,10 @@ class bin_array(object):
         
         if len(args) == 0:
             raise Exception("No bins range specified")
+        
+        # Capture the declaration location of this bin
+        frame = inspect.stack()[1]
+        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
     
     def build_cov_model(self, parent, name):
         ret = CoverpointBinCollectionModel(name)
@@ -262,7 +267,9 @@ class bin_array(object):
                 if isinstance(r, list):
                     if len(r) != 2: 
                         raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
-                    ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
+                    b = CoverpointBinArrayModel(name, r[0], r[1])
+                    b.srcinfo_decl = self.srcinfo_decl
+                    ret.add_bin(b)
                 else:
                     raise Exception("Single-value bins unimplemented")
         else:
@@ -270,6 +277,8 @@ class bin_array(object):
             # TODO: Calculate values per bin
             print("TODO: limited-value bins")
             pass                    
+        
+        ret.srcinfo_decl = self.srcinfo_decl
 
         return ret
     
@@ -304,6 +313,10 @@ class coverpoint(object):
         self.options = Options()
         self.type_options = TypeOptions()
         
+        # Capture the declaration location of this coverpoint
+        frame = inspect.stack()[1]
+        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        
         ctor.clear_exprs()
         
         if options is not None:
@@ -313,7 +326,6 @@ class coverpoint(object):
             self.type_options.set(type_options)
 
         with expr_mode():
-            print("target=" + str(target))
             if isinstance(target, type_base):
                 self.have_var = True
                 self.target = target.to_expr().em
@@ -373,6 +385,7 @@ class coverpoint(object):
             self.model = CoverpointModel(
                 sample_expr,
                 name)
+            self.model.srcinfo_decl = self.srcinfo_decl
 
             with expr_mode():
                 if self.bins is None or len(self.bins) == 0:
@@ -388,11 +401,9 @@ class coverpoint(object):
                     for bin_name,bin_spec in self.bins.items():
                         if not hasattr(bin_spec, "build_cov_model"):
                             raise Exception("Bin specification doesn't have a build_cov_model method")
-                        print("bin: " + bin_name + " spec=" + str(bin_spec))
                         bin_m = bin_spec.build_cov_model(self.model, bin_name)
                         self.model.add_bin_model(bin_m)
          
-        print("coverpoint::build_cov_model: " + str(self) + " " + str(self.model))
         return self.model
     
     def get_model(self):
@@ -425,8 +436,14 @@ class cross(object):
         self.target_l = target_l
         self.bins = bins
         
+        # Capture the declaration location of this cross
+        frame = inspect.stack()[1]
+        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        
     def build_cov_model(self, parent, name):
         ret = CoverpointCrossModel(name)
+        
+        ret.srcinfo_decl = self.srcinfo_decl
         
         for cp in self.target_l:
             m = cp.get_model()

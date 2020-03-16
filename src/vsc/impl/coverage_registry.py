@@ -44,6 +44,7 @@ class CoverageRegistry(object):
             if cg_t is None:
                 # Okay, create a clone of the instance and give it a new name
                 cg_t = cg.clone()
+                cg_t.srcinfo_inst = None # Types do not have instance information
                 cg_t.finalize()
                 self.covergroup_type_m[cg.name].append(cg_t)
                 n_cg = len(self.covergroup_type_m[cg.name])
@@ -55,6 +56,7 @@ class CoverageRegistry(object):
         else:
             # No, nothing here yet
             cg_t = cg.clone()
+            cg_t.srcinfo_inst = None # Types do not have instance information
             cg_t.finalize()
             self.covergroup_type_m[cg.name] = [cg_t]
             

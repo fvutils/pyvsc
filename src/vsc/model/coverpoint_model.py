@@ -37,6 +37,8 @@ class CoverpointModel(object):
         self.name = name
         self.n_bins = 0
         self.bin_model_l = []
+        
+        self.srcinfo_decl = None
             
     def add_bin_model(self, bin_m):
         bin_m.parent = self
@@ -119,6 +121,7 @@ class CoverpointModel(object):
     
     def clone(self)->'CoverpointModel':
         ret = CoverpointModel(self.target, self.name)
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         for bn in self.bin_model_l:
             ret.add_bin_model(bn.clone())

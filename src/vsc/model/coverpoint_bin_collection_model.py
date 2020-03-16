@@ -104,6 +104,7 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
     
     def clone(self)->'CoverpointBinCollectionModel':
         ret = CoverpointBinCollectionModel(self.name)
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         for bn in self.bin_l:
             ret.add_bin(bn.clone())

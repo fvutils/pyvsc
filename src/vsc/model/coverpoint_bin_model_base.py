@@ -29,10 +29,11 @@ class CoverpointBinModelBase(object):
         self.parent = None
         self.name = name
         self.cp = None
+        
+        self.srcinfo_decl = None
 
     def finalize(self):
         cp = self.parent
-        print("CoverpointBinModelBase::finalize parent=" + str(self.parent))
         while cp is not None and not isinstance(cp, CoverpointModel):
             cp = cp.parent
         self.cp = cp

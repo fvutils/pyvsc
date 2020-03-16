@@ -92,5 +92,6 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
 
     def clone(self)->'CoverpointBinArrayModel':
         ret = CoverpointBinArrayModel(self.name, self.low, self.high)
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         return ret

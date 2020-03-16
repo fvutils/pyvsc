@@ -12,4 +12,7 @@ class SourceInfo(object):
         
     def __str__(self):
         return self.filename + ":" + str(self.lineno)
+    
+    def clone(self):
+        return SourceInfo(self.filename, self.lineno)
         

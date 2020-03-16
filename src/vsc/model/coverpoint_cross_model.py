@@ -35,6 +35,8 @@ class CoverpointCrossModel(object):
         self.hit_map = {}
         self.unhit_map = {}
         
+        self.srcinfo_decl = None
+        
     def add_coverpoint(self, cp_m):
         self.coverpoint_model_l.append(cp_m)
         
@@ -110,6 +112,7 @@ class CoverpointCrossModel(object):
 
     def clone(self)->'CoverpointCrossModel':
         ret = CoverpointCrossModel(self.name)
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         for cp in self.coverpoint_model_l:
             ret.add_coverpoint(cp.clone())
