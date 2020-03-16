@@ -179,8 +179,6 @@ class ModelVisitor(object):
             
     def visit_coverpoint_bin_enum(self, bn : CoverpointBinEnumModel):
         pass
-    
-    
             
     
     def visit_coverpoint_cross(self, cp):

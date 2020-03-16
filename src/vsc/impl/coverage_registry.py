@@ -62,6 +62,19 @@ class CoverageRegistry(object):
         cg.type_cg = cg_t
         cg_t.cg_inst_l.append(cg)
         
+    def covergroup_types(self):
+        ret = []
+        for name,cg_l in self.covergroup_type_m.items():
+            ret.extend(cg_l)
+            
+        return ret
+        
+        
+    def accept(self, v):
+        for name,cg_l in self.covergroup_type_m.items():
+            for cg in cg_l:
+                cg.accept(v)
+        
     
         
     
