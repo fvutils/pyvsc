@@ -14,6 +14,9 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 
 '''
@@ -37,6 +40,37 @@ class CoverpointBinModel(CoverpointBinModelBase):
         
     def finalize(self):
         super().finalize()
+        
+    def get_bin_expr(self, expr_l, target):
+        """Builds expressions to represent the values in this bin"""
+        expr = None
+        for r in self.binspec.range_l:
+            if r[0] == r[1]:
+                e = ExprBinModel(
+                    target,
+                    BinExprType.Eq,
+                    ExprLiteralModel(r[0]))
+            else:
+                e = ExprBinModel(
+                    ExprBinModel(
+                        target,
+                        BinExprType.Ge,
+                        ExprLiteralModel(r[0])),
+                    BinExprType.And,
+                    ExprBinModel(
+                        target,
+                        BinExprType.Le,
+                        ExprLiteralModel(r[1])))
+            if expr is None:
+                expr = e
+            else:
+                expr = ExprBinModel(
+                    expr,
+                    BinExprType.Or,
+                    e)
+
+        expr_l.append(expr)
+            
         
     def sample(self):
         # Query value from the actual coverpoint or expression

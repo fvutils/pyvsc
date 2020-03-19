@@ -17,6 +17,9 @@
 # under the License.
 
 from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 
 '''
@@ -37,27 +40,44 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         self.hit_list = []
         for i in range(self.high-self.low+1):
             self.hit_list.append(0)
+        self.coverage = 0.0
+        self.coverage_calc_valid = False
             
     def finalize(self):
-        print("CoverpointBinArrayModel::finalize")
         super().finalize()
+        
+    def get_bin_expr(self, target, idx=-1):
+        """Builds expressions to represent a single bin"""
+        return ExprBinModel(
+            target,
+            BinExprType.Eq,
+            ExprLiteralModel(self.low+idx, False, 32)
+        )
             
     def get_coverage(self):
-        coverage = 0.0
+        if not self.coverage_calc_valid:
+            coverage = 0.0
         
-        for h in self.hit_list:
-            coverage += 100.0 if h != 0 else 0
+            for h in self.hit_list:
+                coverage += 100.0 if h != 0 else 0
 
-        coverage /= len(self.hit_list)
+            coverage /= len(self.hit_list)
+            self.coverage = coverage
+            self.coverage_calc_valid = True
         
-        return coverage
+        return self.coverage
             
     def sample(self):
         # Query value from the actual coverpoint or expression
 #        print("sample: binspec=" + str(self.binspec))
         val = self.cp.get_val()
+        print("Sample: " + str(val))
         if val >= self.low and val <= self.high:
             self.hit_bin_idx = val - self.low
+            if self.hit_list[val-self.low] == 0:
+                # We've just hit a new bin. Notify the coverpoint
+                self.coverage_calc_valid = False
+                self.cp.coverage_ev(self)
             self.hit_list[val-self.low] += 1
         else:
             self.hit_bin_idx = -1

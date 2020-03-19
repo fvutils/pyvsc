@@ -17,6 +17,8 @@
 # under the License.
 
 from vsc.model.expr_model import ExprModel
+from vsc.model.expr_cond_model import ExprCondModel
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 '''
 Created on Aug 3, 2019
@@ -39,6 +41,10 @@ class CoverpointModel(object):
         self.bin_model_l = []
         
         self.srcinfo_decl = None
+        self.bin_expr = None
+        # Tracks 
+        self.coverage = 0.0
+        self.coverage_calc_valid = False
             
     def add_bin_model(self, bin_m):
         bin_m.parent = self
@@ -46,25 +52,59 @@ class CoverpointModel(object):
         return bin_m
         
     def finalize(self):
-        print("CoverpointModel::finalize")
         for b in self.bin_model_l:
             b.finalize()
             
         for b in self.bin_model_l:
             self.n_bins += b.get_n_bins()
             
-    def get_coverage(self):
-        coverage = 0.0
-        
-        for bin in self.bin_model_l:
-            coverage += bin.get_coverage()
+    def get_bin_expr(self, target=None):
+        if target is None:
+            target = self.target
+            
+        if self.bin_expr is None and target is not None:
+            # Build a bin expression if the target is specified
+            expr_l = []
+            for b in self.bin_model_l:
+                b.get_bin_expr(expr_l, target)
 
-        if len(self.bin_model_l) != 0:
-            coverage /= len(self.bin_model_l)
-        else:
-            coverage = 100.0
+            if len(expr_l) > 1:
+                expr_l = ExprCondModel(
+                    expr_l[-1],
+                    ExprLiteralModel(len(expr_l)-1),
+                    -1)
+                
+                for i in range(len(expr_l)-1):
+                    expr = ExprCondModel(
+                        expr_l[i],
+                        ExprLiteralModel(i),
+                        expr_l)
+                    expr_l = expr
+            else:
+                expr = ExprCondModel(
+                    expr_l[0],
+                    ExprLiteralModel(0),
+                    ExprLiteralModel(-1))
+
+                self.bin_expr = expr
+
+        return self.bin_expr
+            
+    def get_coverage(self):
+        if not self.coverage_calc_valid:
+            coverage = 0.0
         
-        return coverage
+            for bin in self.bin_model_l:
+                coverage += bin.get_coverage()
+
+            if len(self.bin_model_l) != 0:
+                coverage /= len(self.bin_model_l)
+            else:
+                coverage = 100.0
+            self.coverage = coverage
+            self.coverage_calc_valid = True
+        
+        return self.coverage
     
     def get_inst_coverage(self):
         raise Exception("get_inst_coverage unimplemented")
@@ -72,6 +112,10 @@ class CoverpointModel(object):
     def sample(self):
         for b in self.bin_model_l:
             b.sample()
+            
+    def coverage_ev(self, ev):
+        """Called by a bin to signal that an uncovered bin has been covered"""
+        self.coverage_calc_valid = False
             
     def get_val(self):
         if self.target is not None:

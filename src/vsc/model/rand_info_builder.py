@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,31 +14,44 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
+from vsc.model.constraint_expr_model import ConstraintExprModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.constraint_block_model import ConstraintBlockModel
 '''
 Created on Jan 22, 2020
 
 @author: ballance
 '''
-from vsc.model.model_visitor import ModelVisitor
-from vsc.model.field_model import FieldModel
-from vsc.model.constraint_model import ConstraintModel
-from vsc.model.rand_info import RandInfo
+
 from builtins import set
+from typing import Set, Dict, List
+
+from vsc.model.constraint_model import ConstraintModel
+from vsc.model.covergroup_model import CovergroupModel
+from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
+from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.field_model import FieldModel
+from vsc.model.model_visitor import ModelVisitor
+from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
+
 
 class RandInfoBuilder(ModelVisitor):
     
     def __init__(self):
+        # TODO: need access to the random state
         super().__init__()
         self._pass = 0
         self._field_s = set()
         self._active_constraint = None
         self._active_randset = None
-        self._randset_s = set()
-        self._randset_field_m = {} # map<field,randset>
-        self._constraint_s = []
+        self._randset_s : Set[RandSet] = set()
+        self._randset_field_m : Dict[FieldModel,RandSet] = {} # map<field,randset>
+        self._constraint_s : List[ConstraintModel] = []
         self._used_rand = True
+        self._in_generator = False
+        self.active_cp = None
         
     @staticmethod
     def build(
@@ -64,6 +76,11 @@ class RandInfoBuilder(ModelVisitor):
         for c in constraint_l:
             c.accept(builder)
             
+        for rs in builder._randset_s:
+            print("RS: " + str(rs))
+            for c in rs.constraint_s:
+                print("RS Constraint: " + str(c))
+            
         return RandInfo(list(builder._randset_s), list(builder._field_s))
     
     def visit_constraint_block(self, c):
@@ -79,12 +96,14 @@ class RandInfoBuilder(ModelVisitor):
             self._constraint_s.clear()
         
     def visit_constraint_stmt_enter(self, c):
+        print("visit_constraint_stmt_enter")
         if self._pass == 1 and len(self._constraint_s) == 1:
             self._active_randset = None
         self._constraint_s.append(c)
         super().visit_constraint_stmt_enter(c)
         
     def visit_constraint_stmt_leave(self, c):
+        print("visit_constraint_stmt_leave")
         c_blk = self._constraint_s[0]
         self._constraint_s.pop()
         if self._pass == 1 and len(self._constraint_s) == 1:
@@ -96,6 +115,9 @@ class RandInfoBuilder(ModelVisitor):
     
     def visit_constraint_expr(self, c):
         super().visit_constraint_expr(c)
+        
+    def visit_constraint_soft(self, c:ConstraintSoftModel):
+        super().visit_constraint_soft(c)
         
     def visit_expr_fieldref(self, e):
 
@@ -146,4 +168,63 @@ class RandInfoBuilder(ModelVisitor):
     def visit_scalar_field(self, f):
         if self._pass == 0:
             self._field_s.add(f)
-    
+            
+    def visit_covergroup(self, cg:CovergroupModel):
+        
+        if not self._in_generator or self._pass != 1:
+            return
+        
+        # TODO: in the case of multiple covergroups, need to have 
+        # made a higher-level decision about which covergroup to target
+        # TODO: determine which coverpoints we're going to enable
+        # First try: just select one
+        unhit_cp = []
+        for cp in cg.coverpoint_l:
+            if cp.get_coverage() != 100:
+                unhit_cp.append(cp)
+                
+        print("Unhit coverpoint: " + str(len(unhit_cp)))
+        
+        if len(unhit_cp) > 0:
+            # Only process the target coverpoint
+            unhit_cp[0].accept(self)
+                
+#        super().visit_covergroup(cg)
+            
+    def visit_coverpoint(self, cp:CoverpointModel):
+        self.active_cp = cp
+        # Select an unhit coverpoint bin
+        unhit_bin = []
+        for bn in cp.bin_model_l:
+            if bn.get_coverage() != 100:
+                unhit_bin.append(bn)
+
+        # TODO: process the target bin
+        if len(unhit_bin) > 0:
+            unhit_bin[0].accept(self)        
+            
+    def visit_coverpoint_bin_array(self, bn:CoverpointBinArrayModel):
+        print("Bin Array: " + str(self._in_generator))
+        unhit_bins = []
+        for i in range(bn.get_n_bins()):
+            if bn.hit_list[i] == 0:
+                unhit_bins.append(i)
+
+        if len(unhit_bins) > 0:
+            target_bn = 0
+            
+            expr = bn.get_bin_expr(
+                self.active_cp.target, 
+                unhit_bins[target_bn])
+
+            # Link this constraint into the randset scheme            
+            c = ConstraintSoftModel(expr)
+            cc = ConstraintBlockModel("coverage", [c])
+            cc.accept(self)
+            
+            
+    def visit_generator(self, g):
+        self._in_generator = True
+        super().visit_generator(g)
+        self._in_generator = False
+

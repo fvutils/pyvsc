@@ -39,7 +39,6 @@ class CoverpointCrossModel(object):
         
     def add_coverpoint(self, cp_m):
         self.coverpoint_model_l.append(cp_m)
-        
     
     def finalize(self):
         if not self.finalized:

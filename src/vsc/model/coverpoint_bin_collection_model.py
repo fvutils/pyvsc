@@ -39,6 +39,11 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
         self.n_bins = reduce(lambda x,y: x+y, map(lambda b: b.get_n_bins(), self.bin_l))
         for b in self.bin_l:
             b.finalize()
+            
+    def get_bin_expr(self, expr_l, target):
+        """Builds expressions to represent the values in this bin"""
+        for b in self.bin_l:
+            b.get_bin_expr(expr_l, target)
     
     def add_bin(self, bin_m):
         bin_m.parent = self
