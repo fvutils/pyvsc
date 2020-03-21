@@ -14,11 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from attr._make import NOTHING
+'''
+Created on Aug 3, 2019
+
+@author: ballance
+'''
 
 import enum
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
-from vsc.model import expr_mode, get_expr_mode, enter_expr_mode, leave_expr_mode,\
-    get_expr_mode_depth
+from vsc.model import expr_mode
 from vsc.impl.covergroup_int import CovergroupInt
 from vsc.impl.options import Options
 from vsc.impl.type_options import TypeOptions
@@ -30,12 +35,6 @@ import inspect
 from vsc.model.source_info import SourceInfo
 from vsc.impl.coverage_registry import CoverageRegistry
 from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
-'''
-Created on Aug 3, 2019
-
-@author: ballance
-'''
-# marks 
 
 from enum import Enum, auto
 
@@ -47,7 +46,6 @@ from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.rangelist_model import RangelistModel
 from vsc.types import rangelist, bit_t, to_expr, type_base
-
 
 def covergroup(T):
     """Covergroup decorator marks as class as being a covergroup"""
@@ -225,6 +223,7 @@ def covergroup(T):
 
         
 class bin(object):
+    """Specifies a single coverage bin"""
     def __init__(self, *args):
         self.range_l = args
         
@@ -242,10 +241,19 @@ class bin(object):
         
 
 class bin_array(object):
+    """Specifies an array of bins"""
     
     def __init__(self, nbins, *args):
         self.nbins = nbins
         self.range_l = args
+
+                
+        if isinstance(nbins,list):
+            if len(nbins) != 0 and len(nbins) != 1:
+                raise Exception("Only 0 or 1 argument can be specified to the nbins argument")
+            self.nbins = -1 if len(nbins) == 0 else nbins[1]
+        else:
+            self.nbins = int(nbins)
         
         if len(args) == 0:
             raise Exception("No bins range specified")
@@ -255,26 +263,28 @@ class bin_array(object):
         self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
     
     def build_cov_model(self, parent, name):
-        ret = CoverpointBinCollectionModel(name)
+        ret = None
         
         # First, need to determine how many total bins
         # Construct a range model
-        if len(self.nbins) == 0:
+        if self.nbins == -1:
             # unlimited number of bins
-            for r in self.range_l:
-                if isinstance(r, list):
-                    if len(r) != 2: 
-                        raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
-                    b = CoverpointBinArrayModel(name, r[0], r[1])
-                    b.srcinfo_decl = self.srcinfo_decl
-                    ret.add_bin(b)
-                else:
-                    raise Exception("Single-value bins unimplemented")
+            if len(self.range_l) == 1:
+                r = self.range_l[0]
+                ret = CoverpointBinArrayModel(name, r[0], r[1])
+            else:
+                ret = CoverpointBinCollectionModel(name)
+                for r in self.range_l:
+                    if isinstance(r, list):
+                        if len(r) != 2: 
+                            raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
+                        b = ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
+                        b.srcinfo_decl = self.srcinfo_decl
+                    else:
+                        raise Exception("Single-value bins unimplemented")
         else:
-            # TODO: Calculate number of values
-            # TODO: Calculate values per bin
-            print("TODO: limited-value bins")
-            pass                    
+            ret = CoverpointBinCollectionModel.mk_collection(
+                name, self.range_l, self.nbins)
         
         ret.srcinfo_decl = self.srcinfo_decl
 
@@ -389,7 +399,16 @@ class coverpoint(object):
                 if self.bins is None or len(self.bins) == 0:
                     if self.bins is None or len(self.bins) == 0:
                         if self.cp_t == type_base:
-                            print("TODO: auto-bins from explicit type")
+                            binspec = RangelistModel()
+                            if not self.cp_t.is_signed:
+                                binspec.add_range(0, (1 << self.cp_t.width)-1)
+                            else:
+                                binspec.add_range(
+                                    -(1 << self.cp_t.width-1), 
+                                    (1 << self.cp_t.width-1)-1)
+
+                            self.model.add_bin_model(CoverpointBinCollectionModel.mk_collection(
+                                name, binspec, self.options.auto_bin_max))
                     elif type(self.cp_t) == enum.EnumMeta:
                         for e in list(self.cp_t):
                             self.model.add_bin_model(CoverpointBinEnumModel(e.name, e))
@@ -409,7 +428,6 @@ class coverpoint(object):
     
     def get_val(self, cp_m):
         ret = int(self.get_val_f())
-
         return ret
     
     def set_val(self, val):

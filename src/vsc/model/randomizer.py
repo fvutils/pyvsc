@@ -1,6 +1,3 @@
-from vsc.constraints import constraint
-from vsc.model.rand_if import RandIF
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,21 +14,28 @@ from vsc.model.rand_if import RandIF
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 '''
 Created on Jan 21, 2020
 
 @author: ballance
 '''
-from vsc.model.field_model import FieldModel
-from vsc.model.constraint_model import ConstraintModel
-from vsc.model.model_visitor import ModelVisitor
-from vsc.model.rand_info_builder import RandInfoBuilder
-from vsc.model.rand_info import RandInfo
-from pyboolector import Boolector
-from typing import List
-import pyboolector
+
+from builtins import zip
 import random
+from typing import List, Dict
+
+from pyboolector import Boolector, BoolectorNode
+import pyboolector
+
+from vsc.constraints import constraint
+from vsc.model.constraint_model import ConstraintModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.field_model import FieldModel
+from vsc.model.model_visitor import ModelVisitor
+from vsc.model.rand_if import RandIF
+from vsc.model.rand_info import RandInfo
+from vsc.model.rand_info_builder import RandInfoBuilder
+
 
 class Randomizer(RandIF):
     """Implements the core randomization algorithm"""
@@ -57,10 +61,19 @@ class Randomizer(RandIF):
             
             for f in rs.fields():
                 f.build(btor)
+
+            node_l : [BoolectorNode] = []
+            soft_node_l : [BoolectorNode] = []
                 
             for c in rs.constraints():
                 try:
-                    btor.Assert(c.build(btor))
+                    n = c.build(btor)
+                    if isinstance(c, ConstraintSoftModel):
+                        soft_node_l.append(n)
+                    else:
+                        node_l.append(n)
+#                    btor.Assert(c.build(btor))
+                    btor.Assume(n)
                 except Exception as e:
                     print("Error: The following constraint failed:\n" + str(c))
                     raise e
@@ -68,11 +81,28 @@ class Randomizer(RandIF):
             
             # Perform an initial solve to establish correctness
             if btor.Sat() != btor.SAT:
-                # Ensure we clean up
-                for f in rs.fields():
-                    f.dispose()
+                
+                # Try one more time before giving up
+                for i,f in enumerate(btor.Failed(*soft_node_l)):
+                    if f:
+                        soft_node_l[i] = None
+                        
+                # Add back the hard-constraint nodes and soft-constraints that
+                # didn't fail                        
+                for n in filter(lambda n:n is not None, node_l+soft_node_l):
+                    btor.Assert(n)
+
+                # If we fail again, then we truly have a problem
+                if btor.Sat() != btor.SAT:
                     
-                raise Exception("solve failure")
+                    # Ensure we clean up
+                    for f in rs.fields():
+                        f.dispose()
+
+                    for n in node_l:                    
+                        print("Node: " + str(n) + " Failed: " + str(btor.Failed(n)))
+                    
+                    raise Exception("solve failure")
             
             # Form the swizzle expression around bits in the
             # target randset variables. The resulting expression
