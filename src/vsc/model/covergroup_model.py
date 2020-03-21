@@ -44,6 +44,9 @@ class CovergroupModel(CompositeFieldModel):
         self.du_name = None # Design-unit typename in which this covergroup is instanced
         self.instname = None # Design-unit instance name in which this covergroup is instanced
         
+        self.coverage = 0.0
+        self.coverage_calc_valid = False
+        
         
     def finalize(self):
         for cp in self.coverpoint_l:
@@ -80,15 +83,24 @@ class CovergroupModel(CompositeFieldModel):
         return cp
         
     def get_coverage(self):
-        ret = 0.0
-        for cp in self.coverpoint_l:
-            ret += cp.get_coverage()
-        for cp in self.cross_l:
-            ret += cp.get_coverage()
-        if (len(self.coverpoint_l)+len(self.cross_l)) == 0:
-            return 100.0 # vacuously covered
-        else:
-            return (ret / (len(self.coverpoint_l) + len(self.cross_l)))
+        if not self.coverage_calc_valid:
+            self.coverage = 0.0
+            for cp in self.coverpoint_l:
+                self.coverage += cp.get_coverage()
+            for cp in self.cross_l:
+                self.coverage += cp.get_coverage()
+            
+            if (len(self.coverpoint_l)+len(self.cross_l)) == 0:
+                self.coverage = 100.0 # vacuously covered
+            else:
+                self.coverage /= (len(self.coverpoint_l) + len(self.cross_l))
+                self.coverage = round(self.coverage, 4)
+            self.coverage_calc_valid = True
+            
+        return self.coverage
+        
+    def coverage_ev(self, cp, bin_idx):
+        self.coverage_calc_valid = False
     
     def get_inst_coverage(self):
         return 0.0

@@ -17,6 +17,8 @@
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.model.rand_if import RandIF
+from _random import Random
 '''
 Created on Jan 22, 2020
 
@@ -37,9 +39,9 @@ from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
 
 
-class RandInfoBuilder(ModelVisitor):
+class RandInfoBuilder(ModelVisitor,RandIF):
     
-    def __init__(self):
+    def __init__(self, rng):
         # TODO: need access to the random state
         super().__init__()
         self._pass = 0
@@ -52,12 +54,17 @@ class RandInfoBuilder(ModelVisitor):
         self._used_rand = True
         self._in_generator = False
         self.active_cp = None
+        self._rng = rng
         
     @staticmethod
     def build(
             field_model_l : [FieldModel],
-            constraint_l : [ConstraintModel]) ->RandInfo:
-        builder = RandInfoBuilder()
+            constraint_l : [ConstraintModel],
+            rng=None) ->RandInfo:
+        if rng is None:
+            rng = Random()
+            
+        builder = RandInfoBuilder(rng)
 
         # First, collect all the fields
         builder._pass = 0
@@ -76,12 +83,18 @@ class RandInfoBuilder(ModelVisitor):
         for c in constraint_l:
             c.accept(builder)
             
-        for rs in builder._randset_s:
-            print("RS: " + str(rs))
-            for c in rs.constraint_s:
-                print("RS Constraint: " + str(c))
+#         for rs in builder._randset_s:
+#             print("RS: " + str(rs))
+#             for c in rs.constraint_s:
+#                 print("RS Constraint: " + str(c))
             
         return RandInfo(list(builder._randset_s), list(builder._field_s))
+    
+    def randint(self, low:int, high:int)->int:
+        return self._rng.randint(low,high)
+    
+    def sample(self, s, k):
+        return self._rng.sample(s, k)
     
     def visit_constraint_block(self, c):
         if not c.enabled:
@@ -96,14 +109,12 @@ class RandInfoBuilder(ModelVisitor):
             self._constraint_s.clear()
         
     def visit_constraint_stmt_enter(self, c):
-        print("visit_constraint_stmt_enter")
         if self._pass == 1 and len(self._constraint_s) == 1:
             self._active_randset = None
         self._constraint_s.append(c)
         super().visit_constraint_stmt_enter(c)
         
     def visit_constraint_stmt_leave(self, c):
-        print("visit_constraint_stmt_leave")
         c_blk = self._constraint_s[0]
         self._constraint_s.pop()
         if self._pass == 1 and len(self._constraint_s) == 1:
@@ -182,47 +193,19 @@ class RandInfoBuilder(ModelVisitor):
         for cp in cg.coverpoint_l:
             if cp.get_coverage() != 100:
                 unhit_cp.append(cp)
+        for cp in cg.cross_l:
+            if cp.get_coverage() != 100:
+                unhit_cp.append(cp)
                 
-        print("Unhit coverpoint: " + str(len(unhit_cp)))
-        
         if len(unhit_cp) > 0:
             # Only process the target coverpoint
-            unhit_cp[0].accept(self)
-                
-#        super().visit_covergroup(cg)
-            
-    def visit_coverpoint(self, cp:CoverpointModel):
-        self.active_cp = cp
-        # Select an unhit coverpoint bin
-        unhit_bin = []
-        for bn in cp.bin_model_l:
-            if bn.get_coverage() != 100:
-                unhit_bin.append(bn)
-
-        # TODO: process the target bin
-        if len(unhit_bin) > 0:
-            unhit_bin[0].accept(self)        
-            
-    def visit_coverpoint_bin_array(self, bn:CoverpointBinArrayModel):
-        print("Bin Array: " + str(self._in_generator))
-        unhit_bins = []
-        for i in range(bn.get_n_bins()):
-            if bn.hit_list[i] == 0:
-                unhit_bins.append(i)
-
-        if len(unhit_bins) > 0:
-            target_bn = 0
-            
-            expr = bn.get_bin_expr(
-                self.active_cp.target, 
-                unhit_bins[target_bn])
-
-            # Link this constraint into the randset scheme            
-            c = ConstraintSoftModel(expr)
+            target_cp = self.randint(0, len(unhit_cp)-1)
+            bin_idx = unhit_cp[target_cp].select_unhit_bin(self)
+            bin_expr = unhit_cp[target_cp].get_bin_expr(bin_idx)
+            c = ConstraintSoftModel(bin_expr)
             cc = ConstraintBlockModel("coverage", [c])
             cc.accept(self)
-            
-            
+                
     def visit_generator(self, g):
         self._in_generator = True
         super().visit_generator(g)

@@ -31,7 +31,6 @@ from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
-from vsc.model.coverpoint_bin_model import CoverpointBinModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 
 
@@ -176,9 +175,6 @@ class ModelVisitor(object):
     def visit_coverpoint_bin_collection(self, bn : CoverpointBinCollectionModel):
         for sb in bn.bin_l:
             sb.accept(self)
-            
-    def visit_coverpoint_bin(self, bn : CoverpointBinModel):
-        pass
             
     def visit_coverpoint_bin_enum(self, bn : CoverpointBinEnumModel):
         pass

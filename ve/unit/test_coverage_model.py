@@ -30,9 +30,9 @@ class TestCoverageModel(VscTestCase):
             
         for i in range(16):
             if (i < 8):
-                self.assertEqual(bins.get_hits(i), 1)
+                self.assertEqual(a_cp.get_bin_hits(i), 1)
             else:
-                self.assertEqual(bins.get_hits(i), 0)
+                self.assertEqual(a_cp.get_bin_hits(i), 0)
                 
         self.assertEqual(a_cp.get_coverage(), 50.0)
         self.assertEqual(cg.get_coverage(), 50.0)

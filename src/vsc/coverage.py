@@ -29,6 +29,7 @@ from vsc.impl import ctor
 import inspect
 from vsc.model.source_info import SourceInfo
 from vsc.impl.coverage_registry import CoverageRegistry
+from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
 '''
 Created on Aug 3, 2019
 
@@ -42,7 +43,6 @@ from vsc.impl.ctor import pop_expr
 from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
-from vsc.model.coverpoint_bin_model import CoverpointBinModel
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.rangelist_model import RangelistModel
@@ -131,8 +131,6 @@ def covergroup(T):
                     obj_name_m[obj] = n
                     
             for b in self.buildable_l:
-                print("b: " + str(b))
-          
                 cp_m = b.build_cov_model(cg_i.model, obj_name_m[b])
                 cg_i.model.add_coverpoint(cp_m)
                 
@@ -237,7 +235,7 @@ class bin(object):
     def build_cov_model(self, parent, name):
         # Construct a range model
         range_l = RangelistModel(self.range_l)
-        ret = CoverpointBinModel(name, range_l)
+        ret = CoverpointBinSingleBagModel(name, range_l)
         ret.srcinfo_decl = self.srcinfo_decl
         
         return ret

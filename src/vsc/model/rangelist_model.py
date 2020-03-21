@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from typing import List
 
 
 
@@ -25,7 +26,7 @@ Created on Aug 4, 2019
 
 class RangelistModel(object):
     
-    def __init__(self, rl):
+    def __init__(self, rl : List[List[int]]=None):
         self.range_l = []
 
         if rl is not None:
@@ -37,6 +38,13 @@ class RangelistModel(object):
                         raise Exception("Each range element must have 2 elements")
                 else:
                     self.range_l.append([int(r), int(r)])
+   
+                    
+    def add_value(self, v):
+        self.range_l.append([v, v])
+
+    def add_range(self, low, high):
+        self.range_l.append([low, high])
     
     def __contains__(self, val):
         for r in self.range_l:

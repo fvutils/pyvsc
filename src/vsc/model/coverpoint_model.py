@@ -19,6 +19,11 @@
 from vsc.model.expr_model import ExprModel
 from vsc.model.expr_cond_model import ExprCondModel
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.coveritem_base import CoverItemBase
+from vsc.model.rand_if import RandIF
+from typing import Set, List
+import random
+from _random import Random
 
 '''
 Created on Aug 3, 2019
@@ -26,9 +31,10 @@ Created on Aug 3, 2019
 @author: ballance
 '''
 
-class CoverpointModel(object):
+class CoverpointModel(CoverItemBase):
     
     def __init__(self, target : ExprModel, name : str):
+        super().__init__()
         self.parent = None
         self.target = target
 
@@ -38,6 +44,8 @@ class CoverpointModel(object):
 
         self.name = name
         self.n_bins = 0
+        self.unhit_s : Set[int] = set()
+        self.hit_l : List[int] = []
         self.bin_model_l = []
         
         self.srcinfo_decl = None
@@ -52,56 +60,62 @@ class CoverpointModel(object):
         return bin_m
         
     def finalize(self):
-        for b in self.bin_model_l:
-            b.finalize()
-            
-        for b in self.bin_model_l:
-            self.n_bins += b.get_n_bins()
-            
-    def get_bin_expr(self, target=None):
-        if target is None:
-            target = self.target
-            
-        if self.bin_expr is None and target is not None:
-            # Build a bin expression if the target is specified
-            expr_l = []
-            for b in self.bin_model_l:
-                b.get_bin_expr(expr_l, target)
-
-            if len(expr_l) > 1:
-                expr_l = ExprCondModel(
-                    expr_l[-1],
-                    ExprLiteralModel(len(expr_l)-1),
-                    -1)
-                
-                for i in range(len(expr_l)-1):
-                    expr = ExprCondModel(
-                        expr_l[i],
-                        ExprLiteralModel(i),
-                        expr_l)
-                    expr_l = expr
-            else:
-                expr = ExprCondModel(
-                    expr_l[0],
-                    ExprLiteralModel(0),
-                    ExprLiteralModel(-1))
-
-                self.bin_expr = expr
-
-        return self.bin_expr
-            
-    def get_coverage(self):
-        if not self.coverage_calc_valid:
-            coverage = 0.0
+        self.n_bins = 0
         
-            for bin in self.bin_model_l:
-                coverage += bin.get_coverage()
+        for b in self.bin_model_l:
+            self.n_bins += b.finalize(self.n_bins)
+            
+        # Track unhit bins within this coverpoint
+        self.unhit_s.update(range(self.n_bins))
+        self.hit_l = [0]*self.n_bins
+            
+    def get_bin_expr(self, bin_idx):
+        b = None
+        
+        # First, find the bin this index applies to
+        for i in range(len(self.bin_model_l)):
+            b = self.bin_model_l[i]
+            if b.get_n_bins() > bin_idx:
+                break
+            bin_idx -= b.get_n_bins()
 
-            if len(self.bin_model_l) != 0:
-                coverage /= len(self.bin_model_l)
-            else:
-                coverage = 100.0
-            self.coverage = coverage
+        # Now, return the actual expression            
+        return b.get_bin_expr(bin_idx)
+    
+#         if target is None:
+#             target = self.target
+#             
+#         if self.bin_expr is None and target is not None:
+#             # Build a bin expression if the target is specified
+#             expr_l = []
+#             for b in self.bin_model_l:
+#                 b.get_bin_expr(expr_l, target)
+# 
+#             if len(expr_l) > 1:
+#                 expr_l = ExprCondModel(
+#                     expr_l[-1],
+#                     ExprLiteralModel(len(expr_l)-1),
+#                     -1)
+#                 
+#                 for i in range(len(expr_l)-1):
+#                     expr = ExprCondModel(
+#                         expr_l[i],
+#                         ExprLiteralModel(i),
+#                         expr_l)
+#                     expr_l = expr
+#             else:
+#                 expr = ExprCondModel(
+#                     expr_l[0],
+#                     ExprLiteralModel(0),
+#                     ExprLiteralModel(-1))
+# 
+#                 self.bin_expr = expr
+# 
+#         return self.bin_expr
+            
+    def get_coverage(self)->float:
+        if not self.coverage_calc_valid:
+            self.coverage = (len(self.hit_l)-len(self.unhit_s))/len(self.hit_l) * 100.0
             self.coverage_calc_valid = True
         
         return self.coverage
@@ -113,8 +127,20 @@ class CoverpointModel(object):
         for b in self.bin_model_l:
             b.sample()
             
-    def coverage_ev(self, ev):
+    def select_unhit_bin(self, r:RandIF)->int:
+        if len(self.unhit_s) > 0:
+            return r.sample(self.unhit_s,1)[0]
+#            return random.sample(self.unhit_s,1)[0]
+        else:
+            return -1
+            
+    def coverage_ev(self, bin_idx):
         """Called by a bin to signal that an uncovered bin has been covered"""
+        self.coverage_calc_valid = False
+        if bin_idx in self.unhit_s:
+            self.parent.coverage_ev(self, bin_idx)
+            self.unhit_s.remove(bin_idx)
+        self.hit_l[bin_idx] += 1
         self.coverage_calc_valid = False
             
     def get_val(self):
@@ -134,14 +160,15 @@ class CoverpointModel(object):
         return self.n_bins
         
     def get_bin_hits(self, bin_idx):
-        b = None
-        for i in range(len(self.bin_model_l)):
-            b = self.bin_model_l[i]
-            if b.get_n_bins() > bin_idx:
-                break
-            bin_idx -= b.get_n_bins()
-            
-        return b.get_hits(bin_idx)
+        return self.hit_l[bin_idx]
+#         b = None
+#         for i in range(len(self.bin_model_l)):
+#             b = self.bin_model_l[i]
+#             if b.get_n_bins() > bin_idx:
+#                 break
+#             bin_idx -= b.get_n_bins()
+#             
+#         return b.get_hits(bin_idx)
     
     def get_hit_bins(self, bin_l):
         bin_idx = 0

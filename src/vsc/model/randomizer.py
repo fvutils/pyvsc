@@ -1,4 +1,5 @@
 from vsc.constraints import constraint
+from vsc.model.rand_if import RandIF
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -32,7 +33,7 @@ from typing import List
 import pyboolector
 import random
 
-class Randomizer(object):
+class Randomizer(RandIF):
     """Implements the core randomization algorithm"""
     
     _state_p = [0,1]
@@ -42,15 +43,13 @@ class Randomizer(object):
     def randomize(self, ri : RandInfo):
         """Randomize the variables and constraints in a RandInfo collection"""
         
-        print("Num Randsets: " + str(len(ri.randsets())))
-        
         for rs in ri.randsets():
-            print("RandSet:")
-            for f in rs.fields():
-                print("  Field: " + f.name)
-            for c in rs.constraints():
-                print("  Constraint: " + str(c))
-            print("Randset: n_fields=" + str(len(rs.fields())))
+#             print("RandSet:")
+#             for f in rs.fields():
+#                 print("  Field: " + f.name)
+#             for c in rs.constraints():
+#                 print("  Constraint: " + str(c))
+#             print("Randset: n_fields=" + str(len(rs.fields())))
             btor = Boolector()
             self.btor = btor
             btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
@@ -198,7 +197,7 @@ class Randomizer(object):
             fm.pre_randomize()
 
         r = Randomizer()
-        ri = RandInfoBuilder.build(field_model_l, constraint_l)
+        ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
         r.randomize(ri)
         
         for fm in field_model_l:
