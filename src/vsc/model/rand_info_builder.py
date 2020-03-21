@@ -184,7 +184,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         
         if not self._in_generator or self._pass != 1:
             return
-        
+
         # TODO: in the case of multiple covergroups, need to have 
         # made a higher-level decision about which covergroup to target
         # TODO: determine which coverpoints we're going to enable

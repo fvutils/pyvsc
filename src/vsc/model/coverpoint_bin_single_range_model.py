@@ -59,7 +59,10 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
         return eq
     
     def clone(self)->'CoverpointBinSingleRangeModel':
-        ret = CoverpointBinSingleRangeModel(self.name, self.target_val)
+        ret = CoverpointBinSingleRangeModel(
+            self.name, 
+            self.target_val_low,
+            self.target_val_high)
         ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         return ret

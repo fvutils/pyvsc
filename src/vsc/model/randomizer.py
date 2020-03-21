@@ -103,41 +103,48 @@ class Randomizer(RandIF):
                         print("Node: " + str(n) + " Failed: " + str(btor.Failed(n)))
                     
                     raise Exception("solve failure")
+            else:
+                # Still need to convert assumptions to assertions
+                btor.Assert(*(node_l+soft_node_l))
             
             # Form the swizzle expression around bits in the
             # target randset variables. The resulting expression
             # enables us to minimize the deviations from the selected
             # bit values
-#             expr = None
-#             n_terms = 0
-#             for f in rs.fields():
-#  
-#                 if f.width() < 8:
-#                     bit_n = f.width()
-#                 else:
-#                     bit_n = int(f.width() / 2)
-#                 bit_l = [*range(f.width())]
-#                 for i in range(bit_n):
-#                     bit_i = self.randint(0, len(bit_l)-1)
-#                     bit = bit_l.pop(bit_i)
-#  
-#                     val = self.randint(0, 1)                    
-#                      
-#                     e = btor.Cond(
-#                         btor.Eq(
-#                             btor.Slice(f.var, bit, bit),
-#                             btor.Const(val, 1)),
-#                         btor.Const(0, 32),
-#                         btor.Const(1, 32))
-#                     n_terms += 1
-#                      
-#                     if expr is None:
-#                         expr = e
-#                     else:
-#                         expr = self.btor.Add(expr, e)
-#                          
-#             min_v = self.minimize(expr, 0, n_terms)
-
+            rand_node_l = []
+            for f in rs.fields():
+                for i in range(f.width):
+                    bit_i = self.randint(0, 1)
+                    n = btor.Eq(
+                        btor.Slice(f.var, i, i),
+                        btor.Const(bit_i, 1))
+                    rand_node_l.append(n)
+            btor.Assume(*rand_node_l)
+            
+            if btor.Sat() != btor.SAT:
+                
+                # Clear out any failing assumptions
+                
+                # Try one more time before giving up
+                for i,f in enumerate(rand_node_l):
+                    if btor.Failed(f):
+                        rand_node_l[i] = None
+                        
+                # Add back the hard-constraint nodes and soft-constraints that
+                # didn't fail                        
+#                 for i,n in enumerate(rand_node_l):
+#                     if n is not None:
+#                         btor.Assume(n)
+                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                        
+                if btor.Sat() != btor.SAT:
+                    print("Randomization failed")
+                    for i,n in enumerate(rand_node_l):
+                        if n is not None:
+                            if btor.Failed(n):
+                                print("Assumption " + str(i) + " failed")
+                    raise Exception("solve failure")
+                
             # Finalize the value of the field
             for f in rs.fields():
                 f.post_randomize()

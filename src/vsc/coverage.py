@@ -400,12 +400,12 @@ class coverpoint(object):
                     if self.bins is None or len(self.bins) == 0:
                         if self.cp_t == type_base:
                             binspec = RangelistModel()
-                            if not self.cp_t.is_signed:
-                                binspec.add_range(0, (1 << self.cp_t.width)-1)
+                            if not self.target.is_signed():
+                                binspec.add_range(0, (1 << self.target.width())-1)
                             else:
-                                binspec.add_range(
-                                    -(1 << self.cp_t.width-1), 
-                                    (1 << self.cp_t.width-1)-1)
+                                low = (1 << self.target.width()-1)
+                                high = (1 << self.target.width()-1)-1
+                                binspec.add_range(-low, high)
 
                             self.model.add_bin_model(CoverpointBinCollectionModel.mk_collection(
                                 name, binspec, self.options.auto_bin_max))

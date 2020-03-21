@@ -27,14 +27,18 @@ class TestConstraintSoft(VscTestCase):
         with my_i.randomize_with() as i:
             i.a == i.b
             
-        self.assertEqual(i.a, i.b)
+        print("a=" + str(my_i.a) + " b=" + str(my_i.b))
+            
+        self.assertEqual(my_i.a, my_i.b)
 
         # Should be able to respect the soft constraints        
         with my_i.randomize_with() as i:
             i.a != i.b
             
-        self.assertNotEqual(i.a, i.b)
-        self.assertLess(i.a, i.b)
-        self.assertGreater(i.a, 0)
+        print("a=" + str(my_i.a) + " b=" + str(my_i.b))
+            
+        self.assertNotEqual(my_i.a, my_i.b)
+        self.assertLess(my_i.a, my_i.b)
+        self.assertGreater(my_i.a, 0)
             
         
