@@ -1,3 +1,6 @@
+from vsc.model.rand_set import RandSet
+from typing import List
+from vsc.model.field_model import FieldModel
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -26,19 +29,19 @@ class RandInfo(object):
     """Contains information about a set of variables and constraints"""
     
     def __init__(self, randset_l, unconstrained_l, floating_constraint_l = []):
-        self.randset_l = randset_l
-        self.unconstrained_l = unconstrained_l
+        self.randset_l :List[RandSet] = randset_l
+        self.unconstrained_l :List[FieldModel] = unconstrained_l
         self.floating_constraint_l = floating_constraint_l
         
-    def add_randset(self, r):
+    def add_randset(self, r : RandSet):
         self.randset_l.append(r)
         
-    def randsets(self):
+    def randsets(self) ->List[RandSet]:
         return self.randset_l
         
-    def add_field(self, f):
+    def add_field(self, f:FieldModel):
         self.unconstrained_l.append(f)
         
-    def unconstrained(self):
+    def unconstrained(self)->List[FieldModel]:
         return self.unconstrained_l
         

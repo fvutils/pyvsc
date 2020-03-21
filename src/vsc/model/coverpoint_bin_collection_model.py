@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,31 +14,52 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
-
-
+from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
+from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
+from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
 '''
 Created on Aug 6, 2019
 
 @author: ballance
 '''
-from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
+
 from _functools import reduce
+
+from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
+from vsc.model.rangelist_model import RangelistModel
+
 
 class CoverpointBinCollectionModel(CoverpointBinModelBase):
     
-    def __init__(self, parent, name):
-        super().__init__(parent, name)
+    def __init__(self, name):
+        super().__init__(name)
         self.bin_l = []
         self.hit_bin_idx = -1
-        self.n_bins = -1
+        self.n_bins = 0
         
-    def finalize(self):
-        self.n_bins = reduce(lambda x,y: x+y, map(lambda b: b.get_n_bins(), self.bin_l))
+    def finalize(self, bin_idx_base:int)->int:
+        super().finalize(bin_idx_base)
+#        self.n_bins = reduce(lambda x,y: x+y, map(lambda b: b.get_n_bins(), self.bin_l))
+        for b in self.bin_l:
+            self.n_bins += b.finalize(self.bin_idx_base+self.n_bins)
+        
+        return self.n_bins
+            
+    def get_bin_expr(self, idx):
+        """Builds expressions to represent the values in this bin"""
+        b = None
+        for i in range(len(self.bin_l)):
+            b = self.bin_l[i]
+            if b.get_n_bins() > idx:
+                break;
+            idx -= b.get_n_bins()
+            
+        return b.get_bin_expr(idx)
     
-    def add_bin(self, bin_m):
+    def add_bin(self, bin_m)->CoverpointBinModelBase:
+        bin_m.parent = self
         self.bin_l.append(bin_m)
+        return bin_m
         
     def get_coverage(self):
         coverage = 0.0
@@ -54,15 +74,10 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
     def sample(self):
         self.hit_bin_idx = -1
 
-        idx = 0
         for b in self.bin_l:
-            hit = b.sample()
+            b.sample()
             
-            if hit != -1:
-                self.hit_bin_idx = idx + hit
-            idx += b.get_n_bins()
-            
-            
+
     def dump(self, ind=""):
         print(ind + "Bins " + self.name)
         for b in self.bin_l:
@@ -83,3 +98,108 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
     
     def hit_idx(self):
         return self.hit_bin_idx
+    
+    def accept(self, v):
+        v.visit_coverpoint_bin_collection(self)
+
+    def equals(self, oth)->bool:
+        eq = isinstance(oth, CoverpointBinCollectionModel)
+        
+        if eq:
+            eq &= super().equals(oth)
+            
+            if len(self.bin_l) == len(oth.bin_l):
+                for i in range(len(self.bin_l)):
+                    eq &= self.bin_l[i].equals(oth.bin_l[i])
+            
+        return eq
+    
+    def clone(self)->'CoverpointBinCollectionModel':
+        ret = CoverpointBinCollectionModel(self.name)
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
+        
+        for bn in self.bin_l:
+            ret.add_bin(bn.clone())
+
+        return ret
+
+    @staticmethod    
+    def mk_collection(name : str, rangelist : RangelistModel, n_bins)->'CoverpointBinCollectionModel':
+        """Creates a bin collection by partitioning a rangelist"""
+        n_values = 0
+        for r in rangelist.range_l:
+            if r[0] == r[1]:
+                n_values += 1
+            else:
+                n_values += (r[1]-r[0]+1)
+
+        ret = CoverpointBinCollectionModel(name)
+        if n_bins < n_values:
+            # We need to partition the values into bins
+            values_per_bin = int(n_values/n_bins)
+#            print("values_per_bin: " + str(values_per_bin))
+            r = None
+
+            rng_i = 0
+            for bin_i in range(n_bins):
+#                print("bin_i: " + str(bin_i))
+                if r is None:
+                    r = rangelist.range_l[rng_i]
+#                print("r=" + str(r[0]) + ".." + str(r[1]))
+                    
+                # If the bin fits within this interval, then just 
+                # create a range bin
+                if (r[1]-r[0]+1) >= values_per_bin:
+                    ret.add_bin(CoverpointBinSingleRangeModel(name, r[0], r[0]+values_per_bin-1))
+
+                    if (r[1]-r[0] > values_per_bin):
+                        # We need to continue working on this range
+                        r = r.copy()
+                        r[0] += values_per_bin
+                    else:
+                        # We need to move to the next range
+                        r = None
+                        rng_i += 1
+                else:
+                    # The number of values here is smaller than the bin size
+                    # We need to start a bin and move forward until we've
+                    # collected enough values
+                    b = ret.add_bin(CoverpointBinSingleBagModel(name))
+                    
+                    b.binspec.add_range(r[0], r[1])
+                    n_remaining = values_per_bin - (r[1]-r[0]+1)
+                    r = None
+                    rng_i += 1
+                    
+#                    print("n_remaining=" + str(n_remaining) + " values_per_bin=" + str(values_per_bin))
+                    
+                    while n_remaining >= values_per_bin:
+                        if r is None:
+                            r = rangelist.range_l[rng_i]
+                            
+                        if (r[1]-r[0]) < n_remaining:
+                            # This range is smaller than the remaining bin space
+                            b.binspec.add_range(r[0], r[1])
+                            r = None
+                            rng_i += 1
+                            n_remaining -= (r[1]-r[0])
+                        else:
+                            # This range is larger than the remaining bin space
+                            b.binspec.add_range(r[0], r[0]+n_remaining-1)
+                            r = r.copy()
+                            r[0] += n_remaining
+                            n_remaining = 0
+
+            if r is not None:
+                # Extend the last bin range
+                ret.bin_l[-1].target_val_high = r[1]
+
+        else:
+            # We don't actually need to partition
+            for r in rangelist.range_l:
+                if r[0] == r[1]:
+                    ret.add_bin(CoverpointBinSingleValModel(name, r[0]))
+                else:
+                    ret.add_bin(CoverpointBinSingleRangeModel(name, r[0], r[1]))
+                    
+        return ret

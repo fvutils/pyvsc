@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.coverpoint_model import CoverpointModel
 '''
 Created on Jul 29, 2019
 
@@ -57,11 +58,40 @@ class TestRandomization(VscTestCase):
                     self.c == self.d
 #                self.c != self.d
                 pass
+            
+        @vsc.covergroup 
+        class my_s_cg(object):
+            
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint16_t()
+                    ))
+                self.a_cp = vsc.coverpoint(self.a)
 
         v = my_s()
+        v_cg = my_s_cg()
         
-        for i in range(1000):
-            v.randomize()
+        v_cg_m = v_cg.get_model()
+        cp_m : CoverpointModel = v_cg_m.coverpoint_l[0]
+
+        for b in cp_m.bin_model_l[0].bin_l:
+            print("b: " + str(b.target_val_low) + ".." + str(b.target_val_high))
             
-            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d) + " e=" + str(v.e) + " f=" + str(v.f))
+        
+        
+#        for i in range(1000):
+        for i in range(500):
+            v.randomize()
+            v_cg.sample(v.a)
+#            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d) + " e=" + str(v.e) + " f=" + str(v.f))
+
+#        self.assertGreaterEqual(v_cg.get_coverage(), 70)
+
+        print("Coverage: %f" % (v_cg.get_coverage()))
+        print("cp_m=" + str(cp_m))
+        
+        for bi in range(cp_m.get_n_bins()):
+            print("Bin[%d]=%d" % (bi, cp_m.get_bin_hits(bi)))
+        
+
         

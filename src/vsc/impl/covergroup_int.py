@@ -33,6 +33,7 @@ class CovergroupInt():
         self.model = None
         self.ctor_level = 0
         self.locked = False
+        self.srcinfo_inst = None
         pass
     
     def __enter__(self):

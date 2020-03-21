@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,23 +14,51 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-
 '''
 Created on Aug 4, 2019
 
 @author: ballance
 '''
 
+from vsc.model.coverpoint_model import CoverpointModel
+
+
 class CoverpointBinModelBase(object):
     
-    def __init__(self, parent, name):
-        self.parent = parent
+    def __init__(self, name):
+        self.parent = None
         self.name = name
+        self.cp = None
+        self.bin_idx_base = -1
+        self.hit_bin_idx = -1
+        self.n_bins = -1
         
-    def n_bins(self):
-        return 1
+        self.srcinfo_decl = None
+
+    def finalize(self, bin_idx_base:int)->int:
+        """Accepts the bin index where this bin starts ; returns number of bins"""
+        cp = self.parent
+        while cp is not None and not isinstance(cp, CoverpointModel):
+            cp = cp.parent
+        self.cp = cp
+        
+        self.bin_idx_base = bin_idx_base
+        
+        return 0
+    
+    def sample(self):
+        raise NotImplementedError("sample not implemented for " + str(type(self)))
+                
+    def get_n_bins(self):
+        return self.n_bins
     
     def hit_idx(self):
-        return -1
+        return self.hit_bin_idx
+    
+    def equals(self, oth):
+        eq = isinstance(oth, CoverpointBinModelBase)
+        
+        if eq:
+            eq &= self.name == oth.name
+        
+        return eq

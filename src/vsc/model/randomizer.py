@@ -1,5 +1,3 @@
-from vsc.constraints import constraint
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,23 +14,30 @@ from vsc.constraints import constraint
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 '''
 Created on Jan 21, 2020
 
 @author: ballance
 '''
-from vsc.model.field_model import FieldModel
-from vsc.model.constraint_model import ConstraintModel
-from vsc.model.model_visitor import ModelVisitor
-from vsc.model.rand_info_builder import RandInfoBuilder
-from vsc.model.rand_info import RandInfo
-from pyboolector import Boolector
-from typing import List
-import pyboolector
-import random
 
-class Randomizer(object):
+from builtins import zip
+import random
+from typing import List, Dict
+
+from pyboolector import Boolector, BoolectorNode
+import pyboolector
+
+from vsc.constraints import constraint
+from vsc.model.constraint_model import ConstraintModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.field_model import FieldModel
+from vsc.model.model_visitor import ModelVisitor
+from vsc.model.rand_if import RandIF
+from vsc.model.rand_info import RandInfo
+from vsc.model.rand_info_builder import RandInfoBuilder
+
+
+class Randomizer(RandIF):
     """Implements the core randomization algorithm"""
     
     _state_p = [0,1]
@@ -42,15 +47,13 @@ class Randomizer(object):
     def randomize(self, ri : RandInfo):
         """Randomize the variables and constraints in a RandInfo collection"""
         
-        print("Num Randsets: " + str(len(ri.randsets())))
-        
         for rs in ri.randsets():
-            print("RandSet:")
-            for f in rs.fields():
-                print("  Field: " + f.name)
-            for c in rs.constraints():
-                print("  Constraint: " + str(c))
-            print("Randset: n_fields=" + str(len(rs.fields())))
+#             print("RandSet:")
+#             for f in rs.fields():
+#                 print("  Field: " + f.name)
+#             for c in rs.constraints():
+#                 print("  Constraint: " + str(c))
+#             print("Randset: n_fields=" + str(len(rs.fields())))
             btor = Boolector()
             self.btor = btor
             btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
@@ -58,10 +61,19 @@ class Randomizer(object):
             
             for f in rs.fields():
                 f.build(btor)
+
+            node_l : [BoolectorNode] = []
+            soft_node_l : [BoolectorNode] = []
                 
             for c in rs.constraints():
                 try:
-                    btor.Assert(c.build(btor))
+                    n = c.build(btor)
+                    if isinstance(c, ConstraintSoftModel):
+                        soft_node_l.append(n)
+                    else:
+                        node_l.append(n)
+#                    btor.Assert(c.build(btor))
+                    btor.Assume(n)
                 except Exception as e:
                     print("Error: The following constraint failed:\n" + str(c))
                     raise e
@@ -69,46 +81,70 @@ class Randomizer(object):
             
             # Perform an initial solve to establish correctness
             if btor.Sat() != btor.SAT:
-                # Ensure we clean up
-                for f in rs.fields():
-                    f.dispose()
+                
+                # Try one more time before giving up
+                for i,f in enumerate(btor.Failed(*soft_node_l)):
+                    if f:
+                        soft_node_l[i] = None
+                        
+                # Add back the hard-constraint nodes and soft-constraints that
+                # didn't fail                        
+                for n in filter(lambda n:n is not None, node_l+soft_node_l):
+                    btor.Assert(n)
+
+                # If we fail again, then we truly have a problem
+                if btor.Sat() != btor.SAT:
                     
-                raise Exception("solve failure")
+                    # Ensure we clean up
+                    for f in rs.fields():
+                        f.dispose()
+
+                    for n in node_l:                    
+                        print("Node: " + str(n) + " Failed: " + str(btor.Failed(n)))
+                    
+                    raise Exception("solve failure")
+            else:
+                # Still need to convert assumptions to assertions
+                btor.Assert(*(node_l+soft_node_l))
             
             # Form the swizzle expression around bits in the
             # target randset variables. The resulting expression
             # enables us to minimize the deviations from the selected
             # bit values
-#             expr = None
-#             n_terms = 0
-#             for f in rs.fields():
-#  
-#                 if f.width() < 8:
-#                     bit_n = f.width()
-#                 else:
-#                     bit_n = int(f.width() / 2)
-#                 bit_l = [*range(f.width())]
-#                 for i in range(bit_n):
-#                     bit_i = self.randint(0, len(bit_l)-1)
-#                     bit = bit_l.pop(bit_i)
-#  
-#                     val = self.randint(0, 1)                    
-#                      
-#                     e = btor.Cond(
-#                         btor.Eq(
-#                             btor.Slice(f.var, bit, bit),
-#                             btor.Const(val, 1)),
-#                         btor.Const(0, 32),
-#                         btor.Const(1, 32))
-#                     n_terms += 1
-#                      
-#                     if expr is None:
-#                         expr = e
-#                     else:
-#                         expr = self.btor.Add(expr, e)
-#                          
-#             min_v = self.minimize(expr, 0, n_terms)
-
+            rand_node_l = []
+            for f in rs.fields():
+                for i in range(f.width):
+                    bit_i = self.randint(0, 1)
+                    n = btor.Eq(
+                        btor.Slice(f.var, i, i),
+                        btor.Const(bit_i, 1))
+                    rand_node_l.append(n)
+            btor.Assume(*rand_node_l)
+            
+            if btor.Sat() != btor.SAT:
+                
+                # Clear out any failing assumptions
+                
+                # Try one more time before giving up
+                for i,f in enumerate(rand_node_l):
+                    if btor.Failed(f):
+                        rand_node_l[i] = None
+                        
+                # Add back the hard-constraint nodes and soft-constraints that
+                # didn't fail                        
+#                 for i,n in enumerate(rand_node_l):
+#                     if n is not None:
+#                         btor.Assume(n)
+                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                        
+                if btor.Sat() != btor.SAT:
+                    print("Randomization failed")
+                    for i,n in enumerate(rand_node_l):
+                        if n is not None:
+                            if btor.Failed(n):
+                                print("Assumption " + str(i) + " failed")
+                    raise Exception("solve failure")
+                
             # Finalize the value of the field
             for f in rs.fields():
                 f.post_randomize()
@@ -198,7 +234,7 @@ class Randomizer(object):
             fm.pre_randomize()
 
         r = Randomizer()
-        ri = RandInfoBuilder.build(field_model_l, constraint_l)
+        ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
         r.randomize(ri)
         
         for fm in field_model_l:

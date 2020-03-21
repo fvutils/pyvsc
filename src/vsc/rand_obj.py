@@ -14,23 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
 '''
 Created on Jul 23, 2019
 
 @author: ballance
 '''
 
-from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.types import type_base, field_info
-from vsc.model import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth,\
+import inspect
+
+from vsc.constraints import constraint_t
+from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope, \
+    clear_exprs
+from vsc.impl.generator_int import GeneratorInt
+from vsc.model import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth, \
     enter_expr_mode, leave_expr_mode
+from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.randomizer import Randomizer
 from vsc.model.scalar_field_model import ScalarFieldModel
-from vsc.constraints import constraint_t
-from vsc.model.composite_field_model import CompositeFieldModel
-from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope,\
-    clear_exprs
+from vsc.model.source_info import SourceInfo
+from vsc.types import type_base, field_info
+
 
 def randobj(T):
     
@@ -154,6 +158,137 @@ def randobj(T):
         setattr(T, "_ro_init", True)
         
     return T
+
+def generator(T):
+    """Mark a class as a generator"""
+    
+    class generator_interposer(T):
+        
+        def __init__(self, *args, **kwargs):
+            gen_i = self._get_int()
+            
+            # Capture the instantiation location
+            frame = inspect.stack()[1]
+            gen_i.srcinfo_inst = SourceInfo(frame.filename, frame.lineno)
+
+            # Call the user's constructor            
+            with gen_i:
+                super().__init__(*args, **kwargs)
+                
+            if gen_i.ctor_level == 0:
+                self.build_model()
+            
+            pass
+
+    # Add the interposer class    
+    ret = type(T.__name__, (generator_interposer,), dict())
+
+    if not hasattr(T, "_gen_init"):
+        def __getattribute__(self, a):
+            ret = object.__getattribute__(self, a)
+        
+            if isinstance(ret, type_base) and get_expr_mode() == 0:
+                # We're not in an expression, so the user
+                # wants the value of this field
+                ret = ret.get_val()
+            
+            return ret
+    
+        def __setattr__(self, field, val):
+            try:
+                # Retrieve the field object so we can check if it's 
+                # a type_base object. This will throw an exception
+                # if the field doesn't exist
+                fo = object.__getattribute__(self, field)
+            except:
+                object.__setattr__(self, field, val)
+            else:
+                if isinstance(fo, type_base):
+                    if get_expr_mode() == 0:
+                        # We're not in an expression context, so the 
+                        # user really wants us to set the actual value
+                        # of the field
+                        fo.set_val(val)
+                    else:
+                        raise Exception("Attempting to use '=' in a constraint")
+                else:
+                    object.__setattr__(self, field, val)                
+                    
+        def randomize(self):
+            model = self.get_model()
+            Randomizer.do_randomize([model])
+            
+        def build_field_model(self, name):
+            if self._int_field_info.model is None:
+                model = CompositeFieldModel(name, self._int_field_info.is_rand, self)
+                self._int_field_info.model = model
+            
+                # Iterate through the fields and constraints
+                # First, assign IDs to each of the randomized fields
+                with expr_mode():
+                    for f in dir(self):
+                        if not f.startswith("__") and not f.startswith("_int"):
+                            fo = getattr(self, f)
+                        
+                            if hasattr(fo, "_int_field_info"):
+                                if fo._int_field_info.model is None:
+                                    fo._int_field_info.model = fo.build_field_model(f)
+
+                                model.add_field(fo._int_field_info.model)
+                
+                            # Now, elaborate the constraints
+                    for f in dir(self):
+                        if not f.startswith("__") and not f.startswith("_int"):
+                            fo = getattr(self, f)
+                            if isinstance(fo, constraint_t):
+                                clear_exprs()
+                                push_constraint_scope(ConstraintBlockModel(f))
+                                try:
+                                    fo.c(self)
+                                except Exception as e:
+                                    print("Exception while processing constraint: " + str(e))
+                                    raise e
+                                fo.set_model(pop_constraint_scope())
+                                model.add_constraint(fo.model)
+                                clear_exprs()
+                                    
+            self._int_field_info.model.name = name
+            return self._int_field_info.model
+        
+        def get_model(self):
+            with expr_mode():
+                if self._int_field_info.model is None:
+                    self._int_field_info.model = self.build_field_model(None)
+                
+            return self._int_field_info.model
+        
+        def _get_int(self):
+            if not hasattr(self, "_gen_int"):
+                self._gen_int = GeneratorInt()
+            return self._gen_int
+        
+        setattr(T, "__getattribute__", __getattribute__)
+        setattr(T, "__setattr__", __setattr__)
+        setattr(T, "randomize", randomize)
+#        setattr(T, "randomize_with", randomize_with)
+        setattr(T, "build_field_model", build_field_model)
+        setattr(T, "get_model", get_model)
+#        setattr(T, "__enter__", __enter__)
+#        setattr(T, "__exit__", __exit__)
+#        setattr(T, "do_pre_randomize", do_pre_randomize)
+#        setattr(T, "do_post_randomize", do_post_randomize)
+        setattr(T, "_int_field_info", field_info())
+        setattr(T, "_get_int", _get_int)
+        setattr(T, "_ro_init", True)
+    
+        
+        
+    
+    return ret
+    
+    
+
+    
     
 
 # class RandObj(expr_mode):
@@ -256,4 +391,3 @@ def randobj(T):
 #         pass
 #     
 
-    

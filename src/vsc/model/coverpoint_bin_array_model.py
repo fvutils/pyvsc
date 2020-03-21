@@ -17,6 +17,9 @@
 # under the License.
 
 from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 
 '''
@@ -28,53 +31,62 @@ from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinArrayModel(CoverpointBinModelBase):
     
-    def __init__(self, parent, name, low, high):
-        super().__init__(parent, name)
+    def __init__(self, name, low, high):
+        super().__init__(name)
         self.low = low 
         self.high = high 
         self.hit_bin_idx = -1
         
-        cp = parent
-        while cp is not None and not isinstance(cp, CoverpointModel):
-            cp = cp.parent
-        self.cp = cp
-
-        self.hit_list = []
-        for i in range(self.high-self.low+1):
-            self.hit_list.append(0)
-            
-    def get_coverage(self):
-        coverage = 0.0
+    def finalize(self, bin_idx_base:int)->int:
+        super().finalize(bin_idx_base)
+        return (self.high-self.low+1)
         
-        for h in self.hit_list:
-            coverage += 1 if h != 0 else 0
-
-        coverage /= len(self.hit_list)
-        
-        return coverage
+    def get_bin_expr(self, idx):
+        """Builds expressions to represent a single bin"""
+        return ExprBinModel(
+            self.cp.target,
+            BinExprType.Eq,
+            ExprLiteralModel(self.low+idx, False, 32)
+        )
             
     def sample(self):
         # Query value from the actual coverpoint or expression
-#        print("sample: binspec=" + str(self.binspec))
         val = self.cp.get_val()
         if val >= self.low and val <= self.high:
+            # Notify that coverage has changed
+            self.cp.coverage_ev(self.bin_idx_base+(val-self.low))
             self.hit_bin_idx = val - self.low
-            self.hit_list[val-self.low] += 1
         else:
             self.hit_bin_idx = -1
             
         return self.hit_bin_idx
             
     def dump(self, ind=""):
-        for i in range(self.high-self.low+1):
-            print(ind + self.name + "[" + str(self.low+i) + "]=" + str(self.hit_list[i]))
+#        for i in range(self.high-self.low+1):
+#            print(ind + self.name + "[" + str(self.low+i) + "]=" + str(self.hit_list[i]))
+        pass
             
-    def get_hits(self, idx):
-        return self.hit_list[idx]
-        
     def get_n_bins(self):
         return (self.high-self.low+1)
     
     def hit_idx(self):
         return self.hit_bin_idx    
     
+    def accept(self, v):
+        v.visit_coverpoint_bin_array(self)
+
+    def equals(self, oth):
+        eq = isinstance(oth, CoverpointBinArrayModel)
+        
+        if eq:
+            eq &= super().equals(oth)
+            eq &= self.low == oth.low 
+            eq &= self.high == oth.high 
+            
+        return eq
+
+    def clone(self)->'CoverpointBinArrayModel':
+        ret = CoverpointBinArrayModel(self.name, self.low, self.high)
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
+        
+        return ret

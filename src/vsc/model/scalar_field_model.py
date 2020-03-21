@@ -29,7 +29,7 @@ class ScalarFieldModel(FieldModel):
         width,
         is_signed,
         is_rand,
-        rand_if): 
+        rand_if=None): 
         super().__init__(name)
         self.name = name
         self.width = width

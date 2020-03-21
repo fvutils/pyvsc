@@ -45,5 +45,5 @@ class ExprLiteralModel(ExprModel):
         return self._val
         
     def __str__(self):
-        return "Literal: " + str(self.val)
+        return "Literal: " + str(self._val)
         

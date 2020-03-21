@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 #****************************************************************************
 #* ivpm.py
@@ -43,14 +43,14 @@ def main():
     # First see if we've already downloaded IVPM
     if os.path.isdir(ivpm_dir) == False:
         if (help_requested):
-            print "Local help";
+            print("Local help");
             sys.exit(1);
         download_ivpm(packages_dir)
         
     # Bring in the actual IVPM script and call it
-    sys.path.insert(0, ivpm_dir + "/scripts")
-    import ivpm
-    ivpm.ivpm_main(project_dir, sys.argv)
+    sys.path.insert(0, ivpm_dir + "/src")
+    from ivpm.__main__ import main
+    main(project_dir)
     
 if __name__ == "__main__":
     main()

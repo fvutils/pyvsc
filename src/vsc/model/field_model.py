@@ -15,6 +15,8 @@
 # specific language governing permissions and limitations
 # under the License.
 from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.source_info import SourceInfo
 
 
 
@@ -27,9 +29,11 @@ Created on Jul 27, 2019
 class FieldModel(object):
     
     def __init__(self, name):
-        self.parent = None
-        self.idx    = -1
-        self.name   = name
+        self.parent       = None
+        self.idx          = -1
+        self.name         = name
+        self.srcinfo_decl = None
+        self.srcinfo_inst = None
     
     def build(self, builder):
         raise Exception("build unimplemented")
@@ -39,6 +43,10 @@ class FieldModel(object):
 
     def post_randomize(self):
         pass
+    
+    def expr(self):
+        """Returns a field-reference expression for this field"""
+        return ExprFieldRefModel(self)
     
     def get_indexed_fieldref_expr(self):
         if self.parent is None:

@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -22,13 +21,16 @@ Created on Jan 22, 2020
 @author: ballance
 '''
 from builtins import set
+from typing import Set
+from vsc.model.constraint_model import ConstraintModel
+from vsc.model.field_model import FieldModel
 
 class RandSet(object):
     """Contains information about one set of related fields and constraints"""
     
     def __init__(self):
-        self.field_s = set()
-        self.constraint_s = set()
+        self.field_s : Set[FieldModel] = set()
+        self.constraint_s :Set[ConstraintModel] = set()
         
     def add_field(self, f):
         self.field_s.add(f)
@@ -39,7 +41,6 @@ class RandSet(object):
     def add_constraint(self, c):
         self.constraint_s.add(c)
         
-    def constraints(self):
+    def constraints(self) ->Set[ConstraintModel]:
         return self.constraint_s
-        
-        
+    

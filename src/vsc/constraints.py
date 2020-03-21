@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.constraint_soft_model import ConstraintSoftModel
 '''
 Created on Jul 23, 2019
 
@@ -137,6 +138,12 @@ class implies(object):
         
     def __exit__(self, t, v, tb):
         pop_constraint_scope()        
+        
+def soft(e):
+    
+    to_expr(e)
+    push_constraint_stmt(ConstraintSoftModel(pop_expr()))
+    
 
 def unique(*args):
     expr_l = []

@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,33 +14,84 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.bin_expr_type import BinExprType
 '''
 Created on Aug 3, 2019
 
 @author: ballance
 '''
 
-class CoverpointCrossModel(object):
+import random
+from typing import Set, Tuple, List
+
+from vsc.model.coveritem_base import CoverItemBase
+from vsc.model.expr_model import ExprModel
+from vsc.model.rand_if import RandIF
+
+
+class CoverpointCrossModel(CoverItemBase):
     
-    def __init__(self, parent, name):
-        self.parent = parent
+    def __init__(self, name):
+        super().__init__()
+        self.parent = None
         self.name = name
         self.coverpoint_model_l = []
         self.finalized = False
+        self.n_bins = 0
+
+        # Need to map (tuple)->bin_idx (for coverage recording)
+        # Need to map bin_idx->(tuple) (for constraint driving)
+        # Need to track unhit bin indexes
+        self.hit_l : List[int] = []
+        self.tuple2idx_m : Dict[Tuple,int] = {}
+        self.idx2tuple_m : Dict[int,Tuple] = {}
+        self.unhit_s : Set[Tuple] = set()
         
-        self.hit_map = {}
-        self.unhit_map = {}
+        self.srcinfo_decl = None
+        self.coverage = 0.0
+        self.coverage_calc_valid = False
         
+    def get_coverage(self):
+        if not self.coverage_calc_valid:
+            self.coverage = (len(self.hit_l)-len(self.unhit_s))/len(self.hit_l) * 100.0
+            self.coverage_calc_valid = True
+            
+        return self.coverage
+    
+    def get_n_bins(self):
+        return self.n_bins
+    
+    def get_bin_expr(self, bin_idx:int)->ExprModel:
+        ret = None
+        
+        key_t = self.idx2tuple_m[bin_idx]
+        
+        for i in range(len(self.coverpoint_model_l)):
+            cp_expr = self.coverpoint_model_l[i].get_bin_expr(key_t[i])
+            
+            ret = cp_expr if ret is None else ExprBinModel(
+                ret,
+                BinExprType.And,
+                cp_expr)
+            
+        return ret
+    
+    def select_unhit_bin(self, r:RandIF)->int:
+        if len(self.unhit_s) > 0:
+            return random.sample(self.unhit_s, 1)[0]
+        else:
+            return -1
+        
+    
     def add_coverpoint(self, cp_m):
         self.coverpoint_model_l.append(cp_m)
-        
     
     def finalize(self):
         if not self.finalized:
             self._build_hit_map(0, [])
+            
+            self.hit_l = [0]*self.n_bins
         self.finalized = True
     
     def accept(self, v):
@@ -55,8 +105,10 @@ class CoverpointCrossModel(object):
                 key = tuple(key_m)
                 # Reached the bottom of the list
 #                print("Tuple: " + str(key))
-                self.hit_map[key] = 0
-                self.unhit_map[key] = 0
+                self.tuple2idx_m[key] = self.n_bins
+                self.idx2tuple_m[self.n_bins] = key
+                self.unhit_s.add(self.n_bins)
+                self.n_bins += 1
             else:
                 self._build_hit_map(i+1, key_m)
                 
@@ -85,15 +137,38 @@ class CoverpointCrossModel(object):
             else:
                 have_cp_hit = False
                 break
-    
+            
         if have_cp_hit:
             key = tuple(key_m)
-            self.hit_map[key] += 1
-            if not key in self.hit_map.keys():
-                self.unhit_map.pop(key)
-                
+            bin_idx = self.tuple2idx_m[key]
+            self.hit_l[bin_idx] += 1
+            if bin_idx in self.unhit_s:
+                # New bin hit
+                self.parent.coverage_ev(self, bin_idx)
+                self.unhit_s.remove(bin_idx)
+                self.coverage_calc_valid = False
+
     def dump(self, ind=""):
         print(ind + "Cross: " + self.name)
-        for key in self.hit_map.keys():
-            print(ind + "    " + str(key) + "=" + str(self.hit_map[key]))
-    
+        for i,count in enumerate(self.hit_l):
+            print(ind + "    " + str(i) + "=" + str(count))
+            
+    def equals(self, oth : 'CoverpointCrossModel')->bool:
+        eq = True
+        
+        if len(self.coverpoint_model_l) == len(oth.coverpoint_model_l):
+            for i in range(len(self.coverpoint_model_l)):
+                eq &= self.coverpoint_model_l[i].equals(oth.coverpoint_model_l[i])
+        else:
+            eq = False
+            
+        return eq
+
+    def clone(self)->'CoverpointCrossModel':
+        ret = CoverpointCrossModel(self.name)
+        ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
+        
+        for cp in self.coverpoint_model_l:
+            ret.add_coverpoint(cp.clone())
+        
+        return ret
