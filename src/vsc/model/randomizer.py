@@ -82,26 +82,38 @@ class Randomizer(RandIF):
             # Perform an initial solve to establish correctness
             if btor.Sat() != btor.SAT:
                 
-                # Try one more time before giving up
-                for i,f in enumerate(btor.Failed(*soft_node_l)):
-                    if f:
-                        soft_node_l[i] = None
+                if len(soft_node_l) > 0:
+                
+                    # Try one more time before giving up
+                    for i,f in enumerate(btor.Failed(*soft_node_l)):
+                        if f:
+                            soft_node_l[i] = None
                         
-                # Add back the hard-constraint nodes and soft-constraints that
-                # didn't fail                        
-                for n in filter(lambda n:n is not None, node_l+soft_node_l):
-                    btor.Assert(n)
+                    # Add back the hard-constraint nodes and soft-constraints that
+                    # didn't fail                        
+                    for n in filter(lambda n:n is not None, node_l+soft_node_l):
+                        btor.Assume(n)
 
-                # If we fail again, then we truly have a problem
-                if btor.Sat() != btor.SAT:
+                    # If we fail again, then we truly have a problem
+                    if btor.Sat() != btor.SAT:
                     
+                        # Ensure we clean up
+                        for f in rs.fields():
+                            f.dispose()
+
+                        raise Exception("solve failure")
+                    else:
+                        # Still need to convert assumptions to assertions
+                        for n in filter(lambda n:n is not None, node_l+soft_node_l):
+                            btor.Assert(n)
+                else:
+                    for n in node_l:
+                        if btor.Failed(n):
+                            print("")
+                            
                     # Ensure we clean up
                     for f in rs.fields():
                         f.dispose()
-
-                    for n in node_l:                    
-                        print("Node: " + str(n) + " Failed: " + str(btor.Failed(n)))
-                    
                     raise Exception("solve failure")
             else:
                 # Still need to convert assumptions to assertions

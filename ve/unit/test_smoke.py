@@ -66,7 +66,6 @@ class TestSmoke(VscTestCase):
         v1 = my_rand()
         for i in range(10):
             v1.randomize()
-            print("a=" + str(v1.a) + " b.a=" + str(v1.b.a) + " b.d=" + str(v1.b.d))
-#        vsc.randomize(v1)
+            print("a=" + str(v1.a) + " b.a=" + str(v1.b.a))
         
 #        print("v1.a=" + str(int(v1.a)))

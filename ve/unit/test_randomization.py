@@ -57,7 +57,6 @@ class TestRandomization(VscTestCase):
                 with vsc.else_then():
                     self.c == self.d
 #                self.c != self.d
-                pass
             
         @vsc.covergroup 
         class my_s_cg(object):

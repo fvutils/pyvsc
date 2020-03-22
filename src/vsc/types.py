@@ -100,6 +100,11 @@ class field_info(object):
         self.is_rand = False
         self.model = None
         
+    def set_is_rand(self, is_rand):
+        self.is_rand = is_rand
+        if self.model is not None:
+            self.model.is_declared_rand = is_rand
+        
 class type_base(object):
     """Base type for all primitive-type fields that participate in constraints"""
     

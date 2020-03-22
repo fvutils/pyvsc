@@ -35,13 +35,13 @@ def attr(t):
 def rand_attr(t):
     """Wraps a VSC datatype, or recognized datatype, as a rand field"""
     if isinstance(t, type_base):
-        t._int_field_info.is_rand = True
+        t._int_field_info.set_is_rand(True)
     elif isinstance(t, Enum):
         t = type_enum(t)
-        t._int_field_info.is_rand = True
+        t._int_field_info.set_is_rand(True)
     elif hasattr(t, "_int_field_info"):
         # composite type
-        t._int_field_info.is_rand = True
+        t._int_field_info.set_is_rand(True)
     else:
         raise Exception("Attempting to decorate \"" + str(t) + "\" of type \"" + str(type(t)) + "\" as rand")
     

@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.impl.randobj_int import RandObjInt
 '''
 Created on Jul 23, 2019
 
@@ -37,6 +38,35 @@ from vsc.types import type_base, field_info
 
 
 def randobj(T):
+    """Mark a class as randomizable"""
+    
+    class randobj_interposer(T):
+        
+        def __init__(self, *args, **kwargs):
+            ro_i = self._get_ro_int()
+            
+            print("--> randobj_interposer " + str(type(self)) + " ctor_level=" + str(ro_i.ctor_level))
+            
+            # Capture the instantiation location
+            frame = inspect.stack()[1]
+            ro_i.srcinfo_inst = SourceInfo(frame.filename, frame.lineno)
+
+            # Initialize the field_info member before going deeper            
+            if ro_i.ctor_level == 0:
+                self._int_field_info = field_info()
+                
+            # Call the user's constructor
+            ro_i.ctor_level += 1
+            super().__init__(*args, **kwargs)
+            ro_i.ctor_level -= 1
+            
+            if ro_i.ctor_level == 0:
+                self.build_field_model(None)
+        
+            print("<-- randobj_interposer " + str(type(self)) + " ctor_level=" + str(ro_i.ctor_level))
+    
+    # Add the interposer class
+    ret = type(T.__name__, (randobj_interposer,), dict())
     
     if not hasattr(T, "_ro_init"):
         def __getattribute__(self, a):
@@ -116,7 +146,11 @@ def randobj(T):
                     self._int_field_info.model = self.build_field_model(None)
                 
             return self._int_field_info.model
-            
+        
+        def _get_ro_int(self):
+            if not hasattr(self, "_ro_int"):
+                self._ro_int = RandObjInt()
+            return self._ro_int
         
         def __enter__(self):
             enter_expr_mode()
@@ -150,14 +184,14 @@ def randobj(T):
         setattr(T, "randomize_with", randomize_with)
         setattr(T, "build_field_model", build_field_model)
         setattr(T, "get_model", get_model)
+        setattr(T, "_get_ro_int", _get_ro_int)
         setattr(T, "__enter__", __enter__)
         setattr(T, "__exit__", __exit__)
         setattr(T, "do_pre_randomize", do_pre_randomize)
         setattr(T, "do_post_randomize", do_post_randomize)
-        setattr(T, "_int_field_info", field_info())
         setattr(T, "_ro_init", True)
         
-    return T
+    return ret
 
 def generator(T):
     """Mark a class as a generator"""
@@ -174,7 +208,8 @@ def generator(T):
             # Call the user's constructor            
             with gen_i:
                 super().__init__(*args, **kwargs)
-                
+
+            self._int_field_info = field_info()                
             if gen_i.ctor_level == 0:
                 self.build_model()
             
@@ -285,109 +320,4 @@ def generator(T):
         
     
     return ret
-    
-    
-
-    
-    
-
-# class RandObj(expr_mode):
-#     """Base class for coverage and randomized classes"""
-#     
-#     _ro_init = True
-#    
-#     def __init__(self):
-#         super().__init__()
-#         self._int_field_info = field_info()
-#         self.model = None
-#         pass
-#     
-# #     def copy(self, rhs):
-# #         if not isinstance(rhs, type(self)):
-# #             raise Exception("Error")
-# #         
-# #         for d in dir(self):
-# #             do = getattr(self, d)
-# #             if not callable(do):
-# #                 # Candidate for copying
-# #                 if type(do) == int:
-# #                     setattr(self, d, getattr(rhs, d))
-# #                 elif hasattr(do, "copy"):
-# #                     do.copy(getattr(rhs, d))
-# #     
-# #     def clone(self):
-# #         ret = type(self)()
-# #         ret.copy(self)
-# #         return ret    
-#     
-#     def __getattribute__(self, a):
-#         ret = super().__getattribute__(a)
-#         
-#         if isinstance(ret, type_base) and get_expr_mode() == 0:
-#             # We're not in an expression, so the user
-#             # wants the value of this field
-#             ret = ret.get_val()
-#             
-#         return ret
-#     
-#     def __setattr__(self, field, val):
-#         try:
-#             # Retrieve the field object so we can check if it's 
-#             # a type_base object. This will throw an exception
-#             # if the field doesn't exist
-#             fo = super().__getattribute__(field)
-#         except:
-#             super().__setattr__(field, val)
-#         else:
-# #            super().__setattr__(field, val)
-#             if isinstance(fo, type_base):
-#                 if get_expr_mode() == 0:
-#                     # We're not in an expression context, so the 
-#                     # user really wants us to set the actual value
-#                     # of the field
-#                     fo.set_val(val)
-#                 else:
-#                     raise Exception("Attempting to use '=' in a constraint")
-#             else:
-#                 super().__setattr__(field, val)
-# 
-#     def randomize(self):
-#         model = self.get_model()
-#         Randomizer.do_randomize([model])
-#         
-#     def _build_model(self):
-#         return self.build_field_model(None)
-#     
-#     def get_model(self):
-#         with expr_mode():
-#             if self.model is None:
-#                 self.model = self._build_model()
-#             
-#             return self.model
-#         
-#     
-#     def __enter__(self):
-#         super().__enter__()
-#         self.get_model() # Ensure model is constructed
-#         push_constraint_scope(ConstraintBlockModel("inline"))
-#         return self
-#     
-#     def __exit__(self, t, v, tb):
-#         c = pop_constraint_scope()
-#         super().__exit__(t, v, tb)
-#         Randomizer.do_randomize([self.model], [c])
-#     
-#     def randomize_with(self):
-#         if self.model is None:
-#             # Need to initialize
-#             self.model = self._build_model()
-# 
-#         return self
-#     
-#     def pre_randomize(self):
-#         pass
-#     
-#     def post_randomize(self):
-#         pass
-#     
 
