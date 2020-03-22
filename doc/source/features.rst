@@ -16,7 +16,7 @@ Feature                   Py-VSC  SystemVerilog  PSS  Description
 !=                        Y       Y              Y
 `+`                       Y       Y              Y
 `-`                       Y       Y              Y
-/                         Y       Y              Y
+`/`                       Y       Y              Y
 `*`                       Y       Y              Y
 %                         Y       Y              Y
 &                         Y       Y              Y
@@ -30,6 +30,7 @@ scalar fixed-size array   N       Y              Y
 scalar dynamic array      N       Y              N
 class fixed-size array    N       Y              Y
 class dynamic array       N       Y              N
+class (in)equality        N       N              Y
 array sum                 N       Y              Y
 array size                N       Y              Y
 array reduction OR        N       Y              N
@@ -41,13 +42,13 @@ default                   N       N              Y
 dist                      N       Y              N
 dynamic                   N       N              Y
 inside (in)               Y       Y              Y
-soft                      N       Y              N
+soft                      Y       Y              N
 solve before              N       Y              N
 unique                    Y       Y              Y
 foreach                   N       Y              Y
 forall                    N       Y              Y
-pre_randomize             N       Y              Y
-post_randomize            N       Y              Y
+pre_randomize             Y       Y              Y
+post_randomize            Y       Y              Y
 constraint override       Y       Y              Y
 constraint_mode           Y       Y              N
 ========================  ======  =============  ===  ===========
@@ -66,7 +67,7 @@ illegal_bins                  N       Y              Y
 coverpoint                    Y       Y              Y
 coverpoint single bin         Y       Y              Y 
 coverpoint array bin          Y       Y              Y 
-coverpoint auto binsn         N       Y              Y 
+coverpoint auto bins          N       Y              Y 
 coverpoint transition bin     N       Y              N 
 cross auto bins               Y       Y              Y
 cross bin expressions         N       Y              Y
