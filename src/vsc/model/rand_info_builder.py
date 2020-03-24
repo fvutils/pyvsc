@@ -98,7 +98,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
     
     def visit_constraint_block(self, c):
         if not c.enabled:
-            print("Skip constraint block " + c.name)
+            # Ignore constraint blocks that aren't enabled
             return
         
         # Null out the randset on entry to a constraint block

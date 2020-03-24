@@ -30,6 +30,9 @@ class CoverpointBinSingleValModel(CoverpointBinModelBase):
 
         return expr
     
+    def get_bin_name(self, bin_idx):
+        return self.name 
+    
     def sample(self):
         val = self.cp.get_val()
         if val == self.target_val:

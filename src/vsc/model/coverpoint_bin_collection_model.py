@@ -56,6 +56,16 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
             
         return b.get_bin_expr(idx)
     
+    def get_bin_name(self, idx):
+        b = None
+        for i in range(len(self.bin_l)):
+            b = self.bin_l[i]
+            if b.get_n_bins() > idx:
+                break;
+            idx -= b.get_n_bins()
+            
+        return b.get_bin_name(idx)        
+    
     def add_bin(self, bin_m)->CoverpointBinModelBase:
         bin_m.parent = self
         self.bin_l.append(bin_m)

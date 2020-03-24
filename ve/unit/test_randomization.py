@@ -28,6 +28,26 @@ from vsc_test_case import VscTestCase
 
 
 class TestRandomization(VscTestCase):
+    
+    def test_single(self):
+        
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(16)
+                self.b = vsc.rand_bit_t(16)
+                
+            @vsc.constraint
+            def ab_c(self):
+                self.a < self.b
+                
+        my_i = my_s()
+        
+        for i in range(100):
+            my_i.randomize()
+            print("a=" + str(my_i.a) + " (" + bin(my_i.a) + ") b=" + str(my_i.b))
                         
     def test_simple(self):
 
@@ -82,7 +102,7 @@ class TestRandomization(VscTestCase):
         for i in range(500):
             v.randomize()
             v_cg.sample(v.a)
-#            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d) + " e=" + str(v.e) + " f=" + str(v.f))
+            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d) + " e=" + str(v.e) + " f=" + str(v.f))
 
 #        self.assertGreaterEqual(v_cg.get_coverage(), 70)
 

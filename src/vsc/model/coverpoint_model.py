@@ -21,7 +21,7 @@ from vsc.model.expr_cond_model import ExprCondModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.coveritem_base import CoverItemBase
 from vsc.model.rand_if import RandIF
-from typing import Set, List
+from typing import Set, List, Tuple
 import random
 from _random import Random
 
@@ -82,37 +82,18 @@ class CoverpointModel(CoverItemBase):
         # Now, return the actual expression            
         return b.get_bin_expr(bin_idx)
     
-#         if target is None:
-#             target = self.target
-#             
-#         if self.bin_expr is None and target is not None:
-#             # Build a bin expression if the target is specified
-#             expr_l = []
-#             for b in self.bin_model_l:
-#                 b.get_bin_expr(expr_l, target)
-# 
-#             if len(expr_l) > 1:
-#                 expr_l = ExprCondModel(
-#                     expr_l[-1],
-#                     ExprLiteralModel(len(expr_l)-1),
-#                     -1)
-#                 
-#                 for i in range(len(expr_l)-1):
-#                     expr = ExprCondModel(
-#                         expr_l[i],
-#                         ExprLiteralModel(i),
-#                         expr_l)
-#                     expr_l = expr
-#             else:
-#                 expr = ExprCondModel(
-#                     expr_l[0],
-#                     ExprLiteralModel(0),
-#                     ExprLiteralModel(-1))
-# 
-#                 self.bin_expr = expr
-# 
-#         return self.bin_expr
-            
+    def _get_target_bin(self, bin_idx)->Tuple['CoverpointBinModelBase',int]:
+        b = None
+        
+        # First, find the bin this index applies to
+        for i in range(len(self.bin_model_l)):
+            b = self.bin_model_l[i]
+            if b.get_n_bins() > bin_idx:
+                break
+            bin_idx -= b.get_n_bins()
+        
+        return (b,bin_idx)        
+    
     def get_coverage(self)->float:
         if not self.coverage_calc_valid:
             self.coverage = (len(self.hit_l)-len(self.unhit_s))/len(self.hit_l) * 100.0
@@ -169,6 +150,12 @@ class CoverpointModel(CoverItemBase):
 #             bin_idx -= b.get_n_bins()
 #             
 #         return b.get_hits(bin_idx)
+
+    def get_bin_name(self, bin_idx)->str:
+        b,idx = self._get_target_bin(bin_idx)
+        
+        return b.get_bin_name(idx)
+        
     
     def get_hit_bins(self, bin_l):
         bin_idx = 0

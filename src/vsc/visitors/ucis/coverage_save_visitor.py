@@ -4,14 +4,14 @@ Created on Mar 10, 2020
 @author: ballance
 '''
 from enum import Enum, auto
-from pyucis import UCIS_HISTORYNODE_TEST, UCIS_OTHER, UCIS_DU_MODULE, \
+from ucis import UCIS_HISTORYNODE_TEST, UCIS_OTHER, UCIS_DU_MODULE, \
     UCIS_ENABLED_STMT, UCIS_ENABLED_BRANCH, UCIS_ENABLED_COND, UCIS_ENABLED_EXPR, \
     UCIS_ENABLED_FSM, UCIS_ENABLED_TOGGLE, UCIS_INST_ONCE, UCIS_SCOPE_UNDER_DU, \
     UCIS_INSTANCE
-from pyucis.file_handle import FileHandle
-from pyucis.scope import Scope
-from pyucis.test_data import TestData
-from pyucis.ucis import UCIS
+from ucis.file_handle import FileHandle
+from ucis.scope import Scope
+from ucis.test_data import TestData
+from ucis.ucis import UCIS
 from typing import Dict, List, Set
 
 from vsc.model.covergroup_model import CovergroupModel
@@ -69,7 +69,7 @@ class CoverageSaveVisitor(ModelVisitor):
             cg.accept(self)
 
     def visit_covergroup(self, cg : CovergroupModel):
-        from pyucis.source_info import SourceInfo
+        from ucis.source_info import SourceInfo
         cg_inst = self.get_cg_inst(cg)
         
         cg_name = cg.name if cg.name is not None else "foobar"
@@ -105,7 +105,7 @@ class CoverageSaveVisitor(ModelVisitor):
         self.active_scope_s.pop()
         
     def visit_coverpoint(self, cp : CoverpointModel):
-        from pyucis.source_info import SourceInfo
+        from ucis.source_info import SourceInfo
         active_s = self.active_scope_s[-1]
 
         cp_name = cp.name
@@ -116,14 +116,21 @@ class CoverageSaveVisitor(ModelVisitor):
                 self.get_file_handle(cp.srcinfo_decl.filename),
                 cp.srcinfo_decl.lineno, 0)
             
-        self.active_scope_s.append(active_s.createCoverpoint(
+        cp_scope = active_s.createCoverpoint(
             cp_name,
             decl_location,
             1, # weight
-            UCIS_OTHER)) # Source type
+            UCIS_OTHER) # Source type
 
-        super().visit_coverpoint(cp)
-        self.active_scope_s.pop()
+        for bi in range(cp.get_n_bins()):
+            decl_location = None
+            bn_name = cp.get_bin_name(bi)
+            cp_bin = cp_scope.createBin(
+                bn_name,
+                decl_location,
+                1, # weight,
+                cp.get_bin_hits(bi),
+                bn_name)
         
     def visit_coverpoint_bin_collection(self, bn:CoverpointBinCollectionModel):
         self.in_bin_collection = True
@@ -131,7 +138,7 @@ class CoverageSaveVisitor(ModelVisitor):
         self.in_bin_collection = False
         
     def visit_coverpoint_bin_array(self, bn:CoverpointBinArrayModel):
-        from pyucis.source_info import SourceInfo
+        from ucis.source_info import SourceInfo
         active_cp = self.active_scope_s[-1]
         decl_location = None
         
@@ -178,7 +185,7 @@ class CoverageSaveVisitor(ModelVisitor):
         else:
             print("-- Create Scope")
             # Need to create a default scope
-            from pyucis.source_info import SourceInfo
+            from ucis.source_info import SourceInfo
             file = self.db.createFileHandle("dummy", os.getcwd())
             du_src_info = SourceInfo(file, 0, 0)
             

@@ -36,8 +36,10 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
                 BinExprType.Le,
                 ExprLiteralModel(self.target_val_high, False, 32))
             )
-
         return expr    
+    
+    def get_bin_name(self, bin_idx):
+        return self.name 
     
     def sample(self):
         val = self.cp.get_val()

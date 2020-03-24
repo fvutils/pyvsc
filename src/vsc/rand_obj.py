@@ -45,8 +45,6 @@ def randobj(T):
         def __init__(self, *args, **kwargs):
             ro_i = self._get_ro_int()
             
-            print("--> randobj_interposer " + str(type(self)) + " ctor_level=" + str(ro_i.ctor_level))
-            
             # Capture the instantiation location
             frame = inspect.stack()[1]
             ro_i.srcinfo_inst = SourceInfo(frame.filename, frame.lineno)
@@ -63,8 +61,6 @@ def randobj(T):
             if ro_i.ctor_level == 0:
                 self.build_field_model(None)
         
-            print("<-- randobj_interposer " + str(type(self)) + " ctor_level=" + str(ro_i.ctor_level))
-    
     # Add the interposer class
     ret = type(T.__name__, (randobj_interposer,), dict())
     

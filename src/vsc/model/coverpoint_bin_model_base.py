@@ -46,6 +46,12 @@ class CoverpointBinModelBase(object):
         
         return 0
     
+    def get_bin_expr(self, idx):
+        raise NotImplementedError()
+    
+    def get_bin_name(self, bin_idx):
+        raise NotImplementedError()
+    
     def sample(self):
         raise NotImplementedError("sample not implemented for " + str(type(self)))
                 
@@ -54,6 +60,7 @@ class CoverpointBinModelBase(object):
     
     def hit_idx(self):
         return self.hit_bin_idx
+    
     
     def equals(self, oth):
         eq = isinstance(oth, CoverpointBinModelBase)

@@ -125,12 +125,20 @@ class Randomizer(RandIF):
             # bit values
             rand_node_l = []
             for f in rs.fields():
+                val = self.randbits(f.width)
                 for i in range(f.width):
-                    bit_i = self.randint(0, 1)
+                    bit_i = ((val >> i) & 1)
                     n = btor.Eq(
                         btor.Slice(f.var, i, i),
                         btor.Const(bit_i, 1))
                     rand_node_l.append(n)
+#             for f in rs.fields():
+#                 val = self.randbits(f.width)
+#                 bit = self.randint(0, f.width-1)
+#                 n = btor.Eq(
+#                     btor.Slice(f.var, bit, bit),
+#                     btor.Const((val >> bit) & 1, 1))
+#                 rand_node_l.append(n)
             btor.Assume(*rand_node_l)
             
             if btor.Sat() != btor.SAT:
@@ -138,9 +146,13 @@ class Randomizer(RandIF):
                 # Clear out any failing assumptions
                 
                 # Try one more time before giving up
+                n_failed = 0
                 for i,f in enumerate(rand_node_l):
                     if btor.Failed(f):
                         rand_node_l[i] = None
+                        n_failed += 1
+                        
+#                print("n_failed=" + str(n_failed) + " total=" + str(len(rand_node_l)))
                         
                 # Add back the hard-constraint nodes and soft-constraints that
                 # didn't fail                        

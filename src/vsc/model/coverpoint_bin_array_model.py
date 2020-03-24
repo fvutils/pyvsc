@@ -48,6 +48,9 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
             BinExprType.Eq,
             ExprLiteralModel(self.low+idx, False, 32)
         )
+    
+    def get_bin_name(self, bin_idx):
+        return self.name + "[" + str(self.low+bin_idx) + "]"
             
     def sample(self):
         # Query value from the actual coverpoint or expression
