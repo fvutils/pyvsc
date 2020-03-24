@@ -12,7 +12,7 @@ jobs:
       python3 --version
       python3 -m pip install --upgrade pip 
       python3 -m pip install wheel twine 
-      python3 -m pip install -r requirements_def.txt 
+      python3 -m pip install -r requirements_dev.txt 
     displayName: 'Install Python packages'
     
   - script: |
