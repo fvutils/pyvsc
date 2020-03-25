@@ -67,7 +67,7 @@ class TestPyUcisSave(TestCase):
         td = TestData(
             teststatus=UCIS_TESTSTATUS_OK,
             toolcategory="UCIS:simulator",
-            date="20202020")        
+            date="20200101132000")        
         v.save(td, CoverageRegistry.inst().covergroup_types())
         db.close()
 
