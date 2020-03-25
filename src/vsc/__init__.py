@@ -25,3 +25,36 @@ from vsc.attrs import *
 from vsc.methods import *
 from vsc.constraints import *
 from vsc.coverage import *
+from typing import List
+import sys
+from vsc.report.coverage_report_visitor import CoverageReportVisitor
+from vsc.report.report_text_formatter import ReportTextFormatter
+
+
+def get_coverage_report(*args, details=False)->str:
+    covergroups = None
+    
+    if len(args) == 0:
+        covergroups = CoverageRegistry.inst().covergroup_types()
+    else:
+        covergroups = [cg.get_model() for cg in args]
+        
+    v = CoverageReportVisitor(covergroups, details)
+    
+    return ReportTextFormatter.format(v.report(), False)
+
+def get_coverage_report_model(*args, details=False)->str:
+    covergroups = None
+    
+    if len(args) == 0:
+        covergroups = CoverageRegistry.inst().covergroup_types()
+    else:
+        covergroups = [cg.get_model() for cg in args]
+        
+    v = CoverageReportVisitor(covergroups, details)
+    return v.report()
+
+def report_coverage(*args):
+    sys.stdout.write(get_coverage_report(*args))
+
+        

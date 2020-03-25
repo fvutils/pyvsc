@@ -14,7 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from attr._make import NOTHING
 '''
 Created on Aug 3, 2019
 
@@ -283,8 +282,8 @@ class bin_array(object):
                     else:
                         raise Exception("Single-value bins unimplemented")
         else:
-            ret = CoverpointBinCollectionModel.mk_collection(
-                name, self.range_l, self.nbins)
+            ret = CoverpointBinCollectionModel.mk_collection(name, 
+                    RangelistModel(self.range_l), self.nbins)
         
         ret.srcinfo_decl = self.srcinfo_decl
 

@@ -56,7 +56,8 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
         eq = isinstance(oth, CoverpointBinSingleRangeModel)
         
         if eq:
-            eq &= self.target_val == oth.target_val
+            eq &= (self.target_val_low == oth.target_val_low)
+            eq &= (self.target_val_high == oth.target_val_high)
             
         return eq
     
