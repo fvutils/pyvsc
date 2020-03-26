@@ -44,14 +44,14 @@ jobs:
     condition: eq(variables['Build.SourceBranchName'], 'master')
     inputs:
       pythonUploadServiceConnection: pypi-pyvsc
-#  - script: |
-#      # Only deploy from master
-#      if test "$(Build.SourceBranchName)" = "master"; then
-#          python -m twine --version
-#          echo "Calling twine"
-#          python -m twine upload -r py-vsc --config-file $(PYPIRC_PATH) dist/*.whl
-#          echo "Calling twine complete"
-#      fi
-#    displayName: 'Upload to PyPi'
+  - script: |
+     # Only deploy from master
+     if test "$(Build.SourceBranchName)" = "master"; then
+         python -m twine --version
+         echo "Calling twine"
+         python -m twine upload -r pyvsc --config-file $(PYPIRC_PATH) dist/*.whl
+         echo "Calling twine complete"
+     fi
+   displayName: 'Upload to PyPi'
 
 
