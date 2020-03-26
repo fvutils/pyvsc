@@ -47,9 +47,9 @@ jobs:
   - script: |
      # Only deploy from master
      if test "$(Build.SourceBranchName)" = "master"; then
-         python -m twine --version
+         python3 -m twine --version
          echo "Calling twine"
-         python -m twine upload -r pyvsc --config-file $(PYPIRC_PATH) dist/*.whl
+         python3 -m twine upload -r pyvsc --config-file $(PYPIRC_PATH) dist/*.whl
          echo "Calling twine complete"
      fi
     displayName: 'Upload to PyPi'
