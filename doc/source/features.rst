@@ -40,7 +40,7 @@ part select `[bit]`       N       Y              Y
 part select `[msb:lsb]`   N       Y              Y
 default                   N       N              Y
 dist                      N       Y              N
-dynamic                   N       N              Y
+dynamic                   Y       N              Y
 inside (in)               Y       Y              Y
 soft                      Y       Y              N
 solve before              N       Y              N

@@ -29,6 +29,7 @@ class ConstraintBlockModel(ConstraintScopeModel):
         super().__init__()
         self.name = name
         self.enabled = True
+        self.is_dynamic = False
         
         if constraints is not None:
             for c in constraints:

@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.constraint_dynref_model import ConstraintDynRefModel
 '''
 Created on Jul 23, 2019
 
@@ -49,7 +50,37 @@ class constraint_t(object):
     
     def elab(self):
         print("elab")
+        
+class dynamic_constraint_t(object):
+    # TODO:
     
+    def __init__(self, c):
+        self.c = c
+        self.model = None
+        
+    def set_model(self, m):
+        self.model = m
+        
+    def __call__(self):
+        push_constraint_stmt(ConstraintDynRefModel(self.model))
+
+    class call_closure(object):
+        
+        def __init__(self, c, *args, **kwargs):
+            self.c = c
+            self.args = args
+            self.kwargs = kwargs
+            
+        def __enter__(self):
+            self.c(*self.args, **self.kwargs)
+        
+        def __exit__(self, t, v, tb):
+            pass
+        
+
+def dynamic_constraint(c):
+    return dynamic_constraint_t(c)
+
 def constraint(c):
     return constraint_t(c)
 

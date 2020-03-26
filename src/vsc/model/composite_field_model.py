@@ -35,6 +35,7 @@ class CompositeFieldModel(FieldModel):
         self.rand_if = rand_if
         self.field_l = []
         self.constraint_model_l = []
+        self.constraint_dynamic_model_l = []
 
     def finalize(self):
         pass
@@ -75,6 +76,10 @@ class CompositeFieldModel(FieldModel):
     def add_constraint(self, c):
         c.parent = self
         self.constraint_model_l.append(c)
+        
+    def add_dynamic_constraint(self, c):
+        c.parent = self
+        self.constraint_dynamic_model_l.append(c)
         
     def get_constraints(self, constraint_l):
         for f in self.field_l:

@@ -7,6 +7,7 @@ from vsc.model.constraint_model import ConstraintModel
 from vsc.model.expr_model import ExprModel
 
 class ConstraintSoftModel(ConstraintModel):
+    """Soft constraint expression"""
     
     def __init__(self, e : ExprModel):
         super().__init__()

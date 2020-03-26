@@ -1,3 +1,4 @@
+from pyboolector import BoolectorNode
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -30,7 +31,7 @@ class ConstraintModel(object):
     def __init__(self):
         pass
     
-    def build(self, btor):
+    def build(self, btor)->BoolectorNode:
         raise Exception("build unimplemented")
     
     def get_nodes(self, node_l):

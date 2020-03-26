@@ -82,6 +82,9 @@ class ModelVisitor(object):
     def visit_constraint_block(self, c : ConstraintBlockModel):
         self.visit_constraint_scope(c)
         
+    def visit_constraint_dynref(self, c):
+        pass
+        
     def visit_constraint_expr(self, c : ConstraintExprModel):
         self.visit_constraint_stmt_enter(c)
         c.e.accept(self)

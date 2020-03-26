@@ -123,6 +123,12 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             else:
                 print("TODO: handle no-reference constraint: " + str(c_blk.name))
         super().visit_constraint_stmt_leave(c)
+        
+    def visit_constraint_dynref(self, c):
+        # Treat a dynamic constraint as an inline expansion
+        # of the constraints in the referenced block
+        for c_stmt in c.c.constraint_l:
+            c_stmt.accept(self)
     
     def visit_constraint_expr(self, c):
         super().visit_constraint_expr(c)

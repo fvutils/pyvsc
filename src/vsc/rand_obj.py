@@ -23,7 +23,7 @@ Created on Jul 23, 2019
 
 import inspect
 
-from vsc.constraints import constraint_t
+from vsc.constraints import constraint_t, dynamic_constraint_t
 from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope, \
     clear_exprs
 from vsc.impl.generator_int import GeneratorInt
@@ -132,7 +132,19 @@ def randobj(T):
                                 fo.set_model(pop_constraint_scope())
                                 model.add_constraint(fo.model)
                                 clear_exprs()
-                                    
+                            elif isinstance(fo, dynamic_constraint_t):
+                                clear_exprs()
+                                push_constraint_scope(ConstraintBlockModel(f))
+                                try:
+                                    fo.c(self)
+                                except Exception as e:
+                                    print("Exception while processing constraint: " + str(e))
+                                    raise e
+                                fo.set_model(pop_constraint_scope())
+                                fo.model.is_dynamic = True
+                                model.add_dynamic_constraint(fo.model)
+                                clear_exprs()
+
             self._int_field_info.model.name = name
             return self._int_field_info.model
         

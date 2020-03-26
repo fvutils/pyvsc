@@ -5,6 +5,7 @@ Created on Mar 20, 2020
 '''
 
 class RandIF(object):
+    """Defines operations to be implemented by a random generator"""
     
     def __init__(self):
         super().__init__()
