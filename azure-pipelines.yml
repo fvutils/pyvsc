@@ -52,6 +52,6 @@ jobs:
          python -m twine upload -r pyvsc --config-file $(PYPIRC_PATH) dist/*.whl
          echo "Calling twine complete"
      fi
-   displayName: 'Upload to PyPi'
+    displayName: 'Upload to PyPi'
 
 
