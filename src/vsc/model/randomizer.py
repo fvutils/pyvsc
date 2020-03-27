@@ -134,23 +134,28 @@ class Randomizer(RandIF):
                 f.dispose() # Get rid of the solver var, since we're done with it
 
         for uf in ri.unconstrained():
+            
+            if not uf.is_used_rand:
+                continue
+            
             # First select a bin within the range
             gd = uf.randgen_data
             if gd.bag is not None:
                 vi = self.randint(0, len(gd.bag)-1)
                 uf.set_val(gd.bag[vi])
             else:
+                limit = 16384
                 domain = (gd.max-gd.min+1)
-                if domain > 65536:
+                if domain > limit:
 #               bin = self.randint(0, 65535)
                     bin = 1
-                    bin_sz = int(domain/65536)
+                    bin_sz = int(domain/limit)
                     val = self.randint(
                        gd.min+bin*bin_sz, 
                        gd.min+(bin+1)*bin_sz-1)
                     uf.set_val(val)
                 else:
-                    uf.set_val(self.randbits(f.width))
+                    uf.set_val(self.randbits(uf.width))
             
     def swizzle_randvars(self, btor : Boolector, rs : RandInfo):
         
@@ -162,9 +167,8 @@ class Randomizer(RandIF):
         field_l = list(rs.fields())
         for f in field_l:
             gd = f.randgen_data
-            domain = (gd.max-gd.min+1)
             
-            if domain > 1:
+            if f.is_used_rand and (gd.max-gd.min) > 0:
                 e = self.create_rand_domain_constraint(f)
                 n = e.build(btor)
                 rand_node_l.append(n)                    
@@ -174,36 +178,36 @@ class Randomizer(RandIF):
                 # Just ignore.
                 rand_node_l.append(None)
 
-            if btor.Sat() != btor.SAT:
-                # Remove any failing assumptions
+        if btor.Sat() != btor.SAT:
+            # Remove any failing assumptions
 
-                n_failed = 0
-                n_domained = 0
-                for i,n in enumerate(rand_node_l):
-                    if n is not None and btor.Failed(n):
-                        if not field_l[i].randgen_data.found_min_max:
-                            self.calc_domain(field_l[i], btor)
-                            e = self.create_rand_domain_constraint(field_l[i])
-                            rand_node_l[i] = e.build(btor)
-                            n_domained += 1
-                        else:
-                            rand_node_l[i] = None
-                            n_failed += 1
+            n_failed = 0
+            n_domained = 0
+            for i,n in enumerate(rand_node_l):
+                if n is not None and btor.Failed(n):
+                    if not field_l[i].randgen_data.found_min_max:
+                        self.calc_domain(field_l[i], btor)
+                        e = self.create_rand_domain_constraint(field_l[i])
+                        rand_node_l[i] = e.build(btor)
+                        n_domained += 1
+                    else:
+                        rand_node_l[i] = None
+                        n_failed += 1
                             
-                # If we've adjusted domains, let's try again
-                if n_domained > 0:
-                    btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+            # If we've adjusted domains, let's try again
+            if n_domained > 0:
+                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                
+                if btor.Sat() != btor.SAT:
+                    # Okay, still need to prune a few
+                    for i,n in enumerate(rand_node_l):
+                        if n is not None and btor.Failed(n):
+                            rand_node_l[i] = None
+                            n_failed += 1                        
+                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
                     
-                    if btor.Sat() != btor.SAT:
-                        # Okay, still need to prune a few
-                        for i,n in enumerate(rand_node_l):
-                            if n is not None and btor.Failed(n):
-                                rand_node_l[i] = None
-                                n_failed += 1                        
-                    btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                    
-                    if btor.Sat() != btor.SAT:
-                        raise Exception("failed to add in randomization")
+                if btor.Sat() != btor.SAT:
+                    raise Exception("failed to add in randomization")
                 else:
                     btor.Assume(*filter(lambda n:n is not None, rand_node_l))
                 
