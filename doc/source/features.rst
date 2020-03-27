@@ -28,6 +28,9 @@ Feature                   PyVSC   SystemVerilog  PSS  Description
 unary |                   N       Y              N
 unary &                   N       Y              N
 unary ^                   N       Y              N
+scalar signed field       Y       Y              Y
+scalar unsigned field     Y       Y              Y
+scalar enum field         Y       Y              Y
 scalar fixed-size array   N       Y              Y
 scalar dynamic array      N       Y              N
 class fixed-size array    N       Y              Y

@@ -1,17 +1,38 @@
 ##################
-Py-VSC Constraints
+PyVSC Constraints
 ##################
+
+Constraint Blocks
+=================
+
+Constraint blocks are class methods decorated with the ``constraint`` 
+decorator. Dynamic constraint blocks are decorated with the 
+``dynamic_constraint`` decorator.
 
 
 Expressions
 ===========
 
+Dynamic-constraint Reference
+----------------------------
+Constraint blocks decorated with `@vsc.constraint` always apply. 
+Dynamic-constraint blocks, decorated with `@vsc.dynamic_constraint` only
+apply when referenced. A dynamic constraint is referenced using syntax
+similar to a method call.
+
+
+
 in
 --
+The 'in' constraint ensures that the value of the specified variable 
+stays inside the specified ranges. Both individual values and 
+ranges may be specified. In the example below, the value of 'a' will be
+1, 2, or 4..8. The value of 'b' will be between 'c' and 'd' (inclusive).
 
 .. code-block:: python3
 
-     class my_s(vsc.rand_obj):
+     @vsc.randobj
+     class my_s(object):
          
          def __init__(self):
              self.a = vsc.rand_bit_t(8)
@@ -22,9 +43,7 @@ in
          @vsc.constraint
          def ab_c(self):
              
-            self.a in vsc.rangelist(1, 2, 4, 8)
-               
-
+            self.a in vsc.rangelist(1, 2, [4,8])
             self.c != 0
             self.d != 0
                 
@@ -36,7 +55,8 @@ part select
 
 .. code-block:: python3
 
-     class my_s():
+     @vsc.randobj
+     class my_s(object):
          
          def __init__(self):
              self.a = vsc.rand_bit_t(32)
@@ -58,10 +78,15 @@ Statements
 
 if/else
 -------
+if/else constraints are modeled using three statements
+- if_then   -- simple if block
+- else_if   -- else if clause
+- else_then -- terminating else clause
 
 .. code-block:: python3
 
-     class my_s(vsc.RandObj):
+     @vsc.randobj
+     class my_s(object):
          
          def __init__(self):
              self.a = vsc.rand_bit_t(8)
@@ -90,7 +115,8 @@ implies
 
 .. code-block:: python3
 
-     class my_s(vsc.Base):
+     @vsc.randobj
+     class my_s(object):
          
          def __init__(self):
              super().__init__()
@@ -121,11 +147,13 @@ implies
 
 unique
 ------
+The unique constraint ensures that all variables in the specified list have
+a unique value. 
 
 .. code-block:: python3
 
      @vsc.rand_obj
-     class my_s():
+     class my_s(object):
          
          def __init__(self):
              self.a = vsc.rand_bit_t(32)
@@ -135,7 +163,6 @@ unique
              
          @vsc.constraint
          def ab_c(self):
-             
              self.a != 0
              self.b != 0
              self.c != 0

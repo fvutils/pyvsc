@@ -32,6 +32,7 @@ from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.enum_field_model import EnumFieldModel
 
 
 
@@ -63,6 +64,9 @@ class ModelVisitor(object):
         for cg in g.covergroup_l:
             cg.accept(self)
 
+    def visit_enum_field(self, f : EnumFieldModel):
+        pass
+    
     def visit_scalar_field(self, f : ScalarFieldModel):
         pass
     
@@ -156,8 +160,6 @@ class ModelVisitor(object):
             cg.accept(self)
 
     def visit_covergroup(self, cg : CovergroupModel):
-        print("visit_covergroup")
-        
         for cp in cg.coverpoint_l:
             cp.accept(self)
             
@@ -169,7 +171,6 @@ class ModelVisitor(object):
             i.accept(self)
    
     def visit_coverpoint(self, cp : CoverpointModel):
-        print("visit_coverpoint")
         for b in cp.bin_model_l:
             b.accept(self)
     
@@ -183,16 +184,6 @@ class ModelVisitor(object):
     def visit_coverpoint_bin_enum(self, bn : CoverpointBinEnumModel):
         pass
     
-#     def visit_coverpoint_bin_collection(self, bn : CoverpointBinCollectionModel):
-#         for sb in bn.bin_l:
-#             sb.accept(self)
-#             
-#     def visit_coverpoint_bin(self, bn : CoverpointBinModel):
-#         pass
-#             
-#     def visit_coverpoint_bin_enum(self, bn : CoverpointBinEnumModel):
-#         pass
-            
     
     def visit_coverpoint_cross(self, cp):
         pass

@@ -26,14 +26,14 @@ from unittest.case import TestCase
 
 import vsc
 from vsc.types import rand_enum_t, rand_bit_t, rangelist
-from enum import Enum, auto
+from enum import Enum, auto, IntEnum
 
 
 class TestExamplesUbus(VscTestCase):
     
     def test_ubus(self):
         
-        class ubus_read_write_enum(Enum):
+        class ubus_read_write_enum(IntEnum):
             READ = auto()
             WRITE = auto()
 
@@ -51,12 +51,16 @@ class TestExamplesUbus(VscTestCase):
                 self.master = ""
                 self.slave = ""
 
-#             @vsc.constraint
-#             def c_read_write(self):
-#                 self.read_write in rangelist(
-#                     ubus_read_write_enum.READ, 
-#                     ubus_read_write_enum.WRITE)
+            @vsc.constraint
+            def c_read_write(self):
+                self.read_write in rangelist(
+                    ubus_read_write_enum.READ, 
+                    ubus_read_write_enum.WRITE)
 
+#            @vsc.constraint
+#            def c_read_write(self):
+#                self.read_write == ubus_read_write_enum.READ
+                
             @vsc.constraint
             def c_size(self):
                 self.size in rangelist(1,2,4,8)
@@ -72,9 +76,9 @@ class TestExamplesUbus(VscTestCase):
         xfer = ubus_transfer()
         for i in range(100):
             xfer.randomize()
-            print("size=%d transmit_delay=%d addr=%x" % (xfer.size, xfer.transmit_delay, xfer.addr))
+            print("read_write=%s size=%d transmit_delay=%d addr=%x" % (str(xfer.read_write), xfer.size, xfer.transmit_delay, xfer.addr))
             
-        for i in range(100):
-            with xfer.randomize_with() as it:
-                it.size == 1
-            print("size=%d transmit_delay=%d addr=%x" % (xfer.size, xfer.transmit_delay, xfer.addr))
+#        for i in range(100):
+#            with xfer.randomize_with() as it:
+#                it.size == 1
+#            print("size=%d transmit_delay=%d addr=%x" % (xfer.size, xfer.transmit_delay, xfer.addr))

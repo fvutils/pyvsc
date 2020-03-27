@@ -1,58 +1,46 @@
-# Licensed to the Apache Software Foundation (ASF) under one
-# or more contributor license agreements.  See the NOTICE file
-# distributed with this work for additional information
-# regarding copyright ownership.  The ASF licenses this file
-# to you under the Apache License, Version 2.0 (the
-# "License"); you may not use this file except in compliance
-# with the License.  You may obtain a copy of the License at
-#
-#  http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing,
-# software distributed under the License is distributed on an
-# "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-# KIND, either express or implied.  See the License for the
-# specific language governing permissions and limitations
-# under the License.
 '''
-Created on Jul 24, 2019
+Created on Mar 27, 2020
 
 @author: ballance
 '''
+from typing import Set, List
 
 from vsc.model.field_model import FieldModel
 from vsc.model.rand_gen_data import RandGenData
 
 
-class ScalarFieldModel(FieldModel):
+class EnumFieldModel(FieldModel):
     
-    def __init__(self, 
-        name,
-        width,
-        is_signed,
-        is_rand,
-        rand_if=None): 
+    def __init__(self,
+                 name : str,
+                 enums : List[int],
+                 is_rand : bool):
         super().__init__(name)
-        self.width = width
-        self.is_signed = is_signed
+        self.enums = enums
         self.is_declared_rand = is_rand
         self.is_used_rand = is_rand
-        self.rand_if = rand_if
         self.var = None
-        self.val = 0
+        self.val = enums[0]
         self.randgen_data = None
+        self.rand_if = None
+        
+        # TODO: a bit simplistic
+        self.width = 32
+        self.is_signed = True
+        
         
     def set_used_rand(self, is_rand, level):
         self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
         if self.is_used_rand and self.randgen_data is None:
             self.randgen_data = RandGenData(self.width, self.is_signed)
-        
+            self.randgen_data.bag = self.enums
+            
     def dispose(self):
         self.var = None
         
     def accept(self, v):
-        v.visit_scalar_field(self)
-
+        v.visit_enum_field(self)
+        
     def build(self, btor):
         if self.is_used_rand:
             sort = btor.BitVecSort(self.width)
@@ -61,19 +49,8 @@ class ScalarFieldModel(FieldModel):
             self.var = btor.Const(self.val, self.width)
         return self.var
     
-    def get_full_name(self):
-        ret = self.name
-        p = self.parent
-        
-        while p is not None:
-            ret = p.name + "." + ret
-            p = p.parent
-
-        return ret
-        
-        
     def __str__(self):
-        return "ScalarFieldModel(" + self.get_full_name() + ")"
+        return "EnumFieldModel(" + self.get_full_name() + ")"
 
     def get_constraints(self, constraint_l):
         pass
@@ -99,3 +76,4 @@ class ScalarFieldModel(FieldModel):
             
         if self.rand_if is not None:
             self.rand_if.do_post_randomize()
+    

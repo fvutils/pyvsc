@@ -186,6 +186,10 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         if self._pass == 0:
             self._field_s.add(f)
             
+    def visit_enum_field(self, f):
+        if self._pass == 0:
+            self._field_s.add(f)
+            
     def visit_covergroup(self, cg:CovergroupModel):
         
         if not self._in_generator or self._pass != 1:

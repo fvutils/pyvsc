@@ -14,24 +14,27 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.expr_in_model import ExprInModel
-from vsc.model.expr_rangelist_model import ExprRangelistModel
-from vsc.model.expr_range_model import ExprRangeModel
-from vsc.model.expr_partselect_model import ExprPartselectModel
-from vsc.model.scalar_field_model import ScalarFieldModel
-from vsc.model import get_expr_mode
 '''
 Created on Jul 23, 2019
 
 @author: ballance
 '''
 
+from enum import IntEnum, Enum, EnumMeta
+
 from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope
+from vsc.impl.enum_info import EnumInfo
+from vsc.model import get_expr_mode
 from vsc.model.bin_expr_type import BinExprType
+from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_in_model import ExprInModel
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_partselect_model import ExprPartselectModel
+from vsc.model.expr_range_model import ExprRangeModel
+from vsc.model.expr_rangelist_model import ExprRangelistModel
+from vsc.model.scalar_field_model import ScalarFieldModel
 
 
 def unsigned(v, w=-1):
@@ -96,11 +99,14 @@ def to_expr(t):
         return t
     elif type(t) == int:
         return expr(ExprLiteralModel(t, True, 32))
+    elif isinstance(type(t), (EnumMeta,IntEnum)):
+        return expr(EnumInfo.get(type(t)).e2e(t))
     elif hasattr(t, "to_expr"):
         return t.to_expr()
     elif callable(t):
         raise Exception("TODO: support lambda references")
     else:
+        print("Type: " + str(t) + " " + str(type(t)))
         raise Exception("Element \"" + str(t) + "\" isn't recognized, and doesn't provide to_expr")
     
     
@@ -248,23 +254,19 @@ class type_base(object):
         
     def clone(self):
         return type_base(self.width, self.is_signed)
-        
-        
+
 
 class type_enum(type_base):
     """Base class for enumerated-type fields"""
     
     def __init__(self, t, i=None):
         # TODO: determine size of enum
-        self.t = t
-        n_enums = len(t)
+        self.enum_i = EnumInfo.get(t)
+
+        width = 32
+        is_signed = True
         
-        width = 0
-        while n_enums > 0:
-            width += 1
-            n_enums >>= 1
-            
-        super().__init__(width, False, i)
+        super().__init__(width, is_signed, i)
 
         # The value of an enum field is stored in two ways
         # The enum_id is the index into the enum type
@@ -275,14 +277,24 @@ class type_enum(type_base):
 #            self.enum_id = list(t).f
             pass
         
-    def _get_val(self):
+    def build_field_model(self, name):
+        # If we have an IntEnum, then collect the values
+                
+        self._int_field_info.name = name
+        self._int_field_info.model = EnumFieldModel(
+            name,
+            self.enum_i.enums,
+            self._int_field_info.is_rand
+        )
+        return self._int_field_info.model        
+        
+    def get_val(self):
         """Returns the enum id"""
-        return self.enum_id
+        return self.enum_i.v2e(self._int_field_info.model.get_val())
     
-    def _set_val(self, val):
+    def set_val(self, val):
         """Sets the enum id"""
-        self.enum_id = val
-#        self.val = list(self.t)[val][0]
+        self._int_field_info.model.set_val(self.enum_i.ev2(val))
     
 class enum_t(type_enum):
     

@@ -14,6 +14,12 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.model.expr_model import ExprModel
 '''
 Created on Jan 21, 2020
 
@@ -118,56 +124,9 @@ class Randomizer(RandIF):
             else:
                 # Still need to convert assumptions to assertions
                 btor.Assert(*(node_l+soft_node_l))
-            
-            # Form the swizzle expression around bits in the
-            # target randset variables. The resulting expression
-            # enables us to minimize the deviations from the selected
-            # bit values
-            rand_node_l = []
-            for f in rs.fields():
-                val = self.randbits(f.width)
-                for i in range(f.width):
-                    bit_i = ((val >> i) & 1)
-                    n = btor.Eq(
-                        btor.Slice(f.var, i, i),
-                        btor.Const(bit_i, 1))
-                    rand_node_l.append(n)
-#             for f in rs.fields():
-#                 val = self.randbits(f.width)
-#                 bit = self.randint(0, f.width-1)
-#                 n = btor.Eq(
-#                     btor.Slice(f.var, bit, bit),
-#                     btor.Const((val >> bit) & 1, 1))
-#                 rand_node_l.append(n)
-            btor.Assume(*rand_node_l)
-            
-            if btor.Sat() != btor.SAT:
-                
-                # Clear out any failing assumptions
-                
-                # Try one more time before giving up
-                n_failed = 0
-                for i,f in enumerate(rand_node_l):
-                    if btor.Failed(f):
-                        rand_node_l[i] = None
-                        n_failed += 1
-                        
-#                print("n_failed=" + str(n_failed) + " total=" + str(len(rand_node_l)))
-                        
-                # Add back the hard-constraint nodes and soft-constraints that
-                # didn't fail                        
-#                 for i,n in enumerate(rand_node_l):
-#                     if n is not None:
-#                         btor.Assume(n)
-                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                        
-                if btor.Sat() != btor.SAT:
-                    print("Randomization failed")
-                    for i,n in enumerate(rand_node_l):
-                        if n is not None:
-                            if btor.Failed(n):
-                                print("Assumption " + str(i) + " failed")
-                    raise Exception("solve failure")
+
+            self.swizzle_randvars(btor, rs)            
+
                 
             # Finalize the value of the field
             for f in rs.fields():
@@ -175,7 +134,175 @@ class Randomizer(RandIF):
                 f.dispose() # Get rid of the solver var, since we're done with it
 
         for uf in ri.unconstrained():
-            uf.set_val(self.randbits(uf.width))
+            # First select a bin within the range
+            gd = uf.randgen_data
+            if gd.bag is not None:
+                vi = self.randint(0, len(gd.bag)-1)
+                uf.set_val(gd.bag[vi])
+            else:
+                domain = (gd.max-gd.min+1)
+                if domain > 65536:
+#               bin = self.randint(0, 65535)
+                    bin = 1
+                    bin_sz = int(domain/65536)
+                    val = self.randint(
+                       gd.min+bin*bin_sz, 
+                       gd.min+(bin+1)*bin_sz-1)
+                    uf.set_val(val)
+                else:
+                    uf.set_val(self.randbits(f.width))
+            
+    def swizzle_randvars(self, btor : Boolector, rs : RandInfo):
+        
+        # TODO: we must ignore fields that are otherwise being controlled
+        
+        # For each random variable, select a partition with it's known 
+        # domain and add the corresponding constraint
+        rand_node_l = []
+        field_l = list(rs.fields())
+        for f in field_l:
+            gd = f.randgen_data
+            domain = (gd.max-gd.min+1)
+            
+            if domain > 1:
+                e = self.create_rand_domain_constraint(f)
+                n = e.build(btor)
+                rand_node_l.append(n)                    
+                btor.Assume(n)
+            else:
+                # It's always possible that this value is already fixed.
+                # Just ignore.
+                rand_node_l.append(None)
+
+            if btor.Sat() != btor.SAT:
+                # Remove any failing assumptions
+
+                n_failed = 0
+                n_domained = 0
+                for i,n in enumerate(rand_node_l):
+                    if n is not None and btor.Failed(n):
+                        if not field_l[i].randgen_data.found_min_max:
+                            self.calc_domain(field_l[i], btor)
+                            e = self.create_rand_domain_constraint(field_l[i])
+                            rand_node_l[i] = e.build(btor)
+                            n_domained += 1
+                        else:
+                            rand_node_l[i] = None
+                            n_failed += 1
+                            
+                # If we've adjusted domains, let's try again
+                if n_domained > 0:
+                    btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                    
+                    if btor.Sat() != btor.SAT:
+                        # Okay, still need to prune a few
+                        for i,n in enumerate(rand_node_l):
+                            if n is not None and btor.Failed(n):
+                                rand_node_l[i] = None
+                                n_failed += 1                        
+                    btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                    
+                    if btor.Sat() != btor.SAT:
+                        raise Exception("failed to add in randomization")
+                else:
+                    btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                
+                    if btor.Sat() != btor.SAT:
+                        raise Exception("failed to add in randomization")
+
+    def create_rand_domain_constraint(self, f : ScalarFieldModel)->ExprModel:
+        gd = f.randgen_data
+        
+        if gd.bag is not None:
+            # Pick out of the bag
+            vi = self.randint(0, len(gd.bag)-1)
+            e = ExprBinModel(
+                ExprFieldRefModel(f),
+                BinExprType.Eq,
+                ExprLiteralModel(gd.bag[vi], f.is_signed, f.width))
+        else:
+            domain = (gd.max-gd.min+1)
+        
+            if domain > 64:
+                # Bin randomization
+                bin = self.randint(0, 63)
+                bin_sz = int(domain/64)
+                e = ExprBinModel(
+                    ExprBinModel(
+                        ExprFieldRefModel(f),
+                        BinExprType.Ge,
+                        ExprLiteralModel(gd.min+bin_sz*bin, f.is_signed, f.width)
+                    ),
+                    BinExprType.And,
+                    ExprBinModel(
+                        ExprFieldRefModel(f),
+                        BinExprType.Le,
+                        ExprLiteralModel(gd.min+bin_sz*(bin+1)-1, f.is_signed, f.width)
+                        )
+                )
+            else:
+                # Select a specific value
+                off = self.randint(0, domain-1)
+                e = ExprBinModel(
+                    ExprFieldRefModel(f),
+                    BinExprType.Eq,
+                    ExprLiteralModel(gd.min+off, f.is_signed, f.width)
+                    )        
+                
+        return e
+
+    def calc_domain(self, f : ScalarFieldModel, btor : Boolector):
+        """Find the reachable bounds of a variable"""
+        gd = f.randgen_data
+        mid = gd.min + (gd.max-gd.min-1)
+
+        # Find the minimum        
+#        while mid > self.min and mid < self.max:
+            # 
+
+            
+            
+        
+        pass
+        
+                
+    def swizzle_randvars_slice(self, btor, rs):
+        # Form the swizzle expression around bits in the
+        # target randset variables. The resulting expression
+        # enables us to minimize the deviations from the selected
+        # bit values
+        rand_node_l = []
+        for f in rs.fields():
+            val = self.randbits(f.width)
+            for i in range(f.width):
+                bit_i = ((val >> i) & 1)
+                n = btor.Eq(
+                    btor.Slice(f.var, i, i),
+                    btor.Const(bit_i, 1))
+                rand_node_l.append(n)
+        btor.Assume(*rand_node_l)
+            
+        if btor.Sat() != btor.SAT:
+            
+            # Clear out any failing assumptions
+                
+            # Try one more time before giving up
+            n_failed = 0
+            for i,f in enumerate(rand_node_l):
+                if btor.Failed(f):
+                    rand_node_l[i] = None
+                    n_failed += 1
+                        
+            btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                        
+            if btor.Sat() != btor.SAT:
+                print("Randomization failed")
+                for i,n in enumerate(rand_node_l):
+                    if n is not None:
+                        if btor.Failed(n):
+                            print("Assumption " + str(i) + " failed")
+                raise Exception("solve failure") 
+        
             
     def minimize(self, expr, min_t, max_t):
         ret = -1
