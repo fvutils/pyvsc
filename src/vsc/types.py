@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -49,6 +48,19 @@ class expr(object):
     def __init__(self, em):
         push_expr(em)
         self.em = em
+        
+    def bin_expr(self, op, rhs):
+        to_expr(rhs)
+       
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        
+        e = ExprBinModel(lhs_e, op, rhs_e)
+        
+        return expr(e)        
+        
+    def __or__(self, rhs):
+        return self.bin_expr(BinExprType.Or, rhs)
         
 class rangelist(object):
     
@@ -188,21 +200,51 @@ class type_base(object):
     def __sub__(self, rhs):
         return self.bin_expr(BinExprType.Sub, rhs)
     
-    def __getitem__(self, val):
-        raise Exception("part-select unsupported")
+    def __truediv__(self, rhs):
+        return self.bin_expr(BinExprType.Div, rhs)
     
+    def __floordiv__(self, rhs):
+        return self.bin_expr(BinExprType.Div, rhs)
+    
+    def __mul__(self, rhs):
+        return self.bin_expr(BinExprType.Mul, rhs)
+    
+    def __mod__(self, rhs):
+        return self.bin_expr(BinExprType.Mod, rhs)
+    
+    def __and__(self, rhs):
+        return self.bin_expr(BinExprType.And, rhs)
+    
+    def __or__(self, rhs):
+        return self.bin_expr(BinExprType.Or, rhs)
+    
+    def __xor__(self, rhs):
+        return self.bin_expr(BinExprType.Xor, rhs)
+    
+    def __lshift__(self, rhs):
+        return self.bin_expr(BinExprType.Sll, rhs)
+    
+    def __rshift__(self, rhs):
+        return self.bin_expr(BinExprType.Srl, rhs)
+    
+    def __neg__(self, rhs):
+        return self.bin_expr(BinExprType.Not, rhs)
+        
+    def __getitem__(self, val):
         if isinstance(val, slice):
             # slice
             to_expr(val.start)
             to_expr(val.stop)
             e0 = pop_expr()
             e1 = pop_expr()
-            return expr(ExprPartselectModel(e0, e1))
+            return expr(ExprPartselectModel(
+                ExprFieldRefModel(self._int_field_info.model), e0, e1))
         else:
             # single value
             to_expr(val)
             e = pop_expr()
-            return expr(ExprPartselectModel(e, None))
+            return expr(ExprPartselectModel(
+                ExprFieldRefModel(self._int_field_info.model), e))
         
     def clone(self):
         return type_base(self.width, self.is_signed)

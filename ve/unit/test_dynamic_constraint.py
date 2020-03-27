@@ -43,4 +43,32 @@ class TestDynamicConstraint(VscTestCase):
             print("a=" + str(my_i.a))
             self.assertGreaterEqual(my_i.a, 90)
             self.assertLessEqual(my_i.a, 100)
+
+    def test_expr(self):
+        @vsc.randobj
+        class my_cls(object):
             
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+                
+            @vsc.constraint
+            def a_c(self):
+                self.a <= 100
+                
+            @vsc.dynamic_constraint
+            def a_small(self):
+                self.a in vsc.rangelist([1,10])
+                
+            @vsc.dynamic_constraint
+            def a_large(self):
+                self.a in vsc.rangelist([90,100])
+                
+        my_i = my_cls()
+
+        for i in range(20):        
+            with my_i.randomize_with() as it:
+                it.a_small() | it.a_large()
+            print("a=" + str(my_i.a))
+            self.assertTrue(((my_i.a >= 1 and my_i.a <= 10) or (my_i.a >= 90 and my_i.a <= 100)))
+        

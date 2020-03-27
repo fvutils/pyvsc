@@ -41,3 +41,11 @@ class ConstraintBlockModel(ConstraintScopeModel):
     def accept(self, v):
         v.visit_constraint_block(self)
         
+    def __str__(self):
+        ret = "ConstraintBlock: "
+        
+        for c in self.constraint_l:
+            ret += str(c) + "; "
+            
+        return ret
+        

@@ -14,21 +14,22 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from vsc.model.constraint_soft_model import ConstraintSoftModel
-from vsc.model.constraint_dynref_model import ConstraintDynRefModel
 '''
 Created on Jul 23, 2019
 
 @author: ballance
 '''
 
-from vsc.types import to_expr
-from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr,\
-    pop_constraint_scope, in_constraint_scope, last_constraint_stmt
+from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr, \
+    pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
-from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
+from vsc.model.expr_dynref_model import ExprDynRefModel
+from vsc.types import to_expr, expr
+
 
 class constraint_t(object):
     
@@ -62,7 +63,7 @@ class dynamic_constraint_t(object):
         self.model = m
         
     def __call__(self):
-        push_constraint_stmt(ConstraintDynRefModel(self.model))
+        return expr(ExprDynRefModel(self.model))
 
     class call_closure(object):
         
@@ -168,7 +169,7 @@ class implies(object):
         push_constraint_scope(self.stmt)
         
     def __exit__(self, t, v, tb):
-        pop_constraint_scope()        
+        pop_constraint_scope()
         
 def soft(e):
     

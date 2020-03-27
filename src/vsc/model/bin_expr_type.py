@@ -32,5 +32,13 @@ class BinExprType(Enum):
     Le = auto()
     Add = auto()
     Sub = auto()
+    Div = auto()
+    Mul = auto()
+    Mod = auto()
     And = auto()
     Or = auto()
+    Sll = auto()
+    Srl = auto()
+    Xor = auto()
+    Not = auto()
+    

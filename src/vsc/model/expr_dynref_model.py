@@ -6,10 +6,10 @@ Created on Mar 26, 2020
 from pyboolector import BoolectorNode
 
 from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.model.constraint_model import ConstraintModel
+from vsc.model.expr_model import ExprModel
 
 
-class ConstraintDynRefModel(ConstraintModel):
+class ExprDynRefModel(ExprModel):
     """Constraint that is a reference to a dynamic-constraint block"""
     
     def __init__(self, c : ConstraintBlockModel):
@@ -17,8 +17,16 @@ class ConstraintDynRefModel(ConstraintModel):
         self.c = c
         
     def build(self, btor)->BoolectorNode:
-        print("ConstraintDynRefModel::build")
         return self.c.build(btor)
         
     def accept(self, v):
         v.visit_constraint_dynref(self)
+        
+    def width(self):
+        return 1
+    
+    def is_signed(self):
+        return False
+    
+    def __str__(self):
+        return "ExprDynRefModel(" + self.c.name + ")"

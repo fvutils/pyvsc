@@ -1,3 +1,4 @@
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -27,16 +28,27 @@ from vsc.model.expr_model import ExprModel
 
 class ExprPartselectModel(ExprModel):
     
-    def __init__(self, lhs, rhs):
-        self.lhs = lhs 
-        self.rhs = rhs 
-        pass
+    def __init__(self, lhs, upper, lower=None):
+        self.lhs = lhs
+        self.upper = upper 
+        self.lower = lower 
     
     def build(self, btor):
-        raise Exception("ExprPartselectModel.build unimplemented")
-#        return btor.Slice()
+        upper = self.upper
+        lower = self.lower if self.lower is not None else self.upper 
+        return btor.Slice(
+            self.lhs.build(btor),
+            lower.val(), 
+            upper.val())
+        
+    def width(self):
+        upper = self.upper
+        lower = self.lower if self.lower is not None else self.upper 
+        return (upper.val() - lower.val()) + 1
+    
+    def is_signed(self):
+        return False
     
     def accept(self, visitor):
-        print("ExprPartselectMode::accept " + str(self.lhs) + " " + str(self.rhs))
         visitor.visit_expr_partselect(self)
     

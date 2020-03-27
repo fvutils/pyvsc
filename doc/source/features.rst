@@ -5,11 +5,9 @@ Constraint Features
 
 
 ========================  ======  =============  ===  ===========
-Feature                   Py-VSC  SystemVerilog  PSS  Description
+Feature                   PyVSC   SystemVerilog  PSS  Description
 <                         Y       Y              Y
 >                         Y       Y              Y
-<=                        Y       Y              Y
->=                        Y       Y              Y
 <=                        Y       Y              Y
 >=                        Y       Y              Y
 ==                        Y       Y              Y
@@ -21,8 +19,12 @@ Feature                   Py-VSC  SystemVerilog  PSS  Description
 %                         Y       Y              Y
 &                         Y       Y              Y
 `|`                       Y       Y              Y
-&&                        Y       Y              Y
-||                        Y       Y              Y
+`^`                       Y       Y              Y
+&&                        Y (&)   Y              Y
+||                        Y (|)   Y              Y
+<<                        Y       Y              Y
+>>                        Y       Y              Y
+~ (unary)                 Y       Y              Y
 unary |                   N       Y              N
 unary &                   N       Y              N
 unary ^                   N       Y              N
@@ -36,8 +38,8 @@ array size                N       Y              Y
 array reduction OR        N       Y              N
 array reduction AND       N       Y              N
 array reduction XOR       N       Y              N
-part select `[bit]`       N       Y              Y
-part select `[msb:lsb]`   N       Y              Y
+part select `[bit]`       Y       Y              Y
+part select `[msb:lsb]`   Y       Y              Y
 default                   N       N              Y
 dist                      N       Y              N
 dynamic                   Y       N              Y
@@ -58,7 +60,7 @@ Coverage Features
 
 
 ============================  ======  =============  ===  ===========
-Feature                       Py-VSC  SystemVerilog  PSS  Description
+Feature                       PyVSC   SystemVerilog  PSS  Description
 covergroup type               Y       Y              Y
 covergroup inline type        N       N              Y
 bins                          Y       Y              Y

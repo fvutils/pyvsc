@@ -146,8 +146,9 @@ class ModelVisitor(object):
     
     def visit_expr_partselect(self, e):
         e.lhs.accept(self)
-        if e.rhs is not None:
-            e.rhs.accept(self)
+        e.upper.accept(self)
+        if e.lower is not None:
+            e.lower.accept(self)
         
     def visit_covergroup_registry(self, rgy):
         

@@ -77,10 +77,24 @@ class ExprBinModel(ExprModel):
             ret = btor.Add(lhs_n, rhs_n)
         elif self.op == BinExprType.Sub:
             ret = btor.Sub(lhs_n, rhs_n)
+        elif self.op == BinExprType.Div:
+            ret = btor.Udiv(lhs_n, rhs_n)
+        elif self.op == BinExprType.Mul:
+            ret = btor.Mul(lhs_n, rhs_n)
+        elif self.op == BinExprType.Mod:
+            ret = btor.Urem(lhs_n, rhs_n)
         elif self.op == BinExprType.And:
             ret = btor.And(lhs_n, rhs_n)
         elif self.op == BinExprType.Or:
             ret = btor.Or(lhs_n, rhs_n)
+        elif self.op == BinExprType.Sll:
+            ret = btor.Sll(lhs_n, rhs_n)
+        elif self.op == BinExprType.Srl:
+            ret = btor.Srl(lhs_n, rhs_n)
+        elif self.op == BinExprType.Xor:
+            ret = btor.Xor(lhs_n, rhs_n)
+        elif self.op == BinExprType.Not:
+            ret = btor.Not(lhs_n, rhs_n)
         else:
             raise Exception("Unsupported binary expression type \"" + str(self.op) + "\"")
         
