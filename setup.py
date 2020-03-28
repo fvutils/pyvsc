@@ -3,9 +3,11 @@ import os
 from setuptools import setup
 
 def get_version():
-    import ivpm
-    return ivpm.get_pkg_version(__file__)
-
+    try:
+        import ivpm
+        return ivpm.get_pkg_version(__file__)
+    except:
+        return "0.0.0"
 
 setup(
   name="pyvsc",
