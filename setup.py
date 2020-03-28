@@ -1,11 +1,15 @@
 
 import os
-import ivpm
 from setuptools import setup
+
+def get_version():
+    import ivpm
+    return ivpm.get_pkg_version(__file__)
+
 
 setup(
   name="pyvsc",
-  version=ivpm.get_pkg_version(__file__),
+  version=get_version(),
   packages=['vsc'],
   package_dir={'' : 'src'},
   author="Matthew Ballance",
