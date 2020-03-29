@@ -21,7 +21,7 @@ Created on Feb 7, 2020
 
 @author: ballance
 '''
-from vsc.model import enter_expr_mode, leave_expr_mode
+from vsc.impl.expr_mode import enter_expr_mode, leave_expr_mode
 
 class CovergroupInt():
     """Internal data used by a covergroup """

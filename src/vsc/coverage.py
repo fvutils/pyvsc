@@ -22,7 +22,7 @@ Created on Aug 3, 2019
 
 import enum
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
-from vsc.model import expr_mode
+from vsc.impl.expr_mode import expr_mode
 from vsc.impl.covergroup_int import CovergroupInt
 from vsc.impl.options import Options
 from vsc.impl.type_options import TypeOptions

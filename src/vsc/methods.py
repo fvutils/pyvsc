@@ -23,7 +23,7 @@ Created on Jul 23, 2019
 '''
 
 from vsc.types import field_info, type_base
-from vsc.model import expr_mode
+from vsc.impl import expr_mode
 
 # def randomize_with(*args):
 #     """Randomize a list of variables with an inline constraint"""

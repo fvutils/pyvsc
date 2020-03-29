@@ -27,7 +27,7 @@ from vsc.constraints import constraint_t, dynamic_constraint_t
 from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope, \
     clear_exprs
 from vsc.impl.generator_int import GeneratorInt
-from vsc.model import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth, \
+from vsc.impl.expr_mode import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth, \
     enter_expr_mode, leave_expr_mode
 from vsc.model.composite_field_model import CompositeFieldModel
 from vsc.model.constraint_block_model import ConstraintBlockModel

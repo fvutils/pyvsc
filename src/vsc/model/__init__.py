@@ -16,27 +16,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-_expr_mode = []
+# Imports to make simplify usage
+from .model_visitor import ModelVisitor        
+from .composite_field_model import CompositeFieldModel
 
-def get_expr_mode():
-    return (len(_expr_mode) > 0 and _expr_mode[-1])
 
-def get_expr_mode_depth():
-    return len(_expr_mode)
 
-def enter_expr_mode(is_expr_mode=True):
-    _expr_mode.append(is_expr_mode)
-    
-def leave_expr_mode():
-    _expr_mode.pop()
-    
 
-class expr_mode(object):
-    
-    def __enter__(self, is_expr_mode=True):
-        enter_expr_mode(is_expr_mode)
-        
-    def __exit__(self, t, v, tb):
-        leave_expr_mode()
-        
+
 

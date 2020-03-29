@@ -24,9 +24,7 @@ Created on Aug 3, 2019
 
 @author: ballance
 '''
-from vsc.types import rangelist
 from vsc.model.rangelist_model import RangelistModel
-from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinSingleBagModel(CoverpointBinModelBase):

@@ -24,7 +24,7 @@ from enum import IntEnum, Enum, EnumMeta
 
 from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope
 from vsc.impl.enum_info import EnumInfo
-from vsc.model import get_expr_mode
+from vsc.impl.expr_mode import get_expr_mode
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_bin_model import ExprBinModel

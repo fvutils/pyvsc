@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,8 +15,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from vsc.model import expr_mode
-
 
 '''
 Created on Jul 27, 2019
@@ -34,16 +31,15 @@ class ConstraintScopeModel(ConstraintModel):
         
     def build(self, btor):
         ret = None
-        with expr_mode():
-            for c in self.constraint_l:
-                if ret is None:
-                    ret = c.build(btor)
-                else:
-                    ret = btor.And(ret, c.build(btor))
-                
+        for c in self.constraint_l:
             if ret is None:
-                # An empty block defaults to 'true'
-                ret = btor.Const(1, 1)
+                ret = c.build(btor)
+            else:
+                ret = btor.And(ret, c.build(btor))
+             
+        if ret is None:
+            # An empty block defaults to 'true'
+            ret = btor.Const(1, 1)
 
         return ret
             

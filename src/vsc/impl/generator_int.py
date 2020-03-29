@@ -3,7 +3,7 @@ Created on Mar 17, 2020
 
 @author: ballance
 '''
-from vsc.model import enter_expr_mode, leave_expr_mode
+from .expr_mode import enter_expr_mode, leave_expr_mode
 
 class GeneratorInt(object):
     
