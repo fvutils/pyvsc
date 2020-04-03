@@ -1,6 +1,6 @@
 
 import os
-from setuptools import setup
+from setuptools import setup, find_namespace_packages
 
 def get_version():
     try:
@@ -12,7 +12,8 @@ def get_version():
 setup(
   name="pyvsc",
   version=get_version(),
-  packages=['vsc'],
+#  packages=find_packages(include=['vsc', 'vsc.*']),
+  packages=find_namespace_packages(where='src'),
   package_dir={'' : 'src'},
   author="Matthew Ballance",
   author_email="matt.ballance@gmail.com",
