@@ -18,7 +18,7 @@ from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.model.expr_model import ExprModel
 '''
 Created on Jan 21, 2020
@@ -214,7 +214,7 @@ class Randomizer(RandIF):
                     if btor.Sat() != btor.SAT:
                         raise Exception("failed to add in randomization")
 
-    def create_rand_domain_constraint(self, f : ScalarFieldModel)->ExprModel:
+    def create_rand_domain_constraint(self, f : FieldScalarModel)->ExprModel:
         gd = f.randgen_data
         
         if gd.bag is not None:
@@ -255,7 +255,7 @@ class Randomizer(RandIF):
                 
         return e
 
-    def calc_domain(self, f : ScalarFieldModel, btor : Boolector):
+    def calc_domain(self, f : FieldScalarModel, btor : Boolector):
         """Find the reachable bounds of a variable"""
         gd = f.randgen_data
         mid = gd.min + (gd.max-gd.min-1)

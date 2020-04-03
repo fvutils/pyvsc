@@ -24,7 +24,7 @@ from vsc.model.field_model import FieldModel
 from vsc.model.rand_gen_data import RandGenData
 
 
-class ScalarFieldModel(FieldModel):
+class FieldScalarModel(FieldModel):
     
     def __init__(self, 
         name,
@@ -73,7 +73,7 @@ class ScalarFieldModel(FieldModel):
         
         
     def __str__(self):
-        return "ScalarFieldModel(" + self.get_full_name() + ")"
+        return "FieldScalarModel(" + self.get_full_name() + ")"
 
     def get_constraints(self, constraint_l):
         pass

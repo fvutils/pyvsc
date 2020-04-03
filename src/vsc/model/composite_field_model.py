@@ -14,13 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from vsc.model.field_model import FieldModel
 
 '''
 Created on Jul 24, 2019
 
 @author: ballance
 '''
+
+from vsc.model.field_model import FieldModel
+
 
 class CompositeFieldModel(FieldModel):
     
@@ -36,6 +38,9 @@ class CompositeFieldModel(FieldModel):
         self.field_l = []
         self.constraint_model_l = []
         self.constraint_dynamic_model_l = []
+        self.exec_l = []
+        self.function_l = []
+        self.constraint_l = []
 
     def finalize(self):
         pass

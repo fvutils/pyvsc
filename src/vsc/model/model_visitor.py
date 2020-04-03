@@ -16,7 +16,7 @@
 # under the License.
 
 from vsc.model.composite_field_model import CompositeFieldModel
-from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.constraint_expr_model import ConstraintExprModel
@@ -67,7 +67,7 @@ class ModelVisitor(object):
     def visit_enum_field(self, f : EnumFieldModel):
         pass
     
-    def visit_scalar_field(self, f : ScalarFieldModel):
+    def visit_scalar_field(self, f : FieldScalarModel):
         pass
     
     def visit_constraint_soft(self, c : ConstraintSoftModel):

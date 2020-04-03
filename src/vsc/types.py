@@ -34,7 +34,7 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
 from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
-from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.model.scalar_field_model import FieldScalarModel
 
 
 def unsigned(v, w=-1):
@@ -139,7 +139,7 @@ class type_base(object):
         
     def build_field_model(self, name):
         self._int_field_info.name = name
-        self._int_field_info.model = ScalarFieldModel(
+        self._int_field_info.model = FieldScalarModel(
             name,
             self.width,
             self.is_signed,

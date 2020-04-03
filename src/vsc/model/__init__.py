@@ -19,6 +19,7 @@
 # Imports to make simplify usage
 from .model_visitor import ModelVisitor        
 from .composite_field_model import CompositeFieldModel
+from .scalar_field_model import FieldScalarModel
 
 
 

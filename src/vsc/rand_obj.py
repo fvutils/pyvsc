@@ -32,7 +32,7 @@ from vsc.impl.expr_mode import _expr_mode, get_expr_mode, expr_mode, get_expr_mo
 from vsc.model.composite_field_model import CompositeFieldModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.randomizer import Randomizer
-from vsc.model.scalar_field_model import ScalarFieldModel
+from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.model.source_info import SourceInfo
 from vsc.types import type_base, field_info
 
