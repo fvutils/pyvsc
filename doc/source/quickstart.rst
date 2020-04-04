@@ -2,27 +2,29 @@
 Quickstart Guide
 ################
 
-Installing Py-VSC
-=================
+Installing PyVSC
+================
 
 
 Installation via PyPi
 ---------------------
 
-TBD: 
+.. code-block:: bash
+
+   pip install pyvsc
 
 Installation from Source
 ------------------------
 
 .. code-block:: bash
 
-   pip install -e ./py-vsc
+   cd py-vsc
+   pip install -e .
    
 
 Running a Simple Example
 ========================
 
 
-- 
 
 

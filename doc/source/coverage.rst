@@ -1,12 +1,12 @@
-###############
-Py-VSC Coverage
-###############
+##############
+PyVSC Coverage
+##############
 
 
 Covergroups
 ===========
 
-With Py-VSC, a covergroup is declared as a Python class that is decorated
+With PyVSC, a covergroup is declared as a Python class that is decorated
 with the `@covergroup` decorator.
 
 .. code-block:: python3
@@ -58,7 +58,7 @@ method body to ensure that the sample parameters are declared early.
 
 Specifying Covergroup Options
 -----------------------------
-Py-VSC supports the same set of options that a SystemVerilog covergroup
+PyVSC supports the same set of options that a SystemVerilog covergroup
 does. Type options are specified within the __init__ method via the
 `type_options` attribute. Instance options are specified within the
 __init__ method via the `options` attribute.
@@ -70,7 +70,7 @@ Covergroup instances are created by instancing the
 
 Specifying Sampling Data at Instantiation
 -----------------------------------------
-Py-VSC supports specifying coverage-sampling data when the covergroup
+PyVSC supports specifying coverage-sampling data when the covergroup
 is instanced, as well as specifying it each time the sample method is
 called. In this case, no parameters are passed to the `sample` method.
 

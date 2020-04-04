@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-'''
-Created on Jul 23, 2019
 
-@author: ballance
-'''
+# Created on Jul 23, 2019
+#
+# @author: ballance
+
 
 from enum import IntEnum, Enum, EnumMeta
 
@@ -233,7 +233,7 @@ class type_base(object):
     def __rshift__(self, rhs):
         return self.bin_expr(BinExprType.Srl, rhs)
     
-    def __neg__(self, rhs):
+    def __neg__(self):
         return self.bin_expr(BinExprType.Not, rhs)
         
     def __getitem__(self, val):
@@ -297,98 +297,120 @@ class type_enum(type_base):
         self._int_field_info.model.set_val(self.enum_i.ev2(val))
     
 class enum_t(type_enum):
+    """Creates a non-random enumerated-type attribute"""
     
     def __init__(self, t, i=None):
         super().__init__(t, i)
         
 class rand_enum_t(enum_t):
+    """Creates a random enumerated-type attribute"""
     
     def __init__(self, t, i=None):
         super().__init__(t, i)
         self._int_field_info.is_rand = True
         
 class bit_t(type_base):
+    """Creates an unsigned arbitrary-width attribute"""
     def __init__(self, w=1, i=0):
         super().__init__(w, False, i)
 
 class uint8_t(bit_t):
+    """Creates an unsigned 8-bit attribute"""
     def __init__(self, i=0):
         super().__init__(8, i)
         
 class uint16_t(bit_t):
+    """Creates an unsigned 16-bit attribute"""
     def __init__(self, i=0):
         super().__init__(16, i)
         
 class uint32_t(bit_t):
+    """Creates an unsigned 32-bit attribute"""
     def __init__(self, i=0):
         super().__init__(32, i)
         
 class uint64_t(bit_t):
+    """Creates an unsigned 64-bit attribute"""
     def __init__(self, i=0):
         super().__init__(64, i)
 
 class rand_bit_t(bit_t):
+    """Creates a random unsigned arbitrary-width attribute"""
     
     def __init__(self, w=1, i=0):
         super().__init__(w, i)
         self._int_field_info.is_rand = True
         
 class rand_uint8_t(rand_bit_t):
+    """Creates a random unsigned 8-bit attribute"""
     def __init__(self, i=0):
         super().__init__(8, i)
         
 class rand_uint16_t(rand_bit_t):
+    """Creates a random unsigned 16-bit attribute"""
     def __init__(self, i=0):
         super().__init__(16, i)
         
 class rand_uint32_t(rand_bit_t):
+    """Creates a random unsigned 32-bit attribute"""
     def __init__(self, i=0):
         super().__init__(32, i)
         
 class rand_uint64_t(rand_bit_t):
+    """Creates a random unsigned 64-bit attribute"""
     def __init__(self, i=0):
         super().__init__(64, i)
         
 class int_t(type_base):
+    """Creates a signed arbitrary-width attribute"""
     
     def __init__(self, w=32, i=0):
         super().__init__(w, True, i)
         
 class int8_t(int_t):
+    """Creates a signed 8-bit attribute"""
     def __init__(self, i=0):
         super().__init__(8, i)
         
 class int16_t(int_t):
+    """Creates a signed 16-bit attribute"""
     def __init__(self, i=0):
         super().__init__(16, i)
         
 class int32_t(int_t):
+    """Creates a signed 32-bit attribute"""
     def __init__(self, i=0):
         super().__init__(32, i)
         
 class int64_t(int_t):
+    """Creates a signed 64-bit attribute"""
     def __init__(self, i=0):
         super().__init__(64, i)
         
 class rand_int_t(int_t):
+    """Creates a random signed arbitrary-width attribute"""
     
     def __init__(self, w=32, i=0):
         super().__init__(w, i)
         self._int_field_info.is_rand = True
 
 class rand_int8_t(rand_int_t):
+    """Creates a random signed 8-bit attribute"""
     def __init__(self, i=0):
         super().__init__(8, i)
         
 class rand_int16_t(rand_int_t):
+    """Creates a random signed 16-bit attribute"""
     def __init__(self, i=0):
         super().__init__(16, i)
         
 class rand_int32_t(rand_int_t):
+    """Creates a random signed 32-bit attribute"""
     def __init__(self, i=0):
         super().__init__(32, i)
         
 class rand_int64_t(rand_int_t):
+    """Creates a random signed 64-bit attribute"""
     def __init__(self, i=0):
         super().__init__(64, i)        
         
@@ -434,8 +456,8 @@ def rand_list_t(list_t):
     def __init__(self, t, sz, init=True):
         super().__init__(t, sz, init)
         self._int_field_info.is_rand = True
-        
-class queue(object):
+
+class vector(object):
     def __init__(self, t, is_rand, sz):
         pass
     

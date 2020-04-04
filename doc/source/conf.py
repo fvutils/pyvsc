@@ -60,7 +60,7 @@ extensions = [
 intersphinx_mapping = {'https://docs.python.org/3': None}
 
 # Github repo
-issues_github_path = "fvutils/py-vsc"
+issues_github_path = "fvutils/pyvsc"
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -75,7 +75,7 @@ source_suffix = '.rst'
 master_doc = 'index'
 
 # General information about the project.
-project = u'py-vsc'
+project = u'pyvsc'
 copyright = u'2019-{0}, Matthew Ballance and Contributors'.format(datetime.datetime.now().year)
 
 # The version info for the project you're documenting, acts as replacement for
@@ -243,7 +243,7 @@ latex_elements = {
 # Grouping the document tree into LaTeX files. List of tuples
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
-  ('index', 'pyvsc.tex', u'Py-VSC Documentation',
+  ('index', 'pyvsc.tex', u'PyVSC Documentation',
    u'Matthew Ballance and Contributors', 'manual'),
 ]
 
@@ -287,8 +287,8 @@ man_pages = [
 # (source start file, target name, title, author,
 #  dir menu entry, description, category)
 texinfo_documents = [
-  ('index', 'pyvsc', u'Py-VSC Documentation',
-   u'Matthew Ballance and Contributors', 'Py-VSC', 'Python Verification Stimulus and Coverage Library',
+  ('index', 'pyvsc', u'PyVSC Documentation',
+   u'Matthew Ballance and Contributors', 'PyVSC', 'Python Verification Stimulus and Coverage Library',
    'Miscellaneous'),
 ]
 

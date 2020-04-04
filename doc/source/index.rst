@@ -1,5 +1,5 @@
-Py-VSC Documentation
-====================
+PyVSC Documentation
+===================
 
 Contents:
 

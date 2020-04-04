@@ -109,3 +109,5 @@ packages/
 doc/source/_build/
 junit/
 
+.venv/
+.venv.bld

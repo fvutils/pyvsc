@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,30 +16,30 @@
 # under the License.
 
 
+# Created on Jul 23, 2019
+#
+# @author: ballance
 
-'''
-Created on Jul 23, 2019
-
-@author: ballance
-'''
 from vsc.types import type_base, field_info, type_enum
 from enum import Enum
 
 
 def attr(t):
     """Wraps a recognized datatype as a non-rand field"""
-    # TODO: why do this?
+    if isinstance(t, Enum):
+        t = type_enum(t)
+        t._int_field_info.set_is_rand(True)
+    elif not hasattr(t, "_int_field_info"):
+        raise Exception("Attempting to decorate \"" + str(t) + "\" of type \"" + str(type(t)) + "\" as a VSC field")
+    
     return t
 
 def rand_attr(t):
     """Wraps a VSC datatype, or recognized datatype, as a rand field"""
-    if isinstance(t, type_base):
+    if hasattr(t, "_int_field_info"):
         t._int_field_info.set_is_rand(True)
     elif isinstance(t, Enum):
         t = type_enum(t)
-        t._int_field_info.set_is_rand(True)
-    elif hasattr(t, "_int_field_info"):
-        # composite type
         t._int_field_info.set_is_rand(True)
     else:
         raise Exception("Attempting to decorate \"" + str(t) + "\" of type \"" + str(type(t)) + "\" as rand")

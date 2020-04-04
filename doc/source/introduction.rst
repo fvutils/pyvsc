@@ -2,10 +2,10 @@
 Introduction
 ############
 
-What is Py-VSC?
-===============
-Py-VSC is a Python library that implements random verification-stimulus
-generation and coverage collection. Py-VSC provides this capability 
+What is PyVSC?
+==============
+PyVSC is a Python library that implements random verification-stimulus
+generation and coverage collection. PyVSC provides this capability 
 in two forms: an object-oriented Model API, and a Python-embedded 
 domain-specific language built on top of the Model API. This allows
 coverage and randomization features to be programmatically built, 
@@ -14,9 +14,9 @@ defined with user-friendly constructs, or defined using a mix of the two.
 Currently, the Python-embedded domain-specific language supports 
 similar features to those supported by SystemVerilog. Not all SystemVerilog
 features are supported, but in some cases features not supported by
-SystemVerilog are also supported. Please see the following table 
-<TBD: comparison table> for a comparison of the user-level coverage 
-and randomization features supported by Py-VSC compared to SystemVerilog.
+SystemVerilog are also supported. Please see the following section 
+:ref:`PyVSC Features` for a comparison of the user-level coverage 
+and randomization features supported by PyVSC compared to SystemVerilog.
 
 Here is a quick example showing capturing random data fields, constraints,
 coverage, and inline randomization.
