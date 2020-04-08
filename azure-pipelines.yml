@@ -45,9 +45,9 @@ jobs:
       done
     displayName: 'Collect coverage data'
 
-  - task: PublishBuildArtifact@1
+  - task: PublishPipelineArtifact@1
     inputs:
-      pathToPublish: $(Build.Repository.LocalPath)/coverdata
+      targetPath: $(Build.Repository.LocalPath)/coverdata
       artifactName: coverdata
     displayName: 'Publish coverage data'
 
