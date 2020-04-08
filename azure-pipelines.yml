@@ -37,6 +37,21 @@ jobs:
         reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
 
   - script: |
+      mkdir coverdata
+      i=1
+      for file in `find -name 'coverage.xml'`; do
+        cp $file coverdata/coverage_${i}.xml
+        i=`expr $i + 1`
+      done
+    displayName: 'Collect coverage data'
+
+  - task: PublishBuildArtifact@1
+    inputs:
+      pathToPublish: $(Build.Repository.LocalPath)/coverdata
+      artifactName: coverdata
+    displayName: 'Publish coverage data'
+
+  - script: |
       python3 setup.py bdist_wheel --universal
     displayName: 'Build Wheel'
 
