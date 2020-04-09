@@ -1,4 +1,4 @@
-# Build the cocotb documentation
+# Build the pyvsc documentation
 #
 # Note: this Makefile is *not* used by Read The Docs, it exec()'s the conf.py
 # file directly. Hence, all special build steps here are only relevant for
@@ -13,7 +13,7 @@ export PATH
 
 # You can set these variables from the command line.
 SPHINXOPTS    =
-SPHINXBUILD   = .venv/bin/sphinx-build
+SPHINXBUILD   = .venv.bld/bin/sphinx-build
 SOURCEDIR     = source
 BUILDDIR      = build
 
@@ -23,13 +23,13 @@ help: .venv.bld
 
 .venv.bld: requirements.txt
 	@echo Creating Python venv for Sphinx build
-	python3 -m venv .venv
-	.venv/bin/pip -q install --upgrade pip
-	.venv/bin/pip -q install -r requirements.txt
+	python3 -m venv .venv.bld
+	.venv.bld/bin/pip -q install --upgrade pip
+	.venv.bld/bin/pip -q install -r requirements.txt
 	@touch .venv.bld
 
 .PHONY: clean
-clean: .venv Makefile
+clean: .venv.bld Makefile
 	@$(SPHINXBUILD) -M clean "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
 
 .PHONY: distclean
@@ -45,4 +45,5 @@ distclean:
 # http://stackoverflow.com/questions/26875072/dependencies-for-special-make-target-default-not-firing
 # We hack around that by calling the target explicitly.
 	make .venv.bld
-	@$(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)
+
+	source .venv.bld/bin/activate; $(SPHINXBUILD) -M $@ "$(SOURCEDIR)" "$(BUILDDIR)" $(SPHINXOPTS) $(O)

@@ -7,7 +7,7 @@ Covergroups
 ===========
 
 With PyVSC, a covergroup is declared as a Python class that is decorated
-with the `@covergroup` decorator.
+with the `covergroup` decorator.
 
 .. code-block:: python3
 

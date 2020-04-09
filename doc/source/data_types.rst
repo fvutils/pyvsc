@@ -30,7 +30,7 @@ First, a quick example
             self.c < self.d
             self.b in vsc.rangelist([self.c,self.d])
 
-The example above shows using the ``rand_bit_t`` type to specify class attributes
+The example above shows using the `rand_bit_t` type to specify class attributes
 that are random, unsigned (bit), and 8-bits wide.
 
 In much the same way that C/C++ and SystemVerilog provide more than one way to 
@@ -44,17 +44,17 @@ PyVSC provides a set of standard-width data types, modeled after the types defin
 in stdint.h. Both random and non-random variants of these attribute classes are 
 provided.
 
-=====  ======  ==============  ==============
-Width  Signed  Random          Non-Random
-8      Y       rand_int8_t     int8_t
-8      N       rand_uint8_t    uint8_t
-16     Y       rand_int16_t    int16_t
-16     N       rand_uint16_t   uint16_t
-32     Y       rand_int32_t    int32_t
-32     N       rand_uint32_t   uint32_t
-64     Y       rand_int64_t    int64_t
-64     N       rand_uint64_t   uint64_t
-=====  ======  ==============  ==============
+=====  ======  ===============  ==============
+Width  Signed  Random           Non-Random
+8      Y       `rand_int8_t`    `int8_t`
+8      N       `rand_uint8_t`   `uint8_t`
+16     Y       `rand_int16_t`   `int16_t`
+16     N       `rand_uint16_t`  `uint16_t`
+32     Y       `rand_int32_t`   `int32_t`
+32     N       `rand_uint32_t`  `uint32_t`
+64     Y       `rand_int64_t`   `int64_t`
+64     N       `rand_uint64_t`  `uint64_t`
+=====  ======  ===============  ==============
 
 The constructor for the classes above accepts the initial value for the
 class attribute. By default, the initial value will be 0.
@@ -81,8 +81,8 @@ specifies the initial value for the attribute.
 
 ======  ==============  ==============
 Signed  Random          Non-Random
-Y       rand_int_t      int_t
-N       rand_bit_t      bit_t
+Y       `rand_int_t`    `int_t`
+N       `rand_bit_t`    `bit_t`
 ======  ==============  ==============
 
 .. code-block:: python3
@@ -101,8 +101,8 @@ random unsigned 12-bit attribute.
 Enum-type Attributes
 ====================
 
-PyVSC supports Python Enum and EnumInt enumerated types. Attributes
-are declared using the enum_t and rand_enum_t classes.
+PyVSC supports Python :class:`~enum.Enum` and :class:`~enum.IntEnum` enumerated types. Attributes
+are declared using the `enum_t` and `rand_enum_t` classes.
 
 .. code-block:: python3
     

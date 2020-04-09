@@ -49,15 +49,15 @@ extensions = [
     'sphinx.ext.napoleon',
     'sphinx.ext.intersphinx',
     'sphinxcontrib.makedomain',
-    'sphinx.ext.autosectionlabel',
     'sphinx.ext.inheritance_diagram',
 #    'cairosvgconverter',
-    'breathe',
+#    'breathe',
     'sphinx_issues',
     'sphinxarg.ext',
+    'sphinxcontrib.spelling',
     ]
 
-intersphinx_mapping = {'https://docs.python.org/3': None}
+intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 
 # Github repo
 issues_github_path = "fvutils/pyvsc"
@@ -107,7 +107,7 @@ autoclass_content = "both"
 exclude_patterns = []
 
 # The reST default role (used for this markup: `text`) to use for all documents.
-#default_role = None
+default_role = "any"
 
 # If true, '()' will be appended to :func: etc. cross-reference text.
 #add_function_parentheses = True
@@ -311,7 +311,7 @@ todo_include_todos = True
 # see also https://breathe.readthedocs.io/en/latest/readthedocs.html
 
 env = os.environ.copy()
-env['PATH'] += ':.venv/bin'
+env['PATH'] += ':.venv.bld/bin'
 #subprocess.call('doxygen', cwd='..')
 #subprocess.call(['breathe-apidoc', '-o', 'source/generated', 'source/doxygen/_xml', '-f'], env=env, cwd='..')
 
@@ -325,23 +325,19 @@ env['PATH'] += ':.venv/bin'
 
 # -- Extra setup for spelling check --------------------------------------------
 
-# Spelling check needs an additional module that is not installed by default.
-# Add it only if spelling check is requested so docs can be generated without it.
-
-if 'spelling' in sys.argv:
-    extensions.append("sphinxcontrib.spelling")
-
 # Spelling language.
 spelling_lang = 'en_US'
 tokenizer_lang = spelling_lang
 
 # Location of word list.
-spelling_word_list_filename = ["spelling_wordlist.txt", "c_symbols.txt"]
+spelling_word_list_filename = ["spelling_wordlist.txt",
+                               #"c_symbols.txt"
+]
 
 spelling_ignore_pypi_package_names = False
 spelling_ignore_wiki_words = False
 spelling_show_suggestions = True
 
-# -- Setup for inheritance_diagram directive which uses graphviz ---------------
+# -- Extra setup for inheritance_diagram directive which uses graphviz ---------
 
 graphviz_output_format = 'svg'
