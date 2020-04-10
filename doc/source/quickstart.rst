@@ -18,7 +18,7 @@ Installation from Source
 
 .. code-block:: bash
 
-   cd py-vsc
+   cd pyvsc
    pip install -e .
    
 

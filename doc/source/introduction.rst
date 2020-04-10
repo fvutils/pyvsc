@@ -15,7 +15,7 @@ Currently, the Python-embedded domain-specific language supports
 similar features to those supported by SystemVerilog. Not all SystemVerilog
 features are supported, but in some cases features not supported by
 SystemVerilog are also supported. Please see the following section 
-:ref:`PyVSC Features` for a comparison of the user-level coverage 
+:ref:`pyvsc-features` for a comparison of the user-level coverage 
 and randomization features supported by PyVSC compared to SystemVerilog.
 
 Here is a quick example showing capturing random data fields, constraints,

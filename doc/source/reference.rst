@@ -30,6 +30,9 @@ Data and Constraints
     :member-order: bysource
     :undoc-members:
 
+..
+   FIXME: duplicate
+
 Data and Constraints
 --------------------
 
@@ -103,11 +106,6 @@ Coverage
     :member-order: bysource
     :undoc-members:
 
-.. automodule:: vsc.model.coverpoint_bin_array_model
-    :members:
-    :member-order: bysource
-    :undoc-members:
-
 .. automodule:: vsc.model.coverpoint_bin_collection_model
     :members:
     :member-order: bysource
@@ -123,12 +121,17 @@ Coverage
     :member-order: bysource
     :undoc-members:
 
-.. automodule:: vsc.model.coverpoint_bin_model
+.. automodule:: vsc.model.coverpoint_bin_single_bag_model
     :members:
     :member-order: bysource
     :undoc-members:
 
-.. automodule:: vsc.model.coverpoint_bin_model
+.. automodule:: vsc.model.coverpoint_bin_single_range_model
+    :members:
+    :member-order: bysource
+    :undoc-members:
+
+.. automodule:: vsc.model.coverpoint_bin_single_val_model
     :members:
     :member-order: bysource
     :undoc-members:
@@ -138,20 +141,18 @@ Coverage
     :member-order: bysource
     :undoc-members:
 
-.. automodule:: vsc.model.coverpoint_facade_if
-    :members:
-    :member-order: bysource
-    :undoc-members:
-
 .. automodule:: vsc.model.coverpoint_model
     :members:
     :member-order: bysource
     :undoc-members:
+
+..
+   FIXME: rangelist_model was missing, does it belong under this heading?
 
 Expressions
 -----------
 
-.. automodule:: vsc.model.coverpoint_model
+.. automodule:: vsc.model.rangelist_model
     :members:
     :member-order: bysource
     :undoc-members:

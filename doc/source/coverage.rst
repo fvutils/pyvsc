@@ -33,11 +33,11 @@ Declaring a Sample Method
 -------------------------
 
 Use of the `sample` method is specified by calling the `with_sample`
-method and passing a `dict` of paramter-name/parameter-type pairs.
+method and passing a `dict` of parameter-name/parameter-type pairs.
 The `with_sample` method declares class members with the same name
 and type as the key/value pairs in the dict passed to the 
 `with_sample` method.
-The `with_sample` method should be called early in the __init__ 
+The `with_sample` method should be called early in the ``__init__`` 
 method body to ensure that the sample parameters are declared early.
 
 .. code-block:: python3
@@ -59,14 +59,14 @@ method body to ensure that the sample parameters are declared early.
 Specifying Covergroup Options
 -----------------------------
 PyVSC supports the same set of options that a SystemVerilog covergroup
-does. Type options are specified within the __init__ method via the
+does. Type options are specified within the ``__init__`` method via the
 `type_options` attribute. Instance options are specified within the
-__init__ method via the `options` attribute.
+``__init__`` method via the ``options`` attribute.
 
 Creating a Covergroup Instance
 ------------------------------
 
-Covergroup instances are created by instancing the 
+Covergroup instances are created by instancing the FIXME
 
 Specifying Sampling Data at Instantiation
 -----------------------------------------
@@ -74,7 +74,7 @@ PyVSC supports specifying coverage-sampling data when the covergroup
 is instanced, as well as specifying it each time the sample method is
 called. In this case, no parameters are passed to the `sample` method.
 
-This mode of specifying coverage-sampling data requires that a lambda 
+This mode of specifying coverage-sampling data requires that a `lambda`
 is used to connect the calling context to the data used for coverage 
 sampling. See the example below.
 
@@ -103,8 +103,8 @@ sampling. See the example below.
 
         cg.sample()
 
-Passing a lambda as an __init__-method allows the covergroup to sample
-the current value of the 
+Passing a lambda as an ``__init__`` method allows the covergroup to sample
+the current value of the FIXME
 
 
 

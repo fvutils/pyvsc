@@ -3,7 +3,7 @@ PyVSC Data Types
 ################
 
 Generating good random data requires characterizing the data to be randomized. 
-PyVSC provides specific data types to characterize the size and signed-ness
+PyVSC provides specific data types to characterize the size and signedness
 of fields to be used in constraints.
 
 First, a quick example
@@ -41,7 +41,7 @@ Scalar Standard-Width Attributes
 ================================
 
 PyVSC provides a set of standard-width data types, modeled after the types defined
-in stdint.h. Both random and non-random variants of these attribute classes are 
+in :file:`stdint.h`. Both random and non-random variants of these attribute classes are 
 provided.
 
 =====  ======  ===============  ==============
@@ -121,8 +121,8 @@ Class-type Attributes
 =====================
 
 Random and non-random class attributes can be created using classes
-decorated with `vsc.randobj`. Non-random class attributes can optionally
-be decorated with `vsc.attr`.
+decorated with `randobj`. Non-random class attributes can optionally
+be decorated with `attr`.
 
 .. code-block:: python3
     
