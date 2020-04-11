@@ -101,7 +101,7 @@ class CompositeFieldModel(FieldModel):
                 field_l.append(f)
 
     def pre_randomize(self):
-        """Called during the randomization process to propagate pre_randomize event"""
+        """Called during the randomization process to propagate `pre_randomize` event"""
         
         # Perform a phase callback if available. Note,
         # only trigger pre_randomize callbacks on composite
@@ -113,7 +113,7 @@ class CompositeFieldModel(FieldModel):
             f.pre_randomize()
     
     def post_randomize(self):
-        """Called during the randomization process to propagate post_randomize event"""
+        """Called during the randomization process to propagate `post_randomize` event"""
         
         # Perform a phase callback if available
         if self.is_used_rand and self.rand_if is not None:

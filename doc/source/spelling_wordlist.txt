@@ -1,0 +1,16 @@
+Indices
+PyPi
+PyVSC
+Quickstart
+SystemVerilog
+boolean
+covergroup
+covergroups
+coverpoint
+coverpoints
+datatype
+instantiation
+programmatically
+randomizable
+signedness
+unary

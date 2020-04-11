@@ -5,9 +5,9 @@ PyVSC Constraints
 Constraint Blocks
 =================
 
-Constraint blocks are class methods decorated with the ``constraint`` 
+Constraint blocks are class methods decorated with the `constraint`
 decorator. Dynamic constraint blocks are decorated with the 
-``dynamic_constraint`` decorator.
+`dynamic_constraint` decorator.
 
 Constraint blocks are 'virtual', in that constraints can be overridden
 by inheritance. 
@@ -41,8 +41,8 @@ by inheritance.
          def ab_c(self):
             self.a > self.b
 
-Instances of my_base_s will ensure that 'a' is less than 'b'. Instances
-of my_ext_s will ensure that 'a' is greater than 'b'.
+Instances of ``my_base_s`` will ensure that ``a`` is less than ``b``. Instances
+of ``my_ext_s`` will ensure that ``a`` is greater than ``b``.
 
 
 Expressions
@@ -50,13 +50,13 @@ Expressions
 
 Dynamic-constraint Reference
 ----------------------------
-Constraint blocks decorated with `@vsc.constraint` always apply. 
-Dynamic-constraint blocks, decorated with `@vsc.dynamic_constraint` only
+Constraint blocks decorated with `constraint` always apply. 
+Dynamic-constraint blocks, decorated with `dynamic_constraint` only
 apply when referenced. A dynamic constraint is referenced using syntax
 similar to a method call.
 
 Dynamic constraints provide an abstraction mechanism for applying a
-condition without knowing the details of what that condition.
+condition without knowing the details of what that condition FIXME.
 
 .. code-block:: python3
 
@@ -93,25 +93,25 @@ condition without knowing the details of what that condition.
             it.a_small() | it.a_large()
 
 The example above defines two dynamic constraints. One ensures that the
-range of 'a' is inside 1..10, while the other ensures that the range of
-'a'is inside 90..100.
+range of ``a`` is inside 1..10, while the other ensures that the range of
+``a`` is inside 90..100.
 
 The first randomization call results in a value of a across the full
-value of 'a' (0..100).
+value of ``a`` (0..100).
 
-The second randomization call results in the value of 'a' being 1..10. 
+The second randomization call results in the value of ``a`` being 1..10. 
 
-The third randomization call results in the value of 'a' being 90..100.
+The third randomization call results in the value of ``a`` being 90..100.
 
-The final randomization call results in the value of 'a' being either
+The final randomization call results in the value of ``a`` being either
 1..10 or 90..100.
 
 in
 --
-The 'in' constraint ensures that the value of the specified variable 
+The ``in`` constraint ensures that the value of the specified variable 
 stays inside the specified ranges. Both individual values and 
-ranges may be specified. In the example below, the value of 'a' will be
-1, 2, or 4..8. The value of 'b' will be between 'c' and 'd' (inclusive).
+ranges may be specified. In the example below, the value of ``a`` will be
+1, 2, or 4..8. The value of ``b`` will be between ``c`` and ``d`` (inclusive).
 
 .. code-block:: python3
 
@@ -162,10 +162,11 @@ Statements
 
 if/else
 -------
-if/else constraints are modeled using three statements
-- if_then   -- simple if block
-- else_if   -- else if clause
-- else_then -- terminating else clause
+if/else constraints are modeled using three statements:
+
+- `if_then`   -- simple if block
+- `else_if`   -- else if clause
+- `else_then` -- terminating else clause
 
 .. code-block:: python3
 
@@ -231,7 +232,7 @@ implies
 
 unique
 ------
-The unique constraint ensures that all variables in the specified list have
+The `unique` constraint ensures that all variables in the specified list have
 a unique value. 
 
 .. code-block:: python3
