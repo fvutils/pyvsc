@@ -27,7 +27,6 @@ class CovergroupInt():
     """Internal data used by a covergroup """
     
     def __init__(self, facade_obj):
-        print("covergroup_int")
         self.fo = facade_obj
         self.sample_var_l = []
         self.model = None

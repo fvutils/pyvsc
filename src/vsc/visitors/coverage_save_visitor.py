@@ -82,11 +82,17 @@ class CoverageSaveVisitor(ModelVisitor):
                     fh, 
                     cg.srcinfo_decl.lineno, 
                     0)
-                
+
+            # obtain weight from covergroup
+            # TODO: should be .options vs .type_options
+            weight = cg.options.weight
+            # TODO: obtain at_least from coverpoint and set on cp_scope
+            # TODO: obtain goal from coverpoint and set on cp_scope
+            # TODO: obtain comment from coverpoint and set on cp_scope
             self.active_scope_s.append(cg_inst.createCovergroup(
                 cg_name,
                 inst_location,
-                1, # weight
+                weight, # weight
                 UCIS_OTHER)) # Source type
         else:
             if cg.srcinfo_inst is not None:
@@ -116,11 +122,20 @@ class CoverageSaveVisitor(ModelVisitor):
                 self.get_file_handle(cp.srcinfo_decl.filename),
                 cp.srcinfo_decl.lineno, 0)
             
+        # Obtain weight from coverpoint
+        # TODO: obtain from .options vs .type_options?
+        weight = cp.options.weight
+        # TODO: obtain at_least from coverpoint and set on cp_scope
+        at_least = cp.options.at_least
+        # TODO: obtain goal from coverpoint and set on cp_scope
+        # TODO: obtain comment from coverpoint and set on cp_scope
         cp_scope = active_s.createCoverpoint(
             cp_name,
             decl_location,
-            1, # weight
+            weight, # weight
             UCIS_OTHER) # Source type
+        # TODO: setAtLeast()
+#        cp_scope.set
 
         for bi in range(cp.get_n_bins()):
             decl_location = None
@@ -183,7 +198,6 @@ class CoverageSaveVisitor(ModelVisitor):
         if len(self.active_scope_s) > 0:
             return self.active_scope_s[-1]
         else:
-            print("-- Create Scope")
             # Need to create a default scope
             from ucis.source_info import SourceInfo
             file = self.db.createFileHandle("dummy", os.getcwd())

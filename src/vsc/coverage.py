@@ -55,19 +55,34 @@ def covergroup(T):
             model.dump(ind)
             
         # TODO: Make adding sample parameters additive?
-        def with_sample(self, params):
+        def with_sample(self, *args, **kwargs):
             model = self.get_model()
             cg_i = self._get_int()
-            for pn,pt in params.items():
-                print("parameter: " + pn)
-                pm = pt.build_field_model(pn)
-                setattr(self, pn, pt)
-                cg_i.sample_var_l.append(pn)
+            if len(args) == 1 and isinstance(args[0], dict):
+                params = args[0]
+                for pn,pt in params.items():
+                    pm = pt.build_field_model(pn)
+                    setattr(self, pn, pt)
+                    cg_i.sample_var_l.append(pn)
                 
-                # Add a field to the covergroup model
-                model.add_field(pm)
+                    # Add a field to the covergroup model
+                    model.add_field(pm)
+            elif len(kwargs) > 0:
+                for pn,pt in kwargs.items():
+                    if hasattr(pt, "build_field_model"):
+                        setattr(self, pn, pt)
+                        pm = pt.build_field_model(pn)
+                        # Add a field to the covergroup model
+                        model.add_field(pm)
+                        cg_i.sample_var_l.append(pn)
+                    else:
+                        print("TODO: handle non-field-model")
+                        setattr(self, pn, lambda:getattr(self, "_" + pn))
+                        
+                        
                 
-            print("self=" + str(self) + " sample_var_l=" + str(len(cg_i.sample_var_l)))
+            else:
+                raise Exception("incorrect call to with_sample")
                 
         def sample(self, *args, **kwargs):
             """Base sampling method that samples all coverpoints and crosses"""
@@ -143,7 +158,6 @@ def covergroup(T):
 
             # Finalize the contents of the covergroup                
             cg_i.model.finalize()
-            
         
         def _get_int(self):
             if not hasattr(self, "_cg_int"):
@@ -310,7 +324,14 @@ class binsof(object):
     
 class coverpoint(object):
    
-    def __init__(self, target, cp_t=None, iff=None, bins=None, options=None, type_options=None):
+    def __init__(self, 
+            target, 
+            cp_t=None, 
+            iff=None, 
+            bins=None, 
+            options=None, 
+            type_options=None,
+            name=None):
         self.have_var = False
         self.target = None
         self.model = None
@@ -319,6 +340,7 @@ class coverpoint(object):
         self.get_val_f = None
         self.options = Options()
         self.type_options = TypeOptions()
+        self.name = name
         
         # Capture the declaration location of this coverpoint
         frame = inspect.stack()[1]
@@ -391,7 +413,7 @@ class coverpoint(object):
             
             self.model = CoverpointModel(
                 sample_expr,
-                name)
+                name if self.name is None else self.name)
             self.model.srcinfo_decl = self.srcinfo_decl
 
             with expr_mode():
@@ -444,7 +466,7 @@ class coverpoint(object):
     
 class cross(object):
     
-    def __init__(self, target_l, bins=None):
+    def __init__(self, target_l, bins=None, name=None):
         for t in target_l:
             if not isinstance(t, coverpoint):
                 raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint")
@@ -454,9 +476,12 @@ class cross(object):
         # Capture the declaration location of this cross
         frame = inspect.stack()[1]
         self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        self.name = name
         
     def build_cov_model(self, parent, name):
-        ret = CoverpointCrossModel(name)
+        # Let the user-specified name take precedence
+        ret = CoverpointCrossModel(
+            name if self.name is None else self.name)
         
         ret.srcinfo_decl = self.srcinfo_decl
         

@@ -32,13 +32,12 @@ class TestCoverageReport(VscTestCase):
         for i in range(16):
             my_cg_2.sample(i, 0)
 
-        report = vsc.get_coverage_report_model(my_cg_1, my_cg_2)
+        report = vsc.get_coverage_report_model()
         
-        self.assertEqual(2, len(report.covergroups))
-        self.assertEqual(1, len(report.covergroups[0].coverpoints))
-        self.assertEqual(1, len(report.covergroups[1].coverpoints))
-        
-        print("Report:\n" + str(report))
+        self.assertEqual(1, len(report.covergroups))
+        self.assertEqual(2, len(report.covergroups[0].covergroups))
+        self.assertEqual(1, len(report.covergroups[0].covergroups[0].coverpoints))
+        self.assertEqual(1, len(report.covergroups[0].covergroups[1].coverpoints))
         
     def test_single_type_two_inst(self):
         
@@ -60,7 +59,10 @@ class TestCoverageReport(VscTestCase):
         for i in range(16):
             my_cg_1.sample(i, 0)
             
+        vsc.report_coverage()
+            
         report = vsc.get_coverage_report_model()
+        
         
         self.assertEqual(1, len(report.covergroups))
         self.assertEqual(2, len(report.covergroups[0].covergroups))
@@ -88,7 +90,7 @@ class TestCoverageReport(VscTestCase):
         for i in range(16):
             my_cg_1.sample(i, 0)
             
-        report = vsc.get_coverage_report_model(details=True)
+        report = vsc.get_coverage_report_model()
         
         self.assertEqual(1, len(report.covergroups))
         self.assertEqual(2, len(report.covergroups[0].covergroups))

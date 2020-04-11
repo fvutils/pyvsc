@@ -23,7 +23,7 @@ Created on Aug 4, 2019
 '''
 
 import vsc
-from builtins import range
+from builtins import range, callable
 from enum import IntEnum
 import unittest
 from unittest.case import TestCase
@@ -122,8 +122,48 @@ class TestCovergroup(VscTestCase):
                 self.cg.sample()
                 
         c = my_item_c()
+        c.randomize()
+        c.cg.sample()
         c.cg.dump()
         
+    def disabled_test_plain_obj_sample(self):
+
+        class my_item_c(object):
+            
+            def __init__(self):
+                self.a = 0
+                self.b = 0
+                
+            
+        @covergroup
+        class my_covergroup(object):
+            def __init__(self):
+                
+                self.with_sample(
+                    it=my_item_c()
+                    )
+             
+                self.cp1 = coverpoint(self.it.a, bins={
+                        "a" : bin_array([], [1,15])
+                    })
+                self.cp1 = coverpoint(self.it.b, bins={
+                        "b" : bin_array([], [1,15])
+                    })
+            
+        cg = my_covergroup()
+        it1 = my_item_c()
+        it2 = my_item_c()
+
+        for i in range(1,16):
+            it1.a = i
+            cg.sample(it1)
+        for i in range(1,16):
+            it2.b = i
+            cg.sample(it2)
+            
+        cg.dump()
+        
+
     def disabled_test_covergroup_inheritance(self):
 
         @randobj
@@ -225,7 +265,7 @@ class TestCovergroup(VscTestCase):
 
         cg = my_covergroup()
         
-        for i in range(100000):
+        for i in range(1000):
             cg.sample(4, 4)
             cg.sample(4, 4)
          
@@ -240,10 +280,6 @@ class TestCovergroup(VscTestCase):
         class my_covergroup(object):
             
             def __init__(self):
-#                 super().__init__(lambda 
-#                         a=bit_t(4),
-#                         b=bit_t(4) : 0
-#                     )
                 self.with_sample(dict(
                     a=bit_t(4),
                     b=bit_t(4)
@@ -261,7 +297,7 @@ class TestCovergroup(VscTestCase):
 
         cg = my_covergroup()
         
-        for i in range(100000):
+        for i in range(1000):
             cg.sample(4, 4)
             cg.sample(4, 4)
          

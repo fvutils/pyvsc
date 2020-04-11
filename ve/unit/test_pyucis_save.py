@@ -4,21 +4,21 @@ Created on Mar 14, 2020
 @author: ballance
 '''
 
+from _io import StringIO
+from ucis import UCIS_TESTSTATUS_OK
 from ucis.lib import libucis
+from ucis.lib.LibFactory import LibFactory
 from ucis.lib.lib_ucis import LibUCIS
+from ucis.mem.mem_factory import MemFactory
+from ucis.test_data import TestData
+from ucis.xml.xml_reader import XmlReader
+from ucis.xml.xml_writer import XmlWriter
 from unittest import TestCase
 
 import vsc
 from vsc.impl import ctor
-from vsc.visitors.ucis.coverage_save_visitor import CoverageSaveVisitor
-from ucis.lib.LibFactory import LibFactory
-from ucis.test_data import TestData
-from ucis import UCIS_TESTSTATUS_OK
 from vsc.impl.coverage_registry import CoverageRegistry
-from ucis.mem.mem_factory import MemFactory
-from ucis.xml.xml_writer import XmlWriter
-from _io import StringIO
-from ucis.xml.xml_reader import XmlReader
+from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
 
 
 class TestPyUcisSave(TestCase):

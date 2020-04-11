@@ -24,6 +24,7 @@ from vsc.model.rand_if import RandIF
 from typing import Set, List, Tuple
 import random
 from _random import Random
+from vsc.model.coverage_options_model import CoverageOptionsModel
 
 '''
 Created on Aug 3, 2019
@@ -53,6 +54,8 @@ class CoverpointModel(CoverItemBase):
         # Tracks 
         self.coverage = 0.0
         self.coverage_calc_valid = False
+        
+        self.options = CoverageOptionsModel()
             
     def add_bin_model(self, bin_m):
         bin_m.parent = self

@@ -19,42 +19,51 @@
 
 
 
-from vsc.rand_obj import *
-from vsc.types import *
+from _io import StringIO
+from datetime import datetime
+import sys
+from typing import List
+from ucis import UCIS_TESTSTATUS_OK
+import ucis
+from ucis.mem.mem_factory import MemFactory
+from ucis.report.coverage_report import CoverageReport
+from ucis.report.coverage_report_builder import CoverageReportBuilder
+from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
+from ucis.test_data import TestData
+from ucis.ucis import UCIS
+
 from vsc.attrs import *
-from vsc.methods import *
 from vsc.constraints import *
 from vsc.coverage import *
-from typing import List
-import sys
-from vsc.report.coverage_report_visitor import CoverageReportVisitor
-from vsc.report.report_text_formatter import ReportTextFormatter
+from vsc.methods import *
+from vsc.rand_obj import *
+from vsc.types import *
+from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
 
 
-def get_coverage_report(*args, details=False)->str:
-    covergroups = None
+def get_coverage_report(details=False)->str:
+    model = get_coverage_report_model()
+
+    out = StringIO()    
+    formatter = TextCoverageReportFormatter(model, out)
+    formatter.details = details
+    formatter.report()
     
-    if len(args) == 0:
-        covergroups = CoverageRegistry.inst().covergroup_types()
-    else:
-        covergroups = [cg.get_model() for cg in args]
-        
-    v = CoverageReportVisitor(covergroups, details)
+    return out.getvalue()
+
+def get_coverage_report_model()->CoverageReport:
+    covergroups = CoverageRegistry.inst().covergroup_types()
+
+    db = MemFactory.create()        
+    save_visitor = CoverageSaveVisitor(db)
+    now = datetime.now
+    save_visitor.save(TestData(
+        UCIS_TESTSTATUS_OK,
+        "UCIS:simulator",
+        ucis.ucis_Time()), covergroups)
+
+    return CoverageReportBuilder.build(db)    
+
+def report_coverage(details=False):
+    sys.stdout.write(get_coverage_report(details))
     
-    return ReportTextFormatter.format(v.report(), False)
-
-def get_coverage_report_model(*args, details=False)->str:
-    covergroups = None
-    
-    if len(args) == 0:
-        covergroups = CoverageRegistry.inst().covergroup_types()
-    else:
-        covergroups = [cg.get_model() for cg in args]
-        
-    v = CoverageReportVisitor(covergroups, details)
-    return v.report()
-
-def report_coverage(*args):
-    sys.stdout.write(get_coverage_report(*args))
-
-        

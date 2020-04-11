@@ -36,4 +36,7 @@
   - Covergroup type options
   - Coverpoint instance options
   - Cross exclusion bins
+  - Sampling of plain-object members
+    - Need to recognize as an indirect
+    - Access to the field 
   

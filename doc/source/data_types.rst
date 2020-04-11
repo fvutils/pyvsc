@@ -140,3 +140,14 @@ be decorated with `vsc.attr`.
             self.i2 = vsc.attr(my_sub_s())
             
 
+Accessing Attribute Values
+==========================
+
+The value of scalar attributes can be accessed in two ways. All PyVSC scalar attribute
+types provide a `get_val()` and `set_val()` method. These methods can be called to
+get or set the current value.
+
+PyVSC also provides operator overloading for `randobj`-decorated classes that 
+allows the value of class attributes to be accessed directly.
+
+
