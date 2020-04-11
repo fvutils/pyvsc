@@ -1,7 +1,3 @@
-from vsc.model.rand_set import RandSet
-from typing import List
-from vsc.model.field_model import FieldModel
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -19,11 +15,16 @@ from vsc.model.field_model import FieldModel
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jan 22, 2020
 
-@author: ballance
-'''
+# Created on Jan 22, 2020
+#
+# @author: ballance
+
+
+from vsc.model.rand_set import RandSet
+from typing import List
+from vsc.model.field_model import FieldModel
+
 
 class RandInfo(object):
     """Contains information about a set of variables and constraints"""

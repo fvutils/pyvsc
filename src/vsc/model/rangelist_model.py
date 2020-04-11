@@ -18,11 +18,11 @@ from typing import List
 
 
 
-'''
-Created on Aug 4, 2019
 
-@author: ballance
-'''
+# Created on Aug 4, 2019
+#
+# @author: ballance
+
 
 class RangelistModel(object):
     

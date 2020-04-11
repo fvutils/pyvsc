@@ -1,8 +1,9 @@
-'''
-Created on Mar 27, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 27, 2020
+#
+# @author: ballance
+
 
 class RandGenData(object):
     

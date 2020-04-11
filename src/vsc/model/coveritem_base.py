@@ -1,8 +1,9 @@
-'''
-Created on Mar 20, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 20, 2020
+#
+# @author: ballance
+
 from vsc.model.rand_if import RandIF
 from typing import List
 from vsc.model.expr_model import ExprModel

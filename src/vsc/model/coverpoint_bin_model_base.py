@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-'''
-Created on Aug 4, 2019
 
-@author: ballance
-'''
+# Created on Aug 4, 2019
+#
+# @author: ballance
+
 
 from vsc.model.coverpoint_model import CoverpointModel
 

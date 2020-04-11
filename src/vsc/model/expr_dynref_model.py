@@ -1,8 +1,9 @@
-'''
-Created on Mar 26, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 26, 2020
+#
+# @author: ballance
+
 from pyboolector import BoolectorNode
 
 from vsc.model.constraint_block_model import ConstraintBlockModel

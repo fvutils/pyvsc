@@ -14,11 +14,11 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-'''
-Created on Jul 23, 2019
 
-@author: ballance
-'''
+# Created on Jul 23, 2019
+#
+# @author: ballance
+
 
 from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr, \
     pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr

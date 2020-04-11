@@ -14,16 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+
+# Created on Aug 3, 2019
+#
+# @author: ballance
+
+
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_literal_model import ExprLiteralModel
-
-
-'''
-Created on Aug 3, 2019
-
-@author: ballance
-'''
 from vsc.model.rangelist_model import RangelistModel
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 

@@ -16,11 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jan 1, 2020
+#
+#Created on Jan 1, 2020
+#
+#@author: ballance
 
-@author: ballance
-'''
 from vsc.model.model_visitor import ModelVisitor
 
 class ConstraintBuilderVisitor(ModelVisitor):

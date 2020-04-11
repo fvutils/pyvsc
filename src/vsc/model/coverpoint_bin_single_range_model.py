@@ -1,8 +1,9 @@
-'''
-Created on Mar 20, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 20, 2020
+#
+# @author: ballance
+
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_literal_model import ExprLiteralModel

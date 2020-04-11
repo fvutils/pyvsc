@@ -15,6 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
+# Created on Aug 10, 2019
+#
+# @author: ballance
+
+
 from vsc.model.composite_field_model import CompositeFieldModel
 from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.model.constraint_model import ConstraintModel
@@ -36,11 +42,6 @@ from vsc.model.enum_field_model import EnumFieldModel
 
 
 
-'''
-Created on Aug 10, 2019
-
-@author: ballance
-'''
 
 class ModelVisitor(object):
     

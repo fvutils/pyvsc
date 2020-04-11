@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,12 +16,10 @@
 # under the License.
 
 
+# Created on Jul 28, 2019
+#
+# @author: ballance
 
-'''
-Created on Jul 28, 2019
-
-@author: ballance
-'''
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.bin_expr_type import BinExprType

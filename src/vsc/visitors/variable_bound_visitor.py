@@ -1,8 +1,9 @@
-'''
-Created on Apr 4, 2020
 
-@author: ballance
-'''
+
+# Created on Apr 4, 2020
+#
+# @author: ballance
+
 from typing import Dict, List
 
 from vsc.model.field_model import FieldModel

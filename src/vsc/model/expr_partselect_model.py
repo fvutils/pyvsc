@@ -19,11 +19,10 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 
 
 
-'''
-Created on Jul 28, 2019
+# Created on Jul 28, 2019
+#
+# @author: ballance
 
-@author: ballance
-'''
 from vsc.model.expr_model import ExprModel
 
 class ExprPartselectModel(ExprModel):

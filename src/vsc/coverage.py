@@ -14,11 +14,10 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-'''
-Created on Aug 3, 2019
 
-@author: ballance
-'''
+# Created on Aug 3, 2019
+#
+# @author: ballance
 
 import enum
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
@@ -176,6 +175,17 @@ def covergroup(T):
                     object.__setattr__(self, "buildable_l", [])
                 self.buildable_l.append(val)
             object.__setattr__(self, field, val)
+            
+        def configure_options(self, *args, **kwargs):
+            if len(args) == 1 and isinstance(args[0], dict):
+                opts=args[0]
+            else:
+                opts = kwargs
+
+            print("TODO: reconfigure options")
+            print("TODO: detect wether options are locked")
+            
+            return self
         
         setattr(T, "dump", dump)
         setattr(T, "with_sample", with_sample)
@@ -188,6 +198,7 @@ def covergroup(T):
         setattr(T, "lock", lock)
         setattr(T, "__setattr__", _setattr)
         setattr(T, "_cg_init", True)
+        setattr(T, "configure_options", configure_options)
         
     # Store declaration information on the type
     file = inspect.getsourcefile(T)

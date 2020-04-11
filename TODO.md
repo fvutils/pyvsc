@@ -12,10 +12,10 @@
   - randc
 
 - Constraints and Expressions
-  - Part select (a[3:0], a[1])
-  - Constraint enable/disable
-  - soft constraints
-  - constraint_mode
+*  - Part select (a[3:0], a[1])
+*  - Constraint enable/disable
+*  - soft constraints
+*  - constraint_mode
     
 - Public API
   - std::randomize() and std::randomize() with equivalents
@@ -39,4 +39,8 @@
   - Sampling of plain-object members
     - Need to recognize as an indirect
     - Access to the field 
-  
+ 
+  - Indexed reference to support sampling without copying
+  - Support configuring options using 'configure_options'
+  - Coverpoint sampling condition
+  - Need to revisit covergroup-model construction scheme

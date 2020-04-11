@@ -26,11 +26,11 @@ import random
 from _random import Random
 from vsc.model.coverage_options_model import CoverageOptionsModel
 
-'''
-Created on Aug 3, 2019
 
-@author: ballance
-'''
+# Created on Aug 3, 2019
+#
+# @author: ballance
+
 
 class CoverpointModel(CoverItemBase):
     

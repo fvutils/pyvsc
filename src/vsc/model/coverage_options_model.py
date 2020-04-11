@@ -1,8 +1,9 @@
-'''
-Created on Apr 7, 2020
 
-@author: ballance
-'''
+
+# Created on Apr 7, 2020
+#
+# @author: ballance
+
 
 class CoverageOptionsModel(object):
     

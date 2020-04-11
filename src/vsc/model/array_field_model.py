@@ -1,8 +1,9 @@
-'''
-Created on Mar 4, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 4, 2020
+#
+# @author: ballance
+
 
 class ArrayFieldModel():
 

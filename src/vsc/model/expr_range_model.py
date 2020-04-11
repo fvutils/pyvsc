@@ -16,11 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jan 25, 2020
 
-@author: ballance
-'''
+# Created on Jan 25, 2020
+#
+# @author: ballance
+
 from vsc.model.expr_model import ExprModel
 
 class ExprRangeModel(ExprModel):

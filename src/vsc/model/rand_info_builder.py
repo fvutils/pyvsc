@@ -14,19 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# Created on Jan 22, 2020
+#
+# @author: ballance
+
+
+from builtins import set
+from typing import Set, Dict, List
+
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.rand_if import RandIF
 from _random import Random
-'''
-Created on Jan 22, 2020
-
-@author: ballance
-'''
-
-from builtins import set
-from typing import Set, Dict, List
 
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.covergroup_model import CovergroupModel

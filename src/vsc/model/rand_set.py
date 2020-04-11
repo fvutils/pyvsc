@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jan 22, 2020
 
-@author: ballance
-'''
+# Created on Jan 22, 2020
+#
+# @author: ballance
+
 from builtins import set
 from typing import Set
 from vsc.model.constraint_model import ConstraintModel

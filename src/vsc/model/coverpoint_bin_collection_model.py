@@ -14,19 +14,20 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
-from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
-from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
-'''
-Created on Aug 6, 2019
 
-@author: ballance
-'''
+
+# Created on Aug 6, 2019
+#
+# @author: ballance
+
 
 from _functools import reduce
 
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 from vsc.model.rangelist_model import RangelistModel
+from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
+from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
+from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
 
 
 class CoverpointBinCollectionModel(CoverpointBinModelBase):

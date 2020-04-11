@@ -17,11 +17,10 @@
 
 
 
-'''
-Created on Jul 27, 2019
+# Created on Jul 27, 2019
+#
+# @author: ballance
 
-@author: ballance
-'''
 from vsc.model.expr_model import ExprModel
 
 class ExprLiteralModel(ExprModel):

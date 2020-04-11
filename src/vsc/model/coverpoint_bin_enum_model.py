@@ -17,12 +17,10 @@
 # under the License.
 
 
+# Created on Aug 3, 2019
+#
+# @author: ballance
 
-'''
-Created on Aug 3, 2019
-
-@author: ballance
-'''
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinEnumModel(CoverpointBinModelBase):

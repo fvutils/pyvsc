@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jan 2, 2020
 
-@author: ballance
-'''
+# Created on Jan 2, 2020
+#
+# @author: ballance
+
 from vsc.model.expr_model import ExprModel
 
 class ExprCondModel(ExprModel):

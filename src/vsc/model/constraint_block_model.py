@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jan 1, 2020
 
-@author: ballance
-'''
+# Created on Jan 1, 2020
+#
+# @author: ballance
+
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 
 class ConstraintBlockModel(ConstraintScopeModel):

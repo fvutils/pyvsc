@@ -1,8 +1,9 @@
-'''
-Created on Mar 20, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 20, 2020
+#
+# @author: ballance
+
 
 class RandIF(object):
     """Defines operations to be implemented by a random generator"""

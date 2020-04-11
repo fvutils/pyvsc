@@ -39,6 +39,8 @@ class TestCoverageReport(VscTestCase):
         self.assertEqual(1, len(report.covergroups[0].covergroups[0].coverpoints))
         self.assertEqual(1, len(report.covergroups[0].covergroups[1].coverpoints))
         
+        vsc.report_coverage(details=True)
+        
     def test_single_type_two_inst(self):
         
         @vsc.covergroup

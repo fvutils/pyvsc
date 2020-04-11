@@ -1,8 +1,9 @@
-'''
-Created on Mar 17, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 17, 2020
+#
+# @author: ballance
+
 from vsc.model.composite_field_model import CompositeFieldModel
 from typing import List
 

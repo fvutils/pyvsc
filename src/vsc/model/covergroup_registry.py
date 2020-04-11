@@ -16,11 +16,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Dec 23, 2019
 
-@author: ballance
-'''
+# Created on Dec 23, 2019
+#
+# @author: ballance
+
 
 class CovergroupRegistry(object):
     

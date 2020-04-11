@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jul 24, 2019
 
-@author: ballance
-'''
+# Created on Jul 24, 2019
+#
+# @author: ballance
+
 
 from vsc.model.field_model import FieldModel
 

@@ -14,17 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# Created on Jul 27, 2019
+#
+# @author: ballance
+
 from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.source_info import SourceInfo
 
 
-
-'''
-Created on Jul 27, 2019
-
-@author: ballance
-'''
 
 class FieldModel(object):
     

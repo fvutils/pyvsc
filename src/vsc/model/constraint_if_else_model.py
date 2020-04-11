@@ -18,11 +18,11 @@
 
 
 
-'''
-Created on Jul 28, 2019
 
-@author: ballance
-'''
+# Created on Jul 28, 2019
+#
+# @author: ballance
+
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.expr_model import ExprModel
 

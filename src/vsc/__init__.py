@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -15,9 +14,6 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-
-
-
 
 from _io import StringIO
 from datetime import datetime
@@ -42,6 +38,7 @@ from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
 
 
 def get_coverage_report(details=False)->str:
+    """Returns a textual coverage report of all covergroups"""
     model = get_coverage_report_model()
 
     out = StringIO()    
@@ -52,6 +49,7 @@ def get_coverage_report(details=False)->str:
     return out.getvalue()
 
 def get_coverage_report_model()->CoverageReport:
+    """Returns a coverage report model of all covergroups"""
     covergroups = CoverageRegistry.inst().covergroup_types()
 
     db = MemFactory.create()        
@@ -64,6 +62,9 @@ def get_coverage_report_model()->CoverageReport:
 
     return CoverageReportBuilder.build(db)    
 
-def report_coverage(details=False):
-    sys.stdout.write(get_coverage_report(details))
+def report_coverage(fp=None, details=False):
+    """Writes a coverage report to the console"""
+    if fp is None:
+        fp = sys.stdout
+    fp.write(get_coverage_report(details))
     

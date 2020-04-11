@@ -1,8 +1,9 @@
-'''
-Created on Mar 10, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 10, 2020
+#
+# @author: ballance
+
 from enum import Enum, auto
 from ucis import UCIS_HISTORYNODE_TEST, UCIS_OTHER, UCIS_DU_MODULE, \
     UCIS_ENABLED_STMT, UCIS_ENABLED_BRANCH, UCIS_ENABLED_COND, UCIS_ENABLED_EXPR, \

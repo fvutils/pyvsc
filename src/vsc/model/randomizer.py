@@ -14,17 +14,18 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+
+# Created on Jan 21, 2020
+#
+# @author: ballance
+
+
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.model.expr_model import ExprModel
-'''
-Created on Jan 21, 2020
-
-@author: ballance
-'''
 
 from builtins import zip
 import random

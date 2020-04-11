@@ -4,6 +4,7 @@ Sphinx>=2.1
 sphinx-rtd-theme
 cairosvg
 # breathe
+pyucis
 sphinxcontrib-makedomain
 sphinxcontrib-spelling
 pyenchant

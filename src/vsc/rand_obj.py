@@ -14,15 +14,14 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from vsc.impl.randobj_int import RandObjInt
-'''
-Created on Jul 23, 2019
 
-@author: ballance
-'''
+# Created on Jul 23, 2019
+#
+# @author: ballance
 
 import inspect
 
+from vsc.impl.randobj_int import RandObjInt
 from vsc.constraints import constraint_t, dynamic_constraint_t
 from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope, \
     clear_exprs

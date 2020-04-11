@@ -15,11 +15,11 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jul 26, 2019
 
-@author: ballance
-'''
+# Created on Jul 26, 2019
+#
+# @author: ballance
+
 
 from enum import Enum, auto
 

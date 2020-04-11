@@ -17,16 +17,15 @@
 # under the License.
 
 
+# Created on Aug 3, 2019
+#
+# @author: ballance
+
+
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 from vsc.model.composite_field_model import CompositeFieldModel
 from vsc.model.coverage_options_model import CoverageOptionsModel
-
-'''
-Created on Aug 3, 2019
-
-@author: ballance
-'''
 
 class CovergroupModel(CompositeFieldModel):
     

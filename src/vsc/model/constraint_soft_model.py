@@ -1,8 +1,9 @@
-'''
-Created on Mar 18, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 18, 2020
+#
+# @author: ballance
+
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.expr_model import ExprModel
 

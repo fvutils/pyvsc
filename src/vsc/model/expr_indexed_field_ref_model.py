@@ -1,8 +1,9 @@
-'''
-Created on Mar 6, 2020
 
-@author: ballance
-'''
+
+# Created on Mar 6, 2020
+#
+# @author: ballance
+
 from vsc.model.expr_model import ExprModel
 
 class ExprIndexedFieldRefModel(ExprModel):

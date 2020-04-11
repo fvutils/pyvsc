@@ -19,11 +19,11 @@ from pyboolector import BoolectorNode
 
 
 
-'''
-Created on Jul 27, 2019
 
-@author: ballance
-'''
+# Created on Jul 27, 2019
+#
+# @author: ballance
+
 
 class ConstraintModel(object):
     """Base class for all constraint models"""

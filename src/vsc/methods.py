@@ -16,11 +16,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-'''
-Created on Jul 23, 2019
-
-@author: ballance
-'''
+# Created on Jul 23, 2019
+#
+# @author: ballance
 
 from vsc.types import field_info, type_base
 from vsc.impl import expr_mode

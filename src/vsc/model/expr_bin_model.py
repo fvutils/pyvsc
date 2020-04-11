@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,15 +15,12 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from vsc.model.bin_expr_type import BinExprType
+# Created on Jul 26, 2019
+#
+# @author: ballance
 
-
-'''
-Created on Jul 26, 2019
-
-@author: ballance
-'''
 from vsc.model.expr_model import ExprModel
+from vsc.model.bin_expr_type import BinExprType
 
 class ExprBinModel(ExprModel):
     

@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -16,15 +15,15 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
+# Created on Jul 28, 2019
+#
+# @author: ballance
+
 from vsc.model.expr_rangelist_model import ExprRangelistModel
 from vsc.model.expr_range_model import ExprRangeModel
 
 
-'''
-Created on Jul 28, 2019
-
-@author: ballance
-'''
 from vsc.model.expr_model import ExprModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.bin_expr_type import BinExprType

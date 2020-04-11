@@ -15,14 +15,13 @@
 # specific language governing permissions and limitations
 # under the License.
 
+
+# Created on Jul 26, 2019
+#
+# @author: ballance
+
+
 from vsc.model.expr_model import ExprModel
-
-
-'''
-Created on Jul 26, 2019
-
-@author: ballance
-'''
 
 class ExprFieldRefModel(ExprModel):
     

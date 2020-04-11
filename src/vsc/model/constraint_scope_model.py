@@ -16,11 +16,11 @@
 # under the License.
 
 
-'''
-Created on Jul 27, 2019
 
-@author: ballance
-'''
+# Created on Jul 27, 2019
+#
+# @author: ballance
+
 from vsc.model.constraint_model import ConstraintModel
 
 class ConstraintScopeModel(ConstraintModel):
