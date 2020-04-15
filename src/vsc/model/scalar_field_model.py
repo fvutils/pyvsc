@@ -42,7 +42,7 @@ class FieldScalarModel(FieldModel):
         self.val = 0
         self.randgen_data = None
         
-    def set_used_rand(self, is_rand, level):
+    def set_used_rand(self, is_rand, level=0):
         self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
         if self.is_used_rand and self.randgen_data is None:
             self.randgen_data = RandGenData(self.width, self.is_signed)

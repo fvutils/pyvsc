@@ -66,7 +66,7 @@ class Randomizer(RandIF):
             btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
             btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
             
-            for f in rs.fields():
+            for f in rs.all_fields():
                 f.build(btor)
 
             node_l : [BoolectorNode] = []
@@ -105,7 +105,7 @@ class Randomizer(RandIF):
                     if btor.Sat() != btor.SAT:
                     
                         # Ensure we clean up
-                        for f in rs.fields():
+                        for f in rs.all_fields():
                             f.dispose()
 
                         raise Exception("solve failure")
@@ -119,7 +119,7 @@ class Randomizer(RandIF):
                             print("")
                             
                     # Ensure we clean up
-                    for f in rs.fields():
+                    for f in rs.all_fields():
                         f.dispose()
                     raise Exception("solve failure")
             else:
@@ -130,7 +130,7 @@ class Randomizer(RandIF):
 
                 
             # Finalize the value of the field
-            for f in rs.fields():
+            for f in rs.all_fields():
                 f.post_randomize()
                 f.dispose() # Get rid of the solver var, since we're done with it
 

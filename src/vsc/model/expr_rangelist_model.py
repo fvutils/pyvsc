@@ -22,12 +22,16 @@
 # @author: ballance
 
 from vsc.model.expr_model import ExprModel
+from typing import List
 
 class ExprRangelistModel(ExprModel):
     
-    def __init__(self):
+    def __init__(self, rl : List[ExprModel]=None):
         super().__init__()
-        self.rl = []
+        if rl is not None:
+            self.rl = rl
+        else:
+            self.rl = []
         
     def add_range(self, r):
         self.rl.append(r)

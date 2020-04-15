@@ -30,7 +30,7 @@ from vsc.model.bin_expr_type import BinExprType
 
 class ExprInModel(ExprModel):
     
-    def __init__(self, lhs, rhs):
+    def __init__(self, lhs : ExprModel, rhs : ExprRangelistModel):
         self.lhs = lhs
         self.rhs = rhs
         

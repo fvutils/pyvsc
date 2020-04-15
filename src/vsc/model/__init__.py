@@ -17,9 +17,24 @@
 # under the License.
 
 # Imports to make simplify usage
+from .expr_model import ExprModel
 from .model_visitor import ModelVisitor        
 from .composite_field_model import CompositeFieldModel
 from .scalar_field_model import FieldScalarModel
+from .expr_bin_model import ExprBinModel
+from .bin_expr_type import BinExprType
+from .expr_in_model import ExprInModel
+from .expr_range_model import ExprRangeModel
+from .expr_rangelist_model import ExprRangelistModel
+from .expr_literal_model import ExprLiteralModel
+from .expr_fieldref_model import ExprFieldRefModel
+
+from .constraint_model import ConstraintModel
+from .constraint_block_model import ConstraintBlockModel
+from .constraint_expr_model import ConstraintExprModel
+from .constraint_if_else_model import ConstraintIfElseModel
+from .constraint_implies_model import ConstraintImpliesModel
+from .constraint_scope_model import ConstraintScopeModel
 
 
 
