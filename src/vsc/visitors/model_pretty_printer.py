@@ -3,16 +3,17 @@ Created on Apr 28, 2020
 
 @author: ballance
 '''
-from vsc.model.unary_expr_type import UnaryExprType
 '''
 Created on Apr 28, 2020
 
 @author: ballance
 '''
 
-import vsc.model as vm
-from portaskela.visitors.model_visitor import ModelVisitor
 from _io import StringIO
+
+import vsc.model as vm
+from vsc.model.model_visitor import ModelVisitor
+from vsc.model.unary_expr_type import UnaryExprType
 
 
 class ModelPrettyPrinter(ModelVisitor):
