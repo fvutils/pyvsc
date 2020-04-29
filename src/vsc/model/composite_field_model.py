@@ -57,6 +57,7 @@ class CompositeFieldModel(FieldModel):
             f.build(builder)
 
         # Next, build out the constraints
+        print("CompositeFieldModel: type=" + str(type(self)))
         for c in self.constraint_model_l:
             c.build(builder)
 

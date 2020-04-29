@@ -154,6 +154,9 @@ class ModelVisitor(object):
         e.upper.accept(self)
         if e.lower is not None:
             e.lower.accept(self)
+            
+    def visit_expr_unary(self, e):
+        e.expr.accept(self)
         
     def visit_covergroup_registry(self, rgy):
         

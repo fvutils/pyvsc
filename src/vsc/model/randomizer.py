@@ -20,13 +20,6 @@
 # @author: ballance
 
 
-from vsc.model.expr_bin_model import ExprBinModel
-from vsc.model.expr_fieldref_model import ExprFieldRefModel
-from vsc.model.bin_expr_type import BinExprType
-from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.scalar_field_model import FieldScalarModel
-from vsc.model.expr_model import ExprModel
-
 from builtins import zip
 import random
 from typing import List, Dict
@@ -35,13 +28,20 @@ from pyboolector import Boolector, BoolectorNode
 import pyboolector
 
 from vsc.constraints import constraint
+from vsc.model.bin_expr_type import BinExprType
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_model import ExprModel
 from vsc.model.field_model import FieldModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_info_builder import RandInfoBuilder
+from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 class Randomizer(RandIF):
@@ -69,21 +69,27 @@ class Randomizer(RandIF):
             for f in rs.all_fields():
                 f.build(btor)
 
-            node_l : [BoolectorNode] = []
-            soft_node_l : [BoolectorNode] = []
+            constraint_l = list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints()))
+            
+            for c in constraint_l:
+                btor.Assume(c[1])
                 
-            for c in rs.constraints():
-                try:
-                    n = c.build(btor)
-                    if isinstance(c, ConstraintSoftModel):
-                        soft_node_l.append(n)
-                    else:
-                        node_l.append(n)
-#                    btor.Assert(c.build(btor))
-                    btor.Assume(n)
-                except Exception as e:
-                    print("Error: The following constraint failed:\n" + str(c))
-                    raise e
+            soft_node_l = list(map(lambda c:c[1], filter(lambda c:c[2], constraint_l)))
+            node_l = list(map(lambda c:c[1], filter(lambda c:not c[2], constraint_l)))
+#             soft_node_l : [BoolectorNode] = []
+#                 
+#             for c in rs.constraints():
+#                 try:
+#                     n = c.build(btor)
+#                     if isinstance(c, ConstraintSoftModel):
+#                         soft_node_l.append(n)
+#                     else:
+#                         node_l.append(n)
+# #                    btor.Assert(c.build(btor))
+#                     btor.Assume(n)
+#                 except Exception as e:
+#                     print("Error: The following constraint failed:\n" + str(c))
+#                     raise e
                         
             
             # Perform an initial solve to establish correctness
@@ -114,13 +120,14 @@ class Randomizer(RandIF):
                         for n in filter(lambda n:n is not None, node_l+soft_node_l):
                             btor.Assert(n)
                 else:
-                    for n in node_l:
-                        if btor.Failed(n):
-                            print("")
+                    for c in constraint_l:
+                        if btor.Failed(c[1]):
+                            print("Failed constraint: " + ModelPrettyPrinter.print(c[0]))
                             
                     # Ensure we clean up
                     for f in rs.all_fields():
                         f.dispose()
+                    print("Solve failure")
                     raise Exception("solve failure")
             else:
                 # Still need to convert assumptions to assertions

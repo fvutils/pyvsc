@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,8 +16,6 @@
 # under the License.
 
 
-
-
 # Created on Jul 28, 2019
 #
 #@author: ballance
@@ -28,10 +25,9 @@ from vsc.model.constraint_scope_model import ConstraintScopeModel
 
 class ConstraintImpliesModel(ConstraintScopeModel):
     
-    def __init__(self, cond):
-        super().__init__()
+    def __init__(self, cond, constraints=None):
+        super().__init__(constraints)
         self.cond = cond
-        self.node = None
         
     def build(self, btor):
         cond = self.cond.build(btor)

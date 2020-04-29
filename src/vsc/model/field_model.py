@@ -43,6 +43,17 @@ class FieldModel(object):
     def post_randomize(self):
         pass
     
+    @property
+    def fullname(self):
+        ret = self.name
+        p = self.parent
+        
+        while p is not None:
+            ret = p.name + "." + ret
+            p = p.parent
+            
+        return ret
+    
     def expr(self):
         """Returns a field-reference expression for this field"""
         return ExprFieldRefModel(self)

@@ -42,3 +42,26 @@ class BinExprType(Enum):
     Xor = auto()
     Not = auto()
     
+    @staticmethod
+    def toString(op):
+        return {
+            BinExprType.Eq : "==",
+            BinExprType.Ne : "!=",
+            BinExprType.Gt : ">",
+            BinExprType.Ge : ">=",
+            BinExprType.Lt : "<",
+            BinExprType.Le : "<=",
+            BinExprType.Add : "+",
+            BinExprType.Sub : "-",
+            BinExprType.Div : "/",
+            BinExprType.Mul : "*",
+            BinExprType.Mod : "%",
+            BinExprType.And : "&",
+            BinExprType.Or  : "|",
+            BinExprType.Sll : "<<",
+            BinExprType.Srl : ">>",
+            BinExprType.Xor : "^",
+            BinExprType.Not : "!",
+            }[op]
+        
+    

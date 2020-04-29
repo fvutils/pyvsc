@@ -28,6 +28,7 @@ from .expr_range_model import ExprRangeModel
 from .expr_rangelist_model import ExprRangelistModel
 from .expr_literal_model import ExprLiteralModel
 from .expr_fieldref_model import ExprFieldRefModel
+from .expr_unary_model import ExprUnaryModel
 
 from .constraint_model import ConstraintModel
 from .constraint_block_model import ConstraintBlockModel
@@ -35,6 +36,8 @@ from .constraint_expr_model import ConstraintExprModel
 from .constraint_if_else_model import ConstraintIfElseModel
 from .constraint_implies_model import ConstraintImpliesModel
 from .constraint_scope_model import ConstraintScopeModel
+
+from .unary_expr_type import UnaryExprType
 
 
 

@@ -25,9 +25,12 @@ from vsc.model.constraint_model import ConstraintModel
 
 class ConstraintScopeModel(ConstraintModel):
     
-    def __init__(self):
+    def __init__(self, constraints = None):
         super().__init__()
-        self.constraint_l = []
+        if constraints is not None:
+            self.constraint_l = constraints
+        else:
+            self.constraint_l = []
         
     def build(self, btor):
         ret = None
