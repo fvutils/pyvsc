@@ -116,3 +116,47 @@ class ExprBinModel(ExprModel):
         
     def accept(self, visitor):
         visitor.visit_expr_bin(self)
+        
+    def val(self):
+        lhs = self.lhs.val()
+        rhs = self.rhs.val()
+        ret = None
+        
+        if self.op == BinExprType.Eq:
+            ret = (lhs == rhs)
+        elif self.op == BinExprType.Ne:
+            ret = (lhs != rhs)
+        elif self.op == BinExprType.Gt:
+            ret = (lhs > rhs)
+        elif self.op == BinExprType.Ge:
+            ret = (lhs >= rhs)
+        elif self.op == BinExprType.Lt:
+            ret = (lhs < rhs)
+        elif self.op == BinExprType.Le:
+            ret = (lhs <= rhs)
+        elif self.op == BinExprType.Add:
+            ret = (lhs + rhs)
+        elif self.op == BinExprType.Sub:
+            ret = (lhs - rhs)
+        elif self.op == BinExprType.Div:
+            ret = (lhs / rhs)
+        elif self.op == BinExprType.Mul:
+            ret = (lhs * rhs)
+        elif self.op == BinExprType.Mod:
+            ret = (lhs % rhs)
+        elif self.op == BinExprType.And:
+            ret = (lhs & rhs)
+        elif self.op == BinExprType.Or:
+            ret = (lhs | rhs)
+        elif self.op == BinExprType.Sll:
+            ret = (lhs << rhs)
+        elif self.op == BinExprType.Srl:
+            ret = (lhs >> rhs)
+        elif self.op == BinExprType.Xor:
+            ret = (lhs ^ rhs)
+        elif self.op == BinExprType.Not:
+            ret = not (lhs)
+        else:
+            raise Exception("Unsupported binary expression type \"" + str(self.op) + "\"")
+        
+        return ret        

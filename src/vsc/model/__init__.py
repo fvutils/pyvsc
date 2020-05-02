@@ -36,6 +36,7 @@ from .constraint_expr_model import ConstraintExprModel
 from .constraint_if_else_model import ConstraintIfElseModel
 from .constraint_implies_model import ConstraintImpliesModel
 from .constraint_scope_model import ConstraintScopeModel
+from .constraint_unique_model import ConstraintUniqueModel
 
 from .unary_expr_type import UnaryExprType
 
