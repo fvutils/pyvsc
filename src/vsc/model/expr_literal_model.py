@@ -29,6 +29,9 @@ class ExprLiteralModel(ExprModel):
         self.signed = is_signed
         self.width = width
         
+        if width < 1:
+            raise Exception("Error: literal with a width of " + str(width))
+        
     def build(self, btor):
         return btor.Const(self.val(), self.width)
     
