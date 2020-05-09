@@ -295,7 +295,7 @@ constraints need to be customized slightly when the class is used in
 a test. PyVSC provides several mechanisms for customizing constraints.
 
 Randomize-With
-==============
+--------------
 
 Classes decorated with the `randobj` decorator are randomized by calling
 the `randomize` method, as shown in the example below.
@@ -341,7 +341,7 @@ to constraint `a` to explicit values.
 
     
 Constraint Mode
-===============
+---------------
 
 All constraints decorated with the `constraint` decorator can be enabled
 and disabled using the `constraint_mode` method. This allows constraints
