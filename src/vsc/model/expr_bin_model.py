@@ -21,6 +21,9 @@
 
 from vsc.model.expr_model import ExprModel
 from vsc.model.bin_expr_type import BinExprType
+from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.scalar_field_model import FieldScalarModel
 
 class ExprBinModel(ExprModel):
     
@@ -31,9 +34,48 @@ class ExprBinModel(ExprModel):
         self.rhs = rhs
         self.width = 0
         self.signed = 0
+        self.is_composite = False
         
+        if isinstance(lhs, ExprFieldRefModel) and isinstance(lhs.fm, CompositeFieldModel):
+            if isinstance(rhs, ExprFieldRefModel) and isinstance(rhs.fm, CompositeFieldModel):
+                self.is_composite = True
+                if len(lhs.fm.field_l) != len(rhs.fm.field_l):
+                    raise Exception("Incorrect number of fields")
+            else:
+                raise Exception("BinExpr between composite and non-composite: " + str(lhs) + " ; " + str(rhs))
+        
+    def build_composite(self, btor, lhs, rhs):
+        print("build_composite: " + str(type(lhs)))
+        
+        if isinstance(lhs, CompositeFieldModel):
+            # Keep recursing
+            ret = None
+
+            and_l = []            
+            for i in range(len(lhs.field_l)):
+                lhs_f = lhs.field_l[i]
+                rhs_f = rhs.field_l[i]
+                and_l.append(self.build_composite(btor, lhs_f, rhs_f))
+                
+            ret = btor.And(*and_l)
+        else:
+            if self.op == BinExprType.Eq:
+                ret = btor.Eq(
+                    lhs.build(btor),
+                    rhs.build(btor))
+            elif self.op == BinExprType.Ne:
+                ret = btor.Ne(
+                    lhs.build(btor),
+                    rhs.build(btor))
+                
+        return ret
+            
+
     def build(self, btor):
         ret = None
+        if self.is_composite:
+            return self.build_composite(btor, self.lhs.fm, self.rhs.fm)
+        
         lhs_n = self.lhs.build(btor)
         if lhs_n is None:
             raise Exception("Expression " + str(self.lhs) + " build returned None")
@@ -159,4 +201,28 @@ class ExprBinModel(ExprModel):
         else:
             raise Exception("Unsupported binary expression type \"" + str(self.op) + "\"")
         
+        return ret
+    
+    @staticmethod
+    def mkCompositeEq(lhs, rhs):
+        print("build_composite: " + str(type(lhs)))
+        ret = None
+        
+        if isinstance(lhs, CompositeFieldModel):
+            # Keep recursing
+
+            for i in range(len(lhs.field_l)):
+                lhs_f = lhs.field_l[i]
+                rhs_f = rhs.field_l[i]
+                sub = ExprBinModel.mkCompositeEq(lhs_f, rhs_f)
+                if ret is None:
+                    ret = sub
+                elif sub is not None:
+                    ret = ExprBinModel(sub, BinExprType.And, ret)
+        elif isinstance(lhs, FieldScalarModel):
+            ret = ExprBinModel(
+                ExprFieldRefModel(lhs),
+                BinExprType.Eq,
+                ExprFieldRefModel(rhs))
+                
         return ret        

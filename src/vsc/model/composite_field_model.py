@@ -125,4 +125,9 @@ class CompositeFieldModel(FieldModel):
 
     def accept(self, v):
         v.visit_composite_field(self)
+        
+    def dispose(self):
+        for f in self.field_l:
+            f.dispose()
+        
             

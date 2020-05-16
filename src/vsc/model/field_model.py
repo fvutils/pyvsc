@@ -35,7 +35,7 @@ class FieldModel(object):
         self.srcinfo_inst = None
     
     def build(self, builder):
-        raise Exception("build unimplemented")
+        raise Exception("FieldModel::build unimplemented for type " + str(type(self)))
 
     def pre_randomize(self):
         pass

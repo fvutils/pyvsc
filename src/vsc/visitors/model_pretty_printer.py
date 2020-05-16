@@ -21,10 +21,12 @@ class ModelPrettyPrinter(ModelVisitor):
     def __init__(self):
         self.out = StringIO()
         self.ind = ""
+        self.print_values = False
     
     @staticmethod
-    def print(m):
+    def print(m, print_values=False):
         p = ModelPrettyPrinter()
+        p.print_values = print_values
         m.accept(p)
         return p.out.getvalue()
     
@@ -81,11 +83,24 @@ class ModelPrettyPrinter(ModelVisitor):
         e.rhs.accept(self)
         self.write(")")
         
+    def visit_expr_in(self, e:vm.ExprInModel):
+        e.lhs.accept(self)
+        self.write(" in [")
+        for i,r in enumerate(e.rhs.rl):
+            r.accept(self)
+            if i+1 < len(e.rhs.rl):
+                self.write(", ")
+                
+        self.write("]")
+        
     def visit_expr_literal(self, e : vm.ExprLiteralModel):
         self.write(str(e.val()))
         
     def visit_expr_fieldref(self, e : vm.ExprFieldRefModel):
-        self.write(e.fm.fullname)
+        if self.print_values and hasattr(e.fm, "is_used_rand") and not e.fm.is_used_rand:
+            self.write(str(e.fm.get_val()))
+        else:
+            self.write(e.fm.fullname)
         
     def visit_expr_unary(self, e : vm.ExprUnaryModel):
         print("PrettyPrinter::visit_expr_unary")

@@ -54,11 +54,14 @@ class FieldScalarModel(FieldModel):
         v.visit_scalar_field(self)
 
     def build(self, btor):
-        if self.is_used_rand:
-            sort = btor.BitVecSort(self.width)
-            self.var = btor.Var(sort)
-        else:
-            self.var = btor.Const(self.val, self.width)
+        if self.var is None:
+            print("Field: " + self.get_full_name() + " is_used_rand=" + str(self.is_used_rand))
+            if self.is_used_rand:
+                sort = btor.BitVecSort(self.width)
+                self.var = btor.Var(sort)
+            else:
+                print("    value=" + str(self.val))
+                self.var = btor.Const(self.val, self.width)
         return self.var
     
     def get_full_name(self):

@@ -20,7 +20,10 @@
 from .expr_model import ExprModel
 from .model_visitor import ModelVisitor        
 from .composite_field_model import CompositeFieldModel
+
+from .field_model import FieldModel
 from .scalar_field_model import FieldScalarModel
+
 from .expr_bin_model import ExprBinModel
 from .bin_expr_type import BinExprType
 from .expr_in_model import ExprInModel

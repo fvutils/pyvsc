@@ -65,9 +65,14 @@ class Randomizer(RandIF):
             self.btor = btor
             btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
             btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
-            
-            for f in rs.all_fields():
-                f.build(btor)
+
+            try:            
+                for f in rs.all_fields():
+                    f.build(btor)
+            except Exception as e:
+                for c in rs.constraints():
+                    print("Constraint: " + ModelPrettyPrinter.print(c))
+                raise e
 
             constraint_l = list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints()))
             
@@ -120,9 +125,13 @@ class Randomizer(RandIF):
                         for n in filter(lambda n:n is not None, node_l+soft_node_l):
                             btor.Assert(n)
                 else:
+                    print("Failed constraints:")
+                    i=1
                     for c in constraint_l:
                         if btor.Failed(c[1]):
-                            print("Failed constraint: " + ModelPrettyPrinter.print(c[0]))
+                            print("[" + str(i) + "]: " + ModelPrettyPrinter.print(c[0], False))
+                            print("[" + str(i) + "]: " + ModelPrettyPrinter.print(c[0], True))
+                            i+=1
                             
                     # Ensure we clean up
                     for f in rs.all_fields():
