@@ -69,7 +69,8 @@ class FieldScalarModel(FieldModel):
         p = self.parent
         
         while p is not None:
-            ret = p.name + "." + ret
+            if p.name is not None:
+                ret = p.name + "." + ret
             p = p.parent
 
         return ret
