@@ -56,7 +56,7 @@ apply when referenced. A dynamic constraint is referenced using syntax
 similar to a method call.
 
 Dynamic constraints provide an abstraction mechanism for applying a
-condition without knowing the details of what that condition FIXME.
+condition without knowing the details of what that condition is.
 
 .. code-block:: python3
 
@@ -229,6 +229,37 @@ implies
                   
              with vsc.implies(self.a == 5):
                  self.b == 16
+                 
+soft
+----
+Soft constraints are enforced, except in cases where they violate
+a hard constraint. Soft constraints are often used to set default 
+values and relationships, which are then overridden by another
+constraint. 
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_item(object):
+         
+         def __init__(self):
+             self.a = vsc.rand_bit_t(8)
+             self.b = vsc.rand_bit_t(8)
+             
+         @vsc.constraint
+         def ab_c(self):
+            self.a < self.b
+            soft(self.a == 5)
+            
+    item = my_item()
+    item.randomize() # a==5
+    with item.randomize_with() as it:
+      it.a == 6
+    
+
+The `soft` constraint applies to a single expression, as shown above. 
+Soft constraints are disabled if they conflict with another hard
+constraint declared in the class or introduced as an inline constraint.
 
 unique
 ------
@@ -255,3 +286,93 @@ a unique value.
              
              vsc.unique(self.a, self.b, self.c, self.d)
 
+Customizing Constraint Behavior
+===============================
+
+In general, the bulk of constraints should be declared inside a class and 
+should always be enabled. However, there are often cases where these base
+constraints need to be customized slightly when the class is used in 
+a test. PyVSC provides several mechanisms for customizing constraints.
+
+Randomize-With
+--------------
+
+Classes decorated with the `randobj` decorator are randomized by calling
+the `randomize` method, as shown in the example below.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_base_s(object):
+         
+         def __init__(self):
+             self.a = vsc.rand_bit_t(8)
+             self.b = vsc.rand_bit_t(8)
+             
+         @vsc.constraint
+         def ab_c(self):
+            self.a < self.b
+
+    item = my_base_s()
+    item.randomize()
+
+PyVSC also provides a `randomize_with` method that allows additional 
+constraints to be added in-line. The example below shows using this
+to constraint `a` to explicit values.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_base_s(object):
+         
+         def __init__(self):
+             self.a = vsc.rand_bit_t(8)
+             self.b = vsc.rand_bit_t(8)
+             
+         @vsc.constraint
+         def ab_c(self):
+            self.a < self.b
+
+    item = my_base_s()
+    for i in range(10):
+       with item.randomize_with() as it:
+         it.a == i
+
+
+    
+Constraint Mode
+---------------
+
+All constraints decorated with the `constraint` decorator can be enabled
+and disabled using the `constraint_mode` method. This allows constraints
+to be temporarily turned off. For example, a constraint that enforces
+valid ranges for certain variables might be disabled to allow testing
+design response to illegal values.
+
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_item(object):
+         
+         def __init__(self):
+             self.a = vsc.rand_bit_t(8)
+             self.b = vsc.rand_bit_t(8)
+             
+         @vsc.constraint
+         def valid_ab_c(self):
+            self.a < self.b
+
+    item = my_item()
+    # Always generate valid values
+    for i in range(10):
+       with item.randomize():
+       
+    item.valid_ab_c.constraint_mode(False)
+
+    # Allow invalid values
+    for i in range(10):
+       with item.randomize():
+    
+         
+         
