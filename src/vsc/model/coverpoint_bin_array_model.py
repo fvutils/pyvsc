@@ -55,7 +55,7 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
             
     def sample(self):
         # Query value from the actual coverpoint or expression
-        val = self.cp.get_val()
+        val = int(self.cp.get_val())
         if val >= self.low and val <= self.high:
             # Notify that coverage has changed
             self.cp.coverage_ev(self.bin_idx_base+(val-self.low))

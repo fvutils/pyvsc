@@ -38,6 +38,7 @@ from vsc.model.field_model import FieldModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 
 
 class RandInfoBuilder(ModelVisitor,RandIF):
@@ -137,8 +138,46 @@ class RandInfoBuilder(ModelVisitor,RandIF):
     def visit_constraint_soft(self, c:ConstraintSoftModel):
         super().visit_constraint_soft(c)
         
-    def visit_expr_fieldref(self, e):
+    def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
+        fm = s.getFieldModel()
+        if self._pass == 1:
+            # During pass 1, build out randsets based on constraint
+            # relationships
 
+            # If the field is already referenced by an existing randset
+            # that is not this one, we need to merge the sets
+            if fm in self._randset_field_m.keys():
+                # There's an existing randset that holds this field
+                ex_randset = self._randset_field_m[fm]
+                if self._active_randset is None:
+                    self._active_randset = ex_randset
+                elif ex_randset is not self._active_randset:
+                    for f in self._active_randset.fields():
+                        # Relink to the new consolidated randset
+                        self._randset_field_m[f] = ex_randset
+                        ex_randset.add_field(f)
+                    # TODO: this might be later
+                    for c in self._active_randset.constraints():
+                        ex_randset.add_constraint(c)
+
+                    # Remove the previous randset
+                    self._randset_s.remove(self._active_randset)                    
+                    self._active_randset = ex_randset
+            else:
+                # No existing randset holds this field
+                if self._active_randset is None:
+                    self._active_randset = RandSet()
+                    self._randset_s.add(self._active_randset)
+                    
+                # Need to register this field/randset mapping
+                self._active_randset.add_field(fm)
+                self._randset_field_m[fm] = self._active_randset
+                
+            if fm in self._field_s:
+                self._field_s.remove(fm)
+        
+    def visit_expr_fieldref(self, e):
+        
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint
             # relationships

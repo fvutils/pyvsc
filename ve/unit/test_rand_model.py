@@ -10,10 +10,11 @@ from vsc.model.composite_field_model import CompositeFieldModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.randomizer import Randomizer
 from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.value_scalar import ValueScalar
 from vsc_test_case import VscTestCase
-from vsc.model.expr_literal_model import ExprLiteralModel
 
 
 class TestRandModel(VscTestCase):
@@ -53,6 +54,6 @@ class TestRandModel(VscTestCase):
         
         rand.do_randomize([obj])
 
-        print("a=" + hex(a.val))
-        self.assertGreater(a.val, 0x80000000000000000)
+        print("a=" + hex(int(a.val)))
+        self.assertGreater(a.val, ValueScalar(0x80000000000000000))
         

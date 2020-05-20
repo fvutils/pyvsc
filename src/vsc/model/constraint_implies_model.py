@@ -41,3 +41,12 @@ class ConstraintImpliesModel(ConstraintScopeModel):
     def accept(self, visitor):
         visitor.visit_constraint_implies(self)
         
+    def clone(self, deep=False)->'ConstraintModel':
+        ret = ConstraintImpliesModel(self.cond)
+        
+        if deep:
+            for c in self.constraint_l:
+                ret.constraint_l.append(c.clone(deep))
+        
+        return ret
+        

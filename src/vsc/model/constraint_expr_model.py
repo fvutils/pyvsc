@@ -42,3 +42,11 @@ class ConstraintExprModel(ConstraintModel):
     def accept(self, visitor):
         visitor.visit_constraint_expr(self)
         
+    def clone(self, deep=False)->'ConstraintModel':
+        ret = ConstraintExprModel(self.e)
+        
+        if deep:
+            print("TODO: ")
+            
+        return ret
+        

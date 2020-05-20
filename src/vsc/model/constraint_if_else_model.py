@@ -24,15 +24,20 @@
 # @author: ballance
 
 from vsc.model.constraint_model import ConstraintModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.expr_model import ExprModel
+
 
 class ConstraintIfElseModel(ConstraintModel):
     
-    def __init__(self, cond : ExprModel):
+    def __init__(self, 
+                 cond : ExprModel,
+                 true_c : ConstraintScopeModel = None,
+                 false_c : ConstraintScopeModel = None):
         super().__init__()
         self.cond = cond
-        self.true_c = None
-        self.false_c = None
+        self.true_c : ConstraintModel = true_c
+        self.false_c : ConstraintModel = false_c
         
     def build(self, btor):
         cond = self.cond.build(btor)
@@ -55,3 +60,15 @@ class ConstraintIfElseModel(ConstraintModel):
 
     def accept(self, visitor):
         visitor.visit_constraint_if_else(self)
+        
+    def clone(self, deep=False)->'ConstraintModel':
+        ret = ConstraintIfElseModel(self.cond)
+        
+        if deep:
+            ret.true_c = self.true_c.clone()
+            ret.false_c = None if self.false_c is None else self.false_c.clone()
+        else:
+            ret.true_c = self.true_c
+            ret.false_c = None if self.false_c is None else self.false_c
+
+        return ret            

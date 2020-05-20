@@ -22,6 +22,7 @@
 from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.source_info import SourceInfo
+from vsc.model.value import Value
 
 
 
@@ -42,6 +43,12 @@ class FieldModel(object):
 
     def post_randomize(self):
         pass
+    
+    def get_val(self) -> Value:
+        raise NotImplementedError("FieldModel::get_val unimplemented for " + str(type(self)))
+    
+    def set_val(self, v : Value):
+        raise NotImplementedError("FieldModel::set_val unimplemented for " + str(type(self)))
     
     @property
     def fullname(self):

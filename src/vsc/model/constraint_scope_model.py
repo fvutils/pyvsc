@@ -31,6 +31,10 @@ class ConstraintScopeModel(ConstraintModel):
             self.constraint_l = constraints
         else:
             self.constraint_l = []
+            
+    def addConstraint(self, c) -> ConstraintModel:
+        self.constraint_l.append(c)
+        return c
         
     def build(self, btor):
         ret = None
@@ -52,3 +56,11 @@ class ConstraintScopeModel(ConstraintModel):
 
     def accept(self, visitor):
         visitor.visit_constraint_scope(self)
+        
+    def clone(self, deep=False)->'ConstraintModel':
+        ret = ConstraintModel()
+        if deep:
+            for c in self.constraint_l:
+                ret.constraint_l.append(c.clone(deep))
+                
+        return ret

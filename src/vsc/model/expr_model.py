@@ -29,18 +29,18 @@ class ExprModel(object):
         pass
     
     def build(self, btor):
-        raise Exception("Expression build() unimplemented")
+        raise Exception("Expression build() unimplemented for " + str(type(self)))
     
     def is_signed(self):
-        raise Exception("is_signed unimplemented (" + str(self) + ")")
+        raise Exception("is_signed unimplemented (" + str(type(self)) + ")")
     
     def width(self):
-        raise Exception("width unimplemented (" + str(self) + ")")
+        raise Exception("width unimplemented (" + str(type(self)) + ")")
         
     def accept(self, v):
         raise Exception("" + str(self) + "::accept not implemented")
 
-    def val(self, parent=None):
+    def val(self):
         '''
         Return the value of this expression
         '''

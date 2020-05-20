@@ -54,3 +54,8 @@ class ConstraintUniqueModel(ConstraintModel):
     def accept(self, visitor):
         visitor.visit_constraint_unique(self)
         
+    def clone(self, deep=False)->'ConstraintModel':
+        ret = ConstraintUniqueModel(self.unique_l)
+        
+        return ret
+        

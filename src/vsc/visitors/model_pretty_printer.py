@@ -12,6 +12,8 @@ Created on Apr 28, 2020
 from _io import StringIO
 
 import vsc.model as vm
+from vsc.model.constraint_expr_model import ConstraintExprModel
+from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.unary_expr_type import UnaryExprType
 
@@ -22,13 +24,20 @@ class ModelPrettyPrinter(ModelVisitor):
         self.out = StringIO()
         self.ind = ""
         self.print_values = False
+        
+    def do_print(self, m, print_values=False):
+        self.ind = ""
+        self.print_values = print_values
+        self.out = StringIO()
+        
+        m.accept(self)
+        
+        return self.out.getvalue()
     
     @staticmethod
     def print(m, print_values=False):
         p = ModelPrettyPrinter()
-        p.print_values = print_values
-        m.accept(p)
-        return p.out.getvalue()
+        return p.do_print(m, print_values)
     
     def write(self, s):
         self.out.write(s)
@@ -43,10 +52,25 @@ class ModelPrettyPrinter(ModelVisitor):
         self.ind = self.ind[4:]
     
     def visit_constraint_block(self, c:vm.ConstraintBlockModel):
-        self.writeln("constraint " + c.name + "{")
+        self.writeln("constraint " + c.name + " {")
         self.inc_indent()
         for stmt in c.constraint_l:
             stmt.accept(self)
+        self.dec_indent()
+        self.writeln("}")
+        
+    def visit_constraint_expr(self, c:ConstraintExprModel):
+        self.write(self.ind)
+        c.e.accept(self)
+        self.write(";\n")
+        
+    def visit_constraint_foreach(self, f:ConstraintForeachModel):
+        self.write(self.ind + "foreach (")
+        f.lhs.accept(self)
+        self.write("[i]) {\n")
+        self.inc_indent()
+        for s in f.constraint_l:
+            s.accept(self)
         self.dec_indent()
         self.writeln("}")
         
@@ -70,13 +94,21 @@ class ModelPrettyPrinter(ModelVisitor):
         self.write(self.ind)
         c.cond.accept(self)
         self.write(" -> {")
-        
+
         for sc in c.constraint_l:
             sc.accept(self)
             
         self.write("}\n")
+        
+    def visit_expr_array_subscript(self, s):
+        s.lhs.accept(self)
+        self.write("[")
+        s.rhs.accept(self)
+        self.write("]")
 
     def visit_expr_bin(self, e:vm.ExprBinModel):
+        if e.lhs is None or e.rhs is None:
+            print("op: " + str(e.op))
         self.write("(")
         e.lhs.accept(self)
         self.write(" " + vm.BinExprType.toString(e.op) + " ")
@@ -94,11 +126,11 @@ class ModelPrettyPrinter(ModelVisitor):
         self.write("]")
         
     def visit_expr_literal(self, e : vm.ExprLiteralModel):
-        self.write(str(e.val()))
+        self.write(str(int(e.val())))
         
     def visit_expr_fieldref(self, e : vm.ExprFieldRefModel):
         if self.print_values and hasattr(e.fm, "is_used_rand") and not e.fm.is_used_rand:
-            self.write(str(e.fm.get_val()))
+            self.write(str(int(e.fm.get_val())))
         else:
             self.write(e.fm.fullname)
         

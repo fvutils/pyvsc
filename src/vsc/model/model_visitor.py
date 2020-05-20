@@ -39,6 +39,10 @@ from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionMod
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.enum_field_model import EnumFieldModel
+from vsc.model.field_scalar_array_model import FieldScalarArrayModel
+from vsc.model.constraint_foreach_model import ConstraintForeachModel
+from xml.etree.ElementPath import prepare_self
+from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
 
 
 
@@ -95,6 +99,10 @@ class ModelVisitor(object):
         c.e.accept(self)
         self.visit_constraint_stmt_leave(c)
         
+    def visit_constraint_foreach(self, f : ConstraintForeachModel):
+        f.lhs.accept(self)
+        self.visit_constraint_scope(f)
+        
     def visit_constraint_if_else(self, c : ConstraintIfElseModel):
         self.visit_constraint_stmt_enter(c)
         c.cond.accept(self)
@@ -108,6 +116,9 @@ class ModelVisitor(object):
         c.cond.accept(self)
         self.visit_constraint_scope(c)
         self.visit_constraint_stmt_leave(c)
+        
+    def visit_constraint_override(self, c):
+        c.new_constraint.accept(self)
         
     def visit_constraint_scope(self, c : ConstraintScopeModel):
         for cc in c.constraint_l:
@@ -141,6 +152,10 @@ class ModelVisitor(object):
     def visit_expr_rangelist(self, r):
         for ri in r.rl:
             ri.accept(self)
+            
+    def visit_expr_array_subscript(self, s):
+        s.lhs.accept(self)
+        s.rhs.accept(self)
     
     def visit_expr_in(self, e):
         e.lhs.accept(self)
@@ -157,6 +172,13 @@ class ModelVisitor(object):
             
     def visit_expr_unary(self, e):
         e.expr.accept(self)
+        
+    def visit_field_bool(self, f):
+        pass
+    
+    def visit_field_scalar_array(self, f : FieldScalarArrayModel):
+        for elem in f.elems:
+            elem.accept(self)
         
     def visit_covergroup_registry(self, rgy):
         
@@ -184,6 +206,9 @@ class ModelVisitor(object):
     def visit_coverpoint_bin_collection(self, bn : CoverpointBinCollectionModel):
         for sb in bn.bin_l:
             sb.accept(self)
+            
+    def visit_coverpoint_bin_single_range(self, bn : CoverpointBinSingleRangeModel):
+        pass
             
     def visit_coverpoint_bin_enum(self, bn : CoverpointBinEnumModel):
         pass

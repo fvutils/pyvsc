@@ -22,6 +22,8 @@
 
 from vsc.model.field_model import FieldModel
 from vsc.model.rand_gen_data import RandGenData
+from vsc.model.value import Value
+from vsc.model.value_scalar import ValueScalar
 
 
 class FieldScalarModel(FieldModel):
@@ -39,7 +41,7 @@ class FieldScalarModel(FieldModel):
         self.is_used_rand = is_rand
         self.rand_if = rand_if
         self.var = None
-        self.val = 0
+        self.val = ValueScalar(0)
         self.randgen_data = None
         
     def set_used_rand(self, is_rand, level=0):
@@ -55,13 +57,11 @@ class FieldScalarModel(FieldModel):
 
     def build(self, btor):
         if self.var is None:
-            print("Field: " + self.get_full_name() + " is_used_rand=" + str(self.is_used_rand))
             if self.is_used_rand:
                 sort = btor.BitVecSort(self.width)
                 self.var = btor.Var(sort)
             else:
-                print("    value=" + str(self.val))
-                self.var = btor.Const(self.val, self.width)
+                self.var = btor.Const(self.val.v, self.width)
         return self.var
     
     def get_full_name(self):
@@ -86,8 +86,8 @@ class FieldScalarModel(FieldModel):
         if self.rand_if is not None:
             self.rand_if.do_pre_randomize()
     
-    def set_val(self, val):
-        self.val = val
+    def set_val(self, val : Value):
+        self.val.v = int(val)
         
     def get_val(self):
         return self.val

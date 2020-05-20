@@ -25,6 +25,7 @@ from vsc.model.expr_model import ExprModel
 class ExprLiteralModel(ExprModel):
     
     def __init__(self, val, is_signed, width):
+        super().__init__()
         self._val = val
         self.signed = is_signed
         self.width = width

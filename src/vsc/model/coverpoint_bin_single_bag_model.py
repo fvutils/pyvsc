@@ -74,7 +74,7 @@ class CoverpointBinSingleBagModel(CoverpointBinModelBase):
         
     def sample(self):
         # Query value from the actual coverpoint or expression
-        val = self.cp.get_val()
+        val = int(self.cp.get_val())
         if val in self.binspec:
             self.hit_bin_idx = 0
             self.cp.coverage_ev(self.bin_idx_base)

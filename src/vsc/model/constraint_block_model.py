@@ -48,4 +48,13 @@ class ConstraintBlockModel(ConstraintScopeModel):
             ret += str(c) + "; "
             
         return ret
+    
+    def clone(self, deep=False)->'ConstraintModel':
+        ret = ConstraintBlockModel(self.name)
+        ret.enabled = self.enabled
+        ret.is_dynamic = self.is_dynamic
+        
+        if deep:
+            for c in self.constraint_l:
+                ret.constraint_l.append(c.clone(deep))
         

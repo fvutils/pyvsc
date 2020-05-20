@@ -42,10 +42,15 @@ from vsc.model.rand_info import RandInfo
 from vsc.model.rand_info_builder import RandInfoBuilder
 from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
+from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
 
 
 class Randomizer(RandIF):
     """Implements the core randomization algorithm"""
+    
+    def __init__(self):
+        self.pretty_printer = ModelPrettyPrinter()
     
     _state_p = [0,1]
     _rng = random.Random()
@@ -71,7 +76,7 @@ class Randomizer(RandIF):
                     f.build(btor)
             except Exception as e:
                 for c in rs.constraints():
-                    print("Constraint: " + ModelPrettyPrinter.print(c))
+                    print("Constraint: " + self.pretty_printer.do_print(c))
                 raise e
 
             constraint_l = list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints()))
@@ -129,8 +134,8 @@ class Randomizer(RandIF):
                     i=1
                     for c in constraint_l:
                         if btor.Failed(c[1]):
-                            print("[" + str(i) + "]: " + ModelPrettyPrinter.print(c[0], False))
-                            print("[" + str(i) + "]: " + ModelPrettyPrinter.print(c[0], True))
+                            print("[" + str(i) + "]: " + self.pretty_printer.do_print(c[0], False))
+                            print("[" + str(i) + "]: " + self.pretty_printer.do_print(c[0], True))
                             i+=1
                             
                     # Ensure we clean up
@@ -400,6 +405,9 @@ class Randomizer(RandIF):
             
         if constraint_l is None:
             constraint_l = []
+
+        for fm in field_model_l:
+            constraint_l.extend(ArrayConstraintBuilder.build(fm))
             
         # First, invoke pre_randomize on all elements
         for fm in field_model_l:
@@ -407,7 +415,12 @@ class Randomizer(RandIF):
 
         r = Randomizer()
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
-        r.randomize(ri)
+        try:
+            r.randomize(ri)
+        finally:
+            # Rollback any constraints we've replaced for arrays
+            for fm in field_model_l:
+                ConstraintOverrideRollbackVisitor.rollback(fm)
         
         for fm in field_model_l:
             fm.post_randomize()

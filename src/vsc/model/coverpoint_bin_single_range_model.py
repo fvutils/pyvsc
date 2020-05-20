@@ -43,7 +43,7 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
         return self.name 
     
     def sample(self):
-        val = self.cp.get_val()
+        val = int(self.cp.get_val())
         if val >= self.target_val_low and val <= self.target_val_high:
             self.hit_bin_idx = 0
             self.cp.coverage_ev(self.bin_idx_base)
@@ -51,7 +51,7 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
             self.hit_bin_idx = -1
             
     def accept(self, v):
-        v.visit_coverpoint_bin_single(self)
+        v.visit_coverpoint_bin_single_range(self)
         
     def equals(self, oth)->bool:
         eq = isinstance(oth, CoverpointBinSingleRangeModel)

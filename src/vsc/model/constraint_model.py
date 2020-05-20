@@ -1,5 +1,3 @@
-from pyboolector import BoolectorNode
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -17,13 +15,11 @@ from pyboolector import BoolectorNode
 # specific language governing permissions and limitations
 # under the License.
 
-
-
-
 # Created on Jul 27, 2019
 #
 # @author: ballance
 
+from pyboolector import BoolectorNode
 
 class ConstraintModel(object):
     """Base class for all constraint models"""
@@ -54,4 +50,9 @@ class ConstraintModel(object):
 
     def accept(self, visitor):
         raise NotImplementedError("" + str(self) + "::accept unimplemented")
+    
+    def clone(self, deep=False)->'ConstraintModel':
+        raise NotImplementedError("clone not implemented by " + str(type(self)))
+    
+        
     

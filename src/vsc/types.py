@@ -35,6 +35,7 @@ from vsc.model.expr_partselect_model import ExprPartselectModel
 from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
 from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.value_scalar import ValueScalar
 
 
 def unsigned(v, w=-1):
@@ -159,16 +160,16 @@ class type_base(object):
 #        return expr(self._int_field_info.model.get_indexed_fieldref_expr())
     
     def get_val(self):
-        return self.val
+        return int(self._int_field_info.model.get_val())
     
     def set_val(self, val):
-        self.val = val
+        self._int_field_info.model.set_val(ValueScalar(int(val)))
         
-    def _get_val(self):
-        return self.val
-    
-    def _set_val(self, val):
-        self.val = val
+#     def _get_val(self):
+#         return int(self._int_field_info.model.get_val())
+#     
+#     def _set_val(self, val):
+#         self.val = val
     
     def bin_expr(self, op, rhs):
         to_expr(rhs)
@@ -255,6 +256,29 @@ class type_base(object):
     def clone(self):
         return type_base(self.width, self.is_signed)
 
+class type_bool(type_base):
+    """Base class for boolean fields"""
+    
+    def __init__(self, i=False):
+        super().__init__(1, False, 1 if i else 0)
+        
+    def build_field_model(self, name):
+        # If we have an IntEnum, then collect the values
+        self._int_field_info.name = name
+        self._int_field_info.model = EnumFieldModel(
+            name,
+            self.enum_i.enums,
+            self._int_field_info.is_rand
+        )
+        return self._int_field_info.model        
+        
+    def get_val(self):
+        """Gets the field value"""
+        return bool(self._int_field_info.model.get_val())
+    
+    def set_val(self, val):
+        """Sets the field value"""
+        self._int_field_info.model.set_val(bool(val))
 
 class type_enum(type_base):
     """Base class for enumerated-type fields"""
@@ -313,6 +337,11 @@ class bit_t(type_base):
     """Creates an unsigned arbitrary-width attribute"""
     def __init__(self, w=1, i=0):
         super().__init__(w, False, i)
+        
+class bool_t(type_base):
+    """Creates a boolean field"""
+    def __init__(self, i=False):
+        super.__init__(1, False, 1 if i else 0)
 
 class uint8_t(bit_t):
     """Creates an unsigned 8-bit attribute"""
