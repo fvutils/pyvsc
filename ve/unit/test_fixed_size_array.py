@@ -16,4 +16,6 @@ class TestFixedSizeArray(VscTestCase):
         class my_item_c(object):
             
             def __init__(self):
-                self.my_arr = vsc.array(t, sz, init)
+                self.my_arr = vsc.rand_list_t(vsc.uint8_t(), 16)
+                
+    

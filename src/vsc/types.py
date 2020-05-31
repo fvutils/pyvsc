@@ -88,6 +88,7 @@ class rangelist(object):
                 to_expr(a)
                 e = pop_expr()
                 self.range_l.add_range(e)
+#            self.range_l.rl.reverse()
 
                 # This needs to be convertioble to a
             
@@ -445,14 +446,15 @@ class rand_int64_t(rand_int_t):
         
 class list_t(object):
     
-    def __init__(self, t, sz=0, init=True):
+    def __init__(self, t, sz=-1):
         self.t = t
         self.sz = sz
-        self.init = init
         self._int_field_info = field_info()
-        if sz is None:
+        if sz < 0:
+            # Resizable array
             self.arr = []
         else:
+            # Fixed-size array
             self.arr = [None]*sz
         pass
     
@@ -507,6 +509,7 @@ class array(object):
     
     def size(self):
         if get_expr_mode():
+            # TODO: return size
             pass
         else:
             return self.sz

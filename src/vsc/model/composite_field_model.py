@@ -79,6 +79,12 @@ class CompositeFieldModel(FieldModel):
         f.idx = idx
         self.field_l[idx] = f
         
+    def find_field(self, name):
+        for f in self.field_l:
+            if f.name == name:
+                return f
+        return None
+        
     def add_constraint(self, c):
         c.parent = self
         self.constraint_model_l.append(c)

@@ -45,7 +45,7 @@ class RangelistModel(object):
 
     def add_range(self, low, high):
         self.range_l.append([low, high])
-    
+        
     def __contains__(self, val):
         for r in self.range_l:
             if val >= r[0] and val <= r[1]:

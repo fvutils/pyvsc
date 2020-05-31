@@ -9,26 +9,28 @@ from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.model.composite_field_model import CompositeFieldModel
 
 class FieldScalarArrayModel(CompositeFieldModel):
+    """All arrays are processed as if they were variable size."""
     
     def __init__(self, name, 
                  width,
                  is_signed,
                  is_rand,
-                 size=0):
+                 size=-1):
         super().__init__(name, is_rand)
         self.size = FieldScalarModel(
             "size",
             32,
             False,
-            False)
+            size >= 0)
         self.size.set_val(size)
-        
-        for i in range(size):
-            self.add_field(FieldScalarModel(
-                "[" + str(i) + "]",
-                width,
-                is_signed,
-                is_rand))
+ 
+        if size > 0:       
+            for i in range(size):
+                self.add_field(FieldScalarModel(
+                    "[" + str(i) + "]",
+                    width,
+                    is_signed,
+                    is_rand))
         
         # TODO: array properties, such as product, 
         # are actually expressions
