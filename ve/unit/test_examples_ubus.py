@@ -74,9 +74,31 @@ class TestExamplesUbus(VscTestCase):
                 self.transmit_delay <= 10
 
         xfer = ubus_transfer()
+
+        size_bins = [0]*4
+        transmit_delay_bins = [0]*11
+                
         for i in range(100):
             xfer.randomize()
             print("read_write=%s size=%d transmit_delay=%d addr=%x" % (str(xfer.read_write), xfer.size, xfer.transmit_delay, xfer.addr))
+            if xfer.size == 1:
+                size_bins[0] += 1
+            elif xfer.size == 2:
+                size_bins[1] += 1
+            elif xfer.size == 4:
+                size_bins[2] += 1
+            elif xfer.size == 8:
+                size_bins[3] += 1
+            transmit_delay_bins[xfer.transmit_delay] += 1
+            
+        print("size_bins: " + str(size_bins))
+        print("transmit_delay_bins: " + str(transmit_delay_bins))
+        
+        for i in range(len(size_bins)):
+            self.assertGreater(size_bins[i], 0)
+            
+        for i in range(len(transmit_delay_bins)):
+            self.assertGreater(transmit_delay_bins[i], 0)
             
 #        for i in range(100):
 #            with xfer.randomize_with() as it:

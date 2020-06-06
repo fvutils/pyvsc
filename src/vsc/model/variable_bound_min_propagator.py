@@ -16,7 +16,7 @@ class VariableBoundMinPropagator(VariableBoundPropagator):
         
     def propagate(self):
         # Obtain the max value from the
-        min_v = self.min_e.val()
+        min_v = int(self.min_e.val())
   
         range_l = self.target.domain.range_l
         i=len(range_l)-1

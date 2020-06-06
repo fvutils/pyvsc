@@ -157,4 +157,46 @@ class TestVariableBoundsVisitor(VscTestCase):
         
         self.assertEqual(2, c_bounds.domain.range_l[0][0])
         self.assertEqual(3, c_bounds.domain.range_l[0][1])
+
+#     def test_var2var_max(self):
+#         @vsc.randobj
+#         class my_c(object):
+#             
+#             def __init__(self):
+#                 self.a = vsc.rand_uint32_t()
+#                 self.b = vsc.rand_uint16_t()
+#                 
+#             @vsc.constraint
+#             def ab_c(self):
+#                 self.a < 10
+#                 self.b < self.a
+#                 
+#         my_item = my_c()
+#         model = my_item.get_model()
+#         
+#         visitor = VariableBoundVisitor()
+#         visitor.process([model], [])
+#         
+#         a_model = model.find_field("a")
+#         b_model = model.find_field("b")
+#         
+#         self.assertIsNotNone(a_model)
+#         self.assertIsNotNone(b_model)
+# 
+#         self.assertTrue(a_model in visitor.bound_m.keys())
+#         self.assertTrue(b_model in visitor.bound_m.keys())
+#         
+#         a_bounds = visitor.bound_m[a_model]
+#         b_bounds = visitor.bound_m[b_model]
+#         
+#         self.assertEqual(1, len(a_bounds.domain.range_l))
+#         self.assertEqual(1, len(b_bounds.domain.range_l))
+# 
+#         # a in [0..9]        
+#         self.assertEqual(0, a_bounds.domain.range_l[0][0])
+#         self.assertEqual(9, a_bounds.domain.range_l[0][1])
+#         
+#         # b in [0..9]        
+#         self.assertEqual(0, b_bounds.domain.range_l[0][0])
+#         self.assertEqual(3, b_bounds.domain.range_l[0][1])
                 

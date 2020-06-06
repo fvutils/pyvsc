@@ -16,7 +16,7 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
         
     def propagate(self):
         # Obtain the max value from the
-        max_v = self.max_e.val()
+        max_v = int(self.max_e.val())
   
         range_l = self.target.domain.range_l
         i=len(range_l)-1
@@ -30,8 +30,8 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
                 i -= 1
             
         must_propagate = False
-        if i >= 0:            
-            print("i: " + str(i) + " " + str(self.target.domain.range_l[i][0]))
+        if i >= 0:
+#            print("i: " + str(i) + " " + str(self.target.domain.range_l[i][0]))
             if range_l[i][1] > max_v:
                 range_l[i][1] = max_v
                 must_propagate = True
@@ -39,7 +39,7 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
             if i < len(range_l)-1:
                 # Need to trim off full range elements
                 must_propagate = True
-                print("Removing domain element " + str(range_l[i+1]))
+#                print("Removing domain element " + str(range_l[i+1]))
                 self.target.domain.range_l = range_l[:i+1]
         else:
             print("ran off the end")

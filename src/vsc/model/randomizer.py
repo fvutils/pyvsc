@@ -44,6 +44,9 @@ from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
+from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
+from vsc.model.variable_bound_model import VariableBoundModel
+from vsc.types import int64_t
 
 
 class Randomizer(RandIF):
@@ -146,8 +149,9 @@ class Randomizer(RandIF):
             else:
                 # Still need to convert assumptions to assertions
                 btor.Assert(*(node_l+soft_node_l))
+                
 
-            self.swizzle_randvars(btor, rs)            
+            self.swizzle_randvars(btor, rs)
 
                 
             # Finalize the value of the field
@@ -155,71 +159,81 @@ class Randomizer(RandIF):
                 f.post_randomize()
                 f.dispose() # Get rid of the solver var, since we're done with it
 
-        for uf in ri.unconstrained():
+        bounds_v = VariableBoundVisitor()
+        uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
+        bounds_v.process(uc_rand, [])
+        for uf in uc_rand:
+            bounds = bounds_v.bound_m[uf]
+            range_l = bounds.domain.range_l
             
-            if not uf.is_used_rand:
-                continue
-            
-            # First select a bin within the range
-            gd = uf.randgen_data
-            if gd.bag is not None:
-                vi = self.randint(0, len(gd.bag)-1)
-                uf.set_val(gd.bag[vi])
+            if len(range_l) == 1:
+                # Single (likely domain-based) range
+                uf.set_val(
+                    self.randint(range_l[0][0], range_l[0][1]))
             else:
-                limit = 16384
-                domain = (gd.max-gd.min+1)
-                if domain > limit:
-#               bin = self.randint(0, 65535)
-                    bin = 1
-                    bin_sz = int(domain/limit)
-                    val = self.randint(
-                       gd.min+bin*bin_sz, 
-                       gd.min+(bin+1)*bin_sz-1)
-                    uf.set_val(val)
-                else:
-                    uf.set_val(self.randbits(uf.width))
+                # Most likely an enumerated type
+                pass
             
     def swizzle_randvars(self, btor : Boolector, rs : RandInfo):
-        
+        bounds_v = VariableBoundVisitor()
+        bounds_v.process(rs.all_fields(), rs.constraints())
+
         # TODO: we must ignore fields that are otherwise being controlled
         
         # For each random variable, select a partition with it's known 
         # domain and add the corresponding constraint
         rand_node_l = []
+        
         field_l = list(rs.fields())
-        for f in field_l:
-            gd = f.randgen_data
+        if len(field_l) == 1:
+            # Go ahead and pick values in the domain, since there 
+            # are no other constraints
+            f = field_l[0]
+            e = self.create_single_var_domain_constraint(
+                field_l[0], bounds_v.bound_m[field_l[0]])
             
-            if f.is_used_rand and (gd.max-gd.min) > 0:
-                e = self.create_rand_domain_constraint(f)
+            if e is not None:
                 n = e.build(btor)
                 rand_node_l.append(n)                    
                 btor.Assume(n)
-            else:
-                # It's always possible that this value is already fixed.
-                # Just ignore.
-                rand_node_l.append(None)
-
+        else:
+            for f in field_l:
+                bound_m = bounds_v.bound_m[f]
+                 
+                if f.is_used_rand and not bound_m.isEmpty():
+                    e = self.create_rand_domain_constraint(f, bound_m)
+                    if e is not None:
+                        n = e.build(btor)
+                        rand_node_l.append(n)                    
+                        btor.Assume(n)
+                else:
+                    # It's always possible that this value is already fixed.
+                    # Just ignore.
+                    rand_node_l.append(None)
+     
         if btor.Sat() != btor.SAT:
             # Remove any failing assumptions
-
+ 
             n_failed = 0
             n_domained = 0
             for i,n in enumerate(rand_node_l):
                 if n is not None and btor.Failed(n):
                     if not field_l[i].randgen_data.found_min_max:
                         self.calc_domain(field_l[i], btor)
-                        e = self.create_rand_domain_constraint(field_l[i])
-                        rand_node_l[i] = e.build(btor)
-                        n_domained += 1
+                        e = self.create_rand_domain_constraint(
+                            field_l[i],
+                            bounds_v.bound_m[field_l[i]])
+                        if e is not None:
+                            rand_node_l[i] = e.build(btor)
+                            n_domained += 1
                     else:
                         rand_node_l[i] = None
                         n_failed += 1
-                            
+                             
             # If we've adjusted domains, let's try again
             if n_domained > 0:
                 btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                
+                 
                 if btor.Sat() != btor.SAT:
                     # Okay, still need to prune a few
                     for i,n in enumerate(rand_node_l):
@@ -227,55 +241,182 @@ class Randomizer(RandIF):
                             rand_node_l[i] = None
                             n_failed += 1                        
                 btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                    
+                     
                 if btor.Sat() != btor.SAT:
                     raise Exception("failed to add in randomization")
                 else:
                     btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                
+                 
                     if btor.Sat() != btor.SAT:
                         raise Exception("failed to add in randomization")
 
-    def create_rand_domain_constraint(self, f : FieldScalarModel)->ExprModel:
-        gd = f.randgen_data
-        
-        if gd.bag is not None:
-            # Pick out of the bag
-            vi = self.randint(0, len(gd.bag)-1)
-            e = ExprBinModel(
-                ExprFieldRefModel(f),
-                BinExprType.Eq,
-                ExprLiteralModel(gd.bag[vi], f.is_signed, f.width))
-        else:
-            domain = (gd.max-gd.min+1)
-        
+    def create_rand_domain_constraint(self, 
+                f : FieldScalarModel, 
+                bound_m : VariableBoundModel)->ExprModel:
+        e = None
+        range_l = bound_m.domain.range_l
+        if len(range_l) == 1:
+            domain = range_l[0][1] - range_l[0][0]
             if domain > 64:
-                # Bin randomization
-                bin = self.randint(0, 63)
-                bin_sz = int(domain/64)
-                e = ExprBinModel(
-                    ExprBinModel(
+                r_type = self.randint(0, 3)
+                single_val = self.randint(range_l[0][0], range_l[0][1])
+                
+                if r_type >= 0 and r_type <= 2: # range
+                    # Pretty simple. Partition and randomize
+                    bin_sz_h = 1 if int(domain/128) == 0 else int(domain/128)
+
+                    if r_type == 0:                
+                        # Center value in bin
+                        if single_val+bin_sz_h > range_l[0][1]:
+                            max = range_l[0][1]
+                            min = range_l[0][1]-2*bin_sz_h
+                        elif single_val-bin_sz_h < range_l[0][0]:
+                            max = range_l[0][0]+2*bin_sz_h
+                            min = range_l[0][0]
+                        else:
+                            max = single_val+bin_sz_h
+                            min = single_val-bin_sz_h
+                    elif r_type == 1:
+                        # Bin starts at value
+                        if single_val+2*bin_sz_h > range_l[0][1]:
+                            max = range_l[0][1]
+                            min = range_l[0][1]-2*bin_sz_h
+                        elif single_val-2*bin_sz_h < range_l[0][0]:
+                            max = range_l[0][0]+2*bin_sz_h
+                            min = range_l[0][0]
+                        else:
+                            max = single_val+2*bin_sz_h
+                            min = single_val
+                    elif r_type == 2:
+                        # Bin ends at value
+                        if single_val+2*bin_sz_h > range_l[0][1]:
+                            max = range_l[0][1]
+                            min = range_l[0][1]-2*bin_sz_h
+                        elif single_val-2*bin_sz_h < range_l[0][0]:
+                            max = range_l[0][0]+2*bin_sz_h
+                            min = range_l[0][0]
+                        else:
+                            max = single_val
+                            min = single_val-2*bin_sz_h
+                    
+                    e = ExprBinModel(
+                        ExprBinModel(
+                            ExprFieldRefModel(f),
+                            BinExprType.Ge,
+                            ExprLiteralModel(
+                                min,
+                                f.is_signed, 
+                                f.width)
+                        ),
+                        BinExprType.And,
+                        ExprBinModel(
+                            ExprFieldRefModel(f),
+                            BinExprType.Le,
+                            ExprLiteralModel(
+                                max,
+                                f.is_signed, 
+                                f.width)
+                            )
+                    )                
+                elif r_type == 3: # Single value
+                    e = ExprBinModel(
                         ExprFieldRefModel(f),
-                        BinExprType.Ge,
-                        ExprLiteralModel(gd.min+bin_sz*bin, f.is_signed, f.width)
-                    ),
-                    BinExprType.And,
-                    ExprBinModel(
-                        ExprFieldRefModel(f),
-                        BinExprType.Le,
-                        ExprLiteralModel(gd.min+bin_sz*(bin+1)-1, f.is_signed, f.width)
-                        )
-                )
+                        BinExprType.Eq,
+                        ExprLiteralModel(single_val, f.is_signed, f.width))
             else:
-                # Select a specific value
-                off = self.randint(0, domain-1)
+                val = self.randint(0, domain-1)
                 e = ExprBinModel(
                     ExprFieldRefModel(f),
                     BinExprType.Eq,
-                    ExprLiteralModel(gd.min+off, f.is_signed, f.width)
-                    )        
-                
+                    ExprLiteralModel(val, f.is_signed, f.width))
+        else:
+#             domain_bin_ratio = int(len(bound_m.domain.range_l)/len(bound_m.domain_offsets))
+#             
+#             if domain_bin_ratio <= 1:
+#                 # Just pick a single value
+#                 print("Should pick single value")
+#             else:
+#                 #
+#                 print("domain_bin_ratio=" + str(domain_bin_ratio))
+#                 pass
+#             # Multi-range domain
+            pass
+        
         return e
+    
+    def create_single_var_domain_constraint(self, 
+                    f : FieldScalarModel, 
+                    bound_m : VariableBoundModel)->ExprModel:
+        range_l = bound_m.domain.range_l
+        if len(range_l) == 1:
+            val = self.randint(range_l[0][0], range_l[0][1])
+            e = ExprBinModel(
+                ExprFieldRefModel(f),
+                BinExprType.Eq,
+                ExprLiteralModel(val, f.is_signed, f.width))
+            return e
+        else:
+#            domain_bin_ratio = int(len(bound_m.domain.range_l)/len(bound_m.domain_offsets))
+            domain_bin_ratio = 1
+            
+            if domain_bin_ratio <= 1:
+                # Just pick a single value
+                off_val = self.randint(0, bound_m.domain_sz-1)
+                target_val = bound_m.offset2value(off_val)
+                e = ExprBinModel(
+                    ExprFieldRefModel(f),
+                    BinExprType.Eq,
+                    ExprLiteralModel(target_val, f.is_signed, f.width))
+                return e
+            else:
+                # TODO: For a variable with a small number of bins
+                # relative to the domain the cover, it likely makes
+                # sense to try to place a range within the bin instead
+                # of selecting a single value
+                #
+                print("domain_bin_ratio=" + str(domain_bin_ratio))
+                pass
+            
+            return None
+            
+#         gd = f.randgen_data
+#         
+#         if gd.bag is not None:
+#             # Pick out of the bag
+#             vi = self.randint(0, len(gd.bag)-1)
+#             e = ExprBinModel(
+#                 ExprFieldRefModel(f),
+#                 BinExprType.Eq,
+#                 ExprLiteralModel(gd.bag[vi], f.is_signed, f.width))
+#         else:
+#             domain = (gd.max-gd.min+1)
+#         
+#             if domain > 64:
+#                 # Bin randomization
+#                 bin = self.randint(0, 100)
+#                 bin_sz = int(domain/100)
+#                 e = ExprBinModel(
+#                     ExprBinModel(
+#                         ExprFieldRefModel(f),
+#                         BinExprType.Ge,
+#                         ExprLiteralModel(gd.min+bin_sz*bin, f.is_signed, f.width)
+#                     ),
+#                     BinExprType.And,
+#                     ExprBinModel(
+#                         ExprFieldRefModel(f),
+#                         BinExprType.Le,
+#                         ExprLiteralModel(gd.min+bin_sz*(bin+1)-1, f.is_signed, f.width)
+#                         )
+#                 )
+#             else:
+#                 # Select a specific value
+#                 off = self.randint(0, domain-1)
+#                 e = ExprBinModel(
+#                     ExprFieldRefModel(f),
+#                     BinExprType.Eq,
+#                     ExprLiteralModel(gd.min+off, f.is_signed, f.width)
+#                     )        
+                
 
     def calc_domain(self, f : FieldScalarModel, btor : Boolector):
         """Find the reachable bounds of a variable"""

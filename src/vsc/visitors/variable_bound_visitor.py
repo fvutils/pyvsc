@@ -9,6 +9,7 @@ from typing import Dict, List
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
+from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_in_model import ExprInModel
@@ -16,11 +17,14 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.field_model import FieldModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.variable_bound_eq_propagator import VariableBoundEqPropagator
 from vsc.model.variable_bound_in_propagator import VariableBoundInPropagator
 from vsc.model.variable_bound_max_propagator import VariableBoundMaxPropagator
 from vsc.model.variable_bound_min_propagator import VariableBoundMinPropagator
 from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+from vsc.model.variable_bound_scalar_model import VariableBoundScalarModel
+from vsc.model.variable_bound_enum_model import VariableBoundEnumModel
 
 
 class VariableBoundVisitor(ModelVisitor):
@@ -49,6 +53,10 @@ class VariableBoundVisitor(ModelVisitor):
             v.accept(self)
         for c in constraints:
             c.accept(self)
+            
+        # Update data calcuated from domain ranges
+        for f,b in self.bound_m.items():
+            b.update()
 
     def visit_constraint_if_else(self, c:ConstraintIfElseModel):
         # Don't go into if/else statements
@@ -61,8 +69,7 @@ class VariableBoundVisitor(ModelVisitor):
     def visit_expr_bin(self, e:ExprBinModel):
         # TODO: We'll need to deal with expressions that involve variables
         if self.phase == 1:
-            if isinstance(e.lhs, ExprFieldRefModel):
-                print("lhs")
+            if isinstance(e.lhs, ExprFieldRefModel) and not isinstance(e.rhs, ExprFieldRefModel):
                 bounds = self.bound_m[e.lhs.fm]
                 if e.op == BinExprType.Lt:
                     # TODO: 
@@ -122,7 +129,29 @@ class VariableBoundVisitor(ModelVisitor):
                     self._propagator.propagate()
                     
                     self._propagator = None
+#                 elif e.op == BinExprType.Eq:
+#                     is_const_v = IsConstExprVisitor()
+#                     is_const = is_const_v.is_const(e.rhs)
+#                     
+#                     if is_const:
+#                         self._propagator = VariableBoundEqPropagator(
+#                             bounds,
+#                             e.rhs,
+#                             True)
+#                     elif isinstance(e.rhs, ExprFieldRefModel):
+#                         self._propagator = VariableBoundEqPropagator(
+#                             bounds,
+#                             self.bound_m[e.rhs.fm],
+#                             True)
+# 
+#                     if self._propagator is not None:                    
+#                         bounds.add_propagator(self._propagator)
+#                         self._propagator.propagate()
+#                     
+#                     self._propagator = None
+                    
             elif isinstance(e.rhs, ExprFieldRefModel):
+                # TODO: Need to do similar calculation for RHS
                 pass
                 
 
@@ -145,7 +174,6 @@ class VariableBoundVisitor(ModelVisitor):
                         break
 
                 if is_const:
-                    print("Is Const")
                     self._propagator = VariableBoundInPropagator(bounds, e.rhs)
                     bounds.add_propagator(self._propagator)
                     self._propagator.propagate()
@@ -158,7 +186,7 @@ class VariableBoundVisitor(ModelVisitor):
             # a limiting expression. Need to add the propagator
             # to these variables as well
             bounds = self.bound_m[e.fm]
-            bounds.add_propagator(self.propagator)
+            bounds.add_propagator(self._propagator)
             
             
             pass
@@ -167,7 +195,13 @@ class VariableBoundVisitor(ModelVisitor):
         if self.phase == 0:
             # Fill in basic bound info
             if not f in self.bound_m.keys():
-                bounds = VariableBoundModel(f)
+                bounds = VariableBoundScalarModel(f)
                 self.bound_m[f] = bounds
             else:
                 print("Warning: field already exists")
+                
+    def visit_enum_field(self, f:EnumFieldModel):
+        if self.phase == 0:
+            if not f in self.bound_m.keys():
+                bounds = VariableBoundEnumModel(f)
+                self.bound_m[f] = bounds

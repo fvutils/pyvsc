@@ -21,12 +21,15 @@
 # @author: ballance
 
 from vsc.model.expr_model import ExprModel
+from vsc.model.value import Value
+from vsc.model.value_scalar import ValueScalar
+
 
 class ExprLiteralModel(ExprModel):
     
     def __init__(self, val, is_signed, width):
         super().__init__()
-        self._val = val
+        self._val = ValueScalar(val)
         self.signed = is_signed
         self.width = width
         
@@ -34,7 +37,7 @@ class ExprLiteralModel(ExprModel):
             raise Exception("Error: literal with a width of " + str(width))
         
     def build(self, btor):
-        return btor.Const(self.val(), self.width)
+        return btor.Const(int(self.val()), self.width)
     
     def is_signed(self):
         return self.signed
