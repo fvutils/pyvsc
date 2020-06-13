@@ -43,6 +43,7 @@ from vsc.model.field_scalar_array_model import FieldScalarArrayModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from xml.etree.ElementPath import prepare_self
 from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
+from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 
 
 
@@ -117,6 +118,11 @@ class ModelVisitor(object):
         self.visit_constraint_scope(c)
         self.visit_constraint_stmt_leave(c)
         
+    def visit_constraint_inline_scope(self, c : ConstraintInlineScopeModel):
+        # Treat this as a pass-through
+        for cc in c.constraint_l:
+            cc.accept(self)
+        
     def visit_constraint_override(self, c):
         c.new_constraint.accept(self)
         
@@ -177,8 +183,10 @@ class ModelVisitor(object):
         pass
     
     def visit_field_scalar_array(self, f : FieldScalarArrayModel):
-        for elem in f.elems:
-            elem.accept(self)
+        # Be sure to visit the 'size' built-in field
+        f.size.accept(self)
+
+        self.visit_composite_field(f)        
         
     def visit_covergroup_registry(self, rgy):
         

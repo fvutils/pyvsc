@@ -58,7 +58,7 @@ class ConstraintScopeModel(ConstraintModel):
         visitor.visit_constraint_scope(self)
         
     def clone(self, deep=False)->'ConstraintModel':
-        ret = ConstraintModel()
+        ret = ConstraintScopeModel()
         if deep:
             for c in self.constraint_l:
                 ret.constraint_l.append(c.clone(deep))

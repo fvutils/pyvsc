@@ -36,6 +36,7 @@ from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
 from vsc.model.scalar_field_model import FieldScalarModel
 from vsc.model.value_scalar import ValueScalar
+from vsc.model.field_scalar_array_model import FieldScalarArrayModel
 
 
 def unsigned(v, w=-1):
@@ -56,15 +57,66 @@ class expr(object):
     def bin_expr(self, op, rhs):
         to_expr(rhs)
        
-        lhs_e = pop_expr()
         rhs_e = pop_expr()
+        lhs_e = pop_expr()
         
         e = ExprBinModel(lhs_e, op, rhs_e)
         
         return expr(e)        
         
+    def __eq__(self, rhs):
+        return self.bin_expr(BinExprType.Eq, rhs)
+    
+    def __ne__(self, rhs):
+        return self.bin_expr(BinExprType.Ne, rhs)
+    
+    def __le__(self, rhs):
+        return self.bin_expr(BinExprType.Le, rhs)
+    
+    def __lt__(self, rhs):
+        return self.bin_expr(BinExprType.Lt, rhs)
+    
+    def __ge__(self, rhs):
+        return self.bin_expr(BinExprType.Ge, rhs)
+    
+    def __gt__(self, rhs):
+        return self.bin_expr(BinExprType.Gt, rhs)
+    
+    def __add__(self, rhs):
+        return self.bin_expr(BinExprType.Add, rhs)
+    
+    def __sub__(self, rhs):
+        return self.bin_expr(BinExprType.Sub, rhs)
+    
+    def __truediv__(self, rhs):
+        return self.bin_expr(BinExprType.Div, rhs)
+    
+    def __floordiv__(self, rhs):
+        return self.bin_expr(BinExprType.Div, rhs)
+    
+    def __mul__(self, rhs):
+        return self.bin_expr(BinExprType.Mul, rhs)
+    
+    def __mod__(self, rhs):
+        return self.bin_expr(BinExprType.Mod, rhs)
+    
+    def __and__(self, rhs):
+        return self.bin_expr(BinExprType.And, rhs)
+    
     def __or__(self, rhs):
         return self.bin_expr(BinExprType.Or, rhs)
+    
+    def __xor__(self, rhs):
+        return self.bin_expr(BinExprType.Xor, rhs)
+    
+    def __lshift__(self, rhs):
+        return self.bin_expr(BinExprType.Sll, rhs)
+    
+    def __rshift__(self, rhs):
+        return self.bin_expr(BinExprType.Srl, rhs)
+    
+    def __neg__(self):
+        return self.bin_expr(BinExprType.Not, rhs)    
         
 class rangelist(object):
     
@@ -446,30 +498,42 @@ class rand_int64_t(rand_int_t):
         
 class list_t(object):
     
-    def __init__(self, t, sz=-1):
+    def __init__(self, t):
         self.t = t
-        self.sz = sz
         self._int_field_info = field_info()
-        if sz < 0:
-            # Resizable array
-            self.arr = []
-        else:
-            # Fixed-size array
-            self.arr = [None]*sz
-        pass
     
     def build_field_model(self, name):
         pass
     
     def size(self):
+        print("size")
         if get_expr_mode():
             # TODO: return a size expression of the model
             pass
         else:
             return len(self.arr)
+
+    def __iter__(self):
+        class list_it(object):
+            def __init__(self, l):
+                self.model = l._int_field_info.model
+                self.idx = 0
+                
+            def __next__(self):
+                if self.idx >= len(self.model.field_l):
+                    raise StopIteration()
+                else:
+                    v = self.model.field_l[self.idx].get_val()
+                    self.idx += 1
+                    return int(v)
+        return list_it(self)
     
     def __getitem__(self, k):
-        return self.arr[k]
+        print("getitem: " + str(k))
+        # TODO: what about arrays of composite objects
+        model = self._int_field_info.model
+        # How do we wrap this up?
+        return int(model.field_l[k].get_val())
     
     def __setitem__(self, k, v):
         self.arr[k] = v
@@ -481,39 +545,111 @@ class list_t(object):
     def append(self, v):
         # TODO: changing size should trigger behavior
         self.arr.append(v)
+        
+    def to_expr(self):
+        return expr(ExprFieldRefModel(self._int_field_info.model))
     
-def rand_list_t(list_t):
+class rand_list_t(list_t):
+    """List of random elements with a non-random size"""
     
-    def __init__(self, t, sz, init=True):
-        super().__init__(t, sz, init)
+    def __init__(self, t, sz=0):
+        super().__init__(t)
+        self._init_sz = sz
         self._int_field_info.is_rand = True
+        
+    def get_model(self):
+        if self._int_field_info.model is None:
+            if isinstance(self.t, type_base):
+                # Scalar type
+                self._int_field_info.model = FieldScalarArrayModel(
+                    "<unknown>",
+                    self.t.width,
+                    self.t.is_signed,
+                    self._int_field_info.is_rand,
+                    False)
+                
+                if self._init_sz > 0:
+                    for i in range(self._init_sz):
+                        field = self._int_field_info.model.add_field()
+                        field.name = self._int_field_info.model.name + "[" + str(i) + "]"
+            else:
+                raise Exception("Composite-type arrays not yet supported")
+            
+        return self._int_field_info.model
 
-class vector(object):
-    def __init__(self, t, is_rand, sz):
-        pass
+    def build_field_model(self, name):
+        # Lists are a bit special, since we need to be
+        # able to fill 
+        model = self.get_model()
+        model.name = name
+        self._int_field_info.name = name
+        
+        for i,f in enumerate(model.field_l):
+            f.name = model.name + "[" + str(i) + "]"
+        
+        super().build_field_model(name)
+        return model
+
+class randsz_list_t(list_t):
+    """List of random elements with a non-random size"""
     
-    def size(self):
-        pass
-    
-class array(object):
-    
-    def __init__(self, t, sz, init=True):
-        self.sz = sz
-        self.t = t
-        self.arr = []*sz
-        self.init = init
-        if init:
-            for i in range(sz):
-                self.arr[i] = t()
-        pass
+    def __init__(self, t):
+        super().__init__(t)
+        self._int_field_info.is_rand = True
+        
+    def get_model(self):
+        if self._int_field_info.model is None:
+            if isinstance(self.t, type_base):
+                # Scalar type
+                self._int_field_info.model = FieldScalarArrayModel(
+                    "<unknown>",
+                    self.t.width,
+                    self.t.is_signed,
+                    self._int_field_info.is_rand,
+                    True)
+            else:
+                raise Exception("Composite-type arrays not yet supported")
+            
+        return self._int_field_info.model
+
+    def build_field_model(self, name):
+        # Lists are a bit special, since we need to be
+        # able to fill 
+        model = self.get_model()
+        model.name = name
+        self._int_field_info.name = name
+        
+        for i,f in enumerate(model.field_l):
+            f.name = model.name + "[" + str(i) + "]"
+        
+        super().build_field_model(name)
+        return model
     
     def size(self):
         if get_expr_mode():
-            # TODO: return size
-            pass
+            return expr(ExprFieldRefModel(self._int_field_info.model.size))
         else:
-            return self.sz
+            return int(self._int_field_info.model.size.get_val())
         
-    def build_field_model(self, name):
-        pass
-        
+    def __iter__(self):
+        class list_it(object):
+            def __init__(self, l):
+                self.model = l._int_field_info.model
+                self.idx = 0
+                
+            def __next__(self):
+                if self.idx >= int(self.model.size.get_val()):
+                    raise StopIteration()
+                else:
+                    v = self.model.field_l[self.idx].get_val()
+                    self.idx += 1
+                    return int(v)
+        return list_it(self)
+    
+    def __getitem__(self, k):
+        # TODO: what about arrays of composite objects
+        model = self._int_field_info.model
+        # How do we wrap this up?
+        return int(model.field_l[k].get_val())
+    
+

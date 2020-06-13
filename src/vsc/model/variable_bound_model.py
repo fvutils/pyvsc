@@ -16,11 +16,15 @@ class VariableBoundModel(object):
         self.propagators : List[VariableBoundPropagator] = []
         self.domain_sz = -1
         self.domain_offsets = []
+        # Whether this field is referenced by a constraint
+        self.constrained = False
 
     def isEmpty(self):
         return len(self.domain.range_l) == 0 or (self.domain.range_l[0][1]-self.domain.range_l[0][0]) == 0
             
     def add_propagator(self, p):
+        if p is None:
+            raise Exception("Adding null propagator")
         self.propagators.append(p)
         
     def update(self):

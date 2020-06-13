@@ -221,7 +221,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self._used_rand = f.is_used_rand
         super().visit_composite_field(f)
         self._used_rand = old_used_rand
-
+        
     def visit_scalar_field(self, f):
         if self._pass == 0:
             self._field_s.add(f)

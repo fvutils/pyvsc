@@ -16,6 +16,14 @@ class VariableBoundEqPropagator(VariableBoundPropagator):
         should_propagate = False
         
         if self.is_const:
-            # Domain of the 
-            pass
+            # Domain of the target shrinks to be equal to eq_e
+            eq_v = int(self.eq_e.val())
+            range_l = self.target.domain.range_l
+            if len(range_l) >= 1:
+                if len(range_l) > 1 or not (range_l[0][0] == eq_v and range_l[0][1] == eq_v):
+                    should_propagate = True
+                    self.target.domain.range_l = [[eq_v, eq_v]]
+                    
+            if should_propagate:
+                self.propagate()
         

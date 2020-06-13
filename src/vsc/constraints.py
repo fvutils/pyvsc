@@ -29,6 +29,9 @@ from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.types import to_expr, expr
+from vsc.model.constraint_foreach_model import ConstraintForeachModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
 
 
 class constraint_t(object):
@@ -196,3 +199,48 @@ class forall(object):
     
     def __exit__(self, t, v, tb):
         pass
+    
+class foreach(object):
+    
+    def __init__(self, l, it=True, idx=False):
+        self.stmt = None
+        self.it = it
+        self.idx = idx
+        self.arr_model = l._int_field_info.model
+        if not in_constraint_scope():
+            raise Exception("Attempting to use foreach constraint outside constraint scope")
+
+        to_expr(l)
+        e = pop_expr()
+        self.stmt = ConstraintForeachModel(e)
+        
+    def __enter__(self):
+        push_constraint_stmt(self.stmt)
+        push_constraint_scope(self.stmt)
+        model = self.arr_model
+#        return expr(ExprArraySubscriptModel())
+        if self.idx and self.it:
+            return (
+                expr(ExprFieldRefModel(self.stmt.index)),
+                expr(ExprArraySubscriptModel(
+                    ExprFieldRefModel(model),
+                    ExprFieldRefModel(self.stmt.index)))
+                )
+        else:
+            if self.it:
+                return expr(ExprArraySubscriptModel(
+                    ExprFieldRefModel(model),
+                    ExprFieldRefModel(self.stmt.index)))
+            else:
+                return expr(ExprFieldRefModel(self.stmt.index))
+                
+            
+        if self.idx:
+            return (0,1)
+        else:
+            return 0
+
+    def __exit__(self, t, v, tb):
+        pop_constraint_scope()
+        
+        

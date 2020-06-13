@@ -21,6 +21,15 @@ class ExprArraySubscriptModel(ExprModel):
             # TODO: support array slicing
             raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
         
+    def subscript(self):
+        index = int(self.rhs.val())
+        if isinstance(self.lhs, ExprFieldRefModel):
+            return self.lhs.fm.field_l[index]
+        else:
+            # TODO: support array slicing
+            raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
+        
+        
     def is_signed(self):
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):

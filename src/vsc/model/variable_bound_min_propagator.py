@@ -28,7 +28,6 @@ class VariableBoundMinPropagator(VariableBoundPropagator):
 
         must_propagate = False
         if i < len(range_l):
-            print("Min i: " + str(i) + " " + str(range_l[i][0]) + " min_v=" + str(int(min_v)))
             if i > 0:
                 # Need to trim off full range elements
                 must_propagate = True

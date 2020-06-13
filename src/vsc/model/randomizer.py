@@ -59,15 +59,24 @@ class Randomizer(RandIF):
     _rng = random.Random()
     
     
-    def randomize(self, ri : RandInfo):
+    def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
         """Randomize the variables and constraints in a RandInfo collection"""
+        
+
+#         for rs in ri.randsets():
+#             print("RandSet")
+#             for f in rs.all_fields():
+#                 print("  " + f.name + " " + str(bound_m[f].domain.range_l))
+#         for uf in ri.unconstrained():
+#             print("Unconstrained: " + uf.name)
+        
         
         for rs in ri.randsets():
 #             print("RandSet:")
 #             for f in rs.fields():
 #                 print("  Field: " + f.name)
 #             for c in rs.constraints():
-#                 print("  Constraint: " + str(c))
+#                 print("  Constraint: " + ModelPrettyPrinter.print(c))
 #             print("Randset: n_fields=" + str(len(rs.fields())))
             btor = Boolector()
             self.btor = btor
@@ -151,7 +160,7 @@ class Randomizer(RandIF):
                 btor.Assert(*(node_l+soft_node_l))
                 
 
-            self.swizzle_randvars(btor, rs)
+            self.swizzle_randvars(btor, rs, bound_m)
 
                 
             # Finalize the value of the field
@@ -159,11 +168,9 @@ class Randomizer(RandIF):
                 f.post_randomize()
                 f.dispose() # Get rid of the solver var, since we're done with it
 
-        bounds_v = VariableBoundVisitor()
         uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
-        bounds_v.process(uc_rand, [])
         for uf in uc_rand:
-            bounds = bounds_v.bound_m[uf]
+            bounds = bound_m[uf]
             range_l = bounds.domain.range_l
             
             if len(range_l) == 1:
@@ -174,9 +181,10 @@ class Randomizer(RandIF):
                 # Most likely an enumerated type
                 pass
             
-    def swizzle_randvars(self, btor : Boolector, rs : RandInfo):
-        bounds_v = VariableBoundVisitor()
-        bounds_v.process(rs.all_fields(), rs.constraints())
+    def swizzle_randvars(self, 
+                btor    : Boolector, 
+                rs      : RandInfo,
+                bound_m : Dict[FieldModel,VariableBoundModel]):
 
         # TODO: we must ignore fields that are otherwise being controlled
         
@@ -190,7 +198,7 @@ class Randomizer(RandIF):
             # are no other constraints
             f = field_l[0]
             e = self.create_single_var_domain_constraint(
-                field_l[0], bounds_v.bound_m[field_l[0]])
+                field_l[0], bound_m[field_l[0]])
             
             if e is not None:
                 n = e.build(btor)
@@ -198,10 +206,10 @@ class Randomizer(RandIF):
                 btor.Assume(n)
         else:
             for f in field_l:
-                bound_m = bounds_v.bound_m[f]
+                f_bound = bound_m[f]
                  
-                if f.is_used_rand and not bound_m.isEmpty():
-                    e = self.create_rand_domain_constraint(f, bound_m)
+                if f.is_used_rand and not f_bound.isEmpty():
+                    e = self.create_rand_domain_constraint(f, f_bound)
                     if e is not None:
                         n = e.build(btor)
                         rand_node_l.append(n)                    
@@ -215,46 +223,25 @@ class Randomizer(RandIF):
             # Remove any failing assumptions
  
             n_failed = 0
-            n_domained = 0
             for i,n in enumerate(rand_node_l):
                 if n is not None and btor.Failed(n):
-                    if not field_l[i].randgen_data.found_min_max:
-                        self.calc_domain(field_l[i], btor)
-                        e = self.create_rand_domain_constraint(
-                            field_l[i],
-                            bounds_v.bound_m[field_l[i]])
-                        if e is not None:
-                            rand_node_l[i] = e.build(btor)
-                            n_domained += 1
-                    else:
-                        rand_node_l[i] = None
-                        n_failed += 1
+                    rand_node_l[i] = None
+                    n_failed += 1
                              
-            # If we've adjusted domains, let's try again
-            if n_domained > 0:
+            if btor.Sat() != btor.SAT:
+                raise Exception("failed to add in randomization")
+            else:
                 btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                 
-                if btor.Sat() != btor.SAT:
-                    # Okay, still need to prune a few
-                    for i,n in enumerate(rand_node_l):
-                        if n is not None and btor.Failed(n):
-                            rand_node_l[i] = None
-                            n_failed += 1                        
-                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                     
+                
                 if btor.Sat() != btor.SAT:
                     raise Exception("failed to add in randomization")
-                else:
-                    btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                 
-                    if btor.Sat() != btor.SAT:
-                        raise Exception("failed to add in randomization")
 
     def create_rand_domain_constraint(self, 
                 f : FieldScalarModel, 
                 bound_m : VariableBoundModel)->ExprModel:
         e = None
         range_l = bound_m.domain.range_l
+        print("create_rand_domain_constraint: " + f.name + " " + str(range_l))
         if len(range_l) == 1:
             domain = range_l[0][1] - range_l[0][0]
             if domain > 64:
@@ -547,8 +534,20 @@ class Randomizer(RandIF):
         if constraint_l is None:
             constraint_l = []
 
+        # Collect all variables (pre-array) and establish bounds            
+        bounds_v = VariableBoundVisitor()
+        bounds_v.process(field_model_l, constraint_l)
+
+        # TODO: need to handle inline constraints that impact arrays
+        constraints_len = len(constraint_l)
         for fm in field_model_l:
-            constraint_l.extend(ArrayConstraintBuilder.build(fm))
+            constraint_l.extend(ArrayConstraintBuilder.build(
+                fm, bounds_v.bound_m))
+            
+        # If we made changes during array remodeling,
+        # re-run bounds checking on the updated model
+#        if len(constraint_l) != constraints_len:
+        bounds_v.process(field_model_l, constraint_l)
             
         # First, invoke pre_randomize on all elements
         for fm in field_model_l:
@@ -557,7 +556,7 @@ class Randomizer(RandIF):
         r = Randomizer()
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
         try:
-            r.randomize(ri)
+            r.randomize(ri, bounds_v.bound_m)
         finally:
             # Rollback any constraints we've replaced for arrays
             for fm in field_model_l:

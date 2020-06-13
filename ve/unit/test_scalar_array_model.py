@@ -25,7 +25,17 @@ class TestScalarArrayModel(VscTestCase):
     
     def test_smoke(self):
         obj = CompositeFieldModel("obj")
-        arr = obj.add_field(FieldScalarArrayModel("arr", 32, False, True, 10))
+        arr = obj.add_field(FieldScalarArrayModel("arr", 32, False, True, True))
+#         for i in range(10):
+#             arr.add_field()
+        obj.add_constraint(ConstraintBlockModel("XX", [
+            ConstraintExprModel(
+                ExprBinModel(
+                    ExprFieldRefModel(arr.size),
+                    BinExprType.Eq,
+                    ExprLiteralModel(10, False, 32)))
+            ]))
+            
         foreach = ConstraintForeachModel(ExprFieldRefModel(arr))
         foreach.addConstraint(
             ConstraintExprModel(
@@ -60,7 +70,16 @@ class TestScalarArrayModel(VscTestCase):
 
     def test_incr(self):
         obj = CompositeFieldModel("obj")
-        arr = obj.add_field(FieldScalarArrayModel("arr", 32, False, True, 10))
+        arr = obj.add_field(FieldScalarArrayModel("arr", 32, False, True, False))
+        for i in range(10):
+            arr.add_field()
+        obj.add_constraint(ConstraintBlockModel("XX", [
+            ConstraintExprModel(
+                ExprBinModel(
+                    ExprFieldRefModel(arr.size),
+                    BinExprType.Eq,
+                    ExprLiteralModel(10, False, 32)))
+            ]))
         foreach = ConstraintForeachModel(ExprFieldRefModel(arr))
         foreach.addConstraint(
             ConstraintImpliesModel(

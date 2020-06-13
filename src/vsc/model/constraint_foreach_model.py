@@ -19,8 +19,12 @@ class ConstraintForeachModel(ConstraintScopeModel):
             32, 
             False, 
             False)
-        # TODO: support iterator
-        self.iterator = None
+
+        self.iterator = FieldScalarModel(
+            "iterator", 
+            32, 
+            False, 
+            False)
         
         
     def build(self, btor)->'BoolectorNode':

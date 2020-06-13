@@ -77,8 +77,12 @@ class TestExamplesUbus(VscTestCase):
 
         size_bins = [0]*4
         transmit_delay_bins = [0]*11
-                
-        for i in range(100):
+
+        import time
+        count = 1000
+        start_m = int(round(time.time() * 1000))
+
+        for i in range(count):
             xfer.randomize()
             print("read_write=%s size=%d transmit_delay=%d addr=%x" % (str(xfer.read_write), xfer.size, xfer.transmit_delay, xfer.addr))
             if xfer.size == 1:
@@ -90,6 +94,14 @@ class TestExamplesUbus(VscTestCase):
             elif xfer.size == 8:
                 size_bins[3] += 1
             transmit_delay_bins[xfer.transmit_delay] += 1
+        end_m = int(round(time.time() * 1000))
+        
+        delta_m = (end_m-start_m)
+        count_per_s = (count*1000)/delta_m
+        ms_per_i = (delta_m/count)
+       
+        print("Delta: " + str(delta_m)) 
+        print("Items/s: " + str(count_per_s) + " Time/item (ms): " + str(ms_per_i))
             
         print("size_bins: " + str(size_bins))
         print("transmit_delay_bins: " + str(transmit_delay_bins))

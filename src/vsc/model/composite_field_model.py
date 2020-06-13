@@ -65,7 +65,7 @@ class CompositeFieldModel(FieldModel):
 #            if isinstance(f, CompositeFieldModel):
 #                f.build
 
-    def add_field(self, f):
+    def add_field(self, f)->FieldModel:
         f.parent = self
         f.idx    = len(self.field_l)
         self.field_l.append(f)
