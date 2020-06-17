@@ -89,7 +89,77 @@ class TestIfElse(VscTestCase):
         for i in range(8):
             v.randomize()
             print("a=" + str(v.a) + " b=" + str(v.b))
-        
+
+    def test_else_if_2(self):
+
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
+                
+            @vsc.constraint
+            def ab_c(self):
+                
+                self.a == 5
+                
+                with vsc.if_then(self.a == 1):
+                    self.b == 1
+                with vsc.else_if(self.a == 2):
+                    self.b == 2
+                with vsc.else_if(self.a == 3):
+                    self.b == 4
+                with vsc.else_if(self.a == 4):
+                    self.b == 8
+                with vsc.else_if(self.a == 5):
+                    self.b == 16
+                with vsc.else_then():
+                    self.b == 0
+
+        v = my_s()
+        for i in range(8):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b))
+
+    def test_else_if_3(self):
+
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
+                
+            @vsc.constraint
+            def ab_c(self):
+                
+                self.a == 5
+                
+                with vsc.if_then(self.a == 1):
+                    self.b == 1
+                with vsc.else_if(self.a == 2):
+                    self.b == 2
+                with vsc.else_if(self.a == 3):
+                    self.b == 4
+                with vsc.else_if(self.a == 4):
+                    self.b == 8
+                with vsc.else_if(self.a == 5):
+                    self.b == 16
+                with vsc.else_then:
+                    self.b == 0
+
+        v = my_s()
+        for i in range(8):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b))
+                                
     def test_else_then(self):
 
         @vsc.randobj
