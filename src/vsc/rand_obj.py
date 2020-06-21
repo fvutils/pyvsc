@@ -28,10 +28,10 @@ from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope, \
 from vsc.impl.generator_int import GeneratorInt
 from vsc.impl.expr_mode import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth, \
     enter_expr_mode, leave_expr_mode
-from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.randomizer import Randomizer
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.source_info import SourceInfo
 from vsc.types import type_base, field_info
 
@@ -100,7 +100,7 @@ def randobj(T):
             
         def build_field_model(self, name):
             if self._int_field_info.model is None:
-                model = CompositeFieldModel(name, self._int_field_info.is_rand, self)
+                model = FieldCompositeModel(name, self._int_field_info.is_rand, self)
                 self._int_field_info.model = model
             
                 # Iterate through the fields and constraints
@@ -262,7 +262,7 @@ def generator(T):
             
         def build_field_model(self, name):
             if self._int_field_info.model is None:
-                model = CompositeFieldModel(name, self._int_field_info.is_rand, self)
+                model = FieldCompositeModel(name, self._int_field_info.is_rand, self)
                 self._int_field_info.model = model
             
                 # Iterate through the fields and constraints
@@ -319,7 +319,7 @@ def generator(T):
 #        setattr(T, "__exit__", __exit__)
 #        setattr(T, "do_pre_randomize", do_pre_randomize)
 #        setattr(T, "do_post_randomize", do_post_randomize)
-        setattr(T, "_int_field_info", field_info())
+        setattr(T, "_int_field_info", field_info(True))
         setattr(T, "_get_int", _get_int)
         setattr(T, "_ro_init", True)
     

@@ -62,7 +62,7 @@ class TestVariableBoundsVisitor(VscTestCase):
             @vsc.constraint
             def ab_c(self):
                 self.a in vsc.rangelist(1, 4, 8)
-                self.b in vsc.rangelist([2,4], [8,12])
+                self.b in vsc.rangelist((2,4), (8,12))
                 
         my_item = my_c()
         model = my_item.get_model()
@@ -112,9 +112,9 @@ class TestVariableBoundsVisitor(VscTestCase):
             def ab_c(self):
                 self.a < 8
                 self.a in vsc.rangelist(1, 4, 8)
-                self.b in vsc.rangelist([2,4], [8,12])
+                self.b in vsc.rangelist((2,4), (8,12))
                 self.b < 11
-                self.c in vsc.rangelist([2,4], [8,12])
+                self.c in vsc.rangelist((2,4), (8,12))
                 self.c < 4
                 
         my_item = my_c()

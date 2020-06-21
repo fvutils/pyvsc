@@ -14,7 +14,7 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.field_model import FieldModel
-from vsc.model.field_scalar_array_model import FieldScalarArrayModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.visitors.constraint_copy_builder import ConstraintCopyBuilder, \
@@ -94,7 +94,14 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         else:
             ConstraintCopyBuilder.visit_expr_fieldref(self, e)
             
-    def visit_field_scalar_array(self, f:FieldScalarArrayModel):
+    def visit_expr_indexed_fieldref(self, e):
+        if isinstance(e.root, ExprArraySubscriptModel) and e.root.rhs.fm in self.index_set:
+            actual_root = e.root.lhs.fm.field_l[int(e.root.rhs.fm.get_val())]
+            self._expr = ExprFieldRefModel(e.get_target(actual_root))
+        else:
+            ConstraintCopyBuilder.visit_expr_indexed_fieldref(self, e)
+            
+    def visit_field_scalar_array(self, f:FieldArrayModel):
         if self.phase == 0:
             # TODO: this logic is for rand-sized array fields
             if f.is_rand_sz:

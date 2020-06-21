@@ -24,7 +24,7 @@
 from vsc.model.field_model import FieldModel
 
 
-class CompositeFieldModel(FieldModel):
+class FieldCompositeModel(FieldModel):
     
     def __init__(self, name, is_rand=False, rand_if=None):
         if name is None:
@@ -57,12 +57,12 @@ class CompositeFieldModel(FieldModel):
             f.build(builder)
 
         # Next, build out the constraints
-        print("CompositeFieldModel: type=" + str(type(self)))
+        print("FieldCompositeModel: type=" + str(type(self)))
         for c in self.constraint_model_l:
             c.build(builder)
 
 #        for f in self.field_l:
-#            if isinstance(f, CompositeFieldModel):
+#            if isinstance(f, FieldCompositeModel):
 #                f.build
 
     def add_field(self, f)->FieldModel:
@@ -102,7 +102,7 @@ class CompositeFieldModel(FieldModel):
             
     def get_fields(self, field_l):
         for f in self.field_l:
-            if isinstance(f, CompositeFieldModel):
+            if isinstance(f, FieldCompositeModel):
                 f.get_fields(field_l)
             else:
                 field_l.append(f)

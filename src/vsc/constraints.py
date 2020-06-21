@@ -211,6 +211,7 @@ class foreach(object):
         self.stmt = None
         self.it = it
         self.idx = idx
+        self.arr = l
         self.arr_model = l._int_field_info.model
         if not in_constraint_scope():
             raise Exception("Attempting to use foreach constraint outside constraint scope")
@@ -224,26 +225,25 @@ class foreach(object):
         push_constraint_scope(self.stmt)
         model = self.arr_model
 #        return expr(ExprArraySubscriptModel())
+
+        idx_term = expr(ExprFieldRefModel(self.stmt.index))
+        if self.arr_model.is_scalar:
+            it_term = expr(ExprArraySubscriptModel(
+                ExprFieldRefModel(model),
+                ExprFieldRefModel(self.stmt.index)))
+        else:
+            self.arr.t._int_field_info.root_e = ExprArraySubscriptModel(
+                ExprFieldRefModel(model),
+                ExprFieldRefModel(self.stmt.index))
+            it_term = self.arr.t
+        
         if self.idx and self.it:
-            return (
-                expr(ExprFieldRefModel(self.stmt.index)),
-                expr(ExprArraySubscriptModel(
-                    ExprFieldRefModel(model),
-                    ExprFieldRefModel(self.stmt.index)))
-                )
+            return (idx_term, it_term)
         else:
             if self.it:
-                return expr(ExprArraySubscriptModel(
-                    ExprFieldRefModel(model),
-                    ExprFieldRefModel(self.stmt.index)))
+                return it_term
             else:
-                return expr(ExprFieldRefModel(self.stmt.index))
-                
-            
-        if self.idx:
-            return (0,1)
-        else:
-            return 0
+                return idx_term
 
     def __exit__(self, t, v, tb):
         pop_constraint_scope()

@@ -4,10 +4,10 @@
 #
 # @author: ballance
 
-from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from typing import List
 
-class GeneratorModel(CompositeFieldModel):
+class GeneratorModel(FieldCompositeModel):
     
     def __init__(self, name):
         super().__init__(name)

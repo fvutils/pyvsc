@@ -3,6 +3,7 @@ Created on Apr 28, 2020
 
 @author: ballance
 '''
+from vsc.model.field_array_model import FieldArrayModel
 '''
 Created on Apr 28, 2020
 
@@ -130,7 +131,15 @@ class ModelPrettyPrinter(ModelVisitor):
         
     def visit_expr_fieldref(self, e : vm.ExprFieldRefModel):
         if self.print_values and hasattr(e.fm, "is_used_rand") and not e.fm.is_used_rand:
-            self.write(str(int(e.fm.get_val())))
+            if isinstance(e.fm, FieldArrayModel):
+                self.write("[")
+                for i,f in enumerate(e.fm.field_l):
+                    if i>0:
+                        self.write(", ")
+                    self.write(str(int(f.get_val())))
+                self.write("]")
+            else:
+                self.write(str(int(e.fm.get_val())))
         else:
             self.write(e.fm.fullname)
         

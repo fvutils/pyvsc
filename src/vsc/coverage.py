@@ -26,8 +26,8 @@ from vsc.impl.covergroup_int import CovergroupInt
 from vsc.impl.options import Options
 from vsc.impl.type_options import TypeOptions
 from vsc.model.expr_ref_model import ExprRefModel
-from vsc.model.scalar_field_model import FieldScalarModel
-from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.impl import ctor
 import inspect
 from vsc.model.source_info import SourceInfo
@@ -100,7 +100,7 @@ def covergroup(T):
             for i in range(len(args)):
                 # TODO: need to account for inheritance
                 ex_f = model.get_field(i)
-                if isinstance(ex_f, CompositeFieldModel):
+                if isinstance(ex_f, FieldCompositeModel):
                     # TODO: probably need to do something a bit more than this?
                     model.set_field(i, args[i].get_model())
                 elif isinstance(ex_f, FieldScalarModel):

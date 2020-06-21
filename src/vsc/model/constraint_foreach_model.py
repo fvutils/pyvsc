@@ -6,7 +6,7 @@ Created on May 17, 2020
 from typing import List
 
 from vsc.model.constraint_scope_model import ConstraintScopeModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 
 
 class ConstraintForeachModel(ConstraintScopeModel):

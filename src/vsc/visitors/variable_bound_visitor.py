@@ -18,9 +18,9 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_in_model import ExprInModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.field_model import FieldModel
-from vsc.model.field_scalar_array_model import FieldScalarArrayModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.model_visitor import ModelVisitor
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.variable_bound_enum_model import VariableBoundEnumModel
 from vsc.model.variable_bound_eq_propagator import VariableBoundEqPropagator
 from vsc.model.variable_bound_in_propagator import VariableBoundInPropagator

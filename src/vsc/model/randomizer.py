@@ -40,7 +40,7 @@ from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_info_builder import RandInfoBuilder
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
@@ -206,18 +206,19 @@ class Randomizer(RandIF):
                 btor.Assume(n)
         else:
             for f in field_l:
-                f_bound = bound_m[f]
+                if f.is_used_rand and f in bound_m.keys():
+                    f_bound = bound_m[f]
                  
-                if f.is_used_rand and not f_bound.isEmpty():
-                    e = self.create_rand_domain_constraint(f, f_bound)
-                    if e is not None:
-                        n = e.build(btor)
-                        rand_node_l.append(n)                    
-                        btor.Assume(n)
-                else:
-                    # It's always possible that this value is already fixed.
-                    # Just ignore.
-                    rand_node_l.append(None)
+                    if not f_bound.isEmpty():
+                        e = self.create_rand_domain_constraint(f, f_bound)
+                        if e is not None:
+                            n = e.build(btor)
+                            rand_node_l.append(n)                    
+                            btor.Assume(n)
+                    else:
+                        # It's always possible that this value is already fixed.
+                        # Just ignore.
+                        rand_node_l.append(None)
      
         if btor.Sat() != btor.SAT:
             # Remove any failing assumptions
@@ -241,7 +242,7 @@ class Randomizer(RandIF):
                 bound_m : VariableBoundModel)->ExprModel:
         e = None
         range_l = bound_m.domain.range_l
-        print("create_rand_domain_constraint: " + f.name + " " + str(range_l))
+#        print("create_rand_domain_constraint: " + f.name + " " + str(range_l))
         if len(range_l) == 1:
             domain = range_l[0][1] - range_l[0][0]
             if domain > 64:

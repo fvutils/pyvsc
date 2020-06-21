@@ -24,10 +24,10 @@
 
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
-from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.coverage_options_model import CoverageOptionsModel
 
-class CovergroupModel(CompositeFieldModel):
+class CovergroupModel(FieldCompositeModel):
     
     def __init__(self, name:str):
         super().__init__(name)

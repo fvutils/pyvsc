@@ -21,9 +21,9 @@
 
 from vsc.model.expr_model import ExprModel
 from vsc.model.bin_expr_type import BinExprType
-from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 
 class ExprBinModel(ExprModel):
     
@@ -36,8 +36,8 @@ class ExprBinModel(ExprModel):
         self.signed = 0
         self.is_composite = False
         
-        if isinstance(lhs, ExprFieldRefModel) and isinstance(lhs.fm, CompositeFieldModel):
-            if isinstance(rhs, ExprFieldRefModel) and isinstance(rhs.fm, CompositeFieldModel):
+        if isinstance(lhs, ExprFieldRefModel) and isinstance(lhs.fm, FieldCompositeModel):
+            if isinstance(rhs, ExprFieldRefModel) and isinstance(rhs.fm, FieldCompositeModel):
                 self.is_composite = True
                 if len(lhs.fm.field_l) != len(rhs.fm.field_l):
                     raise Exception("Incorrect number of fields")
@@ -47,7 +47,7 @@ class ExprBinModel(ExprModel):
     def build_composite(self, btor, lhs, rhs):
         print("build_composite: " + str(type(lhs)))
         
-        if isinstance(lhs, CompositeFieldModel):
+        if isinstance(lhs, FieldCompositeModel):
             # Keep recursing
             ret = None
 
@@ -208,7 +208,7 @@ class ExprBinModel(ExprModel):
         print("build_composite: " + str(type(lhs)))
         ret = None
         
-        if isinstance(lhs, CompositeFieldModel):
+        if isinstance(lhs, FieldCompositeModel):
             # Keep recursing
 
             for i in range(len(lhs.field_l)):

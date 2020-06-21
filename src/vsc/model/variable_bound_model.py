@@ -3,7 +3,7 @@ Created on May 30, 2020
 
 @author: ballance
 '''
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.rangelist_model import RangelistModel
 from vsc.model.variable_bound_propagator import VariableBoundPropagator
 from typing import List

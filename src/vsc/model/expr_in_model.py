@@ -27,6 +27,9 @@ from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.field_array_model import FieldArrayModel
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 class ExprInModel(ExprModel):
     
@@ -43,19 +46,44 @@ class ExprInModel(ExprModel):
                     ExprBinModel(self.lhs, BinExprType.Ge, r.lhs),
                     BinExprType.And,
                     ExprBinModel(self.lhs, BinExprType.Le, r.rhs))
+            elif isinstance(r, ExprFieldRefModel):
+                if isinstance(r.fm, FieldArrayModel):
+                    # Need to build out for each element
+                    # TODO: must handle case where size is random
+                    arr : FieldArrayModel = r.fm
+                    
+                    if arr.is_rand_sz:
+                        pass
+                    else:
+                        for i in range(int(arr.size.get_val())):
+                            t = ExprBinModel(
+                                self.lhs, 
+                                BinExprType.Eq, 
+                                ExprFieldRefModel(arr.field_l[i]))
+                            if expr is None:
+                                expr = t
+                            else:
+                                expr = ExprBinModel(expr, BinExprType.Or, t)
+                        # Clear the temporary term, so the combination code
+                        # below doesn't use it.
+                        t = None
+                else:
+                    t = ExprBinModel(self.lhs, BinExprType.Eq, r)
             else:
                 t = ExprBinModel(self.lhs, BinExprType.Eq, r)
-                
-            if expr is None:
-                expr = t 
-            else:
-                expr = ExprBinModel(expr, BinExprType.Or, t)
-                
+
+            if t is not None:                
+                if expr is None:
+                    expr = t 
+                else:
+                    expr = ExprBinModel(expr, BinExprType.Or, t)
+
+        if expr is None:
+            expr = ExprLiteralModel(1, False, 1)
+
+        from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
         return expr.build(btor) if expr is not None else None
     
     def accept(self, visitor):
         visitor.visit_expr_in(self)
-        
-    def __str__(self):
-        return "ExprIn: " + str(self.lhs) + " in " + str(self.rhs)
         

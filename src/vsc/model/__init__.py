@@ -19,10 +19,10 @@
 # Imports to make simplify usage
 from .expr_model import ExprModel
 from .model_visitor import ModelVisitor        
-from .composite_field_model import CompositeFieldModel
+from vsc.model.field_composite_model import FieldCompositeModel
 
 from .field_model import FieldModel
-from .scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 
 from .expr_bin_model import ExprBinModel
 from .bin_expr_type import BinExprType

@@ -39,6 +39,7 @@ from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.field_array_model import FieldArrayModel
 
 
 class RandInfoBuilder(ModelVisitor,RandIF):
@@ -123,7 +124,8 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             if self._active_randset is not None:
                 self._active_randset.add_constraint(c)
             else:
-                print("TODO: handle no-reference constraint: " + str(c_blk.name))
+#                print("TODO: handle no-reference constraint: " + str(c_blk.name))
+                pass
         super().visit_constraint_stmt_leave(c)
         
     def visit_constraint_dynref(self, c):
@@ -184,37 +186,46 @@ class RandInfoBuilder(ModelVisitor,RandIF):
 
             # If the field is already referenced by an existing randset
             # that is not this one, we need to merge the sets
-            if e.fm in self._randset_field_m.keys():
-                # There's an existing randset that holds this field
-                ex_randset = self._randset_field_m[e.fm]
-                if self._active_randset is None:
-                    self._active_randset = ex_randset
-                elif ex_randset is not self._active_randset:
-                    for f in self._active_randset.fields():
-                        # Relink to the new consolidated randset
-                        self._randset_field_m[f] = ex_randset
-                        ex_randset.add_field(f)
-                    # TODO: this might be later
-                    for c in self._active_randset.constraints():
-                        ex_randset.add_constraint(c)
-
-                    # Remove the previous randset
-                    self._randset_s.remove(self._active_randset)                    
-                    self._active_randset = ex_randset
+            if isinstance(e.fm, FieldArrayModel):
+                for f in e.fm.field_l:
+                    self.process_fieldref(f)
             else:
-                # No existing randset holds this field
-                if self._active_randset is None:
-                    self._active_randset = RandSet()
-                    self._randset_s.add(self._active_randset)
-                    
-                # Need to register this field/randset mapping
-                self._active_randset.add_field(e.fm)
-                self._randset_field_m[e.fm] = self._active_randset
-                
-            if e.fm in self._field_s:
-                self._field_s.remove(e.fm)
+                self.process_fieldref(e.fm)
+ 
 
         super().visit_expr_fieldref(e)
+        
+    def process_fieldref(self, fm):
+        if fm in self._randset_field_m.keys():
+            # There's an existing randset that holds this field
+            ex_randset = self._randset_field_m[fm]
+            if self._active_randset is None:
+                self._active_randset = ex_randset
+            elif ex_randset is not self._active_randset:
+                for f in self._active_randset.fields():
+                    # Relink to the new consolidated randset
+                    self._randset_field_m[f] = ex_randset
+                    ex_randset.add_field(f)
+                # TODO: this might be later
+                for c in self._active_randset.constraints():
+                    ex_randset.add_constraint(c)
+
+                # Remove the previous randset
+                self._randset_s.remove(self._active_randset)                    
+                self._active_randset = ex_randset
+        else:
+            # No existing randset holds this field
+            if self._active_randset is None:
+                self._active_randset = RandSet()
+                self._randset_s.add(self._active_randset)
+                
+            # Need to register this field/randset mapping
+            self._active_randset.add_field(fm)
+            self._randset_field_m[fm] = self._active_randset
+            
+        if fm in self._field_s:
+            self._field_s.remove(fm)        
+        
         
     def visit_composite_field(self, f):
         old_used_rand = self._used_rand

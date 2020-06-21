@@ -28,7 +28,7 @@ First, a quick example
             self.d != 0
              
             self.c < self.d
-            self.b in vsc.rangelist([self.c,self.d])
+            self.b in vsc.rangelist(vsc.rng(self.c,self.d))
 
 The example above shows using the `rand_bit_t` type to specify class attributes
 that are random, unsigned (bit), and 8-bits wide.

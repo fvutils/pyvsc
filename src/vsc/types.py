@@ -24,7 +24,7 @@ from enum import IntEnum, Enum, EnumMeta
 
 from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope
 from vsc.impl.enum_info import EnumInfo
-from vsc.impl.expr_mode import get_expr_mode
+from vsc.impl.expr_mode import get_expr_mode, expr_mode
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_bin_model import ExprBinModel
@@ -34,9 +34,12 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
 from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.value_scalar import ValueScalar
-from vsc.model.field_scalar_array_model import FieldScalarArrayModel
+from vsc.model.field_array_model import FieldArrayModel
+from lib2to3.btm_utils import TYPE_ALTERNATIVES
+from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
+from vsc.model.field_const_array_model import FieldConstArrayModel
 
 
 def unsigned(v, w=-1):
@@ -117,6 +120,12 @@ class expr(object):
     
     def __neg__(self):
         return self.bin_expr(BinExprType.Not, rhs)    
+    
+class rng(object):
+    
+    def __init__(self, low, high):
+        self.low = low
+        self.high = high
         
 class rangelist(object):
     
@@ -127,7 +136,7 @@ class rangelist(object):
         self.range_l = ExprRangelistModel()
         for i in range(-1,-(len(args)+1), -1):
             a = args[i]
-            if isinstance(a, list):
+            if isinstance(a, tuple):
                 # This needs to be a two-element array
                 if len(a) != 2:
                     raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
@@ -136,6 +145,15 @@ class rangelist(object):
                 e1 = pop_expr()
                 e0 = pop_expr()
                 self.range_l.add_range(ExprRangeModel(e0, e1))
+            elif isinstance(a, rng):
+                to_expr(a.low)
+                to_expr(a.high)
+                e1 = pop_expr()
+                e0 = pop_expr()
+                self.range_l.add_range(ExprRangeModel(e0, e1))
+            elif isinstance(a, list):
+                list_f = FieldConstArrayModel("<<anonymous>>", a)
+                self.range_l.add_range(ExprFieldRefModel(list_f))
             else:
                 to_expr(a)
                 e = pop_expr()
@@ -166,11 +184,17 @@ def to_expr(t):
     
 class field_info(object):
     """Model-specific information about the field"""
-    def __init__(self):
+    def __init__(self, is_composite=False):
         self.id = -1
+        self.parent = None
+        self.root_e = None
+        self.is_composite = is_composite
+        
         self.name = None
         self.is_rand = False
         self.model = None
+        # Specifies whether an ExprIndexedFieldRef should be used
+        self.indexed_ref = False
         
     def set_is_rand(self, is_rand):
         self.is_rand = is_rand
@@ -209,8 +233,20 @@ class type_base(object):
         self.val = self._int_field_info.model.get_val()
         
     def to_expr(self):
-        return expr(ExprFieldRefModel(self._int_field_info.model))
-#        return expr(self._int_field_info.model.get_indexed_fieldref_expr())
+        if self._int_field_info.id != -1:
+            # Need something like an indirect reference
+            # - root reference
+            # - leaf reference
+            id_l = []
+            fi = self._int_field_info
+            
+            while fi.parent is not None:
+                id_l.insert(0, fi.id)
+                fi = fi.parent
+
+            return expr(ExprIndexedFieldRefModel(fi.root_e, id_l))
+        else:
+            return expr(ExprFieldRefModel(self._int_field_info.model))
     
     def get_val(self):
         return int(self._int_field_info.model.get_val())
@@ -226,8 +262,10 @@ class type_base(object):
     
     def bin_expr(self, op, rhs):
         to_expr(rhs)
-       
-        push_expr(ExprFieldRefModel(self._int_field_info.model))
+
+#        push_expr(ExprFieldRefModel(self._int_field_info.model))
+        # Push a reference to this field
+        self.to_expr()
 
         lhs_e = pop_expr()
         rhs_e = pop_expr()
@@ -501,136 +539,87 @@ class list_t(object):
     def __init__(self, t):
         self.t = t
         self._int_field_info = field_info()
-    
+        self.is_scalar = isinstance(t, type_base)
+        self.is_rand_sz = False
+        if not self.is_scalar:
+            if not hasattr(t, "_int_field_info"):
+                raise Exception("list_t type " + str(t) + " (type " + str(type(t)) + ") is not a VSC randobj type")
+            
+            # Fill out field index and parent relationships
+            # to support indexed field access
+            # TODO: look out for recursive relationships...
+            with expr_mode():
+                self._id_fields(t, None)
+            
+        # Non-scalar arrays require a backing array
+        self.backing_arr = []
+        
+    def _id_fields(self, it, parent):
+        """Apply an ID to all fields, so they can be referenced in foreach constraints"""
+        it._int_field_info.parent = parent
+
+        fid = 0        
+        for fn in dir(it):
+            fo = getattr(it, fn)
+            if hasattr(fo, "_int_field_info"):
+                fi = fo._int_field_info
+                fi.id = fid
+                fi.parent = it._int_field_info
+                fid += 1
+                
+                if fi.is_composite:
+                    self._id_fields(fo, fi)
+        
+    def get_model(self):
+        if self._int_field_info.model is None:
+            self._int_field_info.model = FieldArrayModel(
+                "<unknown>",
+                self.is_scalar,
+                self.t.width if self.is_scalar else -1,
+                self.t.is_signed if self.is_scalar else -1,
+                self._int_field_info.is_rand,
+                self.is_rand_sz)
+            
+        return self._int_field_info.model
+
     def build_field_model(self, name):
-        pass
+        model = self.get_model()
+        model.name = name
+        self._int_field_info.name = name
+        
+        return model
     
     def size(self):
-        print("size")
+        model = self.get_model()
         if get_expr_mode():
-            # TODO: return a size expression of the model
-            pass
+            return expr(ExprFieldRefModel(model.size))
         else:
-            return len(self.arr)
-
-    def __iter__(self):
-        class list_it(object):
-            def __init__(self, l):
-                self.model = l._int_field_info.model
-                self.idx = 0
-                
-            def __next__(self):
-                if self.idx >= len(self.model.field_l):
-                    raise StopIteration()
-                else:
-                    v = self.model.field_l[self.idx].get_val()
-                    self.idx += 1
-                    return int(v)
-        return list_it(self)
-    
-    def __getitem__(self, k):
-        print("getitem: " + str(k))
-        # TODO: what about arrays of composite objects
-        model = self._int_field_info.model
-        # How do we wrap this up?
-        return int(model.field_l[k].get_val())
-    
-    def __setitem__(self, k, v):
-        self.arr[k] = v
+            return int(model.size.get_val())
+        
+    def append(self, v):
+        model = self.get_model()
+        if self.is_scalar:
+            # Working with a scalar
+            f = model.add_field()
+            f.set_val(v)
+        else:
+            if not issubclass(type(v), type(self.t)):
+                raise Exception("Attempting to append illegal element to object array")
+            self.backing_arr.append(v)
+            model.append(v.get_model())
+            # Propagate randomization information
+            v.get_model().is_declared_rand = self.get_model().is_declared_rand
         
     def clear(self):
-        # TODO: changing size should trigger behavior
-        self.arr.clear()
+        self.get_model().clear()
 
-    def append(self, v):
-        # TODO: changing size should trigger behavior
-        self.arr.append(v)
-        
-    def to_expr(self):
-        return expr(ExprFieldRefModel(self._int_field_info.model))
-    
-class rand_list_t(list_t):
-    """List of random elements with a non-random size"""
-    
-    def __init__(self, t, sz=0):
-        super().__init__(t)
-        self._init_sz = sz
-        self._int_field_info.is_rand = True
-        
-    def get_model(self):
-        if self._int_field_info.model is None:
-            if isinstance(self.t, type_base):
-                # Scalar type
-                self._int_field_info.model = FieldScalarArrayModel(
-                    "<unknown>",
-                    self.t.width,
-                    self.t.is_signed,
-                    self._int_field_info.is_rand,
-                    False)
-                
-                if self._init_sz > 0:
-                    for i in range(self._init_sz):
-                        field = self._int_field_info.model.add_field()
-                        field.name = self._int_field_info.model.name + "[" + str(i) + "]"
-            else:
-                raise Exception("Composite-type arrays not yet supported")
-            
-        return self._int_field_info.model
+    def __contains__(self, lhs):
+        to_expr(lhs)
+        return expr(ExprInModel(
+            pop_expr(), 
+            ExprRangelistModel(
+                [ExprFieldRefModel(self.get_model())])))
 
-    def build_field_model(self, name):
-        # Lists are a bit special, since we need to be
-        # able to fill 
-        model = self.get_model()
-        model.name = name
-        self._int_field_info.name = name
-        
-        for i,f in enumerate(model.field_l):
-            f.name = model.name + "[" + str(i) + "]"
-        
-        super().build_field_model(name)
-        return model
-
-class randsz_list_t(list_t):
-    """List of random elements with a non-random size"""
-    
-    def __init__(self, t):
-        super().__init__(t)
-        self._int_field_info.is_rand = True
-        
-    def get_model(self):
-        if self._int_field_info.model is None:
-            if isinstance(self.t, type_base):
-                # Scalar type
-                self._int_field_info.model = FieldScalarArrayModel(
-                    "<unknown>",
-                    self.t.width,
-                    self.t.is_signed,
-                    self._int_field_info.is_rand,
-                    True)
-            else:
-                raise Exception("Composite-type arrays not yet supported")
-            
-        return self._int_field_info.model
-
-    def build_field_model(self, name):
-        # Lists are a bit special, since we need to be
-        # able to fill 
-        model = self.get_model()
-        model.name = name
-        self._int_field_info.name = name
-        
-        for i,f in enumerate(model.field_l):
-            f.name = model.name + "[" + str(i) + "]"
-        
-        super().build_field_model(name)
-        return model
-    
-    def size(self):
-        if get_expr_mode():
-            return expr(ExprFieldRefModel(self._int_field_info.model.size))
-        else:
-            return int(self._int_field_info.model.size.get_val())
-        
     def __iter__(self):
         class list_it(object):
             def __init__(self, l):
@@ -644,12 +633,39 @@ class randsz_list_t(list_t):
                     v = self.model.field_l[self.idx].get_val()
                     self.idx += 1
                     return int(v)
-        return list_it(self)
+        if self.is_scalar:
+            return list_it(self)
+        else:
+            return self.backing_arr.__iter__()
     
     def __getitem__(self, k):
+        print("getitem: " + str(k))
         # TODO: what about arrays of composite objects
         model = self._int_field_info.model
         # How do we wrap this up?
         return int(model.field_l[k].get_val())
     
+    def __setitem__(self, k, v):
+        self.arr[k] = v
+
+    def to_expr(self):
+        return expr(ExprFieldRefModel(self.get_model()))
+
+    
+class rand_list_t(list_t):
+    """List of random elements with a non-random size"""
+    
+    def __init__(self, t, sz=0):
+        super().__init__(t)
+        self._init_sz = sz
+        self._int_field_info.is_rand = True
+        
+class randsz_list_t(list_t):
+    """List of random elements with a non-random size"""
+    
+    def __init__(self, t):
+        super().__init__(t)
+        self._int_field_info.is_rand = True
+        self.is_rand_sz = True
+        
 

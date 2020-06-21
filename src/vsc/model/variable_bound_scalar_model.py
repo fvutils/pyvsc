@@ -4,7 +4,7 @@ Created on Jun 2, 2020
 @author: ballance
 '''
 from vsc.model.variable_bound_model import VariableBoundModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 
 class VariableBoundScalarModel(VariableBoundModel):
     

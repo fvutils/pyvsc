@@ -3,7 +3,7 @@ Created on May 16, 2020
 
 @author: ballance
 '''
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.value import Value
 from vsc.model.value_bool import ValueBool
 

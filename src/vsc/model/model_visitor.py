@@ -21,8 +21,8 @@
 # @author: ballance
 
 
-from vsc.model.composite_field_model import CompositeFieldModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_composite_model import FieldCompositeModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.constraint_expr_model import ConstraintExprModel
@@ -39,7 +39,7 @@ from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionMod
 from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.enum_field_model import EnumFieldModel
-from vsc.model.field_scalar_array_model import FieldScalarArrayModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from xml.etree.ElementPath import prepare_self
 from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
@@ -56,7 +56,7 @@ class ModelVisitor(object):
     def visit_rand_obj(self, r):
         self.visit_composite_field(r)
         
-    def visit_composite_field(self, f : CompositeFieldModel):
+    def visit_composite_field(self, f : FieldCompositeModel):
         # Visit fields
         for fi in f.field_l:
             fi.accept(self)
@@ -149,7 +149,7 @@ class ModelVisitor(object):
         pass
     
     def visit_expr_indexed_fieldref(self, e):
-        pass
+        e.root.accept(self)
     
     def visit_expr_range(self, r):
         r.lhs.accept(self)
@@ -182,7 +182,7 @@ class ModelVisitor(object):
     def visit_field_bool(self, f):
         pass
     
-    def visit_field_scalar_array(self, f : FieldScalarArrayModel):
+    def visit_field_scalar_array(self, f : FieldArrayModel):
         # Be sure to visit the 'size' built-in field
         f.size.accept(self)
 

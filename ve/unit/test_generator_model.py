@@ -4,12 +4,12 @@ Created on Mar 17, 2020
 @author: ballance
 '''
 from unittest.case import TestCase
-from vsc.model.composite_field_model import CompositeFieldModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.generator_model import GeneratorModel
 from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.randomizer import Randomizer
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
@@ -19,7 +19,7 @@ from vsc.model.rangelist_model import RangelistModel
 class TestGeneratorModel(TestCase):
     
     def test_smoke(self):
-        stim = CompositeFieldModel("stim", True)
+        stim = FieldCompositeModel("stim", True)
         f = FieldScalarModel("a", 16, False, True)
         stim.add_field(f)
         f2 = FieldScalarModel("b", 16, False, True)
@@ -60,7 +60,7 @@ class TestGeneratorModel(TestCase):
         self.assertLessEqual(count, 32)
 
     def test_coverpoint_bins(self):
-        stim = CompositeFieldModel("stim", True)
+        stim = FieldCompositeModel("stim", True)
         f = FieldScalarModel("a", 16, False, True)
         stim.add_field(f)
         f2 = FieldScalarModel("b", 16, False, True)
@@ -104,7 +104,7 @@ class TestGeneratorModel(TestCase):
         self.assertLessEqual(count, 64)
 
     def test_cross(self):
-        stim = CompositeFieldModel("stim", True)
+        stim = FieldCompositeModel("stim", True)
         f = FieldScalarModel("a", 16, False, True)
         stim.add_field(f)
         f2 = FieldScalarModel("b", 16, False, True)

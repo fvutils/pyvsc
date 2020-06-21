@@ -23,11 +23,11 @@ class TestDynamicConstraint(VscTestCase):
                 
             @vsc.dynamic_constraint
             def a_small(self):
-                self.a in vsc.rangelist([1,10])
+                self.a in vsc.rangelist(vsc.rng(1,10))
                 
             @vsc.dynamic_constraint
             def a_large(self):
-                self.a in vsc.rangelist([90,100])
+                self.a in vsc.rangelist(vsc.rng(90,100))
                 
         my_i = my_cls()
 
@@ -58,11 +58,11 @@ class TestDynamicConstraint(VscTestCase):
                 
             @vsc.dynamic_constraint
             def a_small(self):
-                self.a in vsc.rangelist([1,10])
+                self.a in vsc.rangelist(vsc.rng(1,10))
                 
             @vsc.dynamic_constraint
             def a_large(self):
-                self.a in vsc.rangelist([90,100])
+                self.a in vsc.rangelist(vsc.rng(90,100))
                 
         my_i = my_cls()
 

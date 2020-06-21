@@ -73,11 +73,11 @@ condition without knowing the details of what that condition is.
                 
             @vsc.dynamic_constraint
             def a_small(self):
-                self.a in vsc.rangelist([1,10])
+                self.a in vsc.rangelist(vsc.rng(1,10))
                 
             @vsc.dynamic_constraint
             def a_large(self):
-                self.a in vsc.rangelist([90,100])
+                self.a in vsc.rangelist(vsc.rng(90,100))
                 
         my_i = my_cls()
 
@@ -113,6 +113,12 @@ stays inside the specified ranges. Both individual values and
 ranges may be specified. In the example below, the value of ``a`` will be
 1, 2, or 4..8. The value of ``b`` will be between ``c`` and ``d`` (inclusive).
 
+The right-hand side of an 'in' constraint must be a ``rangelist`` expression.
+Elements in a ``rangelist`` may be:
+- individual expressions
+- ranges of expressions, using ``rng`` or a tuple of two expressions
+- a list of expressions or ranges
+
 .. code-block:: python3
 
      @vsc.randobj
@@ -127,12 +133,12 @@ ranges may be specified. In the example below, the value of ``a`` will be
          @vsc.constraint
          def ab_c(self):
              
-            self.a in vsc.rangelist(1, 2, [4,8])
+            self.a in vsc.rangelist(1, 2, vsc.rng(4,8))
             self.c != 0
             self.d != 0
                 
             self.c < self.d
-            self.b in vsc.rangelist([self.c,self.d])
+            self.b in vsc.rangelist(vsc.rng(self.c,self.d))
 
 part select
 -----------

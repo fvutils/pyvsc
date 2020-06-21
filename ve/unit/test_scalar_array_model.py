@@ -4,8 +4,8 @@ Created on May 17, 2020
 @author: ballance
 '''
 from vsc_test_case import VscTestCase
-from vsc.model.composite_field_model import CompositeFieldModel
-from vsc.model.field_scalar_array_model import FieldScalarArrayModel
+from vsc.model.field_composite_model import FieldCompositeModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.expr_bin_model import ExprBinModel
@@ -17,15 +17,21 @@ from vsc.model.randomizer import Randomizer
 from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.model.constraint_expr_model import ConstraintExprModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 
 class TestScalarArrayModel(VscTestCase):
     
     def test_smoke(self):
-        obj = CompositeFieldModel("obj")
-        arr = obj.add_field(FieldScalarArrayModel("arr", 32, False, True, True))
+        obj = FieldCompositeModel("obj")
+        arr = obj.add_field(FieldArrayModel(
+            "arr", 
+            True,
+            32, 
+            False, 
+            True, 
+            True))
 #         for i in range(10):
 #             arr.add_field()
         obj.add_constraint(ConstraintBlockModel("XX", [
@@ -69,8 +75,14 @@ class TestScalarArrayModel(VscTestCase):
             print("" + f.name + ": " + str(int(f.get_val())))
 
     def test_incr(self):
-        obj = CompositeFieldModel("obj")
-        arr = obj.add_field(FieldScalarArrayModel("arr", 32, False, True, False))
+        obj = FieldCompositeModel("obj")
+        arr = obj.add_field(FieldArrayModel(
+            "arr", 
+            True, # is_scalar
+            32, 
+            False, 
+            True, 
+            False))
         for i in range(10):
             arr.add_field()
         obj.add_constraint(ConstraintBlockModel("XX", [

@@ -5,19 +5,25 @@
 # @author: ballance
 
 from vsc.model.expr_model import ExprModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 
 class ExprIndexedFieldRefModel(ExprModel):
     
     def __init__(self,
-                 base_fm : 'CompositeFieldModel',
-                 idx_l):
+                 root : ExprModel,
+                 idx_t):
         super().__init__()
-        self.base_fm = base_fm
-        self.idx_l = idx_l
         
-    def get_target(self):
-        ret = self.base_fm
-        for i in self.idx_l:
+        if not isinstance(root, (ExprFieldRefModel,ExprArraySubscriptModel)):
+            raise Exception("unsupported root for an indexed reference")
+        
+        self.root = root
+        self.idx_t = idx_t
+        
+    def get_target(self, root=None):
+        ret = root if root is not None else self.root.fm
+        for i in self.idx_t:
             ret = ret.get_field(i)
             
         return ret
@@ -38,12 +44,3 @@ class ExprIndexedFieldRefModel(ExprModel):
     def val(self, parent=None): 
         return self.get_target().val
         
-    def __str__(self):
-        ret = "IndexedFieldRef: "
-        f = self.base_fm
-        for idx,i in enumerate(self.idx_l):
-            ret += f[idx].name
-            if i < len(self.idx_l):
-                ret += "."
-        return ret
-    

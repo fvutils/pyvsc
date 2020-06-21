@@ -5,7 +5,7 @@ Created on May 19, 2020
 '''
 from vsc_test_case import VscTestCase
 from vsc.model.constraint_model import ConstraintModel
-from vsc.model.scalar_field_model import FieldScalarModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.expr_bin_model import ExprBinModel
