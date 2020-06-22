@@ -53,7 +53,7 @@ class TestScalarArray(VscTestCase):
                 
             @vsc.constraint
             def my_l_c(self):
-                self.my_l.size() == 10
+                self.my_l.size == 10
                 with vsc.foreach(self.my_l) as it:
                     it < 10
                     pass
@@ -68,7 +68,7 @@ class TestScalarArray(VscTestCase):
         for i in range(100):
             it.randomize()
             
-            self.assertEqual(it.my_l.size(), 10)
+            self.assertEqual(it.my_l.size, 10)
         
             for i,e in enumerate(it.my_l):
                 self.assertLess(e, 10)
@@ -87,8 +87,8 @@ class TestScalarArray(VscTestCase):
                 
             @vsc.constraint
             def my_l_c(self):
-                self.my_l.size() > 0
-                self.my_l.size() <= 4
+                self.my_l.size > 0
+                self.my_l.size <= 4
                 with vsc.foreach(self.my_l) as it:
                     it < 10
                     pass
@@ -104,9 +104,9 @@ class TestScalarArray(VscTestCase):
         for i in range(100):
             it.randomize()
             
-            self.assertLessEqual(it.my_l.size(), 4)
+            self.assertLessEqual(it.my_l.size, 4)
 
-            size_hist[it.my_l.size()-1] += 1           
+            size_hist[it.my_l.size-1] += 1           
         
             for i,e in enumerate(it.my_l):
                 self.assertLess(e, 10)

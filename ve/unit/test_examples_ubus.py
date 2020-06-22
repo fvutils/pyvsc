@@ -44,8 +44,8 @@ class TestExamplesUbus(VscTestCase):
                 self.addr = rand_bit_t(16)
                 self.read_write = rand_enum_t(ubus_read_write_enum)
                 self.size = rand_bit_t(32)
-#                rand bit [7:0]            data[];
-#                rand bit [3:0]            wait_state[];
+#                self.data = vsc.randsz_list_t(vsc.uint8_t())
+#                self.wait_state = vsc.randsz_list_t(vsc.bit_t(4))
                 self.error_pos = rand_bit_t(32)
                 self.transmit_delay = rand_bit_t(32)
                 self.master = ""
@@ -65,9 +65,10 @@ class TestExamplesUbus(VscTestCase):
             def c_size(self):
                 self.size in rangelist(1,2,4,8)
 
-#            constraint c_data_wait_size {
-#                data.size() == size;
-#                wait_state.size() == size;
+#            @vsc.constraint
+#            def c_data_wait_size(self):
+#                self.data.size == self.size;
+#                self.wait_state.size == self.size;
 
             @vsc.constraint
             def c_transmit_delay(self):

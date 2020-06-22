@@ -588,7 +588,8 @@ class list_t(object):
         self._int_field_info.name = name
         
         return model
-    
+
+    @property    
     def size(self):
         model = self.get_model()
         if get_expr_mode():
@@ -621,7 +622,7 @@ class list_t(object):
                 [ExprFieldRefModel(self.get_model())])))
 
     def __iter__(self):
-        class list_it(object):
+        class list_scalar_it(object):
             def __init__(self, l):
                 self.model = l._int_field_info.model
                 self.idx = 0
@@ -633,18 +634,36 @@ class list_t(object):
                     v = self.model.field_l[self.idx].get_val()
                     self.idx += 1
                     return int(v)
+        class list_object_it(object):
+            def __init__(self, l):
+                self.l = l
+                self.model = l._int_field_info.model
+                self.idx = 0
+                
+            def __next__(self):
+                if self.idx >= int(self.model.size.get_val()):
+                    raise StopIteration()
+                else:
+                    v = self.l.backing_arr[self.idx]
+                    self.idx += 1
+                    return v
+                
         if self.is_scalar:
-            return list_it(self)
+            return list_scalar_it(self)
         else:
-            return self.backing_arr.__iter__()
+            return list_object_it(self)
     
     def __getitem__(self, k):
-        print("getitem: " + str(k))
-        # TODO: what about arrays of composite objects
         model = self._int_field_info.model
-        # How do we wrap this up?
-        return int(model.field_l[k].get_val())
-    
+        if expr_mode():
+            # TODO: must determine whether we're within a foreach or just on our own
+            pass
+        else:
+            if self.is_scalar:
+                return int(model.field_l[k].get_val())
+            else:
+                return self.backing_arr[k]
+            
     def __setitem__(self, k, v):
         self.arr[k] = v
 

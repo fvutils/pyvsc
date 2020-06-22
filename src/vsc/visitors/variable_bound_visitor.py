@@ -92,6 +92,9 @@ class VariableBoundVisitor(ModelVisitor):
     
     def visit_expr_bin(self, e:ExprBinModel):
         # TODO: We'll need to deal with expressions that involve variables
+        # An alias is the simplest relationship. A == B means that there is
+        # a single bound for both variables, and all relationships on A and B
+        # contribute to this single bound
       
         if self.phase == 1:
             # Traverse to pick up variable references
