@@ -19,17 +19,17 @@ class EnumInfo(object):
         self.enums = []
         
         if isinstance(e, IntEnum):
+            for en in e:
+                self.e2v_m[en] = int(en)
+                self.v2e_m[int(en)] = en
+                self.enums.append(int(en))
+        elif isinstance(e, EnumMeta):
             i=0
             for en in e:
                 self.e2v_m[en] = i
                 self.v2e_m[i] = en
                 self.enums.append(i)
                 i += 1
-        elif isinstance(e, EnumMeta):
-            for en in e:
-                self.e2v_m[en] = int(en)
-                self.v2e_m[int(en)] = en
-                self.enums.append(int(en))
         else:
             raise Exception("unsupported enum type " + str(e))
         
