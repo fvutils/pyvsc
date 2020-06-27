@@ -75,11 +75,8 @@ class TestIn(VscTestCase):
                 
             @vsc.constraint
             def ab_c(self):
-                
-#                self.a in vsc.rangelist(self.b+1, [self.b+2,self.c], 8)
                 self.a in vsc.rangelist(1, 2, 4, 8)
                
-
                 self.c != 0
                 self.d != 0
                 
@@ -89,7 +86,6 @@ class TestIn(VscTestCase):
         v = my_s()
         for i in range(100):
             v.randomize()
-<<<<<<< HEAD
             print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))
 
     def test_in_list_1(self):
@@ -149,9 +145,6 @@ class TestIn(VscTestCase):
         self.assertTrue(v.a in [10, 12, 14])
 
     def test_in_list_plain(self):
-
-=======
-            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))       
 
     def test_in_indep(self):
 
