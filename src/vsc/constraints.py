@@ -21,14 +21,15 @@
 
 
 from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr, \
-    pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr
+    pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr,\
+    push_foreach_arr, pop_foreach_arr
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
-from vsc.types import to_expr, expr
+from vsc.types import to_expr, expr, type_base
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
@@ -207,8 +208,37 @@ class forall(object):
     
 class foreach(object):
     
-    def __init__(self, l, it=True, idx=False):
+    class idx_term_c(type_base):
+        def __init__(self, index):
+            super().__init__(32, False)
+            self.index = index
+        def to_expr(self):
+            return expr(ExprFieldRefModel(self.index))
+        
+    class it_term_c(type_base):
+        def __init__(self, it):
+            super().__init__(32, False)
+            self.it = it
+        def to_expr(self):
+            return expr(self.it)
+    
+    def __init__(self, l, it=None, idx=None):
         self.stmt = None
+        
+        if it is None and idx is None:
+            # Default: use it
+            it = True
+            idx = False
+        else:
+            # One or more are specified
+            if idx is None:
+                idx = False
+            if it is None:
+                it = False
+                
+        if not idx and not it:
+            raise Exception("Neither it nor idx specified")
+            
         self.it = it
         self.idx = idx
         self.arr = l
@@ -226,9 +256,11 @@ class foreach(object):
         model = self.arr_model
 #        return expr(ExprArraySubscriptModel())
 
-        idx_term = expr(ExprFieldRefModel(self.stmt.index))
+        push_foreach_arr(self.arr)
+
+        idx_term = foreach.idx_term_c(self.stmt.index)
         if self.arr_model.is_scalar:
-            it_term = expr(ExprArraySubscriptModel(
+            it_term = foreach.it_term_c(ExprArraySubscriptModel(
                 ExprFieldRefModel(model),
                 ExprFieldRefModel(self.stmt.index)))
         else:
@@ -247,5 +279,6 @@ class foreach(object):
 
     def __exit__(self, t, v, tb):
         pop_constraint_scope()
+        pop_foreach_arr()
         
         

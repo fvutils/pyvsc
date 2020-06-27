@@ -46,7 +46,6 @@ from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
 from vsc.model.variable_bound_model import VariableBoundModel
-from vsc.types import int64_t
 
 
 class Randomizer(RandIF):
@@ -94,7 +93,12 @@ class Randomizer(RandIF):
             constraint_l = list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints()))
             
             for c in constraint_l:
-                btor.Assume(c[1])
+                try:
+                    btor.Assume(c[1])
+                except Exception as e:
+                    from ..visitors.model_pretty_printer import ModelPrettyPrinter
+                    print("Exception: " + ModelPrettyPrinter.print(c[0]))
+                    raise e
                 
             soft_node_l = list(map(lambda c:c[1], filter(lambda c:c[2], constraint_l)))
             node_l = list(map(lambda c:c[1], filter(lambda c:not c[2], constraint_l)))
@@ -537,7 +541,7 @@ class Randomizer(RandIF):
 
         # Collect all variables (pre-array) and establish bounds            
         bounds_v = VariableBoundVisitor()
-        bounds_v.process(field_model_l, constraint_l)
+        bounds_v.process(field_model_l, constraint_l, False)
 
         # TODO: need to handle inline constraints that impact arrays
         constraints_len = len(constraint_l)

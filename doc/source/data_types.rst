@@ -151,3 +151,58 @@ PyVSC also provides operator overloading for `randobj`-decorated classes that
 allows the value of class attributes to be accessed directly.
 
 
+List-type Attributes
+================================
+
+Random and non-random class attributes of list type can be created using the 
+`list_t` class. The size of the list can be later changed by appending or
+removing elements, or clearing the list. Randomizing the array will not
+change its size.
+
+.. code-block:: python3
+
+  @vsc.randobj
+  class my_item_c(object):
+      def __init__(self):
+        self.my_l = vsc.rand_list_t(vsc.uint8_t(), 4)
+
+       
+The `randsz_list_t` class creates a list whose size will be randomized when
+the list is randomized. A list with a randomized size must have a top-level
+constraint bounding the list size. 
+
+.. code-block:: python3
+
+  @vsc.randobj
+  class my_item_c(object):
+      def __init__(self):
+        self.my_l = vsc.randsz_list_t(vsc.uint8_t())
+        
+      @vsc.constraint
+      def my_l_c(self):
+          self.my_l.size in vsc.rangelist((1,10))
+
+The `list_t` class must be used for any list that will be used in constraints.
+
+.. code-block:: python3
+
+  @vsc.randobj
+  class my_item_c(object):
+      def __init__(self):
+        self.a = vsc.rand_uint8_t()
+        self.my_l = vsc.list_t(vsc.uint8_t(), 4)
+        
+        for i in range(10):
+            self.my_l.append(i)
+        
+      @vsc.constraint
+      def a_c(self):
+        self.a in self.my_l
+
+  it = my_item_c()
+  it.my_l.append(20)
+ 
+  with it.randomize_with():
+    it.a == 20
+  
+               

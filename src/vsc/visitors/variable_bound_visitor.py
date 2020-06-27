@@ -45,11 +45,15 @@ class VariableBoundVisitor(ModelVisitor):
         self._propagator = None
         self._expr = None
         self.depth = 0
+        self.process_subscript = True
         
     def process(self, 
                 variables,
-                constraints) -> Dict[FieldModel, 'VarInfo']:
+                constraints,
+                process_subscript=True) -> Dict[FieldModel, 'VarInfo']:
         self.bound_m : Dict[FieldModel, 'VarInfo'] = {}
+        self.process_subscript = process_subscript
+        
         # Tracks how deep we are in expressions, so we know
         # how to process expressions
         self.depth = 0
@@ -95,6 +99,13 @@ class VariableBoundVisitor(ModelVisitor):
         # An alias is the simplest relationship. A == B means that there is
         # a single bound for both variables, and all relationships on A and B
         # contribute to this single bound
+
+        # Don't attempt to deal with subscripts when we're
+        # establishing array domains.        
+        if not self.process_subscript and (
+            isinstance(e.lhs, ExprArraySubscriptModel) or 
+            isinstance(e.rhs, ExprArraySubscriptModel)):
+            return
       
         if self.phase == 1:
             # Traverse to pick up variable references

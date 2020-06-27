@@ -167,4 +167,5 @@ class TestIn(VscTestCase):
             it.a in vsc.rangelist(0, 1, 2, 3)
             
         self.assertTrue(v.a in [0,1,2,3])
+
         

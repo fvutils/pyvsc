@@ -166,6 +166,70 @@ part select
 Statements
 ==========
 
+foreach
+-------
+foreach constraints are modeled with the `foreach` class. By default, 
+the foreach iterator is a reference to the current element of the array.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_s(object):
+         def __init__(self);
+             self.my_l = vsc.rand_list_t(vsc.uint8_t(), 4)
+             
+         @vsc.constraint
+         def my_l_c(self):
+             with vsc.foreach(self.my_l) as it:
+                 it < 10
+                 
+The `foreach` class supports control over whether the item, index,
+or both is provided for use in constraints.
+
+Here is an example of requesting the index instead of the iterator.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_s(object):
+         def __init__(self);
+             self.my_l = vsc.rand_list_t(vsc.uint8_t(), 4)
+             
+         @vsc.constraint
+         def my_l_c(self):
+             with vsc.foreach(self.my_l, idx=True) as i:
+                 self.my_l[i] < 10
+                 
+Here is an example of explicitly requesting the iterator.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_s(object):
+         def __init__(self);
+             self.my_l = vsc.rand_list_t(vsc.uint8_t(), 4)
+             
+         @vsc.constraint
+         def my_l_c(self):
+             with vsc.foreach(self.my_l, it=True) as it:
+                 it < 10
+
+Now, finally, here is an example of having both an iterator and
+index.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_s(object):
+         def __init__(self);
+             self.my_l = vsc.rand_list_t(vsc.uint8_t(), 4)
+             
+         @vsc.constraint
+         def my_l_c(self):
+             with vsc.foreach(self.my_l, it=True, idx=True) as (i,it):
+                 it == (i+1)
+                 
+
 if/else
 -------
 if/else constraints are modeled using three statements:

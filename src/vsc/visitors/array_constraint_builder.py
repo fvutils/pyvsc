@@ -34,12 +34,13 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         
     @staticmethod
     def build(m, bound_m : typing.Dict[FieldModel,VariableBoundModel]):
+        from ..visitors.model_pretty_printer import ModelPrettyPrinter
         builder = ArrayConstraintBuilder(bound_m)
         builder.phase = 0
         m.accept(builder)
         builder.phase = 1
         m.accept(builder)
-
+        
         return builder.constraints
     
     def visit_constraint_foreach(self, f:ConstraintForeachModel):
@@ -73,6 +74,10 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
             
 #        self.constraints.append(ret)
 
+    def visit_expr_array_sum(self, s):
+        # Don't recurse into this
+        pass
+
     def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
         if self.phase != 1:
             return
@@ -95,6 +100,7 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
             ConstraintCopyBuilder.visit_expr_fieldref(self, e)
             
     def visit_expr_indexed_fieldref(self, e):
+        from .model_pretty_printer import ModelPrettyPrinter
         if isinstance(e.root, ExprArraySubscriptModel) and e.root.rhs.fm in self.index_set:
             actual_root = e.root.lhs.fm.field_l[int(e.root.rhs.fm.get_val())]
             self._expr = ExprFieldRefModel(e.get_target(actual_root))

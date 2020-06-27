@@ -41,10 +41,8 @@ from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
-from xml.etree.ElementPath import prepare_self
 from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
-
 
 
 
@@ -105,6 +103,7 @@ class ModelVisitor(object):
         self.visit_constraint_scope(f)
         
     def visit_constraint_if_else(self, c : ConstraintIfElseModel):
+        from ..visitors.model_pretty_printer import ModelPrettyPrinter
         self.visit_constraint_stmt_enter(c)
         c.cond.accept(self)
         c.true_c.accept(self)
@@ -135,6 +134,10 @@ class ModelVisitor(object):
         for e in c.unique_l:
             e.accept(self)
         self.visit_constraint_stmt_leave(c)
+        
+    def visit_expr_array_sum(self, s):
+        if s.get_sum_expr():
+            s.get_sum_expr().accept(self)
             
     def visit_expr_bin(self, e : ExprBinModel):
         e.lhs.accept(self)
@@ -158,6 +161,7 @@ class ModelVisitor(object):
     def visit_expr_rangelist(self, r):
         for ri in r.rl:
             ri.accept(self)
+            
             
     def visit_expr_array_subscript(self, s):
         s.lhs.accept(self)

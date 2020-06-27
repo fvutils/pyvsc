@@ -3,7 +3,6 @@ Created on Apr 28, 2020
 
 @author: ballance
 '''
-from vsc.model.field_array_model import FieldArrayModel
 '''
 Created on Apr 28, 2020
 
@@ -15,6 +14,8 @@ from _io import StringIO
 import vsc.model as vm
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
+from vsc.model.field_array_model import FieldArrayModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.unary_expr_type import UnaryExprType
 
@@ -106,6 +107,9 @@ class ModelPrettyPrinter(ModelVisitor):
         self.write("[")
         s.rhs.accept(self)
         self.write("]")
+        
+    def visit_expr_array_sum(self, s):
+        ModelVisitor.visit_expr_array_sum(self, s)
 
     def visit_expr_bin(self, e:vm.ExprBinModel):
         if e.lhs is None or e.rhs is None:
@@ -149,4 +153,7 @@ class ModelPrettyPrinter(ModelVisitor):
         self.write("(")
         e.expr.accept(self)
         self.write(")")
+        
+    def visit_scalar_field(self, f:FieldScalarModel):
+        self.write(f.name)
 

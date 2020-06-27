@@ -24,7 +24,10 @@ class ExprArraySubscriptModel(ExprModel):
     def subscript(self):
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):
-            return self.lhs.fm.field_l[index]
+            if index < len(self.lhs.fm.field_l):
+                return self.lhs.fm.field_l[index]
+            else:
+                raise Exception("List size: " + str(len(self.lhs.fm.field_l)) + " index: " + str(index))
         else:
             # TODO: support array slicing
             raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))

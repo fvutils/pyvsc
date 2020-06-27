@@ -7,6 +7,10 @@ from vsc.model.field_model import FieldModel
 from typing import List
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.field_composite_model import FieldCompositeModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_literal_model import ExprLiteralModel
 
 class FieldArrayModel(FieldCompositeModel):
     """All arrays are processed as if they were variable size."""
@@ -24,27 +28,15 @@ class FieldArrayModel(FieldCompositeModel):
         self.width = width
         self.is_signed = is_signed
         self.is_rand_sz = is_rand_sz
+        # Holds a cached version of the sum constraint
+        self.sum_expr_btor = None
+        self.sum_expr = None
+        
         self.size = FieldScalarModel(
             "size",
             32,
             False,
             is_rand_sz)
-#        self.size.set_val(size)
-
-        # Either the field creator or the model builder
-        # is responsible for creating fields
-#         if size > 0:       
-#             for i in range(size):
-#                 self.add_field(FieldScalarModel(
-#                     "[" + str(i) + "]",
-#                     width,
-#                     is_signed,
-#                     is_rand))
-        
-        # TODO: array properties, such as product, 
-        # are actually expressions
-        # Need some notion to deal with references
-        # to expressions that are built on-demand
         
     def append(self, fm):
         super().add_field(fm)
@@ -70,6 +62,11 @@ class FieldArrayModel(FieldCompositeModel):
             self.size.set_val(len(self.field_l))
         FieldCompositeModel.pre_randomize(self)
         
+    def post_randomize(self):
+        FieldCompositeModel.post_randomize(self)
+        self.sum_expr = None
+        self.sum_expr_btor = None
+        
     def add_field(self) -> FieldScalarModel:
         fid = len(self.field_l)
         return super().add_field(FieldScalarModel(
@@ -82,6 +79,30 @@ class FieldArrayModel(FieldCompositeModel):
         # Called before randomization
         self.size.set_val(int(len(self.field_l)))
         super().build(builder)
+        
+    def get_sum_expr(self):
+        if self.sum_expr is None:
+            # Build
+            ret = None
+            for f in self.field_l:
+                if ret is None:
+                    ret = ExprFieldRefModel(f)
+                else:
+                    ret = ExprBinModel(
+                        ret,
+                        BinExprType.Add,
+                        ExprFieldRefModel(f))
+                
+            if ret is None:
+                ret = ExprLiteralModel(0, False, 32)
+            self.sum_expr = ret
+            
+        return self.sum_expr
+        
+    def build_sum_expr(self, btor):
+        if self.sum_expr_btor is None:
+            self.sum_expr_btor = self.get_sum_expr().build(btor)
+        return self.sum_expr_btor
         
     def accept(self, v):
         v.visit_field_scalar_array(self)

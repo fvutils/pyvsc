@@ -42,9 +42,7 @@ class TestConstraintCopier(VscTestCase):
             )
         ])
         
-        print("Model: " + ModelPrettyPrinter.print(ab_c))
         copy = ConstraintCopyBuilder.copy(ab_c)
         self.assertEquals(1, len(copy))
         self.assertIsNot(ab_c, copy[0])
-        print("Copy: " + ModelPrettyPrinter.print(copy[0]))
         

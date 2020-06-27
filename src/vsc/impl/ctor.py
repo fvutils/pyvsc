@@ -27,22 +27,33 @@ from vsc.model.constraint_expr_model import ConstraintExprModel
 rand_obj_type_m = {}
 constraint_scope_stack = []
 expr_l = []
+foreach_arr_s = []
 
 def test_setup():
     rand_obj_type_m.clear()
     constraint_scope_stack.clear()
     expr_l.clear()
+    foreach_arr_s.clear()
     CoverageRegistry._inst = None
     
 def test_teardown():
     rand_obj_type_m.clear()
+    foreach_arr_s.clear()
     if len(expr_l) != 0:
         print("Error: Leftbehind expressions")
         for ex in expr_l:
             print("Expr: " + str(ex))
         raise Exception("Leftbehind expressions")
     CoverageRegistry._inst = None
+
+def push_foreach_arr(arr):
+    foreach_arr_s.append(arr)
     
+def is_foreach_arr(arr):
+    return arr in foreach_arr_s
+
+def pop_foreach_arr():
+    foreach_arr_s.pop()
 
 def push_expr(e):
     expr_l.append(e)

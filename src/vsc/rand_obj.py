@@ -33,7 +33,7 @@ from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.randomizer import Randomizer
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.source_info import SourceInfo
-from vsc.types import type_base, field_info
+from vsc.types import type_base, field_info, list_t
 
 
 def randobj(T):
@@ -91,6 +91,10 @@ def randobj(T):
                         fo.set_val(val)
                     else:
                         raise Exception("Attempting to use '=' in a constraint")
+                elif isinstance(fo, list_t):
+                    fo.clear()
+                    for i in val:
+                        fo.append(i)
                 else:
                     object.__setattr__(self, field, val)                
                     

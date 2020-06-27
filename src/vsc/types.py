@@ -22,7 +22,8 @@
 
 from enum import IntEnum, Enum, EnumMeta
 
-from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope
+from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope,\
+    is_foreach_arr, expr_l
 from vsc.impl.enum_info import EnumInfo
 from vsc.impl.expr_mode import get_expr_mode, expr_mode
 from vsc.model.bin_expr_type import BinExprType
@@ -40,6 +41,8 @@ from vsc.model.field_array_model import FieldArrayModel
 from lib2to3.btm_utils import TYPE_ALTERNATIVES
 from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.field_const_array_model import FieldConstArrayModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_array_sum_model import ExprArraySumModel
 
 
 def unsigned(v, w=-1):
@@ -58,10 +61,19 @@ class expr(object):
         self.em = em
         
     def bin_expr(self, op, rhs):
+        from .visitors.model_pretty_printer import ModelPrettyPrinter
         to_expr(rhs)
-       
+
         rhs_e = pop_expr()
         lhs_e = pop_expr()
+       
+#        print("bin_expr: lhs=" + 
+#              ModelPrettyPrinter.print(lhs_e) + " rhs=" +
+#              ModelPrettyPrinter.print(rhs_e) + " len=" + 
+#              str(len(expr_l)))
+#        for e in expr_l:
+#            print("    Expr: " + ModelPrettyPrinter.print(e))
+        
         
         e = ExprBinModel(lhs_e, op, rhs_e)
         
@@ -536,11 +548,13 @@ class rand_int64_t(rand_int_t):
         
 class list_t(object):
     
-    def __init__(self, t):
+    def __init__(self, t, sz=0, is_rand=False, is_randsz=False):
         self.t = t
         self._int_field_info = field_info()
         self.is_scalar = isinstance(t, type_base)
-        self.is_rand_sz = False
+        self._int_field_info.is_rand = is_rand
+        self.is_rand_sz = is_randsz
+        self.init_sz = sz
         if not self.is_scalar:
             if not hasattr(t, "_int_field_info"):
                 raise Exception("list_t type " + str(t) + " (type " + str(type(t)) + ") is not a VSC randobj type")
@@ -580,6 +594,14 @@ class list_t(object):
                 self._int_field_info.is_rand,
                 self.is_rand_sz)
             
+            if self.init_sz > 0:
+                for i in range(self.init_sz):
+                    if self.is_scalar:
+                        self.append(0)
+                    else:
+                        self.append(type(self.t)())
+                
+            
         return self._int_field_info.model
 
     def build_field_model(self, name):
@@ -596,6 +618,29 @@ class list_t(object):
             return expr(ExprFieldRefModel(model.size))
         else:
             return int(model.size.get_val())
+        
+    @property
+    def sum(self):
+        if self.is_scalar:
+            if get_expr_mode():
+                raise Exception("Constraints on sum not supported")
+                return expr(ExprArraySumModel(self.get_model()))
+            else:
+                ret = 0
+                for f in self.get_model().field_l:
+                    v = int(f.get_val())
+                    print("v: " + str(v))
+                    ret += int(f.get_val())
+                return ret
+        else:
+            raise Exception("Composite arrays do not have a sum")
+            
+        
+    def __len__(self):
+        if get_expr_mode():
+            raise Exception("len cannot be used in constraints")
+        else:
+            return self.size
         
     def append(self, v):
         model = self.get_model()
@@ -655,9 +700,21 @@ class list_t(object):
     
     def __getitem__(self, k):
         model = self._int_field_info.model
-        if expr_mode():
+        if get_expr_mode():
             # TODO: must determine whether we're within a foreach or just on our own
-            pass
+            if is_foreach_arr(self):
+                to_expr(k)
+                idx_e = pop_expr()
+                
+                return expr(ExprArraySubscriptModel(
+                    ExprFieldRefModel(self.get_model()),
+                    idx_e))
+            else:
+                to_expr(k)
+                idx_e = pop_expr()
+                return expr(ExprArraySubscriptModel(
+                    ExprFieldRefModel(self.get_model()),
+                    idx_e))
         else:
             if self.is_scalar:
                 return int(model.field_l[k].get_val())
@@ -665,7 +722,10 @@ class list_t(object):
                 return self.backing_arr[k]
             
     def __setitem__(self, k, v):
-        self.arr[k] = v
+        if self.is_scalar:
+            self.get_model().field_l[k].set_val(v)
+        else:
+            self.backing_arr[k] = v
 
     def to_expr(self):
         return expr(ExprFieldRefModel(self.get_model()))
@@ -675,16 +735,12 @@ class rand_list_t(list_t):
     """List of random elements with a non-random size"""
     
     def __init__(self, t, sz=0):
-        super().__init__(t)
-        self._init_sz = sz
-        self._int_field_info.is_rand = True
+        super().__init__(t, sz, is_rand=True)
         
 class randsz_list_t(list_t):
     """List of random elements with a non-random size"""
     
     def __init__(self, t):
-        super().__init__(t)
-        self._int_field_info.is_rand = True
-        self.is_rand_sz = True
+        super().__init__(t, is_rand=True, is_randsz=True)
         
 

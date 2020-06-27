@@ -14,6 +14,7 @@ from vsc.model.constraint_unique_model import ConstraintUniqueModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
 
 class ConstraintCollector(object):
     """Creates a copy of a given constraints"""
@@ -86,18 +87,21 @@ class ConstraintCopyBuilder(ModelVisitor):
             super().visit_constraint_foreach(f)
         
     def visit_constraint_if_else(self, c:ConstraintIfElseModel):
+        from .model_pretty_printer import ModelPrettyPrinter
         if self.do_copy_level > 0:
             ret = ConstraintIfElseModel(self.expr(c.cond))
-        
-            with ConstraintCollector(self, c.true_c):
+           
+            ret.true_c = ConstraintScopeModel() 
+            with ConstraintCollector(self, ret.true_c):
                 for cs in c.true_c.constraint_l:
                     cs.accept(self)
                 
             if c.false_c is not None:
-                with ConstraintCollector(self, c.false_c):
+                ret.false_c = ConstraintScopeModel()
+                with ConstraintCollector(self, ret.false_c):
                     for cs in c.false_c.constraint_l:
                         cs.accept(self)
-        
+
             self.constraints.append(ret)
         else:
             super().visit_constraint_if_else(c)
@@ -128,6 +132,7 @@ class ConstraintCopyBuilder(ModelVisitor):
             super().visit_constraint_unique(c)
         
     def visit_expr_bin(self, e:ExprBinModel):
+        from .model_pretty_printer import ModelPrettyPrinter
         if self.do_copy_level > 0:
             self._expr = ExprBinModel(
                 self.expr(e.lhs),
@@ -150,9 +155,13 @@ class ConstraintCopyBuilder(ModelVisitor):
             super().visit_expr_literal(e)
         
     def visit_expr_array_subscript(self, s):
-        self._expr = ExprArraySubscriptModel(
-            self.expr(s.lhs),
-            self.expr(s.rhs))
+        if self.do_copy_level > 0:
+            self._expr = ExprArraySubscriptModel(
+                self.expr(s.lhs),
+                self.expr(s.rhs))
+        else:
+            super().visit_expr_array_subscript(s)
+            
         
     def expr(self, e):
         self._expr = None
