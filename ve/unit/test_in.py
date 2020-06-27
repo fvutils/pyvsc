@@ -14,6 +14,7 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 '''
 Created on Jul 28, 2019
 
@@ -88,6 +89,7 @@ class TestIn(VscTestCase):
         v = my_s()
         for i in range(100):
             v.randomize()
+<<<<<<< HEAD
             print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))
 
     def test_in_list_1(self):
@@ -148,6 +150,15 @@ class TestIn(VscTestCase):
 
     def test_in_list_plain(self):
 
+=======
+            print("a=" + str(v.a) + " b=" + str(v.b) + " c=" + str(v.c) + " d=" + str(v.d))       
+
+    def test_in_indep(self):
+
+        class obj(object):
+            def __init__(self):
+                pass
+            
         @vsc.randobj
         class my_s(object):
             
@@ -159,7 +170,6 @@ class TestIn(VscTestCase):
                 
             @vsc.constraint
             def ab_c(self):
-                
                 self.a in vsc.rangelist(self.l, 10, 12, 14)
                 
         v = my_s()
@@ -168,4 +178,3 @@ class TestIn(VscTestCase):
             
         self.assertTrue(v.a in [0,1,2,3])
 
-        

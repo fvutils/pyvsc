@@ -183,7 +183,9 @@ class Randomizer(RandIF):
                     self.randint(range_l[0][0], range_l[0][1]))
             else:
                 # Most likely an enumerated type
-                pass
+                # TODO: are there any cases where these could be ranges?
+                idx = self.randint(0, len(range_l)-1)
+                uf.set_val(range_l[idx][0])
             
     def swizzle_randvars(self, 
                 btor    : Boolector, 
