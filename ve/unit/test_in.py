@@ -145,7 +145,26 @@ class TestIn(VscTestCase):
         self.assertTrue(v.a in [10, 12, 14])
 
     def test_in_list_plain(self):
-
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.l = list(range(4))
+                
+            @vsc.constraint
+            def ab_c(self):
+                
+                self.a in vsc.rangelist(self.l, 10, 12, 14)
+                
+        v = my_s()
+        with v.randomize_with() as it:
+            it.a in vsc.rangelist(0, 1, 2, 3)
+            
+        self.assertTrue(v.a in [0,1,2,3])
+        
     def test_in_indep(self):
 
         class obj(object):
