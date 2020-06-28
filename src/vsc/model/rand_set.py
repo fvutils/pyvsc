@@ -35,6 +35,8 @@ class RandSet(object):
         # Related fields that shouldn't be targeted for randomization
         self.dnr_field_s : Set[FieldModel] = set()
         self.constraint_s :Set[ConstraintModel] = set()
+        self.field_l = None
+        self.all_field_l = None
         
     def add_field(self, f):
         self.field_s.add(f)
@@ -45,6 +47,11 @@ class RandSet(object):
     def fields(self):
         return self.field_s
     
+    def fields_l(self):
+        if self.field_l is None:
+            self.field_l = list(self.field_s)
+        return self.field_l
+    
     def rand_fields(self):
         return self.field_s
     
@@ -52,7 +59,11 @@ class RandSet(object):
         return self.dnr_field_s
     
     def all_fields(self)->List[FieldModel]:
-        return self.field_s.union(self.dnr_field_s)
+        if self.all_field_l is None:
+            self.all_field_l = list(self.field_s)
+            self.all_field_l.extend(list(self.dnr_field_s))
+            
+        return self.all_field_l
         
         
     def add_constraint(self, c):

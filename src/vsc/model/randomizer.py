@@ -57,8 +57,137 @@ class Randomizer(RandIF):
     _state_p = [0,1]
     _rng = random.Random()
     
-    
     def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
+        """Randomize the variables and constraints in a RandInfo collection"""
+        
+
+#         for rs in ri.randsets():
+#             print("RandSet")
+#             for f in rs.all_fields():
+#                 print("  " + f.name + " " + str(bound_m[f].domain.range_l))
+#         for uf in ri.unconstrained():
+#             print("Unconstrained: " + uf.name)
+
+        rs_i = 0
+        start_rs_i = 0
+        max_fields = 20
+        while rs_i < len(ri.randsets()):        
+            btor = Boolector()
+            self.btor = btor
+            btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
+            btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
+            
+            start_rs_i = rs_i
+
+            constraint_l = []
+            # Collect up to max_fields fields to randomize at a time
+            n_fields = 0
+            while rs_i < len(ri.randsets()):
+                rs = ri.randsets()[rs_i]
+                try:            
+                    for f in rs.all_fields():
+                        f.build(btor)
+                        n_fields += 1
+                except Exception as e:
+                    for c in rs.constraints():
+                        print("Constraint: " + self.pretty_printer.do_print(c))
+                    raise e
+                
+                constraint_l.extend(list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints())))
+                
+                rs_i += 1
+                if n_fields > max_fields:
+                    break
+                
+            for c in constraint_l:
+                try:
+                    btor.Assume(c[1])
+                except Exception as e:
+                    from ..visitors.model_pretty_printer import ModelPrettyPrinter
+                    print("Exception: " + ModelPrettyPrinter.print(c[0]))
+                    raise e
+                
+            soft_node_l = list(map(lambda c:c[1], filter(lambda c:c[2], constraint_l)))
+            node_l = list(map(lambda c:c[1], filter(lambda c:not c[2], constraint_l)))
+
+            
+            # Perform an initial solve to establish correctness
+            if btor.Sat() != btor.SAT:
+                
+                if len(soft_node_l) > 0:
+                    # Try one more time before giving up
+                    for i,f in enumerate(btor.Failed(*soft_node_l)):
+                        if f:
+                            soft_node_l[i] = None
+                        
+                    # Add back the hard-constraint nodes and soft-constraints that
+                    # didn't fail                        
+                    for n in filter(lambda n:n is not None, node_l+soft_node_l):
+                        btor.Assume(n)
+
+                    # If we fail again, then we truly have a problem
+                    if btor.Sat() != btor.SAT:
+                    
+                        # Ensure we clean up
+                        x=start_rs_i
+                        while x < rs_i:
+                            rs = ri.randsets()[x]
+                            for f in rs.all_fields():
+                                f.dispose()
+                            x += 1
+
+                        raise Exception("solve failure")
+                    else:
+                        # Still need to convert assumptions to assertions
+                        for n in filter(lambda n:n is not None, node_l+soft_node_l):
+                            btor.Assert(n)
+                else:
+                    print("Failed constraints:")
+                    i=1
+                    for c in constraint_l:
+                        if btor.Failed(c[1]):
+                            print("[" + str(i) + "]: " + self.pretty_printer.do_print(c[0], False))
+                            print("[" + str(i) + "]: " + self.pretty_printer.do_print(c[0], True))
+                            i+=1
+                            
+                    # Ensure we clean up
+                    for rs in ri.randsets():
+                        for f in rs.all_fields():
+                            f.dispose()
+                    print("Solve failure")
+                    raise Exception("solve failure")
+            else:
+                # Still need to convert assumptions to assertions
+                btor.Assert(*(node_l+soft_node_l))
+
+
+            self.swizzle_randvars(btor, ri, start_rs_i, rs_i, bound_m)
+
+        # Finalize the value of the field
+            x = start_rs_i
+            while x < rs_i:
+                rs = ri.randsets()[x]
+                for f in rs.all_fields():
+                    f.post_randomize()
+                    f.dispose() # Get rid of the solver var, since we're done with it
+                x += 1
+
+        uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
+        for uf in uc_rand:
+            bounds = bound_m[uf]
+            range_l = bounds.domain.range_l
+            
+            if len(range_l) == 1:
+                # Single (likely domain-based) range
+                uf.set_val(
+                    self.randint(range_l[0][0], range_l[0][1]))
+            else:
+                # Most likely an enumerated type
+                # TODO: are there any cases where these could be ranges?
+                idx = self.randint(0, len(range_l)-1)
+                uf.set_val(range_l[idx][0])
+                    
+    def randomize_1(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
         """Randomize the variables and constraints in a RandInfo collection"""
         
 
@@ -164,7 +293,7 @@ class Randomizer(RandIF):
                 btor.Assert(*(node_l+soft_node_l))
                 
 
-            self.swizzle_randvars(btor, rs, bound_m)
+            self.swizzle_randvars_1(btor, rs, bound_m)
 
                 
             # Finalize the value of the field
@@ -186,8 +315,72 @@ class Randomizer(RandIF):
                 # TODO: are there any cases where these could be ranges?
                 idx = self.randint(0, len(range_l)-1)
                 uf.set_val(range_l[idx][0])
-            
+                
     def swizzle_randvars(self, 
+                btor     : Boolector, 
+                ri       : RandInfo,
+                start_rs : int,
+                end_rs   : int,
+                bound_m  : Dict[FieldModel,VariableBoundModel]):
+
+        # TODO: we must ignore fields that are otherwise being controlled
+
+        rand_node_l = []
+        x=start_rs
+        while x < end_rs:
+            # For each random variable, select a partition with it's known 
+            # domain and add the corresponding constraint
+            rs = ri.randsets()[x]
+            
+            field_l = rs.fields_l()
+            if len(field_l) == 1:
+                # Go ahead and pick values in the domain, since there 
+                # are no other constraints
+                f = field_l[0]
+                e = self.create_single_var_domain_constraint(
+                    field_l[0], bound_m[field_l[0]])
+            
+                if e is not None:
+                    n = e.build(btor)
+                    rand_node_l.append(n)                    
+#                    btor.Assume(n)
+            else:
+                for f in field_l:
+                    if f.is_used_rand and f in bound_m.keys():
+                        f_bound = bound_m[f]
+                 
+                        if not f_bound.isEmpty():
+                            e = self.create_rand_domain_constraint(f, f_bound)
+                            if e is not None:
+                                n = e.build(btor)
+                                rand_node_l.append(n)                    
+#                                btor.Assume(n)
+                        else:
+                            # It's always possible that this value is already fixed.
+                            # Just ignore.
+#                            rand_node_l.append(None)
+                            pass
+            x += 1
+        if len(rand_node_l) > 0:            
+            btor.Assume(*rand_node_l)
+     
+            if btor.Sat() != btor.SAT:
+                # Remove any failing assumptions
+ 
+                n_failed = 0
+                for i,n in enumerate(rand_node_l):
+                    if n is not None and btor.Failed(n):
+                        rand_node_l[i] = None
+                        n_failed += 1
+
+                # Re-apply the constraints that succeeded
+                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
+                
+        if btor.Sat() != btor.SAT:
+            raise Exception("failed to add in randomization")
+             
+                            
+    def swizzle_randvars_1(self, 
                 btor    : Boolector, 
                 rs      : RandInfo,
                 bound_m : Dict[FieldModel,VariableBoundModel]):
