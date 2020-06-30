@@ -22,11 +22,11 @@
 
 from builtins import zip
 import random
+import time
 from typing import List, Dict
 
 from pyboolector import Boolector, BoolectorNode
 import pyboolector
-
 from vsc.constraints import constraint
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.constraint_model import ConstraintModel
@@ -36,16 +36,16 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.field_model import FieldModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_info_builder import RandInfoBuilder
-from vsc.model.field_scalar_model import FieldScalarModel
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
-from vsc.model.variable_bound_model import VariableBoundModel
 
 
 class Randomizer(RandIF):

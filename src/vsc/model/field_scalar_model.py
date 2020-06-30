@@ -91,12 +91,13 @@ class FieldScalarModel(FieldModel):
     
     def post_randomize(self):
         if self.var is not None:
-            val = 0
-            for b in self.var.assignment:
-                val <<= 1
-                if b == '1':
-                    val |= 1
-            self.set_val(val)
+#             val = 0
+#             for b in self.var.assignment:
+#                 val <<= 1
+#                 if b == '1':
+#                     val |= 1
+#             self.set_val(val)
+            self.set_val(int(self.var.assignment, 2))
             
         if self.rand_if is not None:
             self.rand_if.do_post_randomize()
