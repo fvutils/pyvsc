@@ -26,7 +26,6 @@ class FieldConstArrayModel(FieldArrayModel):
         # Create fields to match
         for v in data:
             f = self.add_field()
-            print("set_value: " + str(v))
             f.set_val(v)
         self.size.set_val(len(data))
             
