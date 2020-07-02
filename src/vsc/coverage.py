@@ -273,9 +273,9 @@ class bin_array(object):
 
                 
         if isinstance(nbins,list):
-            if len(nbins) != 0 and len(nbins) != 1:
+            if len(nbins) not in (0,1):
                 raise Exception("Only 0 or 1 argument can be specified to the nbins argument")
-            self.nbins = -1 if len(nbins) == 0 else nbins[1]
+            self.nbins = -1 if len(nbins) == 0 else nbins[0]
         else:
             self.nbins = int(nbins)
         
@@ -299,7 +299,7 @@ class bin_array(object):
             else:
                 ret = CoverpointBinCollectionModel(name)
                 for r in self.range_l:
-                    if isinstance(r, list):
+                    if isinstance(r, (list,tuple)):
                         if len(r) != 2: 
                             raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
                         b = ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))

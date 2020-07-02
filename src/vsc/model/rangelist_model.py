@@ -31,7 +31,7 @@ class RangelistModel(object):
 
         if rl is not None:
             for r in rl:
-                if isinstance(r, list):
+                if isinstance(r, (list,tuple)):
                     if len(r) == 2:
                         self.range_l.append([r[0], r[1]])
                     else:
