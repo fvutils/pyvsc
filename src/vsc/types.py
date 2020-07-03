@@ -21,28 +21,30 @@
 
 
 from enum import IntEnum, Enum, EnumMeta
+from lib2to3.btm_utils import TYPE_ALTERNATIVES
 
-from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope,\
+from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope, \
     is_foreach_arr, expr_l
 from vsc.impl.enum_info import EnumInfo
 from vsc.impl.expr_mode import get_expr_mode, expr_mode
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.enum_field_model import EnumFieldModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_array_sum_model import ExprArraySumModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_in_model import ExprInModel
+from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
 from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
-from vsc.model.field_scalar_model import FieldScalarModel
-from vsc.model.value_scalar import ValueScalar
+from vsc.model.expr_unary_model import ExprUnaryModel
 from vsc.model.field_array_model import FieldArrayModel
-from lib2to3.btm_utils import TYPE_ALTERNATIVES
-from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.field_const_array_model import FieldConstArrayModel
-from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
-from vsc.model.expr_array_sum_model import ExprArraySumModel
+from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.unary_expr_type import UnaryExprType
+from vsc.model.value_scalar import ValueScalar
 
 
 def unsigned(v, w=-1):
@@ -133,6 +135,11 @@ class expr(object):
     def __neg__(self):
         return self.bin_expr(BinExprType.Not, rhs)    
     
+    def __invert__(self):
+        lhs = pop_expr()
+        
+        return expr(ExprUnaryModel(lhs, UnaryExprType.Not))
+    
 class rng(object):
     
     def __init__(self, low, high):
@@ -173,10 +180,13 @@ class rangelist(object):
 #            self.range_l.rl.reverse()
 
                 # This needs to be convertioble to a
-            
+                
     def __contains__(self, lhs):
         to_expr(lhs)
         return expr(ExprInModel(pop_expr(), self.range_l))
+    
+    def __invert__(self):
+        print("rangelist.__invert__")
 
 def to_expr(t):
     if isinstance(t, expr):
@@ -339,6 +349,47 @@ class type_base(object):
     
     def __neg__(self):
         return self.bin_expr(BinExprType.Not, rhs)
+   
+    def __invert__(self): 
+        self.to_expr()
+        lhs = pop_expr()
+        return expr(ExprUnaryModel(lhs, UnaryExprType.Not))
+    
+    def inside(self, rhs):
+        self.to_expr()
+        lhs_e = pop_expr()
+        
+        if isinstance(rhs, rangelist):
+            return expr(ExprInModel(lhs_e, rhs.range_l))
+        elif isinstance(rhs, list_t):
+            return expr(ExprInModel(
+                lhs_e,
+                ExprRangelistModel(
+                    [ExprFieldRefModel(rhs.get_model())])))
+        else:
+            raise Exception("Unsupported 'inside' argument of type " + str(type(rhs)))
+
+    def outside(self, rhs):
+        self.not_inside(rhs)
+            
+    def not_inside(self, rhs):
+        self.to_expr()
+        lhs_e = pop_expr()
+        
+        if isinstance(rhs, rangelist):
+            return expr(ExprUnaryModel(
+                ExprInModel(lhs_e, rhs.range_l),
+                UnaryExprType.Not))
+        elif isinstance(rhs, list_t):
+            return expr(ExprUnaryModel(
+                ExprInModel(lhs_e,
+                    ExprRangelistModel(
+                        [ExprFieldRefModel(rhs.get_model())])),
+                UnaryExprType.Not))
+        else:
+            raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
+        
+    
         
     def __getitem__(self, val):
         if isinstance(val, slice):

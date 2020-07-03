@@ -108,6 +108,11 @@ The final randomization call results in the value of ``a`` being either
 
 in
 --
+PyVSC provides two ways of expressing set-membership constraints. Python's
+``in`` operator may be used directly to express simple cases. More complex
+cases, including negation of set-membership, may be captured using the
+`inside` and `not_inside` methods on PyVSC scalar data types.
+
 The ``in`` constraint ensures that the value of the specified variable 
 stays inside the specified ranges. Both individual values and 
 ranges may be specified. In the example below, the value of ``a`` will be
@@ -139,6 +144,35 @@ Elements in a ``rangelist`` may be:
                 
             self.c < self.d
             self.b in vsc.rangelist(vsc.rng(self.c,self.d))
+           
+PyVSC scalar data types provide `inside` and `not_inside` methods that to express
+set membership.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_s(object):
+         
+         def __init__(self):
+             self.a = vsc.rand_bit_t(8)
+             self.b = vsc.rand_bit_t(8)
+             self.c = vsc.rand_bit_t(8)
+             self.d = vsc.rand_bit_t(8)
+             
+         @vsc.constraint
+         def ab_c(self):
+             
+            self.a in vsc.rangelist(1, 2, vsc.rng(4,8))
+            self.c != 0
+            self.d != 0
+                
+            self.c < self.d
+            self.b.inside(vsc.rangelist(1, 2, 4, 8))
+            self.c.not_inside(vsc.rangelist(1, 2, 4, 8))
+
+In the example above, the `b` variable will be inside the range (1,2,4,8). 
+The `c` variable will be outside (ie not equal to) (1,2,4,8)
+
 
 part select
 -----------

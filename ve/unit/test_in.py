@@ -185,8 +185,78 @@ class TestIn(VscTestCase):
         for i in range(10):
             v.randomize()
             print("a=" + str(v.a) + " b=" + str(v.b))
+
+    def test_not_in_list_testcase(self):
+        @vsc.randobj
+        class my_s(object):
             
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.temp = [1,2,3,4,5,6,7,8,9]
                 
+            @vsc.constraint
+            def ab_c(self):
+                self.a.not_inside(vsc.rangelist(1, 2, (4,8)))
+                self.b.not_inside(vsc.rangelist(self.temp))
+                
+        v = my_s()
+        
+        for i in range(10):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b))
+            self.assertFalse(v.a in (1,2,4,5,6,7,8))
+            self.assertFalse(v.b in (1,2,3,4,5,6,7,8,9))
+
+    def test_not_in_list_testcase_2(self):
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.temp = [1,2,3,4,5,6,7,8,9]
+                
+            @vsc.constraint
+            def ab_c(self):
+                ~(self.a.inside(vsc.rangelist(1, 2, (4,8))))
+                ~(self.b.inside(vsc.rangelist(self.temp)))
+                
+        v = my_s()
+        
+        for i in range(10):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b))
+            self.assertFalse(v.a in (1,2,4,5,6,7,8))
+            self.assertFalse(v.b in (1,2,3,4,5,6,7,8,9))
+
+    def test_not_in_list_testcase_3(self):
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.temp = vsc.list_t(vsc.bit_t(8))
+                self.temp = [1,2,3,4,5,6,7,8,9]
+                
+            @vsc.constraint
+            def ab_c(self):
+                self.a.not_inside(vsc.rangelist(1, 2, (4,8)))
+                self.b.not_inside(self.temp)
+
+                
+        v = my_s()
+        
+        for i in range(10):
+            v.randomize()
+            print("a=" + str(v.a) + " b=" + str(v.b))
+            self.assertFalse(v.a in (1,2,4,5,6,7,8))
+            self.assertFalse(v.b in (1,2,3,4,5,6,7,8,9))
+                        
     def test_in_indep(self):
 
         class obj(object):
