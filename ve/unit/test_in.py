@@ -15,6 +15,7 @@
 # specific language governing permissions and limitations
 # under the License.
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from enum import Enum, auto
 '''
 Created on Jul 28, 2019
 
@@ -281,4 +282,35 @@ class TestIn(VscTestCase):
             it.a in vsc.rangelist(0, 1, 2, 3)
             
         self.assertTrue(v.a in [0,1,2,3])
+
+    def test_in_enum_list(self):
+
+        class obj(object):
+            def __init__(self):
+                pass
+
+        class my_e(Enum):
+            A = auto()
+            B = auto()
+            C = auto()
+            D = auto()
+            
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_enum_t(my_e)
+                self.b = vsc.rand_enum_t(my_e)
+                
+            @vsc.constraint
+            def ab_c(self):
+                self.b in vsc.rangelist(my_e.A, my_e.D)
+                
+        v = my_s()
+
+        for i in range(10):            
+            v.randomize()
+            print("v.a=" + str(v.a) + " v.b=" + str(v.b))
+            self.assertTrue(v.b in [my_e.A, my_e.D])
 
