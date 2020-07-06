@@ -97,6 +97,31 @@ class TestListScalar(VscTestCase):
             if i > 0:
                 self.assertEqual(it.l[i], it.l[i-1]+1)
 
+    def test_fixedsz_foreach_idx(self):
+        
+        @vsc.randobj
+        class my_item_c(object):
+            
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+                self.temp = vsc.list_t(vsc.uint8_t())
+                self.temp = [1,3,4,12,13,14]
+                
+                
+            @vsc.constraint
+            def ab_c(self):
+                self.a in vsc.rangelist(1,2,3)
+                with vsc.foreach(self.temp, idx=True) as i:
+                    self.a != self.temp[i]
+                
+        it = my_item_c()
+
+        for i in range(10):        
+            it.randomize()
+            self.assertEqual(it.a, 2)
+        
+
     def disabled_test_sum_simple(self):
         
         @vsc.randobj
