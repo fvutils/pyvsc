@@ -20,7 +20,12 @@ class VariableBoundModel(object):
         self.constrained = False
 
     def isEmpty(self):
-        return len(self.domain.range_l) == 0 or (self.domain.range_l[0][1]-self.domain.range_l[0][0]) == 0
+        if len(self.domain.range_l) == 0:
+            return True
+        elif len(self.domain.range_l) == 1 and (self.domain.range_l[0][1]-self.domain.range_l[0][0]) == 0:
+            return True
+        else:
+            return False
             
     def add_propagator(self, p):
         if p is None:

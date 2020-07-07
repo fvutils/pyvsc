@@ -28,6 +28,7 @@ class TestScalarArrayModel(VscTestCase):
         arr = obj.add_field(FieldArrayModel(
             "arr", 
             True,
+            None, # not an enum-type 
             32, 
             False, 
             True, 
@@ -79,6 +80,7 @@ class TestScalarArrayModel(VscTestCase):
         arr = obj.add_field(FieldArrayModel(
             "arr", 
             True, # is_scalar
+            None, # not an enum-type list
             32, 
             False, 
             True, 

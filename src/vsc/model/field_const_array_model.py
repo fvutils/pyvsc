@@ -8,7 +8,7 @@ from vsc.model.field_array_model import FieldArrayModel
 class FieldConstArrayModel(FieldArrayModel):
     
     def __init__(self, name, data):
-        super().__init__(name, True, 32, False, False, False)
+        super().__init__(name, True, None, 32, False, False, False)
         
         # Create elements from the data
         max_v = max(data)

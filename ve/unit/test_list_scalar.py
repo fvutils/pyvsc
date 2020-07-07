@@ -3,9 +3,12 @@ Created on Jun 21, 2020
 
 @author: ballance
 '''
+from enum import Enum, auto
+
 import vsc
-from vsc_test_case import VscTestCase
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc_test_case import VscTestCase
+
 
 class TestListScalar(VscTestCase):
     
@@ -120,7 +123,98 @@ class TestListScalar(VscTestCase):
         for i in range(10):        
             it.randomize()
             self.assertEqual(it.a, 2)
-        
+            
+    def test_enum_list(self):
+
+        class obj(object):
+            def __init__(self):
+                pass
+
+        class my_e(Enum):
+            A = auto()
+            B = auto()
+            C = auto()
+            D = auto()
+            E = auto()
+            
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.vals = vsc.rand_list_t(vsc.enum_t(my_e), sz=3)
+                
+            @vsc.constraint
+            def ab_c(self):
+                pass
+                
+        v = my_s()
+
+        for i in range(10):            
+            v.randomize()
+            print("v.vals=" + str(v.vals))
+            
+    def test_enum_list_unique(self):
+
+        class obj(object):
+            def __init__(self):
+                pass
+
+        class my_e(Enum):
+            A = auto()
+            B = auto()
+            C = auto()
+            D = auto()
+            E = auto()
+            
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.vals = vsc.rand_list_t(vsc.enum_t(my_e), sz=3)
+                
+            @vsc.constraint
+            def ab_c(self):
+                vsc.unique(self.vals)
+                
+        v = my_s()
+
+        for i in range(10):            
+            v.randomize()
+            print("v.vals=" + str(v.vals))
+
+    def test_enum_list_randsz(self):
+
+        class obj(object):
+            def __init__(self):
+                pass
+
+        class my_e(Enum):
+            A = auto()
+            B = auto()
+            C = auto()
+            D = auto()
+            E = auto()
+            
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.vals = vsc.randsz_list_t(vsc.enum_t(my_e))
+                
+            @vsc.constraint
+            def ab_c(self):
+                self.vals.size > 0
+                
+        v = my_s()
+
+        for i in range(10):            
+            with v.randomize_with() as it:
+                it.vals.size == (i+1)
+            self.assertEqual(it.vals.size, i+1)
+            print("v.vals=" + str(v.vals))
 
     def disabled_test_sum_simple(self):
         

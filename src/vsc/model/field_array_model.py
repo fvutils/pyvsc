@@ -11,6 +11,7 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.enum_field_model import EnumFieldModel
 
 class FieldArrayModel(FieldCompositeModel):
     """All arrays are processed as if they were variable size."""
@@ -18,12 +19,15 @@ class FieldArrayModel(FieldCompositeModel):
     def __init__(self, 
                  name, 
                  is_scalar,
+                 enums,
                  width,
                  is_signed,
                  is_rand,
                  is_rand_sz):
         super().__init__(name, is_rand)
         # width and is_signed only needed for scalar fields
+        self.is_enum = (enums is not None)
+        self.enums = enums
         self.is_scalar = is_scalar
         self.width = width
         self.is_signed = is_signed
@@ -69,11 +73,17 @@ class FieldArrayModel(FieldCompositeModel):
         
     def add_field(self) -> FieldScalarModel:
         fid = len(self.field_l)
-        return super().add_field(FieldScalarModel(
-            self.name + "[" + str(fid) + "]",
-            self.width,
-            self.is_signed,
-            self.is_declared_rand))
+        if self.is_enum:
+            return super().add_field(EnumFieldModel(
+                self.name + "[" + str(fid) + "]",
+                self.enums,
+                self.is_declared_rand))
+        else:
+            return super().add_field(FieldScalarModel(
+                self.name + "[" + str(fid) + "]",
+                self.width,
+                self.is_signed,
+                self.is_declared_rand))
         
     def build(self, builder):
         # Called before randomization

@@ -11,16 +11,17 @@ from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
+from vsc.model.constraint_unique_model import ConstraintUniqueModel
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_in_model import ExprInModel
 from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.field_model import FieldModel
 from vsc.model.field_array_model import FieldArrayModel
-from vsc.model.model_visitor import ModelVisitor
+from vsc.model.field_model import FieldModel
 from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.model_visitor import ModelVisitor
 from vsc.model.variable_bound_enum_model import VariableBoundEnumModel
 from vsc.model.variable_bound_eq_propagator import VariableBoundEqPropagator
 from vsc.model.variable_bound_in_propagator import VariableBoundInPropagator
@@ -91,6 +92,11 @@ class VariableBoundVisitor(ModelVisitor):
     
     def visit_constraint_foreach(self, f:ConstraintForeachModel):
         # Don't go into an unexpanded foreach block. This 
+        # construct is a meta-constraint that will be expanded
+        pass
+    
+    def visit_constraint_unique(self, c:ConstraintUniqueModel):
+        # Don't go into an unexpanded unique block. This 
         # construct is a meta-constraint that will be expanded
         pass
     

@@ -23,6 +23,8 @@
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.field_array_model import FieldArrayModel
 
 class ConstraintUniqueModel(ConstraintModel):
     
@@ -33,12 +35,22 @@ class ConstraintUniqueModel(ConstraintModel):
         
     def build(self, btor):
         ret = None
+
+        # Elements in the unique list might be arrays        
+        unique_l = []
+        
+        for i in self.unique_l:
+            if isinstance(i, ExprFieldRefModel) and isinstance(i.fm, FieldArrayModel):
+                # Collect up the array elements
+                self._add_list_elems(unique_l, i.fm)
+            else:
+                unique_l.append(i)
             
-        for i in range(len(self.unique_l)):
-            for j in range(len(self.unique_l)):
+        for i in range(len(unique_l)):
+            for j in range(len(unique_l)):
                 if i != j:
-                    
-                    t = ExprBinModel(self.unique_l[i], BinExprType.Ne, self.unique_l[j])
+
+                    t = ExprBinModel(unique_l[i], BinExprType.Ne, unique_l[j])
                     
                     if ret is None:
                         ret = t.build(btor)
@@ -46,6 +58,10 @@ class ConstraintUniqueModel(ConstraintModel):
                         ret = btor.And(t.build(btor), ret)
                     
         return ret
+    
+    def _add_list_elems(self, unique_l, l : FieldArrayModel):
+        for f in l.field_l:
+            unique_l.append(ExprFieldRefModel(f))
         
     def get_nodes(self, node_l):
         node_l.append(self.expr.get_node())

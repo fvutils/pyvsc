@@ -441,94 +441,82 @@ class Randomizer(RandIF):
                 bound_m : VariableBoundModel)->ExprModel:
         e = None
         range_l = bound_m.domain.range_l
-#        print("create_rand_domain_constraint: " + f.name + " " + str(range_l))
-        if len(range_l) == 1:
-            domain = range_l[0][1] - range_l[0][0]
-            if domain > 64:
-                r_type = self.randint(0, 3)
-                single_val = self.randint(range_l[0][0], range_l[0][1])
+        range_idx = self.randint(0, len(range_l)-1)
+        range = range_l[range_idx]
+        domain = range[1]-range[0]
+        if domain > 64:
+            r_type = self.randint(0, 3)
+            single_val = self.randint(range[0], range[1])
                 
-                if r_type >= 0 and r_type <= 2: # range
-                    # Pretty simple. Partition and randomize
-                    bin_sz_h = 1 if int(domain/128) == 0 else int(domain/128)
+            if r_type >= 0 and r_type <= 2: # range
+                # Pretty simple. Partition and randomize
+                bin_sz_h = 1 if int(domain/128) == 0 else int(domain/128)
 
-                    if r_type == 0:                
-                        # Center value in bin
-                        if single_val+bin_sz_h > range_l[0][1]:
-                            max = range_l[0][1]
-                            min = range_l[0][1]-2*bin_sz_h
-                        elif single_val-bin_sz_h < range_l[0][0]:
-                            max = range_l[0][0]+2*bin_sz_h
-                            min = range_l[0][0]
-                        else:
-                            max = single_val+bin_sz_h
-                            min = single_val-bin_sz_h
-                    elif r_type == 1:
-                        # Bin starts at value
-                        if single_val+2*bin_sz_h > range_l[0][1]:
-                            max = range_l[0][1]
-                            min = range_l[0][1]-2*bin_sz_h
-                        elif single_val-2*bin_sz_h < range_l[0][0]:
-                            max = range_l[0][0]+2*bin_sz_h
-                            min = range_l[0][0]
-                        else:
-                            max = single_val+2*bin_sz_h
-                            min = single_val
-                    elif r_type == 2:
-                        # Bin ends at value
-                        if single_val+2*bin_sz_h > range_l[0][1]:
-                            max = range_l[0][1]
-                            min = range_l[0][1]-2*bin_sz_h
-                        elif single_val-2*bin_sz_h < range_l[0][0]:
-                            max = range_l[0][0]+2*bin_sz_h
-                            min = range_l[0][0]
-                        else:
-                            max = single_val
-                            min = single_val-2*bin_sz_h
-                    
-                    e = ExprBinModel(
-                        ExprBinModel(
-                            ExprFieldRefModel(f),
-                            BinExprType.Ge,
-                            ExprLiteralModel(
-                                min,
-                                f.is_signed, 
-                                f.width)
-                        ),
-                        BinExprType.And,
-                        ExprBinModel(
-                            ExprFieldRefModel(f),
-                            BinExprType.Le,
-                            ExprLiteralModel(
-                                max,
-                                f.is_signed, 
-                                f.width)
-                            )
-                    )                
-                elif r_type == 3: # Single value
-                    e = ExprBinModel(
+                if r_type == 0:                
+                    # Center value in bin
+                    if single_val+bin_sz_h > range[1]:
+                        max = range[1]
+                        min = range[1]-2*bin_sz_h
+                    elif single_val-bin_sz_h < range[0]:
+                        max = range[0]+2*bin_sz_h
+                        min = range[0]
+                    else:
+                        max = single_val+bin_sz_h
+                        min = single_val-bin_sz_h
+                elif r_type == 1:
+                    # Bin starts at value
+                    if single_val+2*bin_sz_h > range[1]:
+                        max = range[1]
+                        min = range[1]-2*bin_sz_h
+                    elif single_val-2*bin_sz_h < range[0]:
+                        max = range[0]+2*bin_sz_h
+                        min = range[0]
+                    else:
+                        max = single_val+2*bin_sz_h
+                        min = single_val
+                elif r_type == 2:
+                    # Bin ends at value
+                    if single_val+2*bin_sz_h > range[1]:
+                        max = range[1]
+                        min = range[1]-2*bin_sz_h
+                    elif single_val-2*bin_sz_h < range[0]:
+                        max = range[0]+2*bin_sz_h
+                        min = range[0]
+                    else:
+                        max = single_val
+                        min = single_val-2*bin_sz_h
+                 
+                e = ExprBinModel(
+                    ExprBinModel(
+                        ExprFieldRefModel(f),
+                        BinExprType.Ge,
+                        ExprLiteralModel(
+                            min,
+                            f.is_signed, 
+                            f.width)
+                    ),
+                    BinExprType.And,
+                    ExprBinModel(
+                        ExprFieldRefModel(f),
+                        BinExprType.Le,
+                        ExprLiteralModel(
+                            max,
+                            f.is_signed, 
+                            f.width)
+                    )
+                )
+            elif r_type == 3: # Single value
+                e = ExprBinModel(
                         ExprFieldRefModel(f),
                         BinExprType.Eq,
                         ExprLiteralModel(single_val, f.is_signed, f.width))
-            else:
-                val = self.randint(0, domain-1)
-                e = ExprBinModel(
-                    ExprFieldRefModel(f),
-                    BinExprType.Eq,
-                    ExprLiteralModel(val, f.is_signed, f.width))
         else:
-#             domain_bin_ratio = int(len(bound_m.domain.range_l)/len(bound_m.domain_offsets))
-#             
-#             if domain_bin_ratio <= 1:
-#                 # Just pick a single value
-#                 print("Should pick single value")
-#             else:
-#                 #
-#                 print("domain_bin_ratio=" + str(domain_bin_ratio))
-#                 pass
-#             # Multi-range domain
-            pass
-        
+            val = self.randint(range[0], range[1])
+            e = ExprBinModel(
+                ExprFieldRefModel(f),
+                BinExprType.Eq,
+                ExprLiteralModel(val, f.is_signed, f.width))
+
         return e
     
     def create_single_var_domain_constraint(self, 

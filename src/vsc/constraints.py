@@ -193,7 +193,7 @@ def unique(*args):
         expr_l.insert(0, pop_expr())
         
     push_constraint_stmt(ConstraintUniqueModel(expr_l))
-
+    
 class forall(object):
     
     def __init__(self, target_type):

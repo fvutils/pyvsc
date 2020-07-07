@@ -22,7 +22,6 @@ class EnumFieldModel(FieldModel):
         self.is_used_rand = is_rand
         self.var = None
         self.val = enums[0]
-        self.randgen_data = None
         self.rand_if = None
         
         # TODO: a bit simplistic
@@ -32,10 +31,7 @@ class EnumFieldModel(FieldModel):
         
     def set_used_rand(self, is_rand, level):
         self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
-        if self.is_used_rand and self.randgen_data is None:
-            self.randgen_data = RandGenData(self.width, self.is_signed)
-            self.randgen_data.bag = self.enums
-            
+
     def dispose(self):
         self.var = None
         
@@ -46,6 +42,20 @@ class EnumFieldModel(FieldModel):
         if self.is_used_rand:
             sort = btor.BitVecSort(self.width)
             self.var = btor.Var(sort)
+
+            c = None
+            for e in self.enums:
+                if c is None:
+                    c = btor.Eq(
+                    self.var,
+                    btor.Const(e, self.width))
+                else:
+                    c = btor.Or(
+                        c,
+                        btor.Eq(
+                            self.var,
+                            btor.Const(e, self.width)))
+            btor.Assert(c)
         else:
             self.var = btor.Const(self.val, self.width)
         return self.var

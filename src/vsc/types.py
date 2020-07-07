@@ -602,7 +602,8 @@ class list_t(object):
     def __init__(self, t, sz=0, is_rand=False, is_randsz=False):
         self.t = t
         self._int_field_info = field_info()
-        self.is_scalar = isinstance(t, type_base)
+        self.is_scalar = isinstance(t, (type_base,type_enum))
+        self.is_enum = isinstance(t, type_enum)
         self._int_field_info.is_rand = is_rand
         self.is_rand_sz = is_randsz
         self.init_sz = sz
@@ -637,21 +638,28 @@ class list_t(object):
         
     def get_model(self):
         if self._int_field_info.model is None:
+            enums = None if not self.is_enum else self.t.enum_i.enums
             self._int_field_info.model = FieldArrayModel(
                 "<unknown>",
                 self.is_scalar,
+                enums,
                 self.t.width if self.is_scalar else -1,
                 self.t.is_signed if self.is_scalar else -1,
                 self._int_field_info.is_rand,
                 self.is_rand_sz)
             
             if self.init_sz > 0:
-                for i in range(self.init_sz):
-                    if self.is_scalar:
+                if self.is_enum:
+                    ei : EnumInfo = self.t.enum_i
+                    ev = ei.v2e_m[ei.enums[0]]
+                    for i in range(self.init_sz):
+                        self.append(ev)
+                elif self.is_scalar:
+                    for i in range(self.init_sz):
                         self.append(0)
-                    else:
+                else:
+                    for i in range(self.init_sz):
                         self.append(type(self.t)())
-                
             
         return self._int_field_info.model
 
@@ -679,8 +687,8 @@ class list_t(object):
             else:
                 ret = 0
                 for f in self.get_model().field_l:
-                    v = int(f.get_val())
-                    print("v: " + str(v))
+#                    v = int(f.get_val())
+#                    print("v: " + str(v))
                     ret += int(f.get_val())
                 return ret
         else:
@@ -695,7 +703,16 @@ class list_t(object):
         
     def append(self, v):
         model = self.get_model()
-        if self.is_scalar:
+        
+        if self.is_enum:
+            ei : EnumInfo = self.t.enum_i
+            enum_m = EnumFieldModel(
+                "xxx",
+                ei.enums,
+                self._int_field_info.is_rand)
+            enum_m.set_val(ei.e2v(v))
+            model.append(enum_m)
+        elif self.is_scalar:
             # Working with a scalar
             f = model.add_field()
             f.set_val(v)
@@ -767,7 +784,10 @@ class list_t(object):
                     ExprFieldRefModel(self.get_model()),
                     idx_e))
         else:
-            if self.is_scalar:
+            if self.is_enum:
+                ei : EnumInfo = self.t.enum_i
+                return ei.v2e(model.field_l[k].get_val())
+            elif self.is_scalar:
                 return int(model.field_l[k].get_val())
             else:
                 return self.backing_arr[k]
@@ -777,6 +797,31 @@ class list_t(object):
             self.get_model().field_l[k].set_val(v)
         else:
             self.backing_arr[k] = v
+            
+    def __str__(self):
+        ret = "["
+        if self.is_enum:
+            ei : EnumInfo = self.t.enum_i
+            model = self._int_field_info.model
+            for i in range(self.size):
+                if i > 0:
+                    ret += ", "
+                ret += str(ei.v2e(model.field_l[i].get_val()))
+        elif self.is_scalar:
+            model = self._int_field_info.model
+            for i in range(self.size):
+                if i > 0:
+                    ret += ", "
+                ret += model.field_l[i].get_val().toString()
+        else:
+            for i in range(self.size):
+                if i > 0:
+                    ret += ", "
+                ret += str(self.backing_arr[i])
+        
+        ret += "]"
+        
+        return ret
 
     def to_expr(self):
         return expr(ExprFieldRefModel(self.get_model()))
