@@ -5,6 +5,7 @@ Created on Jun 20, 2020
 '''
 import vsc
 from vsc_test_case import VscTestCase
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 class TestListObject(VscTestCase):
     
@@ -140,6 +141,8 @@ class TestListObject(VscTestCase):
                         self.l.append(item_c_2())
                                                         
         c = container_c()
+        
+        print("Model: " + ModelPrettyPrinter.print(c.get_model()))
 
         for i in range(100):        
             c.randomize()

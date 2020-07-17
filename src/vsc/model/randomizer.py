@@ -315,7 +315,7 @@ class Randomizer(RandIF):
                 # TODO: are there any cases where these could be ranges?
                 idx = self.randint(0, len(range_l)-1)
                 uf.set_val(range_l[idx][0])
-                
+
     def swizzle_randvars(self, 
                 btor     : Boolector, 
                 ri       : RandInfo,
@@ -326,6 +326,84 @@ class Randomizer(RandIF):
         # TODO: we must ignore fields that are otherwise being controlled
 
         rand_node_l = []
+        rand_e_l = []
+        x=start_rs
+        while x < end_rs:
+            # For each random variable, select a partition with it's known 
+            # domain and add the corresponding constraint
+            rs = ri.randsets()[x]
+            
+            field_l = rs.rand_fields()
+            if len(field_l) == 1:
+                # Go ahead and pick values in the domain, since there 
+                # are no other constraints
+                f = field_l[0]
+                e = self.create_single_var_domain_constraint(
+                    field_l[0], bound_m[field_l[0]])
+            
+                if e is not None:
+                    n = e.build(btor)
+                    rand_node_l.append(n)                    
+                    rand_e_l.append(e)
+#                    btor.Assume(n)
+            elif len(field_l) > 0:
+                field_idx = self.randint(0, len(field_l)-1)
+                f = field_l[field_idx]
+                if f in bound_m.keys():
+                    f_bound = bound_m[f]
+                 
+                    if not f_bound.isEmpty():
+                        e = self.create_rand_domain_constraint(f, f_bound)
+                        if e is not None:
+                            n = e.build(btor)
+                            rand_node_l.append(n)
+                            rand_e_l.append(e)
+#                                btor.Assume(n)
+                    else:
+                        # It's always possible that this value is already fixed.
+                        # Just ignore.
+#                            rand_node_l.append(None)
+                        pass
+            x += 1
+            
+        if len(rand_node_l) > 0:            
+            btor.Assume(*rand_node_l)
+#            btor.Assert(*rand_node_l)
+     
+            if btor.Sat() != btor.SAT:
+                # Remove any failing assumptions
+ 
+                n_failed = 0
+                for i,n in enumerate(rand_node_l):
+                    if n is not None and btor.Failed(n):
+                        rand_node_l[i] = None
+                        n_failed += 1
+
+                # Sanity check                
+                if n_failed == 0:
+                    for e in rand_e_l:
+                        print("Constraint: " + ModelPrettyPrinter.print(e))
+                    raise Exception("UNSAT reported, but no failing assertions")
+# 
+                # Re-apply the constraints that succeeded
+                btor.Assert(*filter(lambda n:n is not None, rand_node_l))
+                if btor.Sat() != btor.SAT:
+                    raise Exception("failed to add in randomization (2)")
+        else:
+            if btor.Sat() != btor.SAT:
+                raise Exception("failed to add in randomization")
+                        
+    def swizzle_randvars_2(self, 
+                btor     : Boolector, 
+                ri       : RandInfo,
+                start_rs : int,
+                end_rs   : int,
+                bound_m  : Dict[FieldModel,VariableBoundModel]):
+
+        # TODO: we must ignore fields that are otherwise being controlled
+
+        rand_node_l = []
+        rand_e_l = []
         x=start_rs
         while x < end_rs:
             # For each random variable, select a partition with it's known 
@@ -343,6 +421,7 @@ class Randomizer(RandIF):
                 if e is not None:
                     n = e.build(btor)
                     rand_node_l.append(n)                    
+                    rand_e_l.append(e)
 #                    btor.Assume(n)
             else:
                 for f in field_l:
@@ -354,6 +433,7 @@ class Randomizer(RandIF):
                             if e is not None:
                                 n = e.build(btor)
                                 rand_node_l.append(n)                    
+                                rand_e_l.append(e)
 #                                btor.Assume(n)
                         else:
                             # It's always possible that this value is already fixed.
@@ -370,8 +450,10 @@ class Randomizer(RandIF):
                 n_failed = 0
                 for i,n in enumerate(rand_node_l):
                     if n is not None and btor.Failed(n):
+                        print("  failed: " + ModelPrettyPrinter.print(rand_e_l[i]))
                         rand_node_l[i] = None
                         n_failed += 1
+                print("Failed: " + str(n_failed) + " (" + str(len(rand_node_l)) + ")")
 
                 # Re-apply the constraints that succeeded
                 btor.Assume(*filter(lambda n:n is not None, rand_node_l))
@@ -522,6 +604,7 @@ class Randomizer(RandIF):
     def create_single_var_domain_constraint(self, 
                     f : FieldScalarModel, 
                     bound_m : VariableBoundModel)->ExprModel:
+        e = None
         range_l = bound_m.domain.range_l
         if len(range_l) == 1:
             val = self.randint(range_l[0][0], range_l[0][1])
@@ -529,7 +612,6 @@ class Randomizer(RandIF):
                 ExprFieldRefModel(f),
                 BinExprType.Eq,
                 ExprLiteralModel(val, f.is_signed, f.width))
-            return e
         else:
 #            domain_bin_ratio = int(len(bound_m.domain.range_l)/len(bound_m.domain_offsets))
             domain_bin_ratio = 1
@@ -542,17 +624,16 @@ class Randomizer(RandIF):
                     ExprFieldRefModel(f),
                     BinExprType.Eq,
                     ExprLiteralModel(target_val, f.is_signed, f.width))
-                return e
             else:
                 # TODO: For a variable with a small number of bins
                 # relative to the domain the cover, it likely makes
                 # sense to try to place a range within the bin instead
                 # of selecting a single value
                 #
-                print("domain_bin_ratio=" + str(domain_bin_ratio))
+#                print("domain_bin_ratio=" + str(domain_bin_ratio))
                 pass
-            
-            return None
+
+        return e
             
 #         gd = f.randgen_data
 #         

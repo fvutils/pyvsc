@@ -270,3 +270,5 @@ class VariableBoundVisitor(ModelVisitor):
             if not f in self.bound_m.keys():
                 bounds = VariableBoundEnumModel(f)
                 self.bound_m[f] = bounds
+                
+                

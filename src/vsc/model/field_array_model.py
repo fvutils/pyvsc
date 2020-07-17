@@ -44,6 +44,8 @@ class FieldArrayModel(FieldCompositeModel):
         
     def append(self, fm):
         super().add_field(fm)
+        fm.is_declared_rand = self.is_declared_rand
+        fm.rand_mode = self.is_declared_rand
         self.name_elems()
         
     def clear(self):

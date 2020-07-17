@@ -155,11 +155,12 @@ class TestConstraintExpr(VscTestCase):
                 self.a < 64
                 self.b != 0
                 self.b < 4
-                
+
         my_i = my_c()
-        with my_i.randomize_with() as it:
-            it.c == (it.a * it.b)
-        self.assertEqual(my_i.c, (my_i.a*my_i.b))
+        for i in range(100):
+            with my_i.randomize_with() as it:
+                it.c == (it.a * it.b)
+            self.assertEqual(my_i.c, (my_i.a*my_i.b))
 
     def test_mod(self):
         @vsc.randobj

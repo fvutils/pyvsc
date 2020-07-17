@@ -36,6 +36,7 @@ class RandSet(object):
         self.dnr_field_s : Set[FieldModel] = set()
         self.constraint_s :Set[ConstraintModel] = set()
         self.field_l = None
+        self.field_rand_l = None
         self.all_field_l = None
         
     def add_field(self, f):
@@ -49,11 +50,23 @@ class RandSet(object):
     
     def fields_l(self):
         if self.field_l is None:
-            self.field_l = list(self.field_s)
+            self.field_rand_l = []
+            self.field_l = []
+            for f in self.field_s:
+                if f.is_used_rand:
+                    self.field_rand_l.append(f)
+                self.field_l.append(f)
         return self.field_l
     
     def rand_fields(self):
-        return self.field_s
+        if self.field_rand_l is None:
+            self.field_rand_l = []
+            self.field_l = []
+            for f in self.field_s:
+                if f.is_used_rand:
+                    self.field_rand_l.append(f)
+                self.field_l.append(f)
+        return self.field_rand_l
     
     def dnr_fields(self):
         return self.dnr_field_s

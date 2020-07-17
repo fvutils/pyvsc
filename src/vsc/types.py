@@ -26,7 +26,7 @@ from lib2to3.btm_utils import TYPE_ALTERNATIVES
 from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope, \
     is_foreach_arr, expr_l
 from vsc.impl.enum_info import EnumInfo
-from vsc.impl.expr_mode import get_expr_mode, expr_mode
+from vsc.impl.expr_mode import is_expr_mode
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
@@ -45,6 +45,8 @@ from vsc.model.field_const_array_model import FieldConstArrayModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.unary_expr_type import UnaryExprType
 from vsc.model.value_scalar import ValueScalar
+
+from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
 
 
 def unsigned(v, w=-1):
@@ -248,6 +250,17 @@ class type_base(object):
         )
         return self._int_field_info.model
     
+    def __set__(self, v):
+        print("set")
+        self.set_val(v)
+    
+    def __get__(self, v):
+        print("get")
+        if is_expr_mode():
+            return self.to_expr()
+        else:
+            return self.get_val()
+    
     def do_pre_randomize(self):
         self._int_field_info.model.set_val(self.val)
     
@@ -269,6 +282,14 @@ class type_base(object):
             return expr(ExprIndexedFieldRefModel(fi.root_e, id_l))
         else:
             return expr(ExprFieldRefModel(self._int_field_info.model))
+        
+    @property
+    def rand_mode(self):
+        return self._int_field_info.model.rand_mode
+    
+    @rand_mode.setter
+    def rand_mode(self, v):
+        self._int_field_info.model.rand_mode = bool(v)
     
     def get_val(self):
         return int(self._int_field_info.model.get_val())

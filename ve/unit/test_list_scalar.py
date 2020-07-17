@@ -216,6 +216,27 @@ class TestListScalar(VscTestCase):
             self.assertEqual(it.vals.size, i+1)
             print("v.vals=" + str(v.vals))
 
+    def test_list_unique(self):
+
+        @vsc.randobj
+        class my_s(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.vals = vsc.rand_list_t(vsc.uint8_t(), sz=16)
+                
+            @vsc.constraint
+            def ab_c(self):
+                with vsc.foreach(self.vals) as it:
+                    it < 64
+                vsc.unique(self.vals)
+                
+        v = my_s()
+
+        for i in range(10):
+            v.randomize()
+            print("v.vals=" + str(v.vals))
+
     def disabled_test_sum_simple(self):
         
         @vsc.randobj

@@ -39,12 +39,17 @@ class FieldScalarModel(FieldModel):
         self.is_signed = is_signed
         self.is_declared_rand = is_rand
         self.is_used_rand = is_rand
+        self.rand_mode = is_rand
         self.rand_if = rand_if
         self.var = None
         self.val = ValueScalar(0)
         
     def set_used_rand(self, is_rand, level=0):
-        self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
+        # Field is considered rand when
+        # - It is a root field, on which 'randomize' is called
+        # - It is declared as random, and 'rand_mode' is true
+        self.is_used_rand = (is_rand and 
+                             ((self.is_declared_rand and self.rand_mode) or level==0))
         
     def dispose(self):
         self.var = None

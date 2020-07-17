@@ -34,6 +34,7 @@ class FieldCompositeModel(FieldModel):
         self.is_declared_rand = is_rand
         # Captures whether this field is being used as rand
         self.is_used_rand = is_rand
+        self.rand_mode = is_rand
         self.rand_if = rand_if
         self.field_l = []
         self.constraint_model_l = []
@@ -45,19 +46,28 @@ class FieldCompositeModel(FieldModel):
     def finalize(self):
         pass
     
+    @property
+    def is_declared_rand(self):
+        return self.__is_declared_rand
+    
+    @is_declared_rand.setter
+    def is_declared_rand(self, v):
+        self.__is_declared_rand = bool(v)
+        self.rand_mode = bool(v)
+    
     def set_used_rand(self, is_rand, level=0):
-        self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
-        
+        self.is_used_rand = (is_rand and 
+                             ((self.is_declared_rand and self.rand_mode) or level==0))
+
         for f in self.field_l:
             f.set_used_rand(self.is_used_rand, level+1)
-                    
+            
     def build(self, builder):
         # First, build the fields
         for f in self.field_l:
             f.build(builder)
 
         # Next, build out the constraints
-        print("FieldCompositeModel: type=" + str(type(self)))
         for c in self.constraint_model_l:
             c.build(builder)
 

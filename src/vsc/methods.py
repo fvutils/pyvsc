@@ -22,6 +22,7 @@
 
 from vsc.types import field_info, type_base
 from vsc.impl import expr_mode
+from vsc.impl.expr_mode import enter_raw_mode, leave_raw_mode
 
 # def randomize_with(*args):
 #     """Randomize a list of variables with an inline constraint"""
@@ -47,7 +48,13 @@ from vsc.impl import expr_mode
 def randomize(*args):
     """Randomize a list of variables"""
     pass
+
+class raw_mode(object):
+    """Raw mode provides raw access to primitive VSC Fields"""
     
-#    with randomize_with(*args):
-#        pass
+    def __enter__(self):
+        enter_raw_mode()
     
+    def __exit__(self, t, v, tb):
+        leave_raw_mode()
+

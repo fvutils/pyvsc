@@ -47,15 +47,13 @@ class ConstraintUniqueModel(ConstraintModel):
                 unique_l.append(i)
             
         for i in range(len(unique_l)):
-            for j in range(len(unique_l)):
-                if i != j:
-
-                    t = ExprBinModel(unique_l[i], BinExprType.Ne, unique_l[j])
+            for j in range(i+1, len(unique_l)):
+                t = ExprBinModel(unique_l[i], BinExprType.Ne, unique_l[j])
                     
-                    if ret is None:
-                        ret = t.build(btor)
-                    else:
-                        ret = btor.And(t.build(btor), ret)
+                if ret is None:
+                    ret = t.build(btor)
+                else:
+                    ret = btor.And(t.build(btor), ret)
                     
         return ret
     

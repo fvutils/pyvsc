@@ -27,7 +27,7 @@ from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope, \
     clear_exprs
 from vsc.impl.generator_int import GeneratorInt
 from vsc.impl.expr_mode import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth, \
-    enter_expr_mode, leave_expr_mode
+    enter_expr_mode, leave_expr_mode, is_raw_mode
 from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.randomizer import Randomizer
@@ -67,10 +67,12 @@ def randobj(T):
         def __getattribute__(self, a):
             ret = object.__getattribute__(self, a)
         
-            if isinstance(ret, type_base) and get_expr_mode() == 0:
+            if isinstance(ret, type_base) and not is_raw_mode():
                 # We're not in an expression, so the user
                 # wants the value of this field
                 ret = ret.get_val()
+            elif a == "rand_mode":
+                ret = self._int_rand_info.rand_mode
             
             return ret
     
@@ -84,7 +86,7 @@ def randobj(T):
                 object.__setattr__(self, field, val)
             else:
                 if isinstance(fo, type_base):
-                    if get_expr_mode() == 0:
+                    if not is_raw_mode():
                         # We're not in an expression context, so the 
                         # user really wants us to set the actual value
                         # of the field
@@ -95,6 +97,8 @@ def randobj(T):
                     fo.clear()
                     for i in val:
                         fo.append(i)
+                elif field == "rand_mode":
+                    self._int_rand_info.rand_mode = bool(val)
                 else:
                     object.__setattr__(self, field, val)                
                     
@@ -233,7 +237,7 @@ def generator(T):
         def __getattribute__(self, a):
             ret = object.__getattribute__(self, a)
         
-            if isinstance(ret, type_base) and get_expr_mode() == 0:
+            if isinstance(ret, type_base) and not is_raw_mode() and False:
                 # We're not in an expression, so the user
                 # wants the value of this field
                 ret = ret.get_val()
@@ -250,7 +254,7 @@ def generator(T):
                 object.__setattr__(self, field, val)
             else:
                 if isinstance(fo, type_base):
-                    if get_expr_mode() == 0:
+                    if not is_raw_mode():
                         # We're not in an expression context, so the 
                         # user really wants us to set the actual value
                         # of the field
