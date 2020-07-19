@@ -44,6 +44,7 @@ class FieldArrayModel(FieldCompositeModel):
         
     def append(self, fm):
         super().add_field(fm)
+        self.size.set_val(len(self.field_l))
         fm.is_declared_rand = self.is_declared_rand
         fm.rand_mode = self.is_declared_rand
         self.name_elems()
@@ -54,6 +55,7 @@ class FieldArrayModel(FieldCompositeModel):
 
     def pop(self, idx=0):
         self.field_l.pop(idx)
+        self.size.set_val(len(self.field_l))
         self.name_elems()
         
     def name_elems(self):
@@ -86,6 +88,8 @@ class FieldArrayModel(FieldCompositeModel):
                 self.width,
                 self.is_signed,
                 self.is_declared_rand))
+        # Update the size
+        self.size.set_val(len(self.field_l))
         
     def build(self, builder):
         # Called before randomization

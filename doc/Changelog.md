@@ -1,5 +1,6 @@
 ## 0.0.7
 - Add support for 'rand_mode' on scalar fields
+- (#17) Correct an issue with reported size of a list after appending to it
 
 ## 0.0.6
 - Adds support for rand and non-rand lists of enum
