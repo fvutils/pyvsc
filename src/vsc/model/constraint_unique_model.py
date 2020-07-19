@@ -49,6 +49,7 @@ class ConstraintUniqueModel(ConstraintModel):
         for i in range(len(unique_l)):
             for j in range(i+1, len(unique_l)):
                 t = ExprBinModel(unique_l[i], BinExprType.Ne, unique_l[j])
+                from vsc.visitors import ModelPrettyPrinter
                     
                 if ret is None:
                     ret = t.build(btor)

@@ -20,6 +20,7 @@ Created on Jul 28, 2019
 @author: ballance
 '''
 
+from enum import Enum, auto
 import unittest
 from unittest.case import TestCase
 
@@ -164,4 +165,40 @@ class TestUnique(VscTestCase):
               (v.v2_1, v.v2_2, v.v2_3, v.v2_4))
             print("v3_1=%d v3_2=%d v3_3=%d v3_4=%d" %
               (v.v3_1, v.v3_2, v.v3_3, v.v3_4))
+
+    def test_unique_list(self):
+        class my_e(Enum):
+            num1= 0
+            num2= auto()
+            num3 = auto()
+            num4 = auto()
+            num5 = auto()
+            num6 = auto()
+            
+        @vsc.randobj
+        class my_cls(object):
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.enum_t(my_e), sz=3)  # self.a is a list of size 3
+                self.b = vsc.rand_enum_t(my_e)
+                self.c = vsc.rand_enum_t(my_e)
+    
+            @vsc.constraint
+            def a_c(self):
+                vsc.unique(self.a, self.b, self.c)
+
+        my = my_cls()
         
+        for i in range(10):
+            my.randomize()
+            total_l = []
+            for av in my.a:
+                total_l.append(av)
+            total_l.append(my.b)
+            total_l.append(my.c)
+            
+            print("a=%s b=%s c=%s" % (str(my.a), str(my.b), str(my.c)))
+            for j in range(len(total_l)):
+                for k in range(j+1, len(total_l)):
+                    self.assertNotEqual(total_l[j], total_l[k])
+            
+                    

@@ -314,3 +314,5 @@ class TestIn(VscTestCase):
             print("v.a=" + str(v.a) + " v.b=" + str(v.b))
             self.assertTrue(v.b in [my_e.A, my_e.D])
 
+
+                
