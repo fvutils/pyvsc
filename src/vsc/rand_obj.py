@@ -237,7 +237,7 @@ def generator(T):
         def __getattribute__(self, a):
             ret = object.__getattribute__(self, a)
         
-            if isinstance(ret, type_base) and not is_raw_mode() and False:
+            if isinstance(ret, type_base) and not is_raw_mode():
                 # We're not in an expression, so the user
                 # wants the value of this field
                 ret = ret.get_val()

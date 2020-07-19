@@ -46,6 +46,7 @@ from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.unary_expr_type import UnaryExprType
 from vsc.model.value_scalar import ValueScalar
 
+
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
 
 
@@ -249,17 +250,6 @@ class type_base(object):
             self
         )
         return self._int_field_info.model
-    
-    def __set__(self, v):
-        print("set")
-        self.set_val(v)
-    
-    def __get__(self, v):
-        print("get")
-        if is_expr_mode():
-            return self.to_expr()
-        else:
-            return self.get_val()
     
     def do_pre_randomize(self):
         self._int_field_info.model.set_val(self.val)

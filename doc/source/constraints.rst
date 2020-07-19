@@ -477,6 +477,42 @@ design response to illegal values.
     # Allow invalid values
     for i in range(10):
        with item.randomize():
-    
+   
+Rand Mode
+---------
+The random mode of rand-qualified fields can be changed using the `rand_mode`
+method. This allows randomization of rand-qualified fields to be programmatically
+disabled.
+
+Due to the operator overloading that PyVSC uses to enable direct access to 
+the value of class attributes, a special mode must be entered in order to
+access or modify rand_mode.
+
+.. code-block:: python3
+
+     @vsc.randobj
+     class my_item(object):
          
+         def __init__(self):
+             self.a = vsc.rand_bit_t(8)
+             self.b = vsc.rand_bit_t(8)
+             
+         @vsc.constraint
+         def valid_ab_c(self):
+            self.a < self.b
+
+    item = my_item()
+    # Randomize both 'a' and 'b'
+    for i in range(10):
+       with item.randomize():
+       
+    # Disable randomization of 'a'
+    with vsc.raw_mode():
+        item.a.rand_mode = False
+        
+    # Randomize only 'b'
+    for i in range(10):
+       with item.randomize():
+       
+
          
