@@ -111,11 +111,13 @@ class CovergroupModel(FieldCompositeModel):
         v.visit_covergroup(self)
             
     def dump(self, ind=""):
-        print(ind + "Covergroup " + self.name)
-        for cp in self.coverpoint_l:
-            cp.dump(ind + "    ")
-        for cr in self.cross_l:
-            cr.dump(ind + "    ")
+        # Disabled functionality
+        pass
+#         print(ind + "Covergroup " + self.name)
+#         for cp in self.coverpoint_l:
+#             cp.dump(ind + "    ")
+#         for cr in self.cross_l:
+#             cr.dump(ind + "    ")
 
     def equals(self, oth : 'CovergroupModel')->bool:
         eq = True

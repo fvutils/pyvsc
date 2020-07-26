@@ -15,8 +15,8 @@ class TestCovergroupOptions(VscTestCase):
             
             def __init__(self, a, b):
                 
-                self.a_cp = vsc.coverpoint(a)
-                self.b_cp = vsc.coverpoint(b)
+                self.a_cp = vsc.coverpoint(a, cp_t=vsc.uint8_t())
+                self.b_cp = vsc.coverpoint(b, cp_t=vsc.uint8_t())
 
         a = 0
         b = 0                

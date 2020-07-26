@@ -1,3 +1,7 @@
+
+## 0.0.8
+- Correct several issues (and add tests) for coverpoints defined on enumerated types
+
 ## 0.0.7
 - Add support for 'rand_mode' on scalar fields
 - (#17) Correct an issue with reported size of a list after appending to it

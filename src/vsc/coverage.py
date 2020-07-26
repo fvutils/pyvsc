@@ -43,7 +43,8 @@ from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionMod
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.rangelist_model import RangelistModel
-from vsc.types import rangelist, bit_t, to_expr, type_base
+from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum
+from vsc.model.enum_field_model import EnumFieldModel
 
 def covergroup(T):
     """Covergroup decorator marks as class as being a covergroup"""
@@ -63,6 +64,7 @@ def covergroup(T):
                     pm = pt.build_field_model(pn)
                     setattr(self, pn, pt)
                     cg_i.sample_var_l.append(pn)
+                    cg_i.sample_obj_l.append(pt)
                 
                     # Add a field to the covergroup model
                     model.add_field(pm)
@@ -74,6 +76,7 @@ def covergroup(T):
                         # Add a field to the covergroup model
                         model.add_field(pm)
                         cg_i.sample_var_l.append(pn)
+                        cg_i.sample_obj_l.append(pt)
                     else:
                         print("TODO: handle non-field-model")
                         setattr(self, pn, lambda:getattr(self, "_" + pn))
@@ -100,6 +103,7 @@ def covergroup(T):
             for i in range(len(args)):
                 # TODO: need to account for inheritance
                 ex_f = model.get_field(i)
+                us_f = cg_i.sample_obj_l[i]
                 if isinstance(ex_f, FieldCompositeModel):
                     # TODO: probably need to do something a bit more than this?
                     model.set_field(i, args[i].get_model())
@@ -108,6 +112,16 @@ def covergroup(T):
                         ex_f.set_val(args[i].get_val())
                     else:
                         ex_f.set_val(int(args[i]))
+                elif isinstance(ex_f, EnumFieldModel):
+                    ei = us_f.enum_i
+                    if isinstance(args[i], type_enum):
+                        ex_f.set_val(args[i].get_val())
+                    else:
+                        # Use the enum map to convert to an int
+                        ex_f.set_val(ei.e2v(args[i]))
+                else:
+                    raise Exception("unhandled sample case")
+                        
                     
                 setattr(self, cg_i.sample_var_l[i], args[i])
 #                getattr(self, cg_i.sample_var_l[i]).set_val(args[i])
@@ -337,7 +351,7 @@ class coverpoint(object):
    
     def __init__(self, 
             target, 
-            cp_t=None, 
+            cp_t=None,  # Type of the coverpoint, when it needs to be specified
             iff=None, 
             bins=None, 
             options=None, 
@@ -366,14 +380,19 @@ class coverpoint(object):
             self.type_options.set(type_options)
 
         with expr_mode():
-            if isinstance(target, type_base):
+            if isinstance(target, type_enum):
                 self.have_var = True
                 self.target = target.to_expr().em
-                self.cp_t = type_base
+                self.cp_t = target
+            elif isinstance(target, type_base):
+                self.have_var = True
+                self.target = target.to_expr().em
+                self.cp_t = target
             elif callable(target):
-#             if cp_t is None:
-#                 raise Exception("Coverpoint with a callable target must specify type")
+                if cp_t is None and bins is None:
+                    raise Exception("Auto-binned coverpoint with a callable target must specify type using 'cp_t'")
 
+                # Accept the user-specified type
                 self.cp_t = cp_t
             
                 self.target = target
@@ -429,23 +448,23 @@ class coverpoint(object):
 
             with expr_mode():
                 if self.bins is None or len(self.bins) == 0:
-                    if self.bins is None or len(self.bins) == 0:
-                        if self.cp_t == type_base:
-                            binspec = RangelistModel()
-                            if not self.target.is_signed():
-                                binspec.add_range(0, (1 << self.target.width())-1)
-                            else:
-                                low = (1 << self.target.width()-1)
-                                high = (1 << self.target.width()-1)-1
-                                binspec.add_range(-low, high)
+                    if isinstance(self.cp_t, type_enum):
+                        ei = self.cp_t.enum_i
+                        for e,v in ei.e2v_m.items():
+                            self.model.add_bin_model(CoverpointBinEnumModel(e, v))
+                    elif isinstance(self.cp_t, type_base):
+                        binspec = RangelistModel()
+                        if not self.cp_t.is_signed:
+                            binspec.add_range(0, (1 << self.cp_t.width)-1)
+                        else:
+                            low = (1 << self.cp_t.width-1)
+                            high = (1 << self.cp_t.width-1)-1
+                            binspec.add_range(-low, high)
 
-                            self.model.add_bin_model(CoverpointBinCollectionModel.mk_collection(
-                                name, binspec, self.options.auto_bin_max))
-                    elif type(self.cp_t) == enum.EnumMeta:
-                        for e in list(self.cp_t):
-                            self.model.add_bin_model(CoverpointBinEnumModel(e.name, e))
+                        self.model.add_bin_model(CoverpointBinCollectionModel.mk_collection(
+                            name, binspec, self.options.auto_bin_max))
                     else:
-                        raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))                       
+                        raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))
                 else:
                     for bin_name,bin_spec in self.bins.items():
                         if not hasattr(bin_spec, "build_cov_model"):

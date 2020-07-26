@@ -51,7 +51,6 @@ class TestCovergroup(VscTestCase):
         cg.sample(4)
         cg.sample(4)
         
-        cg.dump()
         
     def test_ref_covergroup(self):
         
@@ -79,7 +78,7 @@ class TestCovergroup(VscTestCase):
                     b = bin_array([], [1,15])
                     ))
                 
-                self.cp3 = coverpoint(c, cp_t=my_e)
+                self.cp3 = coverpoint(c, cp_t=enum_t(my_e))
                 
         a = 1;
         b = 2;
@@ -94,8 +93,6 @@ class TestCovergroup(VscTestCase):
         a = 3
         cg.sample()
         
-        cg.dump()
-
     def test_emb_covergroup(self):
 
         @vsc.randobj        
@@ -124,7 +121,6 @@ class TestCovergroup(VscTestCase):
         c = my_item_c()
         c.randomize()
         c.cg.sample()
-        c.cg.dump()
         
     def disabled_test_plain_obj_sample(self):
 
@@ -161,7 +157,6 @@ class TestCovergroup(VscTestCase):
             it2.b = i
             cg.sample(it2)
             
-        cg.dump()
         
 
     def disabled_test_covergroup_inheritance(self):
@@ -213,7 +208,6 @@ class TestCovergroup(VscTestCase):
                 
         c = my_item_c()
         print("Coverage: " + str(c.cg.get_coverage()))
-        c.cg.dump()        
                 
     def test_class_covergroup(self):
        
@@ -242,7 +236,6 @@ class TestCovergroup(VscTestCase):
 
         cg.sample(cls)
         
-        cg.dump()        
         
     def test_simple_cross(self):
       
@@ -272,7 +265,6 @@ class TestCovergroup(VscTestCase):
             cg.sample(8, 8)
             cg.sample(8, 8)
         
-        cg.dump()                
         
     def test_binsof_cross(self):
       
@@ -304,4 +296,3 @@ class TestCovergroup(VscTestCase):
             cg.sample(8, 8)
             cg.sample(8, 8)
         
-        cg.dump()                        

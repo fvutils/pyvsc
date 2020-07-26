@@ -185,6 +185,29 @@ In the example above, bin `a` will consist of three individual value bins,
 with a bin for value 1, 2, and 4 respectively. Bin `b` will consist of
 four bins, each covering two values of the range 8..16.
 
+Auto-Bins
+^^^^^^^^^
+Auto-binning can be used in many cases to cause bins to be created for 
+all values of an enumerated type, or to cause the legal value range to be
+partitioned evenly based on the `auto_bin_max` option. 
+When auto-binning is used and the type of the coverpoint isn't apparent, 
+the `cp_t` parameter must be used to specify the type of the value being
+sampled. 
+
+.. code-block:: python3
+
+       @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self, a : callable):
+            
+                self.cp1 = vsc.coverpoint(a, cp_t=vsc.uint8_t())
+                
+In the example above, the type of the coverpoint is not apparent because
+a callable is providing the target value. Consequently, the cp_t 
+parameter is used to specify that the value being sampled is an 8-bit
+unsigned integer.
+
 Coverpoint Crosses
 ------------------
 

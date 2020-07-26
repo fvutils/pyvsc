@@ -68,3 +68,42 @@ class TestSmoke(VscTestCase):
             print("a=" + str(v1.a) + " b.a=" + str(v1.b.a))
         
 #        print("v1.a=" + str(int(v1.a)))
+
+    def test_smoke2(self):
+
+        @vsc.randobj        
+        class my_sub(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(4)
+                self.b = vsc.rand_bit_t(4)
+                self.c = vsc.rand_bit_t(4)
+                self.d = vsc.rand_bit_t(4)
+
+        @vsc.randobj
+        class my_rand(object):
+            
+            def __init__(self):
+                super().__init__()
+                self.a = vsc.rand_bit_t(4)
+                self.b = vsc.rand_attr(my_sub())
+                self.c = vsc.rand_attr(my_sub())
+                self.d = vsc.rand_attr(my_sub())
+                self.e = vsc.rand_attr(my_sub())
+                
+#             @vsc.constraint
+#             def my_c(self):
+#                 self.a == 10
+#                 self.b.a == 2
+#                 self.b.b != 0
+#                 self.b.c > 2
+#                 self.b.d <= 2
+#                 self.b.d != 0
+                
+        
+        v1 = my_rand()
+        for i in range(100000):
+            v1.randomize()
+        
+

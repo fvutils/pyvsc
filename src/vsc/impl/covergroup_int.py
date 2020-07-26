@@ -29,6 +29,7 @@ class CovergroupInt():
     def __init__(self, facade_obj):
         self.fo = facade_obj
         self.sample_var_l = []
+        self.sample_obj_l = []
         self.model = None
         self.ctor_level = 0
         self.locked = False

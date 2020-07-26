@@ -60,9 +60,6 @@ class EnumFieldModel(FieldModel):
             self.var = btor.Const(self.val, self.width)
         return self.var
     
-    def __str__(self):
-        return "EnumFieldModel(" + self.get_full_name() + ")"
-
     def get_constraints(self, constraint_l):
         pass
 

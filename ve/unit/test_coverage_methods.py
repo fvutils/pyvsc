@@ -29,8 +29,6 @@ class TestCoverageMethods(VscTestCase):
         for i in range(8):
             cg_i.sample(i+1)
             
-        cg_i.dump()
-            
         # First, confirm that the bins have been hit
         model = cg_i.get_model()
         cp = model.coverpoint_l[0]
