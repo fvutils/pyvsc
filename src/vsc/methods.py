@@ -20,34 +20,52 @@
 #
 # @author: ballance
 
-from vsc.types import field_info, type_base
 from vsc.impl import expr_mode
-from vsc.impl.expr_mode import enter_raw_mode, leave_raw_mode
+from vsc.impl.expr_mode import enter_raw_mode, leave_raw_mode, enter_expr_mode,\
+    leave_expr_mode
+from vsc.model.randomizer import Randomizer
+from vsc.types import field_info, type_base
+from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope
+from vsc.model.constraint_block_model import ConstraintBlockModel
 
-# def randomize_with(*args):
-#     """Randomize a list of variables with an inline constraint"""
-#     for a in args:
-#         if not isinstance(a, (RandObj, type_base)):
-#             raise Exception("Argument is of type " + str(type(a)) + " not RandObj or type_base")
-#     
-#     class inline_constraint_collector(expr_mode):
-#         
-#         def __init__(self, *args):
-#             self.args = args
-#             pass
-#         
-#         def __enter__(self):
-#             # Go into 'expression' mode
-#             super().__enter__()
-#         
-#         def __exit__(self, t, v, tb):
-#             super().__exit__(t, v, tb)
-#     
-#     return inline_constraint_collector(args)
+
+def randomize_with(*args):
+    """Randomize a list of variables with an inline constraint"""
+    field_l = []
+    for v in args:
+        if not hasattr(v, "get_model"):
+            raise Exception("Parameter \"" + str(v) + " to randomize is not a vsc object")
+        field_l.append(v.get_model())
+    
+    class inline_constraint_collector(object):
+        
+        def __init__(self, field_l):
+            self.field_l = field_l
+        
+        def __enter__(self):
+            # Go into 'expression' mode
+            enter_expr_mode()
+            push_constraint_scope(ConstraintBlockModel("inline"))
+            return self
+        
+        def __exit__(self, t, v, tb):
+            c = pop_constraint_scope()
+            leave_expr_mode()
+            
+            Randomizer.do_randomize(self.field_l, [c])
+    
+    return inline_constraint_collector(field_l)
 
 def randomize(*args):
     """Randomize a list of variables"""
-    pass
+    fields = []
+    for v in args:
+        if hasattr(v, "get_model"):
+            fields.append(v.get_model());
+        else:
+            raise Exception("Parameter \"" + str(v) + " to randomize is not a vsc object")
+        
+    Randomizer.do_randomize(fields)
 
 class raw_mode(object):
     """Raw mode provides raw access to primitive VSC Fields"""

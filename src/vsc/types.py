@@ -232,31 +232,29 @@ class type_base(object):
     def __init__(self, width, is_signed, i=0):
         self.width = width
         self.is_signed = is_signed
-        self.val = i
+        self._init_val = i
         self._int_field_info = field_info()
         
     def get_model(self):
         if self._int_field_info.model is None:
-            raise Exception("Field hasn't yet been constructed")
+            self.build_field_model("<anonymous>")
         return self._int_field_info.model
         
     def build_field_model(self, name):
         self._int_field_info.name = name
-        self._int_field_info.model = FieldScalarModel(
-            name,
-            self.width,
-            self.is_signed,
-            self._int_field_info.is_rand,
-            self
-        )
+        if self._int_field_info.model is None:
+            self._int_field_info.model = FieldScalarModel(
+                name,
+                self.width,
+                self.is_signed,
+                self._int_field_info.is_rand)
+            self._int_field_info.model.set_val(int(self._init_val))
+        else:
+            # Ensure the name matches superstructure
+            self._int_field_info.model.name = name
+            
         return self._int_field_info.model
     
-    def do_pre_randomize(self):
-        self._int_field_info.model.set_val(self.val)
-    
-    def do_post_randomize(self):
-        self.val = self._int_field_info.model.get_val()
-        
     def to_expr(self):
         if self._int_field_info.id != -1:
             # Need something like an indirect reference
@@ -280,12 +278,20 @@ class type_base(object):
     @rand_mode.setter
     def rand_mode(self, v):
         self._int_field_info.model.rand_mode = bool(v)
+
+    @property
+    def val(self):
+        return int(self.get_model().get_val())
     
+    @val.setter
+    def val(self, v):
+        self.get_model().set_val(ValueScalar(int(v)))
+            
     def get_val(self):
-        return int(self._int_field_info.model.get_val())
+        return int(self.get_model().get_val())
     
     def set_val(self, val):
-        self._int_field_info.model.set_val(ValueScalar(int(val)))
+        self.get_model().set_val(ValueScalar(int(val)))
         
 #     def _get_val(self):
 #         return int(self._int_field_info.model.get_val())

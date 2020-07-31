@@ -11,6 +11,7 @@ Contents:
    data_types
    constraints
    coverage
+   methods
    features
    reference
    

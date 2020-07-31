@@ -1,4 +1,9 @@
 
+## 0.0.9
+- Correct issues with using scalar variables standalone
+- Add global randomize() and randomize_with() methods for 
+  use with standalone variables
+
 ## 0.0.8
 - Correct several issues (and add tests) for coverpoints defined on enumerated types
 
