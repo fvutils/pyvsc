@@ -295,4 +295,36 @@ class TestCovergroup(VscTestCase):
          
             cg.sample(8, 8)
             cg.sample(8, 8)
+
+    def test_mult_instances(self):
+        @vsc.covergroup
+        class my_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+
+                self.a_cp = vsc.coverpoint(self.a, bins=dict(
+                    a_bins=vsc.bin_array([4], [0, 16])
+                ))
+
+        my_cg_1 = my_cg()
+        my_cg_2 = my_cg()
+
+        for i in range(8):
+            my_cg_1.sample(i, 0)
+
+        for i in range(16):
+            my_cg_2.sample(i, 0)
+
+        str_report = vsc.get_coverage_report(details=True)
+        print("Report:\n" + str_report)
         
+        report = vsc.get_coverage_report_model()
+        self.assertEqual(1, len(report.covergroups))
+        self.assertEquals(2, len(report.covergroups[0].covergroups))
+        self.assertEquals(100, report.covergroups[0].coverage)
+        self.assertEquals(50, report.covergroups[0].covergroups[0].coverage)
+        self.assertEquals(100, report.covergroups[0].covergroups[1].coverage)
+
+    

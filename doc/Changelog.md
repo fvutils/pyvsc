@@ -1,4 +1,7 @@
 
+## 0.1.0
+- (#24) Correct an issue with sampling of type-centric coverage
+
 ## 0.0.9
 - Correct issues with using scalar variables standalone
 - Add global randomize() and randomize_with() methods for 

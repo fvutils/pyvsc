@@ -14,6 +14,11 @@ from _io import StringIO
 import vsc.model as vm
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
+from vsc.model.covergroup_model import CovergroupModel
+from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
+from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
+from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
+from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
@@ -101,6 +106,33 @@ class ModelPrettyPrinter(ModelVisitor):
             sc.accept(self)
             
         self.write("}\n")
+        
+    def visit_covergroup(self, cg : CovergroupModel):
+        self.writeln("covergroup " + cg.name)
+        self.inc_indent()
+        for cp in cg.coverpoint_l:
+            cp.accept(self)
+        self.dec_indent()
+        
+    def visit_coverpoint(self, cp : CoverpointModel):
+        self.writeln("coverpoint " + cp.name)
+        self.inc_indent()
+        for b in cp.bin_model_l:
+            b.accept(self)
+        self.dec_indent()
+        
+    def visit_coverpoint_bin_array(self, bn : CoverpointBinArrayModel):
+        self.writeln("bin_array " + bn.name)
+        
+    def visit_coverpoint_bin_collection(self, bn : CoverpointBinCollectionModel):
+        self.writeln("bin_collection " + bn.name)
+        self.inc_indent()
+        for b in bn.bin_l:
+            b.accept(self);
+        self.dec_indent()
+        
+    def visit_coverpoint_bin_single_range(self, bn : CoverpointBinSingleRangeModel):
+        self.writeln("bin_single_range " + bn.name + " " + str(bn.target_val_low) + " .. " + str(bn.target_val_high))
         
     def visit_expr_array_subscript(self, s):
         s.lhs.accept(self)

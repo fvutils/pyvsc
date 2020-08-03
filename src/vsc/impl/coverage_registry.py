@@ -5,6 +5,7 @@ Created on Mar 14, 2020
 '''
 from typing import Dict, List
 from vsc.model.covergroup_model import CovergroupModel
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 class CoverageRegistry(object):
     
@@ -36,14 +37,22 @@ class CoverageRegistry(object):
         # First, see if there's an existing entry
         if cg.name in self.covergroup_type_m.keys():
             # Okay, now we need to do some detailed comparison
+            # Covergroups with the same base typename can have different
+            # content if constructor parameters are used to customize content.
             for cg_c in self.covergroup_type_m[cg.name]:
                 if cg_c.equals(cg):
                     cg_t = cg_c
                     break
                 
             if cg_t is None:
+                # The new type does not have 
                 # Okay, create a clone of the instance and give it a new name
                 cg_t = cg.clone()
+                # Type covergroups have their coverage data directly provided
+                # Clear out the 'target' fields of coverpoints to ensure this happens
+                for cp in cg_t.coverpoint_l:
+                    cp.target = None
+                    
                 cg_t.srcinfo_inst = None # Types do not have instance information
                 cg_t.finalize()
                 self.covergroup_type_m[cg.name].append(cg_t)
@@ -54,8 +63,15 @@ class CoverageRegistry(object):
                 cg_t.name = cg_t.name + "_" + str(n_cg)
                 
         else:
-            # No, nothing here yet
+            # No, nothing here yet. Create a clone of this instance
+            # covergroup to use as a covergroup type
             cg_t = cg.clone()
+            
+            # Type covergroups have their coverage data directly provided
+            # Clear out the 'target' fields of coverpoints to ensure this happens
+            for cp in cg_t.coverpoint_l:
+                cp.target = None
+
             cg_t.srcinfo_inst = None # Types do not have instance information
             cg_t.finalize()
             self.covergroup_type_m[cg.name] = [cg_t]

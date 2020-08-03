@@ -93,3 +93,4 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         return ret
+    
