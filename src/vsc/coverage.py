@@ -62,6 +62,8 @@ def covergroup(T):
                 params = args[0]
                 for pn,pt in params.items():
                     pm = pt.build_field_model(pn)
+                    if hasattr(pm, "_id_fields"):
+                        pm._id_fields()
                     setattr(self, pn, pt)
                     cg_i.sample_var_l.append(pn)
                     cg_i.sample_obj_l.append(pt)
@@ -359,6 +361,7 @@ class coverpoint(object):
             name=None):
         self.have_var = False
         self.target = None
+        self.cp_t = cp_t
         self.model = None
         self.target_kind = None
         self.target_type = None
@@ -451,7 +454,7 @@ class coverpoint(object):
                     if isinstance(self.cp_t, type_enum):
                         ei = self.cp_t.enum_i
                         for e,v in ei.e2v_m.items():
-                            self.model.add_bin_model(CoverpointBinEnumModel(e, v))
+                            self.model.add_bin_model(CoverpointBinEnumModel(str(e), v))
                     elif isinstance(self.cp_t, type_base):
                         binspec = RangelistModel()
                         if not self.cp_t.is_signed:

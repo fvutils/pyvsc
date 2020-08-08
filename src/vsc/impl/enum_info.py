@@ -4,7 +4,7 @@ Created on Mar 27, 2020
 @author: ballance
 '''
 from typing import Dict
-from enum import IntEnum, EnumMeta
+from enum import IntEnum, EnumMeta, Flag, Enum
 from vsc.model.expr_literal_model import ExprLiteralModel
 
 class EnumInfo(object):
@@ -17,15 +17,14 @@ class EnumInfo(object):
         self.e2v_m = {}
         self.v2e_m = {}
         self.enums = []
-        
-        if isinstance(e, IntEnum):
-            for en in e:
-                self.e2v_m[en] = int(en)
-                self.v2e_m[int(en)] = en
-                self.enums.append(int(en))
-        elif isinstance(e, EnumMeta):
+
+        if isinstance(e, EnumMeta):
             i=0
             for en in e:
+                # An IntEnum exposes its value via an __int__ method
+                if hasattr(en, "__int__"):
+                    i = int(en)
+                    
                 self.e2v_m[en] = i
                 self.v2e_m[i] = en
                 self.enums.append(i)

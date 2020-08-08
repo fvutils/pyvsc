@@ -1,4 +1,10 @@
 
+## 0.1.1
+- (#30) Add support for part-select operator on standalone fields, 
+        and on fields used in 'raw_mode'
+- Correct some issues with enumerated-type introspection and
+  coverage sampling        
+
 ## 0.1.0
 - (#24) Correct an issue with sampling of type-centric coverage
 

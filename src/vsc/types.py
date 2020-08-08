@@ -48,6 +48,7 @@ from vsc.model.value_scalar import ValueScalar
 
 
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
+from _operator import is_
 
 
 def unsigned(v, w=-1):
@@ -408,21 +409,42 @@ class type_base(object):
         
     
         
-    def __getitem__(self, val):
-        if isinstance(val, slice):
-            # slice
-            to_expr(val.start)
-            to_expr(val.stop)
-            e0 = pop_expr()
-            e1 = pop_expr()
-            return expr(ExprPartselectModel(
-                ExprFieldRefModel(self._int_field_info.model), e0, e1))
+    def __getitem__(self, rng):
+        if is_expr_mode():
+            if isinstance(rng, slice):
+                # slice
+                to_expr(rng.start)
+                to_expr(rng.stop)
+                e0 = pop_expr()
+                e1 = pop_expr()
+                return expr(ExprPartselectModel(
+                    ExprFieldRefModel(self._int_field_info.model), e0, e1))
+            else:
+                # single value
+                to_expr(rng)
+                e = pop_expr()
+                return expr(ExprPartselectModel(
+                    ExprFieldRefModel(self._int_field_info.model), e))
         else:
-            # single value
-            to_expr(val)
-            e = pop_expr()
-            return expr(ExprPartselectModel(
-                ExprFieldRefModel(self._int_field_info.model), e))
+            curr = int(self.get_model().get_val())
+            if isinstance(rng, slice):
+                msk = ((1 << (rng.start-rng.stop))-1) << rng.stop
+                curr = (curr & msk) >> rng.stop
+            else:
+                curr = (curr & (1 << rng)) >> rng
+            return curr
+            
+    def __setitem__(self, rng, val):
+        if not is_expr_mode():
+            curr = int(self.get_model().get_val())
+            if isinstance(rng, slice):
+                msk = ((1 << (rng.start-rng.stop))-1) << rng.stop
+                curr = (curr & msk) | (val << rng.stop & msk)
+            else:
+                curr = (curr & ~(val << rng)) | (val << rng)
+            self.get_model().set_val(curr)
+        else:
+            raise Exception("Cannot assign to a part-select within a constraint")
         
     def clone(self):
         return type_base(self.width, self.is_signed)
@@ -485,7 +507,8 @@ class type_enum(type_base):
         
     def get_val(self):
         """Returns the enum id"""
-        return self.enum_i.v2e(self._int_field_info.model.get_val())
+        val = int(self._int_field_info.model.get_val())
+        return self.enum_i.v2e(val)
     
     def set_val(self, val):
         """Sets the enum id"""

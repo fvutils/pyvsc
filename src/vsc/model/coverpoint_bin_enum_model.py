@@ -30,6 +30,7 @@ class CoverpointBinEnumModel(CoverpointBinModelBase):
         
         self.n_hits = 0
         self.cp = None
+        self.n_bins = 1
 
     def finalize(self, bin_idx_base:int)->int:
         super().finalize(bin_idx_base)
@@ -42,7 +43,7 @@ class CoverpointBinEnumModel(CoverpointBinModelBase):
         # Query value from the actual coverpoint or expression
 #        print("sample: binspec=" + str(self.binspec))
         val = self.cp.get_val()
-        if val == self.target_val:
+        if int(val) == int(self.target_val):
             self.cp.coverage_ev(self.bin_idx_base)
             
         return self.hit_bin_idx
