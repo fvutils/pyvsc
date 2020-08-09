@@ -1,4 +1,8 @@
 
+## 0.1.2
+- (#27) Correct several issues with coverpoint cross coverage and
+  reporting. 
+
 ## 0.1.1
 - (#30) Add support for part-select operator on standalone fields, 
         and on fields used in 'raw_mode'

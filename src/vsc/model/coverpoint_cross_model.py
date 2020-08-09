@@ -51,6 +51,9 @@ class CoverpointCrossModel(CoverItemBase):
         self.srcinfo_decl = None
         self.coverage = 0.0
         self.coverage_calc_valid = False
+
+    def coverpoints(self):
+        return self.coverpoint_model_l
         
     def get_coverage(self):
         if not self.coverage_calc_valid:
@@ -82,7 +85,20 @@ class CoverpointCrossModel(CoverItemBase):
             return random.sample(self.unhit_s, 1)[0]
         else:
             return -1
-        
+
+    def get_bin_hits(self, bin_idx):
+        return self.hit_l[bin_idx]
+            
+    def get_bin_name(self, bin_idx)->str:
+        t = self.idx2tuple_m[bin_idx]
+        ret = "<"
+        for i in range(len(t)):
+            idx = t[i]
+            if i > 0:
+                ret += ","
+            ret += self.coverpoint_model_l[i].get_bin_name(idx)
+        ret += ">"
+        return ret
     
     def add_coverpoint(self, cp_m):
         self.coverpoint_model_l.append(cp_m)
@@ -115,7 +131,6 @@ class CoverpointCrossModel(CoverItemBase):
             key_m.pop()
     
     def sample(self):
-        
         if not self.finalized:
             raise Exception("Cross sampled before finalization")
         
@@ -164,11 +179,11 @@ class CoverpointCrossModel(CoverItemBase):
             
         return eq
 
-    def clone(self)->'CoverpointCrossModel':
+    def clone(self, coverpoint_m)->'CoverpointCrossModel':
         ret = CoverpointCrossModel(self.name)
         ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         for cp in self.coverpoint_model_l:
-            ret.add_coverpoint(cp.clone())
+            ret.add_coverpoint(coverpoint_m[cp])
         
         return ret

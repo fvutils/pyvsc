@@ -140,4 +140,34 @@ class TestCovergroupSampling(VscTestCase):
 #         inst.b = my_e.B
 #         cg.sample(inst)
 #         vsc.report_coverage(details=True)        
-#         
+#
+
+    def test_cross_sampling(self):
+        
+        @vsc.covergroup
+        class my_cg(object):
+
+            def __init__(self, a, b):
+                super().__init__()
+
+                self.cp1 = vsc.coverpoint(a, bins={
+                    "a": vsc.bin_array([], [1, 10])
+                })
+                self.cp2 = vsc.coverpoint(b, bins={
+                    "b": vsc.bin_array([], [1, 10])
+                })
+                self.cp1X2 = vsc.cross([self.cp1, self.cp2])
+
+
+        a = 6
+        b = 8
+        cg = my_cg(lambda: a, lambda: b)
+
+        for i in range(50):
+            cg.sample()
+
+        vsc.report_coverage(details=True)
+#        vsc.report_coverage(details=False)
+        print("Coverage: " + str(cg.get_coverage()))
+
+        

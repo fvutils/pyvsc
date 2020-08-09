@@ -22,6 +22,8 @@ from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.model_visitor import ModelVisitor
 import os
 from builtins import set
+from vsc.model.coverpoint_cross_model import CoverpointCrossModel
+from vsc.coverage import coverpoint
 
 
 class SavePhase(Enum):
@@ -50,6 +52,7 @@ class CoverageSaveVisitor(ModelVisitor):
         self.file_handle_m : Dict[str,FileHandle] = {}
         self.ucis_src_lang = UCIS_OTHER
         self.ucis_cwd = os.getcwd()
+        self.coverpoint_m = {}
 
         
     def save(self, td : TestData, cg_l : List[CovergroupModel]):
@@ -73,9 +76,9 @@ class CoverageSaveVisitor(ModelVisitor):
         from ucis.source_info import SourceInfo
         cg_inst = self.get_cg_inst(cg)
         
-        cg_name = cg.name if cg.name is not None else "foobar"
+        cg_name = cg.name if cg.name is not None else "<unknown>"
         inst_location = None
-
+        
         if cg.type_cg is None:
             if cg.srcinfo_decl is not None:
                 fh = self.get_file_handle(cg.srcinfo_decl.filename)
@@ -114,7 +117,7 @@ class CoverageSaveVisitor(ModelVisitor):
     def visit_coverpoint(self, cp : CoverpointModel):
         from ucis.source_info import SourceInfo
         active_s = self.active_scope_s[-1]
-
+        
         cp_name = cp.name
         decl_location = None
         
@@ -135,6 +138,7 @@ class CoverageSaveVisitor(ModelVisitor):
             decl_location,
             weight, # weight
             UCIS_OTHER) # Source type
+        self.coverpoint_m[cp.name] = cp_scope
         # TODO: setAtLeast()
 #        cp_scope.set
 
@@ -173,6 +177,49 @@ class CoverageSaveVisitor(ModelVisitor):
                 bn.get_hits(i),
                 bn.name
             )
+            
+    def visit_coverpoint_cross(self, cr:CoverpointCrossModel):
+        from ucis.source_info import SourceInfo
+        active_s = self.active_scope_s[-1]
+
+        cr_name = cr.name
+        decl_location = None
+
+        # Create a list of coverpoint scopes        
+        coverpoint_l = []
+        for cp in cr.coverpoints():
+            coverpoint_l.append(self.coverpoint_m[cp.name])
+        
+        if cp.srcinfo_decl is not None:
+            decl_location = SourceInfo(
+                self.get_file_handle(cp.srcinfo_decl.filename),
+                cp.srcinfo_decl.lineno, 0)
+            
+        # Obtain weight from coverpoint
+        # TODO: obtain from .options vs .type_options?
+        weight = cp.options.weight
+        # TODO: obtain at_least from coverpoint and set on cp_scope
+        at_least = cp.options.at_least
+        # TODO: obtain goal from coverpoint and set on cp_scope
+        # TODO: obtain comment from coverpoint and set on cp_scope
+        cr_scope = active_s.createCross(
+            cr_name,
+            decl_location,
+            weight, # weight
+            UCIS_OTHER,
+            coverpoint_l) # Source type
+        # TODO: setAtLeast()
+#        cp_scope.set
+
+        for bi in range(cr.get_n_bins()):
+            decl_location = None
+            bn_name = cr.get_bin_name(bi)
+            cr_bin = cr_scope.createBin(
+                bn_name,
+                decl_location,
+                1, # weight,
+                cr.get_bin_hits(bi),
+                bn_name)        
             
     def get_cg_instname(self, cg : CovergroupModel)->str:
         iname = None

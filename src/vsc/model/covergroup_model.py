@@ -146,12 +146,15 @@ class CovergroupModel(FieldCompositeModel):
         
         ret.du_name = self.du_name
         ret.instname = self.instname
-        
+
+        coverpoint_m = {}        
         for cp in self.coverpoint_l:
-            ret.add_coverpoint(cp.clone())
+            cp_c = cp.clone()
+            coverpoint_m[cp] = cp_c
+            ret.add_coverpoint(cp_c)
         
         for cr in self.cross_l:
-            ret.add_coverpoint(cr.clone())
+            ret.add_coverpoint(cr.clone(coverpoint_m))
             
         return ret
         
