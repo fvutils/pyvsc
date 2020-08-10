@@ -9,7 +9,7 @@ from pyboolector import Boolector
 
 class ExprUnaryModel(ExprModel):
     
-    def __init__(self, e, op):
+    def __init__(self, op, e):
         super().__init__()
         self.expr = e
         self.op = op

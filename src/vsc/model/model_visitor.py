@@ -74,6 +74,15 @@ class ModelVisitor(object):
     def visit_scalar_field(self, f : FieldScalarModel):
         pass
     
+    def visit_constraint_dist(self, c):
+        pass
+    
+    def visit_dist_weight(self, w):
+        w.rng_lhs.accept(self)
+        if w.rng_rhs is not None:
+            w.rng_rhs.accept(self)
+        w.weight.accept(self)
+    
     def visit_constraint_soft(self, c : ConstraintSoftModel):
         self.visit_constraint_stmt_enter(c)
         c.expr.accept(self)

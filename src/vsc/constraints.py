@@ -21,19 +21,20 @@
 
 
 from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr, \
-    pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr,\
+    pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr, \
     push_foreach_arr, pop_foreach_arr
+from vsc.model.dist_weight_expr_model import DistWeightExprModel
+from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
-from vsc.model.expr_dynref_model import ExprDynRefModel
-from vsc.types import to_expr, expr, type_base
-from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
-
+from vsc.types import to_expr, expr, type_base
+from vsc.model.constraint_dist_model import ConstraintDistModel
 
 class constraint_t(object):
     
@@ -88,6 +89,47 @@ def dynamic_constraint(c):
 
 def constraint(c):
     return constraint_t(c)
+
+class weight(object):
+    
+    def __init__(self, val, w):
+        rng_lhs_e = None
+        rng_rhs_e = None
+    
+        if isinstance(val, (list,tuple)):
+            if len(val) != 2:
+                raise Exception("Weight range must have two elements")
+            to_expr(val[0])
+            to_expr(val[1])
+            rng_rhs_e = pop_expr()
+            rng_lhs_e = pop_expr()
+        else:
+            to_expr(val)
+            rng_lhs_e = pop_expr()
+        to_expr(w)
+        w_e = pop_expr()
+    
+        self.weight_e = DistWeightExprModel(
+            rng_lhs_e,
+            rng_rhs_e,
+            w_e)
+    
+
+def dist(lhs, weights):
+    """Applies distribution weights to the specified field"""
+    
+    to_expr(lhs)
+    lhs_e = pop_expr()
+    
+    weight_l = []
+    for w in weights:
+        if not isinstance(w, weight):
+            raise Exception("Weight specifications must of type 'vsc.weight', not " + 
+                            str(w))
+        weight_l.append(w.weight_e)
+        
+    push_constraint_stmt(ConstraintDistModel(lhs_e, weight_l))
+    
 
 class if_then(object):
 

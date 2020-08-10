@@ -46,6 +46,7 @@ from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
+from vsc.visitors.dist_constraint_builder import DistConstraintBuilder
 
 
 class Randomizer(RandIF):
@@ -774,6 +775,10 @@ class Randomizer(RandIF):
         return ret        
     
     def randint(self, low, high):
+        if low > high:
+            tmp = low
+            low = high
+            high = tmp
         return Randomizer._rng.randint(low, high)
     
     def randbits(self, nbits):
@@ -797,6 +802,8 @@ class Randomizer(RandIF):
             constraint_l : List[ConstraintModel] = None):
         # All fields passed to do_randomize are treated
         # as randomizable
+        seed = Randomizer._rng.randint(0, (1 << 64)-1)
+        
         for f in field_model_l:
             f.set_used_rand(True, 0)
             
@@ -812,6 +819,9 @@ class Randomizer(RandIF):
         for fm in field_model_l:
             constraint_l.extend(ArrayConstraintBuilder.build(
                 fm, bounds_v.bound_m))
+            # Now, handle dist constraints
+            DistConstraintBuilder.build(seed, fm)
+            
             
         # If we made changes during array remodeling,
         # re-run bounds checking on the updated model

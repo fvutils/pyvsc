@@ -28,7 +28,7 @@ class ConstraintModel(object):
         pass
     
     def build(self, btor)->BoolectorNode:
-        raise Exception("build unimplemented")
+        raise Exception("build unimplemented for constraint " + str(type(self)))
     
     def get_nodes(self, node_l):
         raise Exception("get_node unimplemented")

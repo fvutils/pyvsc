@@ -142,7 +142,7 @@ class expr(object):
     def __invert__(self):
         lhs = pop_expr()
         
-        return expr(ExprUnaryModel(lhs, UnaryExprType.Not))
+        return expr(ExprUnaryModel(UnaryExprType.Not, lhs))
     
 class rng(object):
     
@@ -371,7 +371,7 @@ class type_base(object):
     def __invert__(self): 
         self.to_expr()
         lhs = pop_expr()
-        return expr(ExprUnaryModel(lhs, UnaryExprType.Not))
+        return expr(ExprUnaryModel(UnaryExprType.Not, lhs))
     
     def inside(self, rhs):
         self.to_expr()
@@ -396,14 +396,14 @@ class type_base(object):
         
         if isinstance(rhs, rangelist):
             return expr(ExprUnaryModel(
-                ExprInModel(lhs_e, rhs.range_l),
-                UnaryExprType.Not))
+                UnaryExprType.Not,
+                ExprInModel(lhs_e, rhs.range_l)))
         elif isinstance(rhs, list_t):
             return expr(ExprUnaryModel(
+                UnaryExprType.Not,
                 ExprInModel(lhs_e,
                     ExprRangelistModel(
-                        [ExprFieldRefModel(rhs.get_model())])),
-                UnaryExprType.Not))
+                        [ExprFieldRefModel(rhs.get_model())]))))
         else:
             raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
         
