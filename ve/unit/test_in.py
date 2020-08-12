@@ -314,5 +314,22 @@ class TestIn(VscTestCase):
             print("v.a=" + str(v.a) + " v.b=" + str(v.b))
             self.assertTrue(v.b in [my_e.A, my_e.D])
 
+    def test_in_array_elem(self):
+
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.temp = vsc.randsz_list_t(vsc.uint8_t(8))
+                self.a = [1,2,3,5,6,7,8]
+
+            @vsc.constraint
+            def ls(self):
+                self.temp.size <= 10
+                with vsc.foreach(self.temp, idx = True) as i:
+                    self.temp[i].not_inside(vsc.rangelist(self.a))
+
+        io = my_s()
+        io.randomize()
+        print(io.temp)        
 
                 

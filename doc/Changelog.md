@@ -1,4 +1,7 @@
 
+## 0.1.3
+- (#31) Allow 'inside' constraint on array elements within a foreach constraint
+
 ## 0.1.2
 - (#27) Correct several issues with coverpoint cross coverage and
   reporting. 

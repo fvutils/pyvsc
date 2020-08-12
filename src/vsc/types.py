@@ -144,6 +144,39 @@ class expr(object):
         
         return expr(ExprUnaryModel(UnaryExprType.Not, lhs))
     
+    def inside(self, rhs):
+        lhs_e = pop_expr()
+        
+        if isinstance(rhs, rangelist):
+            return expr(ExprInModel(lhs_e, rhs.range_l))
+        elif isinstance(rhs, list_t):
+            return expr(ExprInModel(
+                lhs_e,
+                ExprRangelistModel(
+                    [ExprFieldRefModel(rhs.get_model())])))
+        else:
+            raise Exception("Unsupported 'inside' argument of type " + str(type(rhs)))
+
+    def outside(self, rhs):
+        self.not_inside(rhs)
+            
+    def not_inside(self, rhs):
+        lhs_e = pop_expr()
+        
+        if isinstance(rhs, rangelist):
+            return expr(ExprUnaryModel(
+                UnaryExprType.Not,
+                ExprInModel(lhs_e, rhs.range_l)))
+        elif isinstance(rhs, list_t):
+            return expr(ExprUnaryModel(
+                UnaryExprType.Not,
+                ExprInModel(lhs_e,
+                    ExprRangelistModel(
+                        [ExprFieldRefModel(rhs.get_model())]))))
+        else:
+            raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
+            
+    
 class rng(object):
     
     def __init__(self, low, high):
@@ -175,8 +208,10 @@ class rangelist(object):
                 e0 = pop_expr()
                 self.range_l.add_range(ExprRangeModel(e0, e1))
             elif isinstance(a, list):
-                list_f = FieldConstArrayModel("<<anonymous>>", a)
-                self.range_l.add_range(ExprFieldRefModel(list_f))
+                for ai in a:
+                    to_expr(ai)
+                    eai = pop_expr()
+                    self.range_l.add_range(eai)
             else:
                 to_expr(a)
                 e = pop_expr()
