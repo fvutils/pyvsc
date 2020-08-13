@@ -19,7 +19,7 @@ from _io import StringIO
 from datetime import datetime
 import sys
 from typing import List
-from ucis import UCIS_TESTSTATUS_OK
+from ucis import UCIS_TESTSTATUS_OK, db
 import ucis
 from ucis.mem.mem_factory import MemFactory
 from ucis.report.coverage_report import CoverageReport
@@ -35,6 +35,8 @@ from vsc.methods import *
 from vsc.rand_obj import *
 from vsc.types import *
 from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
+from ucis.xml.xml_factory import XmlFactory
+from ucis.lib.LibFactory import LibFactory
 
 
 def get_coverage_report(details=False)->str:
@@ -67,4 +69,34 @@ def report_coverage(fp=None, details=False):
     if fp is None:
         fp = sys.stdout
     fp.write(get_coverage_report(details))
+    
+def write_coverage_db(
+        filename, 
+        fmt="xml",
+        libucis=None):
+    formats = ["xml", "libucis"]
+    covergroups = CoverageRegistry.inst().covergroup_types()
+    db : UCIS
+    
+    if fmt == "xml":
+        db = MemFactory.create()
+    elif fmt == "libucis":
+        if libucis is not None:
+            libucis.load_ucis_library(libucis)
+        db = LibFactory.create(libucis)
+    else:
+        raise Exception("Unsupported coverage-report format " + format 
+                        + ". Supported formats: " + str(formats))
+        
+    save_visitor = CoverageSaveVisitor(db)
+    now = datetime.now
+    save_visitor.save(TestData(
+        UCIS_TESTSTATUS_OK,
+        "UCIS:simulator",
+        ucis.ucis_Time()), covergroups)
+    
+    if fmt == "xml":
+        XmlFactory.write(db, filename)
+    else:
+        db.write(filename)
     

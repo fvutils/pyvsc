@@ -124,4 +124,25 @@ class TestCoverageReport(VscTestCase):
         print("Report:\n" + report)
         
 
+    def test_single_type_two_inst_xml(self):
+        
+        @vsc.covergroup
+        class my_cg(object):
+            
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+                
+                self.a_cp = vsc.coverpoint(self.a, bins={
+                    "a" : bin_array([], [0,15])
+                    })
+
+        my_cg_1 = my_cg()
+        my_cg_2 = my_cg()
+        
+        for i in range(16):
+            my_cg_1.sample(i, 0)
+            
+        vsc.write_coverage_db("cov.xml")
         
