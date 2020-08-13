@@ -1,4 +1,8 @@
 
+## 0.1.4
+- Correct issues with nested foreach constraints and nested arrays
+- Add global 'write_coverage_db' method
+
 ## 0.1.3
 - (#31) Allow 'inside' constraint on array elements within a foreach constraint
 
