@@ -22,6 +22,7 @@ from vsc.visitors.constraint_copy_builder import ConstraintCopyBuilder, \
 from vsc.visitors.constraint_override_visitor import ConstraintOverrideVisitor
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 class ArrayConstraintBuilder(ConstraintOverrideVisitor):
@@ -31,6 +32,8 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         self.index_set : Set[FieldModel] = set()
         self.bound_m = bound_m
         self.phase = 0
+        self.foreach_scope_s = []
+        self.constraint_collector_s = []
         
     @staticmethod
     def build(m, bound_m : typing.Dict[FieldModel,VariableBoundModel]):
@@ -41,27 +44,38 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         builder.phase = 1
         m.accept(builder)
         
+#         print("--> ArrayConstraintBuilder")
+#         print("Model: " + ModelPrettyPrinter.print(m))
+#         print("<-- ArrayConstraintBuilder")
+        
         return builder.constraints
     
     def visit_constraint_foreach(self, f:ConstraintForeachModel):
         # Instead of just performing a straight copy, expand
         # the constraints
-#        ret = f.clone()
         if self.phase != 1:
             return 
-         
+        
         scope = ConstraintInlineScopeModel()
-        with ConstraintCollector(self, scope):
+        if len(self.foreach_scope_s) == 0:
+            self.override_constraint(scope)
+        self.foreach_scope_s.append(scope)
+        
+        self.index_set.add(f.index)
+        with ConstraintCollector(self, scope) as cc:
             # TODO: need to be a bit more flexible in getting the size
             # Ensure the array is big enough
 
-            self.index_set.add(f.index)
             for i in range(len(f.lhs.fm.field_l)):
                 f.index.set_val(i)
-                # TODO: 
                 for c in f.constraint_l:
                     c.accept(self)
-            self.index_set.remove(f.index)
+                
+        if len(self.foreach_scope_s) > 1:
+            for c in scope.constraint_l:
+                self.foreach_scope_s[-2].constraint_l.append(c)
+            
+
 #             # TODO: this logic is for rand-sized array fields
 #             size_bound = self.bound_m[f.lhs.fm.size]
 #             range_l = size_bound.domain.range_l
@@ -69,10 +83,11 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
 #             
 #             print("size=" + str(max_size))
 #            for i in range(max_size):
-        
-        self.override_constraint(scope)
+
             
 #        self.constraints.append(ret)
+        self.index_set.remove(f.index)
+        self.foreach_scope_s.pop()
 
     def visit_expr_array_sum(self, s):
         # Don't recurse into this
@@ -123,5 +138,10 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
                     # Extend the size appropriately
                     for i in range(max_size-len(f.field_l)):
                         f.add_field()
+        elif self.phase == 1:
+            if not f.is_scalar:
+                # Need to recurse into sub-fields for non-scalar arrays
+                for sf in f.field_l:
+                    sf.accept(self)
 
         

@@ -44,9 +44,9 @@ from vsc.model.rand_info_builder import RandInfoBuilder
 from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
+from vsc.visitors.dist_constraint_builder import DistConstraintBuilder
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
-from vsc.visitors.dist_constraint_builder import DistConstraintBuilder
 
 
 class Randomizer(RandIF):
@@ -172,6 +172,8 @@ class Randomizer(RandIF):
                     f.post_randomize()
                     f.dispose() # Get rid of the solver var, since we're done with it
                 x += 1
+                
+        end = int(round(time.time() * 1000))
 
         uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
         for uf in uc_rand:
@@ -821,8 +823,7 @@ class Randomizer(RandIF):
                 fm, bounds_v.bound_m))
             # Now, handle dist constraints
             DistConstraintBuilder.build(seed, fm)
-            
-            
+
         # If we made changes during array remodeling,
         # re-run bounds checking on the updated model
 #        if len(constraint_l) != constraints_len:

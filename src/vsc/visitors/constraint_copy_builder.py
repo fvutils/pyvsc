@@ -24,18 +24,24 @@ class ConstraintCollector(object):
         self._scope = scope
         self._constraints = None
         self._expr = None
-        pass
+        
+    @property
+    def constraints(self):
+        return self._constraints
     
     def __enter__(self):
         self._constraints = self._builder.constraints
         self._builder.constraints = []
         self._builder.do_copy_level += 1
+        self._builder.collector_s.append(self)
+        return self
         
     def __exit__(self, t, v, tb):
         for c in self._builder.constraints:
             self._scope.constraint_l.append(c)
         self._builder.constraints = self._constraints
         self._builder.do_copy_level -= 1
+        self._builder.collector_s.pop()
 
 
 class ConstraintCopyBuilder(ModelVisitor):
@@ -44,6 +50,7 @@ class ConstraintCopyBuilder(ModelVisitor):
         super().__init__()
         self.constraints : List[ConstraintBlockModel] = []
         self.constraints_s : List[List[ConstraintModel]] = []
+        self.collector_s = []
         self.do_copy_level = 0
         
     @staticmethod
