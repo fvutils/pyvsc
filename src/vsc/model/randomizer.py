@@ -809,6 +809,10 @@ class Randomizer(RandIF):
         for f in field_model_l:
             f.set_used_rand(True, 0)
             
+#         print("Initial Model:")        
+#         for fm in field_model_l:
+#             print("  " + ModelPrettyPrinter.print(fm))
+            
         if constraint_l is None:
             constraint_l = []
 
@@ -828,6 +832,11 @@ class Randomizer(RandIF):
         # re-run bounds checking on the updated model
 #        if len(constraint_l) != constraints_len:
         bounds_v.process(field_model_l, constraint_l)
+
+#         print("Final Model:")        
+#         for fm in field_model_l:
+#             print("  " + ModelPrettyPrinter.print(fm))
+            
             
         # First, invoke pre_randomize on all elements
         for fm in field_model_l:

@@ -88,28 +88,28 @@ class TestFieldStandalone(VscTestCase):
         self.assertEqual(b.val, my_e.B)
         
     def test_standalone_setbit(self):
-        a = vsc.rand_uint8_t()
+        a = vsc.rand_uint16_t()
 
         a[15] = 1
         
         self.assertEqual(a.val, (1 << 15))
         
     def test_standalone_setpart(self):
-        a = vsc.rand_uint8_t()
+        a = vsc.rand_uint16_t()
 
         a[15:8] = 1
         
         self.assertEqual(a.val, (1 << 8))
 
     def test_standalone_getbit(self):
-        a = vsc.rand_uint8_t()
+        a = vsc.rand_uint16_t()
 
         a.val = (1 << 15)
         
         self.assertEqual(a[15], 1)
         
     def test_standalone_getpart(self):
-        a = vsc.rand_uint8_t()
+        a = vsc.rand_uint16_t()
 
         a.val = (25 << 8)
         
@@ -120,7 +120,7 @@ class TestFieldStandalone(VscTestCase):
         class my_c(object):
             
             def __init__(self):
-                self.a = vsc.rand_uint8_t()
+                self.a = vsc.rand_uint16_t()
 
         c = my_c()
         c.a = (25 << 8)

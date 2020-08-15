@@ -1,4 +1,11 @@
 
+## 0.1.5
+- Correct issues with nested foreach constraints
+- (#31) Correct issues with not_inside on a rand-size list
+- (#26) Provide support for 'dist' constraints
+- (#30) Correct issues with masking assignments to sized fields, and accessing enum-type fields
+
+
 ## 0.1.4
 - Correct issues with nested foreach constraints and nested arrays
 - Add global 'write_coverage_db' method

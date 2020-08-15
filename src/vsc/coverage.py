@@ -215,6 +215,8 @@ def covergroup(T):
         setattr(T, "__setattr__", _setattr)
         setattr(T, "_cg_init", True)
         setattr(T, "configure_options", configure_options)
+    else:
+        raise Exception("Covergroup inheritance is not currently supported")
         
     # Store declaration information on the type
     file = inspect.getsourcefile(T)

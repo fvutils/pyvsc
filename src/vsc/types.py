@@ -284,7 +284,7 @@ class type_base(object):
                 self.width,
                 self.is_signed,
                 self._int_field_info.is_rand)
-            self._int_field_info.model.set_val(int(self._init_val))
+            self.set_val(self._init_val)
         else:
             # Ensure the name matches superstructure
             self._int_field_info.model.name = name
@@ -321,20 +321,26 @@ class type_base(object):
     
     @val.setter
     def val(self, v):
-        self.get_model().set_val(ValueScalar(int(v)))
+        if self.is_signed:
+            # TODO: handle signed masking
+            self.get_model().set_val(ValueScalar(int(v)))
+        else:
+            # Mask the user-specified value
+            v = int(v) & ((1 << self.width)-1)
+            self.get_model().set_val(ValueScalar(v))
             
     def get_val(self):
         return int(self.get_model().get_val())
     
     def set_val(self, val):
-        self.get_model().set_val(ValueScalar(int(val)))
+        if self.is_signed:
+            # TODO: handle signed masking
+            self.get_model().set_val(ValueScalar(int(val)))
+        else:
+            # Mask the user-specified value
+            val = int(val) & ((1 << self.width)-1)
+            self.get_model().set_val(ValueScalar(val))
         
-#     def _get_val(self):
-#         return int(self._int_field_info.model.get_val())
-#     
-#     def _set_val(self, val):
-#         self.val = val
-    
     def bin_expr(self, op, rhs):
         to_expr(rhs)
 
@@ -502,11 +508,11 @@ class type_bool(type_base):
         
     def get_val(self):
         """Gets the field value"""
-        return bool(self._int_field_info.model.get_val())
+        return bool(self.get_model().get_val())
     
     def set_val(self, val):
         """Sets the field value"""
-        self._int_field_info.model.set_val(bool(val))
+        self.get_model().set_val(bool(val))
 
 class type_enum(type_base):
     """Base class for enumerated-type fields"""
@@ -542,12 +548,12 @@ class type_enum(type_base):
         
     def get_val(self):
         """Returns the enum id"""
-        val = int(self._int_field_info.model.get_val())
+        val = int(self.get_model().get_val())
         return self.enum_i.v2e(val)
     
     def set_val(self, val):
         """Sets the enum id"""
-        self._int_field_info.model.set_val(self.enum_i.ev2(val))
+        self.get_model().set_val(self.enum_i.e2v(val))
     
 class enum_t(type_enum):
     """Creates a non-random enumerated-type attribute"""
@@ -674,7 +680,12 @@ class rand_int64_t(rand_int_t):
         
 class list_t(object):
     
-    def __init__(self, t, sz=0, is_rand=False, is_randsz=False):
+    def __init__(self, 
+                 t, 
+                 sz=0, 
+                 is_rand=False, 
+                 is_randsz=False,
+                 init=None):
         self.t = t
         self._int_field_info = field_info()
         self.is_scalar = isinstance(t, (type_base,type_enum))
@@ -682,6 +693,11 @@ class list_t(object):
         self._int_field_info.is_rand = is_rand
         self.is_rand_sz = is_randsz
         self.init_sz = sz
+        self.init = init
+        
+        if self.init is not None and self.init_sz > 0:
+            raise Exception("Only one of 'init' and 'sz' may be specified")
+        
         if not self.is_scalar:
             if not hasattr(t, "_int_field_info"):
                 raise Exception("list_t type " + str(t) + " (type " + str(type(t)) + ") is not a VSC randobj type")
@@ -735,6 +751,8 @@ class list_t(object):
                 else:
                     for i in range(self.init_sz):
                         self.append(type(self.t)())
+            elif self.init is not None:
+                self.extend(self.init)
             
         return self._int_field_info.model
 
@@ -790,7 +808,7 @@ class list_t(object):
         elif self.is_scalar:
             # Working with a scalar
             f = model.add_field()
-            f.set_val(v)
+            f.set_val(int(v) & (1 << self.t.width)-1)
         else:
             if not issubclass(type(v), type(self.t)):
                 raise Exception("Attempting to append illegal element to object array")
@@ -798,16 +816,36 @@ class list_t(object):
             model.append(v.get_model())
             # Propagate randomization information
             v.get_model().is_declared_rand = self.get_model().is_declared_rand
+            
+    def extend(self, v):
+        for vi in v:
+            self.append(vi)
         
     def clear(self):
         self.get_model().clear()
 
     def __contains__(self, lhs):
-        to_expr(lhs)
-        return expr(ExprInModel(
-            pop_expr(), 
-            ExprRangelistModel(
-                [ExprFieldRefModel(self.get_model())])))
+        if get_expr_mode():
+            to_expr(lhs)
+            return expr(ExprInModel(
+                pop_expr(), 
+                ExprRangelistModel(
+                    [ExprFieldRefModel(self.get_model())])))
+        else:
+            model = self.get_model()
+            if self.is_enum:
+                ei : EnumInfo = self.t.enum_i
+                val = ei.e2v(lhs)
+                for f in model.field_l:
+                    if int(f.get_val()) == val:
+                        return True
+            elif self.is_scalar:
+                for f in model.field_l:
+                    if int(f.get_val()) == int(lhs):
+                        return True
+            else:
+                return lhs in self.backing_arr
+            return False
 
     def __iter__(self):
         class list_scalar_it(object):
@@ -868,8 +906,13 @@ class list_t(object):
                 return self.backing_arr[k]
             
     def __setitem__(self, k, v):
-        if self.is_scalar:
-            self.get_model().field_l[k].set_val(v)
+        if self.is_enum:
+            ei : EnumInfo = self.t.enum_i
+            val = ei.e2v(v)
+            self.get_model().field_l[k].set_val(val)
+        elif self.is_scalar:
+            self.get_model().field_l[k].set_val(
+                ValueScalar(int(v) & (1 << self.t.width)-1))
         else:
             self.backing_arr[k] = v
             

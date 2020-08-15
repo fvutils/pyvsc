@@ -103,5 +103,14 @@ class TestAttrEnum(VscTestCase):
         
         delta = abs(a_hist[0] - a_hist[1])
         self.assertLess(delta, 25)
+       
+    def test_enum_setval(self):
+        class my_e(Enum):
+            A = auto()
+            B = auto()
+        var = vsc.enum_t(my_e)
+        var.set_val(my_e.A)
+
+        self.assertEqual(var.get_val(), my_e.A)
         
         

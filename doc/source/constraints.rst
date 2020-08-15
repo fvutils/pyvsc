@@ -200,6 +200,50 @@ part select
 Statements
 ==========
 
+dist
+----
+Distribution constraints associate weights with values or value ranges
+of the specified variable.
+
+.. code-block:: python3
+    @vsc.randobj
+    class my_c(object):
+            
+        def __init__(self):
+            self.a = vsc.rand_uint8_t()
+                
+        @vsc.constraint
+        def dist_a(self):
+            vsc.dist(self.a, [
+                vsc.weight(1, 10),
+                vsc.weight(2, 20),
+                vsc.weight(4, 40),
+                vsc.weight(8, 80)])
+
+Any otherwise-legal values for the variable that does not have a non-zero 
+weight associated will be excluded from the legal value set. The example
+above associates non-zero weights with 1, 2, 4, 8. So, a value such as '3'
+will not be produced.
+
+.. code-block:: python3
+
+    @vsc.randobj
+    class my_c(object):
+            
+        def __init__(self):
+            self.a = vsc.rand_uint8_t()
+                
+        @vsc.constraint
+        def dist_a(self):
+            vsc.dist(self.a, [
+                vsc.weight((10,15),  80),
+                vsc.weight((20,30),  40),
+                vsc.weight((40,70),  20),
+                vsc.weight((80,100), 10)])
+
+Ranges for weights are specified as a tuple, as shown above.
+
+
 foreach
 -------
 foreach constraints are modeled with the `foreach` class. By default, 

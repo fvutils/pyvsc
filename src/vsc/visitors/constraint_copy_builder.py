@@ -9,12 +9,18 @@ from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_model import ConstraintModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
-from vsc.model.model_visitor import ModelVisitor
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_bin_model import ExprBinModel
-from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.expr_cond_model import ExprCondModel
+from vsc.model.model_visitor import ModelVisitor
+from vsc.model.expr_range_model import ExprRangeModel
+from vsc.model.expr_rangelist_model import ExprRangelistModel
+from vsc.model.expr_in_model import ExprInModel
+from vsc.model.expr_unary_model import ExprUnaryModel
+
 
 class ConstraintCollector(object):
     """Creates a copy of a given constraints"""
@@ -147,6 +153,15 @@ class ConstraintCopyBuilder(ModelVisitor):
                 self.expr(e.rhs))
         else:
             super().visit_expr_bin(e)
+            
+    def visit_expr_cond(self, e : ExprCondModel):
+        if self.do_copy_level > 0:
+            self._expr = ExprCondModel(
+                self.expr(e.cond_e),
+                self.expr(e.true_e),
+                self.expr(e.false_e))
+        else:
+            super().visit_expr_cond(e)
         
     def visit_expr_fieldref(self, e):
         # Default to pass-through
@@ -154,12 +169,51 @@ class ConstraintCopyBuilder(ModelVisitor):
             self._expr = e
         else:
             super().visit_expr_fieldref(e)
+            
+    def visit_expr_indexed_fieldref(self, e):
+        if self.do_copy_level > 0:
+            self._expr = e
+        else:
+            super().visit_expr_indexed_fieldref(e)
+            
+    def visit_expr_range(self, r):
+        if self.do_copy_level > 0:
+            self._expr = ExprRangeModel(
+                self.expr(r.lhs),
+                None if r.rhs is None else self.expr(r.rhs))
+        else:
+            super().visit_expr_range(r)
+    
+    def visit_expr_rangelist(self, r):
+        if self.do_copy_level > 0:
+            rl = []
+            for ri in r.rl:
+                rl.append(self.expr(ri))
+            self._expr = ExprRangelistModel(rl)
+        else:
+            super().visit_expr_rangelist(r)
+            
+    def visit_expr_in(self, e):
+        if self.do_copy_level > 0:
+            self._expr = ExprInModel(
+                self.expr(e.lhs),
+                self.expr(e.rhs))
+        else:
+            super().visit_expr_in(e)
         
     def visit_expr_literal(self, e):
         if self.do_copy_level > 0:
             self._expr = e
         else:
             super().visit_expr_literal(e)
+            
+    def visit_expr_unary(self, e : ExprUnaryModel):
+        if self.do_copy_level > 0:
+            self._expr = ExprUnaryModel(
+                e.op,
+                self.expr(e.expr))
+        else:
+            super().visit_expr_unary(e)
         
     def visit_expr_array_subscript(self, s):
         if self.do_copy_level > 0:

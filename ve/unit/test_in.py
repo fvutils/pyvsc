@@ -314,12 +314,12 @@ class TestIn(VscTestCase):
             print("v.a=" + str(v.a) + " v.b=" + str(v.b))
             self.assertTrue(v.b in [my_e.A, my_e.D])
 
-    def test_in_array_elem(self):
+    def test_in_array_elem_randsz(self):
 
         @vsc.randobj
         class my_s(object):
             def __init__(self):
-                self.temp = vsc.randsz_list_t(vsc.uint8_t(8))
+                self.temp = vsc.randsz_list_t(vsc.uint8_t())
                 self.a = [1,2,3,5,6,7,8]
 
             @vsc.constraint
@@ -329,7 +329,32 @@ class TestIn(VscTestCase):
                     self.temp[i].not_inside(vsc.rangelist(self.a))
 
         io = my_s()
-        io.randomize()
-        print(io.temp)        
+        for i in range(10):
+            io.randomize()
+            print(io.temp)
+            for v in io.temp:
+                self.assertNotIn(v, io.a)
 
-                
+    def test_in_array_elem_randsz_2(self):
+
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.temp = vsc.randsz_list_t(vsc.uint8_t())
+                self.a = vsc.list_t(vsc.uint8_t(), init=[1,2,3,5,6,7,8])
+
+            @vsc.constraint
+            def ls(self):
+                self.temp.size <= 10
+                self.temp.size > 0
+                with vsc.foreach(self.temp, idx = True) as i:
+                    self.temp[i].not_inside(self.a)
+                    pass
+
+        io = my_s()
+        for i in range(10):
+            io.randomize()
+            print(io.temp)
+            for v in io.temp:
+                self.assertNotIn(v, io.a)
+

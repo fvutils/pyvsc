@@ -180,7 +180,6 @@ class ModelPrettyPrinter(ModelVisitor):
             self.write(e.fm.fullname)
         
     def visit_expr_unary(self, e : vm.ExprUnaryModel):
-        print("PrettyPrinter::visit_expr_unary")
         self.write(UnaryExprType.toString(e.op))
         self.write("(")
         e.expr.accept(self)

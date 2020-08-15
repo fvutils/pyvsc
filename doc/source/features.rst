@@ -46,13 +46,13 @@ array reduction XOR        N       Y              N
 part select ``[bit]``      Y       Y              Y
 part select ``[msb:lsb]``  Y       Y              Y
 default                    N       N              Y
-`dist`                     N       Y              N
+`dist`                     Y       Y              N
 dynamic                    Y       N              Y
 inside (in)                Y       Y              Y
 soft                       Y       Y              N
 solve before               N       Y              N
 `unique`                   Y       Y              Y
-`foreach`                  N       Y              Y
+`foreach`                  Y       Y              Y
 `forall`                   N       Y              Y
 `pre_randomize`            Y       Y              Y
 `post_randomize`           Y       Y              Y

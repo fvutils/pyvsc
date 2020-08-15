@@ -326,5 +326,39 @@ class TestCovergroup(VscTestCase):
         self.assertEquals(100, report.covergroups[0].coverage)
         self.assertEquals(50, report.covergroups[0].covergroups[0].coverage)
         self.assertEquals(100, report.covergroups[0].covergroups[1].coverage)
+        
+    def test_inheritance_not_supported(self):
+        caught_exception = False
+        
+        try:
+            @vsc.covergroup
+            class main_cg(object):
+                def __init__(self, it):
+                    super().__init__()
+
+                    self.cp1 = vsc.coverpoint(it, bins={
+                        "a": vsc.bin(5)
+                    })
+
+
+            @vsc.covergroup
+            class first_extended_cg(main_cg):
+                def __init__(self, it):
+                    super().__init__(it)
+
+                    self.cp2 = vsc.coverpoint(it, bins={
+                        "a": vsc.bin(7)
+                    })
+
+            var = 5
+            cg = first_extended_cg(lambda:var)
+        except Exception as e:
+            caught_exception = True
+            pass
+        
+        self.assertTrue(caught_exception)
+
+            
+
 
     
