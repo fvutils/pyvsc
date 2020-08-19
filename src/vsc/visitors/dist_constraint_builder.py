@@ -17,6 +17,8 @@ from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_unary_model import ExprUnaryModel
 from vsc.model.unary_expr_type import UnaryExprType
 from vsc.model.constraint_soft_model import ConstraintSoftModel
+import random
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 class DistConstraintBuilder(ConstraintOverrideVisitor):
@@ -24,6 +26,7 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
     def __init__(self, seed):
         super().__init__()
         self.seed = seed
+        self.rng = random.Random(self.seed)
 
     @staticmethod        
     def build(seed, fm):
@@ -34,7 +37,7 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
         # We replace the dist constraint with an equivalent 
         # set of hard and soft constraints
         scope = ConstraintInlineScopeModel()
-
+        
         ranges = ExprRangelistModel()
         for w in c.weights:        
             if w.rng_rhs is not None:
@@ -102,7 +105,7 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
                 weight_l.append((weight, i))
         weight_l.sort(key=lambda w:w[0])
         
-        seed_v = (self.seed % total_w)
+        seed_v = self.rng.randint(0, total_w-1)
         
         # Find the first range 
         i = 0
@@ -142,3 +145,5 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
                             target_w.rng_lhs))))
         
         self.override_constraint(scope)
+        
+        

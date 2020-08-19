@@ -44,9 +44,9 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         builder.phase = 1
         m.accept(builder)
         
-#         print("--> ArrayConstraintBuilder")
-#         print("Model: " + ModelPrettyPrinter.print(m))
-#         print("<-- ArrayConstraintBuilder")
+#        print("--> ArrayConstraintBuilder")
+#        print("Model: " + ModelPrettyPrinter.print(m))
+#        print("<-- ArrayConstraintBuilder")
         
         return builder.constraints
     
@@ -70,22 +70,11 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
                 f.index.set_val(i)
                 for c in f.constraint_l:
                     c.accept(self)
-                
+
         if len(self.foreach_scope_s) > 1:
             for c in scope.constraint_l:
                 self.foreach_scope_s[-2].constraint_l.append(c)
-            
 
-#             # TODO: this logic is for rand-sized array fields
-#             size_bound = self.bound_m[f.lhs.fm.size]
-#             range_l = size_bound.domain.range_l
-#             max_size = int(range_l[-1][1])
-#             
-#             print("size=" + str(max_size))
-#            for i in range(max_size):
-
-            
-#        self.constraints.append(ret)
         self.index_set.remove(f.index)
         self.foreach_scope_s.pop()
 

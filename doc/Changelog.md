@@ -1,4 +1,8 @@
 
+## 0.1.6
+- (#26) Correct issues with dist constraints on array elements.
+- (#26) Improve distribution algorithm
+
 ## 0.1.5
 - Correct issues with nested foreach constraints
 - (#31) Correct issues with not_inside on a rand-size list

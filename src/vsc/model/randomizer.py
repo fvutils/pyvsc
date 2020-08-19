@@ -20,7 +20,6 @@
 # @author: ballance
 
 
-from builtins import zip
 import random
 import time
 from typing import List, Dict
@@ -833,9 +832,9 @@ class Randomizer(RandIF):
 #        if len(constraint_l) != constraints_len:
         bounds_v.process(field_model_l, constraint_l)
 
-#         print("Final Model:")        
-#         for fm in field_model_l:
-#             print("  " + ModelPrettyPrinter.print(fm))
+#        print("Final Model:")        
+#        for fm in field_model_l:
+#            print("  " + ModelPrettyPrinter.print(fm))
             
             
         # First, invoke pre_randomize on all elements

@@ -3,6 +3,8 @@ Created on Apr 28, 2020
 
 @author: ballance
 '''
+from vsc.model.constraint_dist_model import ConstraintDistModel
+from vsc.model.dist_weight_expr_model import DistWeightExprModel
 '''
 Created on Apr 28, 2020
 
@@ -65,6 +67,29 @@ class ModelPrettyPrinter(ModelVisitor):
             stmt.accept(self)
         self.dec_indent()
         self.writeln("}")
+        
+    def visit_constraint_dist(self, d : ConstraintDistModel):
+        self.write(self.ind)
+        d.lhs.accept(self)
+        self.write(" dist { ")
+        for i in range(len(d.weights)):
+            if i > 0:
+                self.write(", ")
+            d.weights[i].accept(self)
+        self.write("}\n")
+        
+    def visit_dist_weight(self, w : DistWeightExprModel):
+        if w.rng_rhs is not None:
+            self.write("[")
+            w.rng_lhs.accept(self)
+            self.write(":")
+            w.rng_rhs.accept(self)
+            self.write("]")
+        else:
+            w.rng_lhs.accept(self)
+            
+        self.write(" : ")
+        w.weight.accept(self)
         
     def visit_constraint_expr(self, c:ConstraintExprModel):
         self.write(self.ind)

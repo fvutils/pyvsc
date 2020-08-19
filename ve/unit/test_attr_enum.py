@@ -73,7 +73,7 @@ class TestAttrEnum(VscTestCase):
         print("hist: " + str(a_hist))
         
         delta = abs(a_hist[0] - a_hist[1])
-        self.assertLess(delta, 25)
+        self.assertLess(delta, 50)
             
     def test_rand_int_enum_hist(self):
         class my_e(IntEnum):

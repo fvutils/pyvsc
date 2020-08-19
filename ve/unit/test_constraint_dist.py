@@ -250,4 +250,48 @@ class TestConstraintDist(VscTestCase):
             else:
                 self.fail("Value " + str(c.a) + " illegal")
         print("hist: " + str(hist))
-        
+
+    def test_dist_array_elems(self):
+
+        @vsc.randobj 
+        class my_c(object):
+            def __init__(self): 
+                self.a = vsc.rand_list_t(vsc.bit_t(7),4)
+              
+            @vsc.constraint 
+            def dist_a(self):
+                with vsc.foreach(self.a, idx=True) as i:
+                    vsc.dist(self.a[i], [ 
+                        vsc.weight(1, 10), 
+                        vsc.weight(2, 20), 
+                        vsc.weight(4, 40), 
+                        vsc.weight(8, 80)])
+
+        my = my_c()
+
+        # Randomize
+        hist = []
+        for i in range(4):
+            hist.append([0]*4)
+            
+        for i in range(200):
+            my.randomize()
+            for i in range(4):
+                v = my.a[i]
+                if v == 1:
+                    hist[i][0] += 1
+                elif v == 2:
+                    hist[i][1] += 1
+                elif v == 4:
+                    hist[i][2] += 1
+                elif v == 8:
+                    hist[i][3] += 1
+                else:
+                    raise Exception("Value " + str(v) + " out of range")
+                    
+        for i in range(len(hist)):
+            print("hist[" + str(i) + "] " + str(hist[i]))
+            for j in range(len(hist[i])):
+                if j > 0:
+                    self.assertGreater(hist[i][j], hist[i][j-1])
+            
