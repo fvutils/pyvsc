@@ -4,8 +4,11 @@ Created on Aug 9, 2020
 @author: ballance
 '''
 
+from enum import Enum, auto
+
 import vsc
 from vsc_test_case import VscTestCase
+
 
 class TestConstraintDist(VscTestCase):
     
@@ -294,4 +297,35 @@ class TestConstraintDist(VscTestCase):
             for j in range(len(hist[i])):
                 if j > 0:
                     self.assertGreater(hist[i][j], hist[i][j-1])
+                    
+    def test_dist_array_elems_range(self):
+        class my_e(Enum):
+            A = 0
+            B = auto()
+            C = auto()
+            D = auto()
+   
+        @vsc.randobj 
+        class my_c(object):
+            def __init__(self): 
+                self.a = vsc.rand_enum_t(my_e)
+                #self.a = vsc.rand_list_t(vsc.bit_t(7),15)
+                #self.a = vsc.rand_uint8_t() 
+              
+            @vsc.constraint 
+            def dist_a(self):
+                #with vsc.foreach(self.a, idx=True) as i:
+                vsc.dist(self.a, [ vsc.weight(vsc.rng(my_e.A, my_e.C),10), vsc.weight(my_e.D, 20)]) 
+
+        my = my_c()
+
+        # Randomize
+        for i in range(10):
+            my.randomize()
+            print("MY ITEM : ",i+1)
+            print(my.a)    
+    
+    
+    
+        
             

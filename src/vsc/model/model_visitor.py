@@ -238,3 +238,7 @@ class ModelVisitor(object):
     def visit_coverpoint_cross(self, cp):
         pass
     
+    def visit_rangelist(self, r):
+        pass
+            
+    

@@ -33,7 +33,7 @@ from vsc.model.constraint_unique_model import ConstraintUniqueModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
-from vsc.types import to_expr, expr, type_base
+from vsc.types import to_expr, expr, type_base, rng
 from vsc.model.constraint_dist_model import ConstraintDistModel
 
 class constraint_t(object):
@@ -101,6 +101,11 @@ class weight(object):
                 raise Exception("Weight range must have two elements")
             to_expr(val[0])
             to_expr(val[1])
+            rng_rhs_e = pop_expr()
+            rng_lhs_e = pop_expr()
+        elif isinstance(val, rng):
+            to_expr(val.low)
+            to_expr(val.high)
             rng_rhs_e = pop_expr()
             rng_lhs_e = pop_expr()
         else:

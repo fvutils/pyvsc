@@ -1,4 +1,7 @@
 
+## 0.1.7
+- (#36) Support using vsc.range in weights
+
 ## 0.1.6
 - (#26) Correct issues with dist constraints on array elements.
 - (#26) Improve distribution algorithm

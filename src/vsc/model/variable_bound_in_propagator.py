@@ -7,7 +7,7 @@ from vsc.model.variable_bound_propagator import VariableBoundPropagator
 from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.model.expr_in_model import ExprInModel
 from vsc.model.expr_range_model import ExprRangeModel
-from unittest.case import _ShouldStop
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 class VariableBoundInPropagator(VariableBoundPropagator):
     
@@ -20,7 +20,7 @@ class VariableBoundInPropagator(VariableBoundPropagator):
     def propagate(self):
 #        print("--> propagate")
 
-        should_propagate = False        
+        should_propagate = False
         
         # Intersect the 'in' rangelist and the domain
         # Note: assume both ranges are sorted, non-overlapping, and non-adjacent
@@ -50,7 +50,7 @@ class VariableBoundInPropagator(VariableBoundPropagator):
                     # We need to adjust the reachable domain
 #                    print("Reduce domain max " + str(dom_r[1]) + " -> " + str(int(prev_in_r_v[1])))
                     dom_r[1] = int(prev_in_r_v[1])
-                    should_propagate = True
+                    should_propagate = (prev_in_r_v[1] < dom_r[1])
                     dom_i += 1
                 else:
                     # The previous element wasn't inside either. Discard

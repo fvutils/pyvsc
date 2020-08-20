@@ -5,6 +5,7 @@ Created on Apr 28, 2020
 '''
 from vsc.model.constraint_dist_model import ConstraintDistModel
 from vsc.model.dist_weight_expr_model import DistWeightExprModel
+from vsc.model.rangelist_model import RangelistModel
 '''
 Created on Apr 28, 2020
 
@@ -209,6 +210,13 @@ class ModelPrettyPrinter(ModelVisitor):
         self.write("(")
         e.expr.accept(self)
         self.write(")")
+        
+    def visit_rangelist(self, r : RangelistModel):
+        for re in r.range_l:
+            if re[0] == re[1]:
+                self.write(str(re[0]))
+            else:
+                self.write(str(re[0]) + ".."  + str(re[1]))
         
     def visit_scalar_field(self, f:FieldScalarModel):
         self.write(f.name)

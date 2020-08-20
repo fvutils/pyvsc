@@ -72,3 +72,6 @@ class RangelistModel(object):
             ret.range_l.append([r[0], r[1]])
             
         return ret
+    
+    def accept(self, v):
+        v.visit_rangelist(self);
