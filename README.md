@@ -5,4 +5,4 @@ Python package providing a library for Verification Stimulus and Coverage
 [![PyPI version](https://badge.fury.io/py/pyvsc.svg)](https://badge.fury.io/py/pyvsc)
 [![PyPI](https://img.shields.io/pypi/dm/pyvsc.svg?label=PyPI%20downloads)](https://pypi.org/project/pyvsc/)
 
-Have a look at docs here: [py-vsc.readthedocs.io](https://py-vsc.readthedocs.io)
+Have a look at docs here: [pyvsc.readthedocs.io](https://pyvsc.readthedocs.io)
