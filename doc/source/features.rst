@@ -33,10 +33,10 @@ unary ^                    N       Y              N
 scalar signed field        Y       Y              Y
 scalar unsigned field      Y       Y              Y
 scalar enum field          Y       Y              Y
-scalar fixed-size array    N       Y              Y
-scalar dynamic array       N       Y              N
-class fixed-size array     N       Y              Y
-class dynamic array        N       Y              N
+scalar fixed-size array    Y       Y              Y
+scalar dynamic array       Y       Y              N
+class fixed-size array     Y       Y              Y
+class dynamic array        Y       Y              N
 class (in)equality         N       N              Y
 array sum                  N       Y              Y
 array size                 N       Y              Y
@@ -74,7 +74,7 @@ illegal_bins                  N       Y              Y
 coverpoint                    Y       Y              Y
 coverpoint single bin         Y       Y              Y 
 coverpoint array bin          Y       Y              Y 
-coverpoint auto bins          N       Y              Y 
+coverpoint auto bins          Y       Y              Y 
 coverpoint transition bin     N       Y              N 
 cross auto bins               Y       Y              Y
 cross bin expressions         N       Y              Y
@@ -82,3 +82,5 @@ cross explicit bins           N       Y              Y
 cross ignore_bins             N       Y              Y
 cross illegal_bins            N       Y              Y
 ============================  ======  =============  ===  ===========
+
+
