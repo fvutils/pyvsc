@@ -73,6 +73,7 @@ class VariableBoundVisitor(ModelVisitor):
         # Update data calcuated from domain ranges
         for f,b in self.bound_m.items():
             b.update()
+        
 
     def visit_constraint_if_else(self, c:ConstraintIfElseModel):
         if self.phase == 1:

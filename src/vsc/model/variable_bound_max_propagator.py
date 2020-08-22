@@ -20,6 +20,8 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
   
         range_l = self.target.domain.range_l
         i=len(range_l)-1
+        
+#        print("Max: range_l=" + str(range_l) + " max_v=" + str(max_v))
 
         # Note: assume domain ranges are ordered
         # Find the first interval where the minimum is less than the max
@@ -42,7 +44,8 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
 #                print("Removing domain element " + str(range_l[i+1]))
                 self.target.domain.range_l = range_l[:i+1]
         else:
-            print("ran off the end")
+#            print("ran off the end")
+            pass
             
         if must_propagate:
             # Notify any propagators using the target as a source

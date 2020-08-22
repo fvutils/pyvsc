@@ -43,6 +43,7 @@ from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
+from vsc.model.expr_dynamic_model import ExprDynamicModel
 
 
 
@@ -144,10 +145,12 @@ class ModelVisitor(object):
             e.accept(self)
         self.visit_constraint_stmt_leave(c)
         
+    def visit_expr_array_product(self, s):
+        self.visit_expr_dynamic(s)
+        
     def visit_expr_array_sum(self, s):
-        if s.get_sum_expr():
-            s.get_sum_expr().accept(self)
-            
+        self.visit_expr_dynamic(s)
+
     def visit_expr_bin(self, e : ExprBinModel):
         e.lhs.accept(self)
         e.rhs.accept(self)
@@ -156,6 +159,10 @@ class ModelVisitor(object):
         e.cond_e.accept(self)
         e.true_e.accept(self)
         e.false_e.accept(self)
+        
+    def visit_expr_dynamic(self, e : ExprDynamicModel):
+        if e.expr() is not None:
+            e.expr().accept(self)
     
     def visit_expr_fieldref(self, e):
         pass

@@ -105,7 +105,7 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
                 weight_l.append((weight, i))
         weight_l.sort(key=lambda w:w[0])
         
-        seed_v = self.rng.randint(0, total_w-1)
+        seed_v = self.rng.randint(1, total_w)
         
         # Find the first range 
         i = 0
@@ -116,7 +116,7 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
                 break
                 
             i += 1
-            
+
         if i >= len(weight_l):
             i = len(weight_l)-1
             

@@ -46,6 +46,7 @@ from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverride
 from vsc.visitors.dist_constraint_builder import DistConstraintBuilder
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
+from vsc.visitors.dynamic_expr_reset_visitor import DynamicExprResetVisitor
 
 
 class Randomizer(RandIF):
@@ -64,7 +65,9 @@ class Randomizer(RandIF):
 #         for rs in ri.randsets():
 #             print("RandSet")
 #             for f in rs.all_fields():
-#                 print("  " + f.name + " " + str(bound_m[f].domain.range_l))
+#                 print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+#             for c in rs.constraints():
+#                 print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True))
 #         for uf in ri.unconstrained():
 #             print("Unconstrained: " + uf.name)
 
@@ -110,7 +113,6 @@ class Randomizer(RandIF):
             soft_node_l = list(map(lambda c:c[1], filter(lambda c:c[2], constraint_l)))
             node_l = list(map(lambda c:c[1], filter(lambda c:not c[2], constraint_l)))
 
-            
             # Perform an initial solve to establish correctness
             if btor.Sat() != btor.SAT:
                 
@@ -165,11 +167,15 @@ class Randomizer(RandIF):
 
         # Finalize the value of the field
             x = start_rs_i
+            reset_v = DynamicExprResetVisitor()
             while x < rs_i:
                 rs = ri.randsets()[x]
                 for f in rs.all_fields():
                     f.post_randomize()
                     f.dispose() # Get rid of the solver var, since we're done with it
+                    f.accept(reset_v)
+                for c in rs.constraints():
+                    c.accept(reset_v)
                 x += 1
                 
         end = int(round(time.time() * 1000))
@@ -340,14 +346,14 @@ class Randomizer(RandIF):
                 # Go ahead and pick values in the domain, since there 
                 # are no other constraints
                 f = field_l[0]
-                e = self.create_single_var_domain_constraint(
-                    field_l[0], bound_m[field_l[0]])
-            
-                if e is not None:
-                    n = e.build(btor)
-                    rand_node_l.append(n)                    
-                    rand_e_l.append(e)
-#                    btor.Assume(n)
+                if f in bound_m.keys():
+                    f_bound = bound_m[f]
+                    if not f_bound.isEmpty():
+                        e = self.create_rand_domain_constraint(f, f_bound)
+                        if e is not None:
+                            n = e.build(btor)
+                            rand_node_l.append(n)
+                            rand_e_l.append(e)
             elif len(field_l) > 0:
                 field_idx = self.randint(0, len(field_l)-1)
                 f = field_l[field_idx]
@@ -835,6 +841,8 @@ class Randomizer(RandIF):
 #        print("Final Model:")        
 #        for fm in field_model_l:
 #            print("  " + ModelPrettyPrinter.print(fm))
+#        for c in constraint_l:
+#            print("  " + ModelPrettyPrinter.print(c, show_exp=True))
             
             
         # First, invoke pre_randomize on all elements

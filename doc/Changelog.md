@@ -1,4 +1,8 @@
 
+## 0.1.8
+- (#36) Correct issues with random distribution
+- (#19) Implement sum and product constraints on arrays
+
 ## 0.1.7
 - (#36) Support using vsc.range in weights
 

@@ -3,9 +3,12 @@ Created on May 24, 2020
 
 @author: ballance
 '''
+from enum import IntEnum, auto
 import vsc
-from vsc_test_case import VscTestCase
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
+
+from vsc_test_case import VscTestCase
+
 
 class TestVariableBoundsVisitor(VscTestCase):
     
@@ -51,6 +54,41 @@ class TestVariableBoundsVisitor(VscTestCase):
         self.assertEqual(0, b_bounds.domain.range_l[0][0])
         self.assertEqual(3, b_bounds.domain.range_l[0][1])
 
+    def test_in_1(self):
+        @vsc.randobj
+        class my_c(object):
+            
+            def __init__(self):
+                self.a = vsc.rand_uint32_t()
+                
+            @vsc.constraint
+            def ab_c(self):
+                self.a in vsc.rangelist(1, 4, 8)
+                
+        my_item = my_c()
+        model = my_item.get_model()
+        
+        visitor = VariableBoundVisitor()
+        visitor.process([model], [])
+        
+        a_model = model.find_field("a")
+        
+        self.assertIsNotNone(a_model)
+
+        self.assertTrue(a_model in visitor.bound_m.keys())
+        
+        a_bounds = visitor.bound_m[a_model]
+
+        self.assertEqual(3, len(a_bounds.domain.range_l))
+
+        # a in 1, 4, 8
+        self.assertEqual(1, a_bounds.domain.range_l[0][0])
+        self.assertEqual(1, a_bounds.domain.range_l[0][1])
+        self.assertEqual(4, a_bounds.domain.range_l[1][0])
+        self.assertEqual(4, a_bounds.domain.range_l[1][1])
+        self.assertEqual(8, a_bounds.domain.range_l[2][0])
+        self.assertEqual(8, a_bounds.domain.range_l[2][1])
+        
     def test_in(self):
         @vsc.randobj
         class my_c(object):
@@ -158,6 +196,49 @@ class TestVariableBoundsVisitor(VscTestCase):
         self.assertEqual(2, c_bounds.domain.range_l[0][0])
         self.assertEqual(3, c_bounds.domain.range_l[0][1])
 
+    def test_enum_range_limited(self):
+        class my_e(IntEnum):
+            A = 0
+            B = auto()
+            C = auto()
+            D = auto()
+            
+        @vsc.randobj
+        class my_c(object):
+            
+            def __init__(self):
+                self.a = vsc.rand_enum_t(my_e)
+                
+            @vsc.constraint
+            def ab_c(self):
+                self.a.inside(vsc.rangelist(vsc.rng(my_e.A,my_e.C), my_e.D))
+                self.a >= my_e.A 
+                self.a <= my_e.C
+                
+        my_item = my_c()
+        model = my_item.get_model()
+        
+        visitor = VariableBoundVisitor()
+        visitor.process([model], [])
+        
+        a_model = model.find_field("a")
+        
+        self.assertIsNotNone(a_model)
+
+        self.assertTrue(a_model in visitor.bound_m.keys())
+        
+        a_bounds = visitor.bound_m[a_model]
+
+        self.assertEqual(3, len(a_bounds.domain.range_l))
+
+        # a in 1, 4, 8
+        self.assertEqual(0, a_bounds.domain.range_l[0][0])
+        self.assertEqual(0, a_bounds.domain.range_l[0][1])
+        self.assertEqual(1, a_bounds.domain.range_l[1][0])
+        self.assertEqual(1, a_bounds.domain.range_l[1][1])
+        self.assertEqual(2, a_bounds.domain.range_l[2][0])
+        self.assertEqual(2, a_bounds.domain.range_l[2][1])
+        
 #     def test_var2var_max(self):
 #         @vsc.randobj
 #         class my_c(object):

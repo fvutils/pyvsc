@@ -183,7 +183,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint
             # relationships
-
+            
             # If the field is already referenced by an existing randset
             # that is not this one, we need to merge the sets
             if isinstance(e.fm, FieldArrayModel):
