@@ -22,7 +22,7 @@
 
 from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr, \
     pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr, \
-    push_foreach_arr, pop_foreach_arr
+    push_foreach_arr, pop_foreach_arr, constraint_scope_depth
 from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
@@ -327,5 +327,27 @@ class foreach(object):
     def __exit__(self, t, v, tb):
         pop_constraint_scope()
         pop_foreach_arr()
-        
+       
+
+def solve_order(before, after):
+    if constraint_scope_depth() != 1:
+        raise Exception("solve_before can only be used at a constraint top level")
+
+    before_l = []
+    after_l = []
+    
+    if isinstance(before, list):
+        pass
+    else:
+        to_expr(before)
+        before_e = pop_expr()
+        pass
+    
+    if isinstance(after, list):
+        pass
+    else:
+        pass
+
+    
+    
         

@@ -85,6 +85,9 @@ def pop_constraint_scope():
 def constraint_scope():
     return constraint_scope_stack[-1]
 
+def constraint_scope_depth():
+    return len(constraint_scope_stack)
+
 def in_constraint_scope():
     return len(constraint_scope_stack) > 0
 
