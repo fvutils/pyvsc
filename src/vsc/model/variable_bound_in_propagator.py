@@ -18,7 +18,6 @@ class VariableBoundInPropagator(VariableBoundPropagator):
         self.in_e = in_e
         
     def propagate(self):
-#        print("--> propagate")
 
         should_propagate = False
         
@@ -31,6 +30,7 @@ class VariableBoundInPropagator(VariableBoundPropagator):
         in_r_l = list(map(lambda e:[int(e.lhs.val()),int(e.rhs.val())] if isinstance(e, ExprRangeModel) 
                           else [int(e.val()),int(e.val())], self.in_e.rl))
         in_r_l.sort(key=lambda e:e[0])
+#        print("--> propagate: " + str(in_r_l) + " " + self.target.domain.toString())
         
         prev_in_r_v = None
         dom_r = None
@@ -38,12 +38,12 @@ class VariableBoundInPropagator(VariableBoundPropagator):
             in_r_v = in_r_l[in_i]
             dom_r = self.target.domain.range_l[dom_i]
             
-#             print("in_i=" + str(in_i) + " dom_i=" + str(dom_i))
-#             print("  in_r_v=" + str(int(in_r_v[0])) + ".." + str(int(in_r_v[1])))
-#             print("  dom_r=" + str(dom_r[0]) + ".." + str(dom_r[1]))
+#            print("in_i=" + str(in_i) + " dom_i=" + str(dom_i))
+#            print("  in_r_v=" + str(int(in_r_v[0])) + ".." + str(int(in_r_v[1])))
+#            print("  dom_r=" + str(dom_r[0]) + ".." + str(dom_r[1]))
             
             # Check to see if the range starts above the domain element
-            if int(in_r_v[0]) > dom_r[1]:
+            if in_r_v[0] > dom_r[1]:
                 # Check whether the last element preserved
                 if prev_in_r_v is not None and int(prev_in_r_v[1]) >= dom_r[0] and int(prev_in_r_v[1]) <= dom_r[1]:
                     # The previous inside element was inside this domain element
@@ -78,6 +78,10 @@ class VariableBoundInPropagator(VariableBoundPropagator):
                 else:
 #                    print("Advancing domain")
                     dom_i += 1
+            elif in_r_v[1] > dom_r[1]:
+                # This domain element is still inside the in-range
+#                print("Advancing domain")
+                dom_i += 1
             else:
 #                print("Advancing both domain and inside")
                 prev_in_r_v = in_r_v
@@ -93,4 +97,4 @@ class VariableBoundInPropagator(VariableBoundPropagator):
         if should_propagate:
             self.target.propagate()
             
-#        print("<-- propagate")
+#        print("<-- propagate: " + str(in_r_l) + " " + self.target.domain.toString())

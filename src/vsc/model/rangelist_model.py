@@ -64,6 +64,17 @@ class RangelistModel(object):
             eq = False
             
         return eq
+    
+    def toString(self):
+        ret = "["
+        for i,r in enumerate(self.range_l):
+            if i > 0:
+                ret += ","
+            ret += str(r[0]) + ".." + str(r[1])
+        ret += "]"
+        
+        return ret
+            
 
     def clone(self):
         ret = RangelistModel(None)

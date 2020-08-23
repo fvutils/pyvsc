@@ -4,9 +4,9 @@ Created on Aug 9, 2020
 @author: ballance
 '''
 
-from enum import Enum, auto
-
+from enum import Enum, auto, IntEnum
 import vsc
+
 from vsc_test_case import VscTestCase
 
 
@@ -299,7 +299,7 @@ class TestConstraintDist(VscTestCase):
                     self.assertGreater(hist[i][j], hist[i][j-1])
                     
     def test_dist_array_elems_range(self):
-        class my_e(Enum):
+        class my_e(IntEnum):
             A = 0
             B = auto()
             C = auto()
@@ -314,16 +314,25 @@ class TestConstraintDist(VscTestCase):
               
             @vsc.constraint 
             def dist_a(self):
-                #with vsc.foreach(self.a, idx=True) as i:
-                vsc.dist(self.a, [ vsc.weight(vsc.rng(my_e.A, my_e.C),10), vsc.weight(my_e.D, 20)]) 
+#                vsc.dist(self.a, [vsc.weight(vsc.rng(my_e.A, my_e.C),10), vsc.weight(my_e.D, 20)]) 
+                vsc.dist(self.a, [vsc.weight(vsc.rng(my_e.A, my_e.C),3), vsc.weight(my_e.D, 1)]) 
 
         my = my_c()
+        
+        hist = [0]*4
 
         # Randomize
-        for i in range(10):
+        for i in range(100):
+#            print(">======= " + str(i) + " ========")
             my.randomize()
-            print("MY ITEM : ",i+1)
-            print(my.a)    
+#            print("<======= " + str(i) + " ========")
+            hist[int(my.a)] += 1
+#            print("MY ITEM : ",i+1)
+#            print(my.a)    
+
+        print("hist: " + str(hist))
+        for v in hist:
+            self.assertNotEqual(v, 0)
     
     
     

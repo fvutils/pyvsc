@@ -49,6 +49,7 @@ from vsc.model.value_scalar import ValueScalar
 
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
 from _operator import is_
+from vsc.model.expr_array_product_model import ExprArrayProductModel
 
 
 def unsigned(v, w=-1):
@@ -67,20 +68,11 @@ class expr(object):
         self.em = em
         
     def bin_expr(self, op, rhs):
-        from .visitors.model_pretty_printer import ModelPrettyPrinter
         to_expr(rhs)
 
         rhs_e = pop_expr()
         lhs_e = pop_expr()
        
-#        print("bin_expr: lhs=" + 
-#              ModelPrettyPrinter.print(lhs_e) + " rhs=" +
-#              ModelPrettyPrinter.print(rhs_e) + " len=" + 
-#              str(len(expr_l)))
-#        for e in expr_l:
-#            print("    Expr: " + ModelPrettyPrinter.print(e))
-        
-        
         e = ExprBinModel(lhs_e, op, rhs_e)
         
         return expr(e)        
@@ -738,7 +730,7 @@ class list_t(object):
                 self.t.is_signed if self.is_scalar else -1,
                 self._int_field_info.is_rand,
                 self.is_rand_sz)
-            
+           
             if self.init_sz > 0:
                 if self.is_enum:
                     ei : EnumInfo = self.t.enum_i
@@ -775,17 +767,27 @@ class list_t(object):
     def sum(self):
         if self.is_scalar:
             if get_expr_mode():
-                raise Exception("Constraints on sum not supported")
                 return expr(ExprArraySumModel(self.get_model()))
             else:
                 ret = 0
                 for f in self.get_model().field_l:
-#                    v = int(f.get_val())
-#                    print("v: " + str(v))
                     ret += int(f.get_val())
                 return ret
         else:
             raise Exception("Composite arrays do not have a sum")
+
+    @property
+    def product(self):
+        if self.is_scalar:
+            if get_expr_mode():
+                return expr(ExprArrayProductModel(self.get_model()))
+            else:
+                ret = 0 if self.size == 0 else 1
+                for f in self.get_model().field_l:
+                    ret *= int(f.get_val())
+                return ret
+        else:
+            raise Exception("Composite arrays do not have a product")
             
         
     def __len__(self):

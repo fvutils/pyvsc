@@ -16,3 +16,4 @@ class VariableBoundEnumModel(VariableBoundModel):
             self.domain.add_value(v)
             
         self.domain.range_l.sort(key=lambda e:e[0])
+        

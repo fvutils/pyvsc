@@ -1,11 +1,11 @@
 '''
-Created on Jun 27, 2020
+Created on Aug 21, 2020
 
 @author: ballance
 '''
 from vsc.model.expr_dynamic_model import ExprDynamicModel
 
-class ExprArraySumModel(ExprDynamicModel):
+class ExprArrayProductModel(ExprDynamicModel):
     
     def __init__(self, arr):
         super().__init__()
@@ -18,14 +18,14 @@ class ExprArraySumModel(ExprDynamicModel):
         ret = self.arr.width
         if ret < 32:
             ret = 32
-        return ret
-    
+        return ret        
+        
     def build_expr(self):
-        return self.arr.get_sum_expr()
+        return self.arr.get_product_expr()
     
     def build(self, btor):
-        return self.arr.build_sum_expr(btor)
+        return self.arr.build_product_expr(btor);
     
     def accept(self, v):
-        v.visit_expr_array_sum(self)
+        v.visit_expr_array_product(self)
     

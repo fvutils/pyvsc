@@ -35,9 +35,10 @@ class ModelPrettyPrinter(ModelVisitor):
         self.ind = ""
         self.print_values = False
         
-    def do_print(self, m, print_values=False):
+    def do_print(self, m, print_values=False, show_exp=False):
         self.ind = ""
         self.print_values = print_values
+        self.show_exp = show_exp
         self.out = StringIO()
         
         m.accept(self)
@@ -45,9 +46,9 @@ class ModelPrettyPrinter(ModelVisitor):
         return self.out.getvalue()
     
     @staticmethod
-    def print(m, print_values=False):
+    def print(m, print_values=False, show_exp=False):
         p = ModelPrettyPrinter()
-        return p.do_print(m, print_values)
+        return p.do_print(m, print_values, show_exp)
     
     def write(self, s):
         self.out.write(s)
@@ -167,7 +168,11 @@ class ModelPrettyPrinter(ModelVisitor):
         self.write("]")
         
     def visit_expr_array_sum(self, s):
-        ModelVisitor.visit_expr_array_sum(self, s)
+        if self.show_exp:
+            s.expr().accept(self)
+        else:
+            self.write(s.arr.fullname)
+            self.write(".sum")
 
     def visit_expr_bin(self, e:vm.ExprBinModel):
         if e.lhs is None or e.rhs is None:
@@ -182,9 +187,9 @@ class ModelPrettyPrinter(ModelVisitor):
         e.lhs.accept(self)
         self.write(" in [")
         for i,r in enumerate(e.rhs.rl):
-            r.accept(self)
-            if i+1 < len(e.rhs.rl):
+            if i > 0:
                 self.write(", ")
+            r.accept(self)
                 
         self.write("]")
         
@@ -210,6 +215,11 @@ class ModelPrettyPrinter(ModelVisitor):
         self.write("(")
         e.expr.accept(self)
         self.write(")")
+        
+    def visit_expr_range(self, r):
+        r.lhs.accept(self)
+        self.write("..")
+        r.rhs.accept(self)
         
     def visit_rangelist(self, r : RangelistModel):
         for re in r.range_l:

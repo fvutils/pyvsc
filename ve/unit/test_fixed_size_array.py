@@ -35,10 +35,13 @@ class TestFixedSizeArray(VscTestCase):
                             self.arr[i] != self.arr[j]
                             
         it = elem_c()
+        self.assertEqual(it.arr.size, 16)
+        it.randomize()
         
         for i in range(it.arr.size):
             for j in range(it.arr.size):
                 if i != j:
+#                    print("[" + str(i) + "," + str(j) + "]  " + str(it.arr[i]) + "," + str(it.arr[j]))
                     self.assertNotEqual(it.arr[i], it.arr[j])
         
         
@@ -72,7 +75,7 @@ class TestFixedSizeArray(VscTestCase):
                     
         it = item_c()
 
-        for i in range(1):        
+        for i in range(1):
             it.randomize()
 #            for v in it.elem.arr:
 #                print("    " + str(v))
@@ -80,5 +83,58 @@ class TestFixedSizeArray(VscTestCase):
 #                print("Array")
 #                for v in elem.arr:
 #                    print("    " + str(v))
+
+    def test_array_fixedsz_sum(self):
         
+        @vsc.randobj
+        class item_c(object):
+            def __init__(self):
+                self.arr = vsc.rand_list_t(vsc.bit_t(8), sz=16)
+                
+            @vsc.constraint
+            def elem_ne_c(self):
+                with vsc.foreach(self.arr) as v:
+                    v != 0
+                
+        it = item_c()
+
+        for i in range(1):        
+            with it.randomize_with():
+                it.arr.sum > 0 
+                it.arr.sum < 40
+
+                with vsc.foreach(it.arr) as v:
+                    v != 0
+
+            for j in range(len(it.arr)):
+                print("arr[" + str(j) + "] " + str(it.arr[j]))
+                
+            print("sum: " + str(it.arr.sum))
+            self.assertGreater(it.arr.sum, 0)
+            self.assertLess(it.arr.sum, 40)
+            
+    def test_array_fixedsz_product(self):
         
+        @vsc.randobj
+        class item_c(object):
+            def __init__(self):
+                self.arr = vsc.rand_list_t(vsc.bit_t(8), sz=8)
+                
+            @vsc.constraint
+            def elem_ne_c(self):
+                with vsc.foreach(self.arr) as v:
+                    v != 0
+                
+        it = item_c()
+
+        for i in range(1):        
+            with it.randomize_with():
+                it.arr.product == 4
+
+
+            for j in range(len(it.arr)):
+                print("arr[" + str(j) + "] " + str(it.arr[j]))
+                
+            print("product: " + str(it.arr.product))
+            self.assertEqual(it.arr.product, 4)
+
