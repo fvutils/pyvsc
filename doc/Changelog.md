@@ -1,4 +1,7 @@
 
+## 0.1.9
+- Correct an issue with using inline foreach constraints
+
 ## 0.1.8
 - (#36) Correct issues with random distribution
 - (#19) Implement sum and product constraints on arrays

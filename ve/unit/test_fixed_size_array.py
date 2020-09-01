@@ -137,4 +137,68 @@ class TestFixedSizeArray(VscTestCase):
                 
             print("product: " + str(it.arr.product))
             self.assertEqual(it.arr.product, 4)
+            
+    def test_array_sum(self):
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.main_program = vsc.rand_uint8_t()
+                self.total = vsc.rand_uint8_t()
+                self.sub_program = vsc.rand_list_t(vsc.uint8_t(), sz=10)
+
+            @vsc.constraint
+            def ab_c(self):
+                self.total == 50
+                with vsc.foreach(self.sub_program) as it:
+                    it != 0
+                self.main_program + self.sub_program.sum == self.total
+
+        my = my_s()
+
+        # Randomize
+        for i in range(5):
+            my.randomize()
+            print("MY ITEM : ",i+1)
+            print(my.main_program , list(my.sub_program))        
+
+    def test_sized_array(self):
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                super().__init__()
+                self.num_of_nested_loop = vsc.rand_bit_t(8)
+                self.loop_init_val = vsc.randsz_list_t(vsc.uint8_t())
+    
+
+            @vsc.constraint
+            def ab_con(self):
+                self.num_of_nested_loop.inside(vsc.rangelist(1,2))
+                self.loop_init_val.size.inside(vsc.rangelist(1,2))
+                self.loop_init_val.size == self.num_of_nested_loop;
+
+
+        item = my_s()
+
+        for i in range(20):
+            item.randomize()
+            print("A = ",item.num_of_nested_loop,", B = ",item.loop_init_val)        
+
+    def test_inline_foreach(self):
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                super().__init__()
+                self.arr = vsc.rand_list_t(vsc.uint8_t(), sz=10)
+    
+        item = my_s()
+        
+        with item.randomize_with() as it:
+            with vsc.foreach(it.arr, idx=True) as i:
+                with vsc.if_then(i == 0):
+                    it.arr[i] == 1
+                with vsc.else_then:
+                    it.arr[i] == it.arr[i-1]+1
+
+        for i in range(10):
+            self.assertEqual(item.arr[i], i+1)
 

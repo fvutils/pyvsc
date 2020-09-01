@@ -832,6 +832,12 @@ class Randomizer(RandIF):
                 fm, bounds_v.bound_m))
             # Now, handle dist constraints
             DistConstraintBuilder.build(seed, fm)
+            
+        for c in constraint_l:
+            constraint_l.extend(ArrayConstraintBuilder.build(
+                c, bounds_v.bound_m))
+            # Now, handle dist constraints
+            DistConstraintBuilder.build(seed, c)
 
         # If we made changes during array remodeling,
         # re-run bounds checking on the updated model
