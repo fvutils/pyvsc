@@ -69,4 +69,51 @@ jobs:
      fi
     displayName: 'Upload to PyPi'
 
+- job: PyVSC_MacOS
+  pool:
+   vmImage: 'macos-latest'
+
+  variables:
+  - name: build_num
+    value: $(Build.BuildNumber)
+  steps:
+  - script: |
+      python3 --version
+      python3 -m pip install --upgrade pip 
+      python3 -m pip install wheel twine 
+      python3 -m pip install -r requirements_dev.txt 
+    displayName: 'Install Python packages'
+    
+  - script: |
+     export PYTHONPATH=$(Build.Repository.LocalPath)/src
+     python3 -m pytest ve/unit --cov=./src --cov-report=xml --cov-report=html --doctest-modules --junitxml=junit/test-results.xml
+    displayName: 'Run Unit Tests'
+   
+  - task: PublishTestResults@2
+    condition: succeededOrFailed()
+    inputs:
+      testResultsFiles: '**/test-*.xml'
+      testRunTitle: 'Publish test results'
+
+  - task: PublishCodeCoverageResults@1
+    inputs:
+        codeCoverageTool: Cobertura
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/**/coverage.xml'
+        reportDirectory: '$(System.DefaultWorkingDirectory)/**/htmlcov'
+
+  - script: |
+      mkdir coverdata
+      i=1
+      for file in `find -name 'coverage.xml'`; do
+        cp $file coverdata/coverage_${i}.xml
+        i=`expr $i + 1`
+      done
+    displayName: 'Collect coverage data'
+
+  - task: PublishPipelineArtifact@1
+    inputs:
+      targetPath: $(Build.Repository.LocalPath)/coverdata
+      artifactName: coverdata
+    displayName: 'Publish coverage data'
+
 
