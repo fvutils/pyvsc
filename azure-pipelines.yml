@@ -110,10 +110,4 @@ jobs:
       done
     displayName: 'Collect coverage data'
 
-  - task: PublishPipelineArtifact@1
-    inputs:
-      targetPath: $(Build.Repository.LocalPath)/coverdata
-      artifactName: coverdata
-    displayName: 'Publish coverage data'
-
 
