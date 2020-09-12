@@ -48,7 +48,6 @@ from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
 from vsc.visitors.dynamic_expr_reset_visitor import DynamicExprResetVisitor
 from vsc.model.solve_failure import SolveFailure
-from tkinter.constants import ACTIVE
 from vsc.visitors.ref_fields_postrand_visitor import RefFieldsPostRandVisitor
 
 
