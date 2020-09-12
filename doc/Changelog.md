@@ -1,4 +1,7 @@
 
+## 0.2.0
+- Add basic solve-failure diagnostics
+
 ## 0.1.9
 - Correct an issue with using inline foreach constraints
 
