@@ -693,6 +693,10 @@ class Randomizer(RandIF):
             ret += "Constraint " + str(i+1) + ":\n"
             ret += ModelPrettyPrinter.print(pc, print_values=True)
             ret += ModelPrettyPrinter.print(pc, print_values=False)
+
+        for rs in active_randsets:
+            for f in rs.all_fields():
+                f.dispose()
             
         return ret
             
