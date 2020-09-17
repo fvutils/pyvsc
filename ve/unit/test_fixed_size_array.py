@@ -202,3 +202,61 @@ class TestFixedSizeArray(VscTestCase):
         for i in range(10):
             self.assertEqual(item.arr[i], i+1)
 
+
+    def test_1(self):
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.a_list = vsc.rand_list_t(vsc.uint8_t(),7)
+                self.temp_list = vsc.rand_list_t(vsc.uint8_t(),7)
+                self.c = 0
+    
+            @vsc.constraint
+            def ab_c(self):
+                with vsc.foreach(self.a_list, idx=True) as i:
+                    if self.c:
+                        self.a_list[i] in vsc.rangelist(5,6,7,8)
+                    else:
+                        self.a_list[i] in vsc.rangelist(10,11,12,13)
+
+                with vsc.foreach(self.temp_list, idx=True) as i:
+                    with vsc.if_then(self.a_list[i].inside(vsc.rangelist(6,7))):
+                        self.temp_list[i] == 0
+                    with vsc.else_then: 
+                        self.temp_list[i] == 1
+
+        my = my_s()
+        my.randomize()        
+        
+        for v in my.a_list:
+            self.assertIn(v, [10,11,12,13])
+        for v in my.temp_list:
+            self.assertEqual(v, 1)
+        
+    def disabled_test_2(self):
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.a_list = vsc.rand_list_t(vsc.uint8_t(),7)
+                self.temp_list = vsc.rand_list_t(vsc.uint8_t(),7)
+                self.c = 0
+    
+            @vsc.constraint
+            def ab_c(self):
+                with vsc.foreach(self.a_list, idx=True) as i:
+                    if self.c:
+                        self.a_list[i] in vsc.rangelist(5,6,7,8)
+                    else:
+                        self.a_list[i] in vsc.rangelist(10,11,12,13)
+
+                with vsc.foreach(self.temp_list, idx=True) as i:
+                    if self.a_list[i] in [6,7]:
+                        self.temp_list[i] == 0
+                    else: 
+                        self.temp_list[i] == 1
+
+        my = my_s()
+        my.randomize()
+        
+        
+        

@@ -1,4 +1,7 @@
 
+## 0.2.1
+- Ensure all variables referenced by inline constraints are considered
+
 ## 0.2.0
 - Add basic solve-failure diagnostics
 
