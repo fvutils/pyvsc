@@ -54,6 +54,8 @@ from vsc.visitors.ref_fields_postrand_visitor import RefFieldsPostRandVisitor
 class Randomizer(RandIF):
     """Implements the core randomization algorithm"""
     
+    EN_DEBUG = False
+    
     def __init__(self):
         self.pretty_printer = ModelPrettyPrinter()
     
@@ -711,10 +713,11 @@ class Randomizer(RandIF):
         
         for f in field_model_l:
             f.set_used_rand(True, 0)
-            
-#         print("Initial Model:")        
-#         for fm in field_model_l:
-#             print("  " + ModelPrettyPrinter.print(fm))
+           
+        if Randomizer.EN_DEBUG: 
+            print("Initial Model:")        
+            for fm in field_model_l:
+                print("  " + ModelPrettyPrinter.print(fm))
             
         if constraint_l is None:
             constraint_l = []
@@ -742,12 +745,12 @@ class Randomizer(RandIF):
 #        if len(constraint_l) != constraints_len:
         bounds_v.process(field_model_l, constraint_l)
 
-#         print("Final Model:")        
-#         for fm in field_model_l:
-#             print("  " + ModelPrettyPrinter.print(fm))
-#         for c in constraint_l:
-#             print("  " + ModelPrettyPrinter.print(c, show_exp=True))
-            
+        if Randomizer.EN_DEBUG:
+            print("Final Model:")        
+            for fm in field_model_l:
+                print("  " + ModelPrettyPrinter.print(fm))
+            for c in constraint_l:
+                print("  " + ModelPrettyPrinter.print(c, show_exp=True))
             
         # First, invoke pre_randomize on all elements
         for fm in field_model_l:

@@ -1,4 +1,7 @@
 
+## 0.2.2
+- Correct handling of if/else-if constraints in foreach blocks
+
 ## 0.2.1
 - Ensure all variables referenced by inline constraints are considered
 
