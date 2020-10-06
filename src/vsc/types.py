@@ -461,7 +461,7 @@ class type_base(object):
         else:
             curr = int(self.get_model().get_val())
             if isinstance(rng, slice):
-                msk = ((1 << (rng.start-rng.stop))-1) << rng.stop
+                msk = ((1 << (rng.start-rng.stop+1))-1) << rng.stop
                 curr = (curr & msk) >> rng.stop
             else:
                 curr = (curr & (1 << rng)) >> rng

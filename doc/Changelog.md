@@ -1,4 +1,7 @@
 
+## 0.2.3
+- (#41) Correct an issue with the slice operator used in procedural code
+
 ## 0.2.2
 - Correct handling of if/else-if constraints in foreach blocks
 
