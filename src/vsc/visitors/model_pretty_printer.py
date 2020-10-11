@@ -230,7 +230,7 @@ class ModelPrettyPrinter(ModelVisitor):
                     self.write(str(int(f.get_val())))
                 self.write("]")
             else:
-                self.write(str(int(e.fm.get_val())))
+                self.write(e.fm.fullname + "(" + str(int(e.fm.get_val())) + ")")
         else:
             self.write(e.fm.fullname)
         

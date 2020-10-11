@@ -1,4 +1,19 @@
 
+## 0.2.3
+- (#41) Correct an issue with the slice operator used in procedural code
+
+## 0.2.2
+- Correct handling of if/else-if constraints in foreach blocks
+
+## 0.2.1
+- Ensure all variables referenced by inline constraints are considered
+
+## 0.2.0
+- Add basic solve-failure diagnostics
+
+## 0.1.9
+- Correct an issue with using inline foreach constraints
+
 ## 0.1.8
 - (#36) Correct issues with random distribution
 - (#19) Implement sum and product constraints on arrays

@@ -128,3 +128,14 @@ class TestFieldStandalone(VscTestCase):
         with vsc.raw_mode():        
             self.assertEqual(c.a[15:8], 25)
 
+    def test_int_getpart_2(self):
+        imm = vsc.rand_bit_t(4)
+        imm.set_val(2)
+        self.assertEqual(imm.get_val(), 2)
+        self.assertEqual(imm[1:0], 2)
+
+    def test_int_getpart_3(self):
+        imm = vsc.rand_bit_t(4)
+        imm.set_val(2)
+        self.assertEqual(imm.get_val(), 2)
+        self.assertEqual(imm[1], 1)

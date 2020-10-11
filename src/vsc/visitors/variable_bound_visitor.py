@@ -62,7 +62,8 @@ class VariableBoundVisitor(ModelVisitor):
         self.phase = 0
         for v in variables:
             v.accept(self)
-            
+        for c in constraints:
+            c.accept(self)
             
         self.phase = 1
         for v in variables:
@@ -76,16 +77,14 @@ class VariableBoundVisitor(ModelVisitor):
         
 
     def visit_constraint_if_else(self, c:ConstraintIfElseModel):
-        if self.phase == 1:
-            self.depth += 1
-            super().visit_constraint_if_else(c)
-            self.depth -= 1
+        self.depth += 1
+        super().visit_constraint_if_else(c)
+        self.depth -= 1
     
     def visit_constraint_implies(self, c:ConstraintImpliesModel):
-        if self.phase == 1:
-            self.depth += 1
-            super().visit_constraint_implies(c)
-            self.depth -= 1
+        self.depth += 1
+        super().visit_constraint_implies(c)
+        self.depth -= 1
             
     def visit_constraint_inline_scope(self, c:ConstraintInlineScopeModel):
         for cc in c.constraint_l:
@@ -109,6 +108,10 @@ class VariableBoundVisitor(ModelVisitor):
 
         # Don't attempt to deal with subscripts when we're
         # establishing array domains.        
+        if self.phase == 0:
+            super().visit_expr_bin(e)
+            return
+
         if not self.process_subscript and (
             isinstance(e.lhs, ExprArraySubscriptModel) or 
             isinstance(e.rhs, ExprArraySubscriptModel)):
@@ -248,7 +251,10 @@ class VariableBoundVisitor(ModelVisitor):
         pass
                 
     def visit_expr_fieldref(self, e):
-        if self.phase == 1:
+        if self.phase == 0:
+            # Collect fields that may just be referenced
+            e.fm.accept(self)
+        elif self.phase == 1:
             # TODO: We're collecting fields that are part of 
             # a limiting expression. Need to add the propagator
             # to these variables as well

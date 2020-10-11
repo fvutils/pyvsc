@@ -34,6 +34,7 @@ from vsc.model.randomizer import Randomizer
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.source_info import SourceInfo
 from vsc.types import type_base, field_info, list_t
+from vsc.model.solve_failure import SolveFailure
 
 
 def randobj(T):
@@ -104,7 +105,11 @@ def randobj(T):
                     
         def randomize(self):
             model = self.get_model()
-            Randomizer.do_randomize([model])
+            try:
+                Randomizer.do_randomize([model])
+            except SolveFailure as e:
+                print(e.diagnostics)
+                raise e
             
         def build_field_model(self, name):
             if self._int_field_info.model is None:
@@ -177,7 +182,11 @@ def randobj(T):
             c = pop_constraint_scope()
             leave_expr_mode()
             model = self.get_model() # Ensure model is constructed
-            Randomizer.do_randomize([model], [c])
+            try:
+                Randomizer.do_randomize([model], [c])
+            except SolveFailure as e:
+                print(e.diagnostics)
+                raise e
         
         def randomize_with(self):
             # Ensure the 'model' data structures have been built

@@ -42,6 +42,7 @@ from .constraint_scope_model import ConstraintScopeModel
 from .constraint_unique_model import ConstraintUniqueModel
 
 from .unary_expr_type import UnaryExprType
+from .solve_failure import SolveFailure
 
 
 

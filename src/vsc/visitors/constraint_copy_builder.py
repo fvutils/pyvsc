@@ -137,10 +137,9 @@ class ConstraintCopyBuilder(ModelVisitor):
                     cs.accept(self)
                 
             if c.false_c is not None:
-                ret.false_c = ConstraintScopeModel()
+                ret.false_c = ConstraintScopeModel() 
                 with ConstraintCollector(self, ret.false_c):
-                    for cs in c.false_c.constraint_l:
-                        cs.accept(self)
+                    c.false_c.accept(self)
 
             self.constraints.append(ret)
         else:
