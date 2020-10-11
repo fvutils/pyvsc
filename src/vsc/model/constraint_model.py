@@ -25,6 +25,7 @@ class ConstraintModel(object):
     """Base class for all constraint models"""
     
     def __init__(self):
+        self.node = None
         pass
     
     def build(self, btor)->BoolectorNode:

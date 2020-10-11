@@ -35,6 +35,7 @@ from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.types import to_expr, expr, type_base, rng
 from vsc.model.constraint_dist_model import ConstraintDistModel
+from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 
 class constraint_t(object):
     
@@ -337,16 +338,37 @@ def solve_order(before, after):
     after_l = []
     
     if isinstance(before, list):
-        pass
+        for b in before:
+            to_expr(b)
+            b_e = pop_expr()
+            if not isinstance(b_e, ExprFieldRefModel):
+                raise Exception("Parameter " + str(b) + " is not a field reference")
+            before_l.append(b_e.fm)
     else:
         to_expr(before)
         before_e = pop_expr()
-        pass
+        
+        if not isinstance(before_e, ExprFieldRefModel):
+            raise Exception("Parameter " + str(before) + " is not a field reference")
+        before_l.append(before_e.fm)
     
     if isinstance(after, list):
-        pass
+        for a in after:
+            to_expr(a)
+            a_e = pop_expr()
+            if not isinstance(a_e, ExprFieldRefModel):
+                raise Exception("Parameter " + str(a) + " is not a field reference")
+            before_l.append(a_e.fm)
     else:
-        pass
+        to_expr(after)
+        after_e = pop_expr()
+        if not isinstance(after_e, ExprFieldRefModel):
+            raise Exception("Parameter " + str(after) + " is not a field reference")
+        after_l.append(after_e.fm)
+
+    print("-- push_constraint_stmt")        
+    push_constraint_stmt(ConstraintSolveOrderModel(before_l, after_l))
+
 
     
     

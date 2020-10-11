@@ -62,14 +62,14 @@ class Randomizer(RandIF):
         """Randomize the variables and constraints in a RandInfo collection"""
         
 
-#         for rs in ri.randsets():
-#             print("RandSet")
-#             for f in rs.all_fields():
-#                 print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
-#             for c in rs.constraints():
-#                 print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True))
-#         for uf in ri.unconstrained():
-#             print("Unconstrained: " + uf.name)
+        for rs in ri.randsets():
+            print("RandSet")
+            for f in rs.all_fields():
+                print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+            for c in rs.constraints():
+                print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True))
+        for uf in ri.unconstrained():
+            print("Unconstrained: " + uf.name)
 
         rs_i = 0
         start_rs_i = 0
@@ -87,19 +87,20 @@ class Randomizer(RandIF):
             n_fields = 0
             while rs_i < len(ri.randsets()):
                 rs = ri.randsets()[rs_i]
-                try:            
-                    for f in rs.all_fields():
-                        f.build(btor)
-                        n_fields += 1
-                except Exception as e:
-                    for c in rs.constraints():
-                        print("Constraint: " + self.pretty_printer.do_print(c))
-                    raise e
+                
+                print("Pre-Randomize: RandSet")
+                for f in rs.all_fields():
+                    print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+                for c in rs.constraints():
+                    print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+
+                rs.build(btor, constraint_l)
+                n_fields += len(rs.all_fields)
                 
                 constraint_l.extend(list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints())))
                 
                 rs_i += 1
-                if n_fields > max_fields:
+                if n_fields > max_fields or rs.order != -1:
                     break
                 
             for c in constraint_l:
@@ -136,6 +137,8 @@ class Randomizer(RandIF):
                             rs = ri.randsets()[x]
                             for f in rs.all_fields():
                                 f.dispose()
+                            for f in rs.nontarget_field_s:
+                                f.dispose()
                             x += 1
 
                         raise Exception("solve failure")
@@ -156,6 +159,8 @@ class Randomizer(RandIF):
                     for rs in ri.randsets():
                         for f in rs.all_fields():
                             f.dispose()
+                        for f in rs.nontarget_field_s:
+                            f.dispose()
                     print("Solve failure")
                     raise Exception("solve failure")
             else:
@@ -172,8 +177,11 @@ class Randomizer(RandIF):
                 rs = ri.randsets()[x]
                 for f in rs.all_fields():
                     f.post_randomize()
+                    f.set_used_rand(False)
                     f.dispose() # Get rid of the solver var, since we're done with it
                     f.accept(reset_v)
+                for f in rs.nontarget_field_s:
+                    f.dispose()
                 for c in rs.constraints():
                     c.accept(reset_v)
                 x += 1
@@ -276,6 +284,8 @@ class Randomizer(RandIF):
                         # Ensure we clean up
                         for f in rs.all_fields():
                             f.dispose()
+                        for f in rs.nontarget_field_s:
+                            f.dispose()
 
                         raise Exception("solve failure")
                     else:
@@ -294,6 +304,8 @@ class Randomizer(RandIF):
                     # Ensure we clean up
                     for f in rs.all_fields():
                         f.dispose()
+                    for f in rs.nontarget_field_s:
+                        f.dispose()
                     print("Solve failure")
                     raise Exception("solve failure")
             else:
@@ -307,7 +319,10 @@ class Randomizer(RandIF):
             # Finalize the value of the field
             for f in rs.all_fields():
                 f.post_randomize()
+                f.set_used_rand(False)
                 f.dispose() # Get rid of the solver var, since we're done with it
+            for f in rs.nontarget_field_s:
+                f.dispose()
 
         uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
         for uf in uc_rand:
@@ -534,6 +549,7 @@ class Randomizer(RandIF):
         range_idx = self.randint(0, len(range_l)-1)
         range = range_l[range_idx]
         domain = range[1]-range[0]
+        print("Field: " + f.name + " range: " + str(range))
         if domain > 64:
             r_type = self.randint(0, 3)
             single_val = self.randint(range[0], range[1])
@@ -602,6 +618,7 @@ class Randomizer(RandIF):
                         ExprLiteralModel(single_val, f.is_signed, f.width))
         else:
             val = self.randint(range[0], range[1])
+            print("val: " + str(val))
             e = ExprBinModel(
                 ExprFieldRefModel(f),
                 BinExprType.Eq,
@@ -838,11 +855,11 @@ class Randomizer(RandIF):
 #        if len(constraint_l) != constraints_len:
         bounds_v.process(field_model_l, constraint_l)
 
-#        print("Final Model:")        
-#        for fm in field_model_l:
-#            print("  " + ModelPrettyPrinter.print(fm))
-#        for c in constraint_l:
-#            print("  " + ModelPrettyPrinter.print(c, show_exp=True))
+        print("Final Model:")        
+        for fm in field_model_l:
+            print("  " + ModelPrettyPrinter.print(fm))
+        for c in constraint_l:
+            print("  " + ModelPrettyPrinter.print(c, show_exp=True))
             
             
         # First, invoke pre_randomize on all elements

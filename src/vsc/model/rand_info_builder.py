@@ -20,26 +20,26 @@
 # @author: ballance
 
 
+from _random import Random
 from builtins import set
 from typing import Set, Dict, List
 
-from vsc.model.constraint_expr_model import ConstraintExprModel
-from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.model.rand_if import RandIF
-from _random import Random
-
+from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_model import ConstraintModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_model import FieldModel
 from vsc.model.model_visitor import ModelVisitor
+from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
-from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
-from vsc.model.field_array_model import FieldArrayModel
 
 
 class RandInfoBuilder(ModelVisitor,RandIF):
@@ -51,6 +51,11 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self._field_s = set()
         self._active_constraint = None
         self._active_randset = None
+        
+        # Tracks the randsets added due to
+        # dependencies against  ordered fields
+        self._active_order_randset_s = set()
+        
         self._randset_s : Set[RandSet] = set()
         self._randset_field_m : Dict[FieldModel,RandSet] = {} # map<field,randset>
         self._constraint_s : List[ConstraintModel] = []
@@ -58,6 +63,8 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self._in_generator = False
         self.active_cp = None
         self._rng = rng
+        self._order_l = []
+        self._order_s = set()
         
     @staticmethod
     def build(
@@ -73,6 +80,16 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         builder._pass = 0
         for fm in field_model_l:
             fm.accept(builder)
+            
+        builder._randset_s.clear()
+        builder._randset_field_m.clear()
+
+        # Create rand sets around explicitly-ordered fields
+        for i,o in enumerate(builder._order_l):
+            s = RandSet(i)
+            s.field_s.add(o)
+            builder._randset_s.add(s)
+            builder._randset_field_m[o] = s
             
         # Now, build the randset
         builder._pass = 1
@@ -90,8 +107,11 @@ class RandInfoBuilder(ModelVisitor,RandIF):
 #             print("RS: " + str(rs))
 #             for c in rs.constraint_s:
 #                 print("RS Constraint: " + str(c))
-            
-        return RandInfo(list(builder._randset_s), list(builder._field_s))
+
+        randset_l = list(builder._randset_s)
+        randset_l.sort(key=lambda e:e.order)
+        
+        return RandInfo(randset_l, list(builder._field_s))
     
     def randint(self, low:int, high:int)->int:
         return self._rng.randint(low,high)
@@ -110,10 +130,39 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             self._constraint_s.append(c)
             super().visit_constraint_block(c)
             self._constraint_s.clear()
+            
+    def visit_constraint_solve_order(self, c : ConstraintSolveOrderModel):
+        if self._pass == 0:
+            for b in c.before_l:
+                for a in c.after_l:
+                    b_i = -1
+                    a_i = -1
+                    if b in self._order_s:
+                        b_i = self._order_l.index(b)
+                    if a in self._order_s:
+                        a_i = self._order_l.index(a)
+                    
+                    if b_i == -1 and a_i == -1:
+                        # Just add the elements to the list
+                        self._order_l.append(b)
+                        self._order_l.append(a)
+                        self._order_s.add(a)
+                        self._order_s.add(b)
+                    elif b_i != -1:
+                        self._order_l.insert(b_i+1, a)
+                        self._order_s.add(a)
+                    elif a_i != -1:
+                        self._order_l.insert(a_i, b)
+                        self._order_s.add(b)
+                    else:
+                        # Found both in the list already.
+                        # They might be in the list for good reasons or bad
+                        pass
         
     def visit_constraint_stmt_enter(self, c):
         if self._pass == 1 and len(self._constraint_s) == 1:
             self._active_randset = None
+            self._active_order_randset_s.clear()
         self._constraint_s.append(c)
         super().visit_constraint_stmt_enter(c)
         
@@ -123,6 +172,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         if self._pass == 1 and len(self._constraint_s) == 1:
             if self._active_randset is not None:
                 self._active_randset.add_constraint(c)
+                for s in self._active_order_randset_s:
+                    print("Adding constraint to dependent randset")
+                    s.add_constraint(c)
             else:
 #                print("TODO: handle no-reference constraint: " + str(c_blk.name))
                 pass
@@ -150,6 +202,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             # that is not this one, we need to merge the sets
             if fm in self._randset_field_m.keys():
                 # There's an existing randset that holds this field
+                # as a solve target
                 ex_randset = self._randset_field_m[fm]
                 if self._active_randset is None:
                     self._active_randset = ex_randset
@@ -166,7 +219,8 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                     self._randset_s.remove(self._active_randset)                    
                     self._active_randset = ex_randset
             else:
-                # No existing randset holds this field
+                # No existing randset holds this field as a
+                # solve target
                 if self._active_randset is None:
                     self._active_randset = RandSet()
                     self._randset_s.add(self._active_randset)
@@ -179,7 +233,6 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 self._field_s.remove(fm)
         
     def visit_expr_fieldref(self, e):
-        
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint
             # relationships
@@ -202,17 +255,27 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             if self._active_randset is None:
                 self._active_randset = ex_randset
             elif ex_randset is not self._active_randset:
-                for f in self._active_randset.fields():
-                    # Relink to the new consolidated randset
-                    self._randset_field_m[f] = ex_randset
-                    ex_randset.add_field(f)
-                # TODO: this might be later
-                for c in self._active_randset.constraints():
-                    ex_randset.add_constraint(c)
+                if fm in self._order_s:
+                    # This field is part of the ordering constraint set. 
+                    if self._active_randset.order != -1 and self._active_randset.order < ex_randset.order:
+                        # If the active randset is also ordered, and comes before
+                        # the one containing this field as primary, then we must
+                        # save the constraints
+                        self._active_order_randset_s.add(ex_randset)
+                        self._active_randset.add_nontarget(fm)
+                else:
+                    # This field isn't being ordered, so go ahead and
+                    for f in self._active_randset.fields():
+                        # Relink to the new consolidated randset
+                        self._randset_field_m[f] = ex_randset
+                        ex_randset.add_field(f)
 
-                # Remove the previous randset
-                self._randset_s.remove(self._active_randset)                    
-                self._active_randset = ex_randset
+                    for c in self._active_randset.constraints():
+                        ex_randset.add_constraint(c)
+
+                    # Remove the previous randset
+                    self._randset_s.remove(self._active_randset)                    
+                    self._active_randset = ex_randset
         else:
             # No existing randset holds this field
             if self._active_randset is None:

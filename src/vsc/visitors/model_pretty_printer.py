@@ -3,9 +3,7 @@ Created on Apr 28, 2020
 
 @author: ballance
 '''
-from vsc.model.constraint_dist_model import ConstraintDistModel
-from vsc.model.dist_weight_expr_model import DistWeightExprModel
-from vsc.model.rangelist_model import RangelistModel
+from vsc.model.field_composite_model import FieldCompositeModel
 '''
 Created on Apr 28, 2020
 
@@ -15,16 +13,20 @@ Created on Apr 28, 2020
 from _io import StringIO
 
 import vsc.model as vm
+from vsc.model.constraint_dist_model import ConstraintDistModel
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
+from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
 from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
 from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
+from vsc.model.rangelist_model import RangelistModel
 from vsc.model.unary_expr_type import UnaryExprType
 
 
@@ -61,6 +63,14 @@ class ModelPrettyPrinter(ModelVisitor):
         
     def dec_indent(self):
         self.ind = self.ind[4:]
+        
+    def visit_composite_field(self, f : FieldCompositeModel):
+        name = f.name if f.name is not None else "<anonymous>"
+        self.writeln(name + " {")
+        self.inc_indent()
+        super().visit_composite_field(f)
+        self.dec_indent()
+        self.writeln("}")
     
     def visit_constraint_block(self, c:vm.ConstraintBlockModel):
         self.writeln("constraint " + c.name + " {")
@@ -134,6 +144,20 @@ class ModelPrettyPrinter(ModelVisitor):
             
         self.write("}\n")
         
+    def visit_constraint_solve_order(self, c:ConstraintSolveOrderModel):
+        self.write(self.ind)
+        self.write("solve ")
+        for i, b in enumerate(c.before_l):
+            if i > 0:
+                self.write(",")
+            self.write(b.name)
+        self.write(" before ")
+        for i, a in enumerate(c.after_l):
+            if i > 0:
+                self.write(",")
+            self.write(a.name)
+        self.write("\n")
+        
     def visit_covergroup(self, cg : CovergroupModel):
         self.writeln("covergroup " + cg.name)
         self.inc_indent()
@@ -186,7 +210,7 @@ class ModelPrettyPrinter(ModelVisitor):
     def visit_expr_in(self, e:vm.ExprInModel):
         e.lhs.accept(self)
         self.write(" in [")
-        for i,r in enumerate(e.rhs.rl):
+        for i, r in enumerate(e.rhs.rl):
             if i > 0:
                 self.write(", ")
             r.accept(self)
@@ -200,8 +224,8 @@ class ModelPrettyPrinter(ModelVisitor):
         if self.print_values and hasattr(e.fm, "is_used_rand") and not e.fm.is_used_rand:
             if isinstance(e.fm, FieldArrayModel):
                 self.write("[")
-                for i,f in enumerate(e.fm.field_l):
-                    if i>0:
+                for i, f in enumerate(e.fm.field_l):
+                    if i > 0:
                         self.write(", ")
                     self.write(str(int(f.get_val())))
                 self.write("]")
@@ -226,8 +250,16 @@ class ModelPrettyPrinter(ModelVisitor):
             if re[0] == re[1]:
                 self.write(str(re[0]))
             else:
-                self.write(str(re[0]) + ".."  + str(re[1]))
+                self.write(str(re[0]) + ".." + str(re[1]))
         
     def visit_scalar_field(self, f:FieldScalarModel):
-        self.write(f.name)
+        f_str = ""
+        if f.is_used_rand:
+            f_str += "rand "
+        if f.is_signed:
+            f_str += "signed "
+        else:
+            f_str += "unsigned "
+        f_str += "[" + str(f.width) + "] " + f.name
+        self.writeln(f_str)
 
