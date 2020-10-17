@@ -34,7 +34,7 @@ class ExprFieldRefModel(ExprModel):
 
     def build(self, btor):
         if self.fm.var is None:
-            raise Exception("Field " + str(self.fm) + " has not been built")
+            raise Exception("Field " + str(self.fm) + " (" + self.fm.name + ") has not been built")
         return self.fm.var
         
     def is_signed(self):

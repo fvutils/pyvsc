@@ -28,6 +28,9 @@ class ConstraintModel(object):
         self.node = None
         pass
     
+    def dispose(self):
+        self.node = None
+    
     def build(self, btor)->BoolectorNode:
         raise Exception("build unimplemented for constraint " + str(type(self)))
     

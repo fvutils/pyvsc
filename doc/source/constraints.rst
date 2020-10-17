@@ -409,6 +409,33 @@ The `soft` constraint applies to a single expression, as shown above.
 Soft constraints are disabled if they conflict with another hard
 constraint declared in the class or introduced as an inline constraint.
 
+solve_order
+-----------
+Solve-order constraints are used to provide the user control over
+value distributions by ordering solve operations. The PyVSC `solve_order`
+statement corresponds to the SystemVerilog `solve a before b` statement.
+
+.. code-block:: python3
+        @vsc.randobj
+        class my_c(object):
+            
+            def __init__(self):
+                self.a = vsc.rand_bit_t()
+                self.b = vsc.rand_uint8_t()
+                
+            @vsc.constraint
+            def ab_c(self):
+                vsc.solve_order(self.a, self.b)
+
+                with vsc.if_then(self.a == 0):
+                    self.b == 4
+                with vsc.else_then:
+                    self.b != 4
+
+In the example above, te `solve_order` statement causes `b` to
+have values evenly distributed between the value sets [4] and 
+[0..3,5..255].
+
 unique
 ------
 The `unique` constraint ensures that all variables in the specified list have

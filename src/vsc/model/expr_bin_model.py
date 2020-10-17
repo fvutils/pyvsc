@@ -83,9 +83,15 @@ class ExprBinModel(ExprModel):
         rhs_n = self.rhs.build(btor)
         if rhs_n is None:
             raise Exception("Expression " + str(self.rhs) + " build returned None")
-        
-        lhs_n = ExprBinModel.extend(lhs_n, rhs_n, self.lhs.is_signed(), btor)
-        rhs_n = ExprBinModel.extend(rhs_n, lhs_n, self.rhs.is_signed(), btor)
+       
+        try:
+            lhs_n = ExprBinModel.extend(lhs_n, rhs_n, self.lhs.is_signed(), btor)
+            rhs_n = ExprBinModel.extend(rhs_n, lhs_n, self.rhs.is_signed(), btor)
+        except Exception as e:
+            from ..visitors.model_pretty_printer import ModelPrettyPrinter
+            print("Failed with expression: " + ModelPrettyPrinter().print(self))
+            raise e
+                
         
         if self.op == BinExprType.Eq:
             ret = btor.Eq(lhs_n, rhs_n)

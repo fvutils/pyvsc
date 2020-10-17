@@ -160,7 +160,6 @@ class TestConstraintSolveOrder(VscTestCase):
             def ab_c(self):
                 vsc.solve_order(self.a, self.b)
 
-                self.a == 0
                 with vsc.if_then(self.a == 0):
                     self.b == 4
                 with vsc.else_then:
@@ -175,8 +174,9 @@ class TestConstraintSolveOrder(VscTestCase):
         for x in range(100):
             i.randomize()
             a_hist[i.a] += 1
-            print("i.a=" + str(i.a) + " i.b=" + str(i.b))
+#            print("i.a=" + str(i.a) + " i.b=" + str(i.b))
             b_hist[0 if i.b == 4 else 1] += 1
             
         print("a_hist: " + str(a_hist))
         print("b_hist: " + str(b_hist))
+

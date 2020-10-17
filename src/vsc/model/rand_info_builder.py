@@ -173,7 +173,6 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             if self._active_randset is not None:
                 self._active_randset.add_constraint(c)
                 for s in self._active_order_randset_s:
-                    print("Adding constraint to dependent randset")
                     s.add_constraint(c)
             else:
 #                print("TODO: handle no-reference constraint: " + str(c_blk.name))

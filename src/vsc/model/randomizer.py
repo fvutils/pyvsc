@@ -49,6 +49,8 @@ from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
 from vsc.visitors.dynamic_expr_reset_visitor import DynamicExprResetVisitor
 from vsc.model.solve_failure import SolveFailure
 from vsc.visitors.ref_fields_postrand_visitor import RefFieldsPostRandVisitor
+from vsc.model.rand_set_node_builder import RandSetNodeBuilder
+from vsc.model.rand_set_dispose_visitor import RandSetDisposeVisitor
 
 
 class Randomizer(RandIF):
@@ -66,14 +68,15 @@ class Randomizer(RandIF):
         """Randomize the variables and constraints in a RandInfo collection"""
         
 
-        for rs in ri.randsets():
-            print("RandSet")
-            for f in rs.all_fields():
-                print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
-            for c in rs.constraints():
-                print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True))
-        for uf in ri.unconstrained():
-            print("Unconstrained: " + uf.name)
+        if Randomizer.EN_DEBUG:
+            for rs in ri.randsets():
+                print("RandSet")
+                for f in rs.all_fields():
+                    print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+                for c in rs.constraints():
+                    print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True))
+            for uf in ri.unconstrained():
+                print("Unconstrained: " + uf.name)
 
         rs_i = 0
         start_rs_i = 0
@@ -92,14 +95,18 @@ class Randomizer(RandIF):
             while rs_i < len(ri.randsets()):
                 rs = ri.randsets()[rs_i]
                 
-                print("Pre-Randomize: RandSet")
-                for f in rs.all_fields():
-                    print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
-                for c in rs.constraints():
-                    print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+                rs_node_builder = RandSetNodeBuilder(btor)
 
-                rs.build(btor, constraint_l)
-                n_fields += len(rs.all_fields)
+                all_fields = rs.all_fields()
+                if Randomizer.EN_DEBUG:                
+                    print("Pre-Randomize: RandSet")
+                    for f in all_fields:
+                        print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+                    for c in rs.constraints():
+                        print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+
+                rs_node_builder.build(rs)
+                n_fields += len(all_fields)
                 
                 constraint_l.extend(list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints())))
                 
@@ -169,8 +176,6 @@ class Randomizer(RandIF):
                         active_randsets.append(rs)
                         for f in rs.all_fields():
                             f.dispose()
-                        for f in rs.nontarget_field_s:
-                            f.dispose()
                     raise SolveFailure(
                         "solve failure",
                         self.create_diagnostics(active_randsets))
@@ -188,14 +193,16 @@ class Randomizer(RandIF):
                 rs = ri.randsets()[x]
                 for f in rs.all_fields():
                     f.post_randomize()
-                    f.set_used_rand(False)
+                    f.set_used_rand(False, 0)
                     f.dispose() # Get rid of the solver var, since we're done with it
                     f.accept(reset_v)
-                for f in rs.nontarget_field_s:
-                    f.dispose()
+#                for f in rs.nontarget_field_s:
+#                    f.dispose()
                 for c in rs.constraints():
                     c.accept(reset_v)
+                RandSetDisposeVisitor().dispose(rs)
                 x += 1
+                
                 
         end = int(round(time.time() * 1000))
 
@@ -367,7 +374,6 @@ class Randomizer(RandIF):
         range_idx = self.randint(0, len(range_l)-1)
         range = range_l[range_idx]
         domain = range[1]-range[0]
-        print("Field: " + f.name + " range: " + str(range))
         if domain > 64:
             r_type = self.randint(0, 3)
             single_val = self.randint(range[0], range[1])
@@ -436,7 +442,6 @@ class Randomizer(RandIF):
                         ExprLiteralModel(single_val, f.is_signed, f.width))
         else:
             val = self.randint(range[0], range[1])
-            print("val: " + str(val))
             e = ExprBinModel(
                 ExprFieldRefModel(f),
                 BinExprType.Eq,

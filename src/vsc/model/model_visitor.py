@@ -105,6 +105,7 @@ class ModelVisitor(object):
         pass
         
     def visit_constraint_expr(self, c : ConstraintExprModel):
+        from ..visitors.model_pretty_printer import ModelPrettyPrinter
         self.visit_constraint_stmt_enter(c)
         c.e.accept(self)
         self.visit_constraint_stmt_leave(c)
