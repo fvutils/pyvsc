@@ -1,4 +1,8 @@
 
+## 0.2.4
+- (#42) Add support for randcase-like functionality, with a randselect method
+- (#34) Add support for solve ordering with a solve_order statement
+
 ## 0.2.3
 - (#41) Correct an issue with the slice operator used in procedural code
 

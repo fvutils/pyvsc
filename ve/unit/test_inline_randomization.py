@@ -54,6 +54,6 @@ class TestInlineRandomization(VscTestCase):
                 self.randomize_offset()
                     
         sol = solution()
-        sol.randomize()        
+        sol.randomize()
 
             
