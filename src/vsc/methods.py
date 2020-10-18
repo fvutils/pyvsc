@@ -27,6 +27,9 @@ from vsc.model.randomizer import Randomizer
 from vsc.types import field_info, type_base
 from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope
 from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.constraints import weight
+import random
+from builtins import callable
 
 
 def randomize_with(*args):
@@ -76,3 +79,53 @@ class raw_mode(object):
     def __exit__(self, t, v, tb):
         leave_raw_mode()
 
+def randselect(sel_l):
+    """Randomly select and call a lambda"""
+    if not isinstance(sel_l, list):
+        raise Exception("randselect requires a list of tuples")
+
+    weight_v = []    
+    for i,e in enumerate(sel_l):
+        if not isinstance(e, (tuple,list)):
+            raise Exception("Element " + str(i) + " is not a list or tuple (" + 
+                            str(type(e)))
+        if not callable(e[1]):
+            raise Exception("Element " + str(i) + " does not specify a callable element")
+        weight_v.append(int(e[0]))
+        
+    idx = distselect(weight_v)
+    
+    # Invoke the method
+    sel_l[idx][1]()
+
+def distselect(weight_l):
+    """Perform a weighted selection using the weights 
+    from the provided list. Return the selected index"""
+
+    if not isinstance(weight_l, list):
+        raise Exception("distselect requires a list of values")
+
+    # Create a weight/index vector
+    weight_v = []
+    total_w = 0
+    for i,v in enumerate(weight_l):
+        w = int(v)
+        total_w += w
+        weight_v.append((w, i))
+        
+    # Order by weight value
+    weight_v.sort(key=lambda e:e[0])
+    
+    rand_v = random.randint(1, total_w)
+    
+    for we in weight_v:
+        rand_v -= we[0]
+        
+        if rand_v <= 0:
+            # Return the selected index
+            return we[1]
+
+    # Return the last index
+    return weight_v[-1][1]
+    
+    
