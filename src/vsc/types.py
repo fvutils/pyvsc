@@ -147,7 +147,8 @@ class expr(object):
                 ExprRangelistModel(
                     [ExprFieldRefModel(rhs.get_model())])))
         else:
-            raise Exception("Unsupported 'inside' argument of type " + str(type(rhs)))
+            raise Exception("Unsupported 'inside' argument of type " + str(type(rhs)) + 
+                            "expect vsc.rangelist or list_t")
 
     def outside(self, rhs):
         self.not_inside(rhs)

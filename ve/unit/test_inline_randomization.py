@@ -55,5 +55,26 @@ class TestInlineRandomization(VscTestCase):
                     
         sol = solution()
         sol.randomize()
+        
+    def test_inline_foreach_enum(self):
+
+        class my_e(IntEnum):
+            A = auto()
+            B = auto()
+            C = auto()
+            
+        @vsc.randobj 
+        class my_c(object):
+            
+            def __init__(self):
+                self.ef = vsc.rand_enum_t(my_e)
+                self.arr = vsc.rand_list_t(vsc.enum_t(my_e), 10)
+
+        it = my_c()
+        
+        with it.randomize_with():
+            with vsc.foreach(it.arr, idx=True) as i:
+                it.arr[i].inside(vsc.rangelist(my_e.B))
+                
 
             

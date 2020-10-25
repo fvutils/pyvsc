@@ -29,7 +29,7 @@ class EnumFieldModel(FieldModel):
         self.is_signed = True
         
         
-    def set_used_rand(self, is_rand, level):
+    def set_used_rand(self, is_rand, level=0):
         self.is_used_rand = (is_rand and (self.is_declared_rand or level==0))
 
     def dispose(self):
