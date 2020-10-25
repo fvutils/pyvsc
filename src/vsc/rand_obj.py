@@ -188,7 +188,7 @@ def randobj(T):
                 print(e.diagnostics)
                 raise e
         
-        def randomize_with(self):
+        def randomize_with(self, solve_fail_debug=False):
             # Ensure the 'model' data structures have been built
             self.get_model()
     

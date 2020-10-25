@@ -3,10 +3,13 @@ Created on Aug 20, 2020
 
 @author: ballance
 '''
+from enum import IntEnum, auto
+
 import vsc
-from vsc_test_case import VscTestCase
 from vsc.model.rand_info_builder import RandInfoBuilder
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc_test_case import VscTestCase
+
 
 class TestConstraintSolveOrder(VscTestCase):
     
@@ -179,4 +182,27 @@ class TestConstraintSolveOrder(VscTestCase):
             
         print("a_hist: " + str(a_hist))
         print("b_hist: " + str(b_hist))
+        
+    def test_order_list(self):
+        class my_e(IntEnum):
+            ZERO = 0
+            ONE = auto()
+            TWO = auto()
+            
+        @vsc.randobj
+        class my_c:
+            def __init__(self):
+                self.s = 7
+                self.a = vsc.randsz_list_t(vsc.rand_uint8_t())
+                self.b = vsc.rand_list_t(vsc.enum_t(my_e), 5)
+                
+            @vsc.constraint
+            def my_const(self):
+                vsc.solve_order(self.b, self.a)
+                self.a.size == self.s
+                
+        obj = my_c()
+        for i in range(5):
+            obj.randomize()
+            print(obj.a, obj.b)
 

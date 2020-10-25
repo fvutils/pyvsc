@@ -30,20 +30,28 @@ from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.constraints import weight
 import random
 from builtins import callable
+from vsc.model.solve_failure import SolveFailure
 
+_solve_fail_debug = False
 
-def randomize_with(*args):
+def randomize_with(*args, **kwargs):
     """Randomize a list of variables with an inline constraint"""
     field_l = []
     for v in args:
         if not hasattr(v, "get_model"):
             raise Exception("Parameter \"" + str(v) + " to randomize is not a vsc object")
         field_l.append(v.get_model())
+        
+    solve_fail_debug = False
+    
+    if "solve_fail_debug" in kwargs:
+        solve_fail_debug = kwargs["solve_fail_debug"]
     
     class inline_constraint_collector(object):
         
-        def __init__(self, field_l):
+        def __init__(self, field_l, solve_fail_debug):
             self.field_l = field_l
+            self.solve_fail_debug = solve_fail_debug
         
         def __enter__(self):
             # Go into 'expression' mode
@@ -54,12 +62,18 @@ def randomize_with(*args):
         def __exit__(self, t, v, tb):
             c = pop_constraint_scope()
             leave_expr_mode()
-            
-            Randomizer.do_randomize(self.field_l, [c])
+          
+            try:
+                Randomizer.do_randomize(self.field_l, [c])
+            except SolveFailure as e:
+                if _solve_fail_debug or self.solve_fail_debug:
+                    print("Solve Failure")
+                raise e
     
-    return inline_constraint_collector(field_l)
+    return inline_constraint_collector(
+        field_l, solve_fail_debug)
 
-def randomize(*args):
+def randomize(*args,**kwargs):
     """Randomize a list of variables"""
     fields = []
     for v in args:

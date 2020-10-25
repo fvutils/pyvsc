@@ -34,10 +34,10 @@ class TestSolveFailure(VscTestCase):
         it = my_c()
 
         try:        
-            with it.randomize_with():
+            with it.randomize_with(solve_fail_debug=True):
                 it.a == 2
             self.fail("Expected a solve failure")
         except vsc.SolveFailure as e:
-            print("Exception: " + str(e))
+            print("Exception: " + str(e.diagnostics))
 
     

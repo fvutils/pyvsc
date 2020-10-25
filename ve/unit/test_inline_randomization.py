@@ -44,7 +44,7 @@ class TestInlineRandomization(VscTestCase):
                             addr_ == self.num + offset_
                             addr_.inside(vsc.rangelist(vsc.rng(0,32)))
                     except SolveFailure as e:
-                        print("Cannot Randomize offset: " + e.details)
+                        print("Cannot Randomize offset: " + e.diagnostics)
 
                     self.offset[i] = offset_
                     self.addr[i] = addr_

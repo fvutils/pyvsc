@@ -1,3 +1,6 @@
+## 0.2.5
+- (#43) - Correct an issue with enum-type fields and solve-fail diagnostics
+- (#34) - Correct an issue with arrays and solve-order constraints
 
 ## 0.2.4
 - (#42) Add support for randcase-like functionality, with a randselect method

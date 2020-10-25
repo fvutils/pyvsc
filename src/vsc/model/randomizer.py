@@ -72,11 +72,33 @@ class Randomizer(RandIF):
             for rs in ri.randsets():
                 print("RandSet")
                 for f in rs.all_fields():
-                    print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+                    if f in bound_m.keys():
+                        print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
                 for c in rs.constraints():
                     print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True))
             for uf in ri.unconstrained():
                 print("Unconstrained: " + uf.name)
+               
+        # Assign values to the unconstrained fields first
+        uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
+        for uf in uc_rand:
+            if Randomizer.EN_DEBUG:
+                print("Randomizing unconstrained: " + uf.fullname)
+            bounds = bound_m[uf]
+            range_l = bounds.domain.range_l
+            
+            if len(range_l) == 1:
+                # Single (likely domain-based) range
+                uf.set_val(
+                    self.randint(range_l[0][0], range_l[0][1]))
+            else:
+                # Most likely an enumerated type
+                # TODO: are there any cases where these could be ranges?
+                idx = self.randint(0, len(range_l)-1)
+                uf.set_val(range_l[idx][0])                
+                
+            # Lock so we don't overwrite
+            uf.set_used_rand(False)
 
         rs_i = 0
         start_rs_i = 0
@@ -101,7 +123,8 @@ class Randomizer(RandIF):
                 if Randomizer.EN_DEBUG:                
                     print("Pre-Randomize: RandSet")
                     for f in all_fields:
-                        print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+                        if f in bound_m.keys():
+                            print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
                     for c in rs.constraints():
                         print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
 
@@ -206,20 +229,7 @@ class Randomizer(RandIF):
                 
         end = int(round(time.time() * 1000))
 
-        uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
-        for uf in uc_rand:
-            bounds = bound_m[uf]
-            range_l = bounds.domain.range_l
-            
-            if len(range_l) == 1:
-                # Single (likely domain-based) range
-                uf.set_val(
-                    self.randint(range_l[0][0], range_l[0][1]))
-            else:
-                # Most likely an enumerated type
-                # TODO: are there any cases where these could be ranges?
-                idx = self.randint(0, len(range_l)-1)
-                uf.set_val(range_l[idx][0])
+
                     
     def swizzle_randvars(self, 
                 btor     : Boolector, 
@@ -298,74 +308,6 @@ class Randomizer(RandIF):
             if btor.Sat() != btor.SAT:
                 raise Exception("failed to add in randomization")
                         
-    def swizzle_randvars_2(self, 
-                btor     : Boolector, 
-                ri       : RandInfo,
-                start_rs : int,
-                end_rs   : int,
-                bound_m  : Dict[FieldModel,VariableBoundModel]):
-
-        # TODO: we must ignore fields that are otherwise being controlled
-
-        rand_node_l = []
-        rand_e_l = []
-        x=start_rs
-        while x < end_rs:
-            # For each random variable, select a partition with it's known 
-            # domain and add the corresponding constraint
-            rs = ri.randsets()[x]
-            
-            field_l = rs.fields_l()
-            if len(field_l) == 1:
-                # Go ahead and pick values in the domain, since there 
-                # are no other constraints
-                f = field_l[0]
-                e = self.create_single_var_domain_constraint(
-                    field_l[0], bound_m[field_l[0]])
-            
-                if e is not None:
-                    n = e.build(btor)
-                    rand_node_l.append(n)                    
-                    rand_e_l.append(e)
-#                    btor.Assume(n)
-            else:
-                for f in field_l:
-                    if f.is_used_rand and f in bound_m.keys():
-                        f_bound = bound_m[f]
-                 
-                        if not f_bound.isEmpty():
-                            e = self.create_rand_domain_constraint(f, f_bound)
-                            if e is not None:
-                                n = e.build(btor)
-                                rand_node_l.append(n)                    
-                                rand_e_l.append(e)
-#                                btor.Assume(n)
-                        else:
-                            # It's always possible that this value is already fixed.
-                            # Just ignore.
-#                            rand_node_l.append(None)
-                            pass
-            x += 1
-        if len(rand_node_l) > 0:            
-            btor.Assume(*rand_node_l)
-     
-            if btor.Sat() != btor.SAT:
-                # Remove any failing assumptions
- 
-                n_failed = 0
-                for i,n in enumerate(rand_node_l):
-                    if n is not None and btor.Failed(n):
-                        print("  failed: " + ModelPrettyPrinter.print(rand_e_l[i]))
-                        rand_node_l[i] = None
-                        n_failed += 1
-                print("Failed: " + str(n_failed) + " (" + str(len(rand_node_l)) + ")")
-
-                # Re-apply the constraints that succeeded
-                btor.Assume(*filter(lambda n:n is not None, rand_node_l))
-                
-        if btor.Sat() != btor.SAT:
-            raise Exception("failed to add in randomization")
-             
     def create_rand_domain_constraint(self, 
                 f : FieldScalarModel, 
                 bound_m : VariableBoundModel)->ExprModel:
