@@ -206,6 +206,7 @@ Distribution constraints associate weights with values or value ranges
 of the specified variable.
 
 .. code-block:: python3
+
     @vsc.randobj
     class my_c(object):
             
@@ -416,6 +417,7 @@ value distributions by ordering solve operations. The PyVSC `solve_order`
 statement corresponds to the SystemVerilog `solve a before b` statement.
 
 .. code-block:: python3
+
         @vsc.randobj
         class my_c(object):
             
@@ -586,4 +588,4 @@ access or modify rand_mode.
        with item.randomize():
        
 
-         
+
