@@ -11,6 +11,8 @@ domain-specific language built on top of the Model API. This allows
 coverage and randomization features to be programmatically built, 
 defined with user-friendly constructs, or defined using a mix of the two.
 
+Blog Posts
+----------
 One great way to get an overview of PyVSC is to read a series of
 blog posts about PyVSC. Links are below:
 
@@ -20,6 +22,10 @@ blog posts about PyVSC. Links are below:
 - `Making use of captured coverage data <http://bitsbytesgates.blogspot.com/2020/04/python-verification-working-with.html>`_.
 - _`Python Verification Stimulus and Coverage: Constraints <https://bitsbytesgates.blogspot.com/2020/05/python-verification-stimulus-and.html>`_.
 
+Papers
+------
+
+- `PyVSC: SystemVerilog-Style Constraints and Coverage in Python <https://raw.github.com/fvutils/pyvsc/master/doc/papers/PyVSC_Randomization_Constraints_Coverage_in_Python_final.pdf`_.
 
 
 Currently, the Python-embedded domain-specific language supports 
