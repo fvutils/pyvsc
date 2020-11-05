@@ -24,6 +24,8 @@
 # @author: ballance
 
 from vsc.model.constraint_model import ConstraintModel
+from vsc.model.expr_model import ExprModel
+
 
 class ConstraintExprModel(ConstraintModel):
     
@@ -31,7 +33,7 @@ class ConstraintExprModel(ConstraintModel):
         self.e = e
         
     def build(self, btor):
-        return self.e.build(btor)
+        return ExprModel.toBool(btor, self.e.build(btor))
         
     def accept(self, visitor):
         visitor.visit_constraint_expr(self)

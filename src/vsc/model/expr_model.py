@@ -46,3 +46,11 @@ class ExprModel(object):
         '''
         raise Exception("val unimplemented for " + str(type(self)))
     
+    @staticmethod
+    def toBool(btor, n):
+        if n.width == 1:
+            return n
+        else:
+            return btor.Ne(n, btor.Const(0, n.width))
+        
+    

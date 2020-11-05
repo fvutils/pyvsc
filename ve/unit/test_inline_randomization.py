@@ -76,5 +76,41 @@ class TestInlineRandomization(VscTestCase):
             with vsc.foreach(it.arr, idx=True) as i:
                 it.arr[i].inside(vsc.rangelist(my_e.B))
                 
+    def test_2(self):
+        @vsc.randobj
+        class my_sub_s(object):
+            def __init__(self):
+                self.has_rs1 = vsc.uint8_t(1)
+                self.has_rs2 = vsc.uint8_t(1)
+                self.has_rd = vsc.uint8_t(1)
+                self.avail_regs = vsc.rand_list_t(vsc.uint8_t(0), 10)
+                self.reserved_rd = vsc.rand_list_t(vsc.uint8_t(0), 10)
+                self.reserved_regs = vsc.rand_list_t(vsc.uint8_t(0), 10)
+                self.rd = vsc.rand_uint8_t(0)
+                self.rs1 = vsc.rand_uint8_t(0)
+                self.rs2 = vsc.rand_uint8_t(0)
+                self.format = vsc.uint8_t(2)
+
+        obj = my_sub_s()
+        
+        with obj.randomize_with() as it:
+            with vsc.if_then(obj.avail_regs.size > 0): 
+                with vsc.if_then(obj.has_rs1):
+                    obj.rs1.inside(vsc.rangelist(obj.avail_regs))
+                with vsc.if_then(obj.has_rs2):
+                    obj.rs2.inside(vsc.rangelist(obj.avail_regs))
+                with vsc.if_then(obj.has_rd):
+                    obj.rd.inside(vsc.rangelist(obj.avail_regs))   
+            with vsc.foreach(obj.reserved_rd, idx=True) as i:
+                with vsc.if_then(obj.has_rd):
+                    obj.rd != obj.reserved_rd[i]
+                with vsc.if_then(obj.format == 2):
+                    obj.rs1 != obj.reserved_rd[i]
+            with vsc.foreach(obj.reserved_regs, idx=True) as i:
+                with vsc.if_then(obj.has_rd):
+                    obj.rd != obj.reserved_regs[i]
+                with vsc.if_then(obj.format == 2):
+                    obj.rs1 != obj.reserved_regs[i]        
+                
 
             

@@ -58,6 +58,7 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         
         scope = ConstraintInlineScopeModel()
         if len(self.foreach_scope_s) == 0:
+            # override expects us to be in a scope already
             self.override_constraint(scope)
         self.foreach_scope_s.append(scope)
         

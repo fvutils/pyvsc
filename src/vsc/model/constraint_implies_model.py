@@ -21,6 +21,7 @@
 #@author: ballance
 
 from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.expr_model import ExprModel
 
 
 class ConstraintImpliesModel(ConstraintScopeModel):
@@ -30,7 +31,7 @@ class ConstraintImpliesModel(ConstraintScopeModel):
         self.cond = cond
         
     def build(self, btor):
-        cond = self.cond.build(btor)
+        cond = ExprModel.toBool(btor, self.cond.build(btor))
         body = super().build(btor)
         
         return btor.Implies(cond, body)

@@ -40,9 +40,10 @@ class ConstraintIfElseModel(ConstraintModel):
         self.false_c : ConstraintModel = false_c
         
     def build(self, btor):
-        cond = self.cond.build(btor)
+        from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+        cond = ExprModel.toBool(btor, self.cond.build(btor))
         true_c = self.true_c.build(btor)
-        
+       
         if self.false_c == None:
             ret = btor.Implies(cond, true_c)
         else:

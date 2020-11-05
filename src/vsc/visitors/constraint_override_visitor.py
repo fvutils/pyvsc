@@ -8,7 +8,6 @@ from typing import List
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.constraint_override_model import ConstraintOverrideModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
-from vsc.model.model_visitor import ModelVisitor
 from vsc.visitors.constraint_copy_builder import ConstraintCopyBuilder
 
 
@@ -24,12 +23,14 @@ class ConstraintOverrideVisitor(ConstraintCopyBuilder):
         for i,cc in enumerate(c.constraint_l):
             self.scope_i = i
             cc.accept(self)
+        self.scope_s.pop()
             
     def visit_constraint_inline_scope(self, c:ConstraintInlineScopeModel):
         self.scope_s.append(c)
         for i,cc in enumerate(c.constraint_l):
             self.scope_i = i
             cc.accept(self)
+        self.scope_s.pop()
             
     def override_constraint(self, new_constraint):
         """Replace the active constraint with a replacement"""
@@ -37,4 +38,5 @@ class ConstraintOverrideVisitor(ConstraintCopyBuilder):
             self.scope_s[-1].constraint_l[self.scope_i],
             new_constraint)
         
+
         

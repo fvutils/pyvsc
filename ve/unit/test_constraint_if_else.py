@@ -7,6 +7,7 @@ from enum import Enum
 import vsc
 
 from vsc_test_case import VscTestCase
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 class TestConstraintIfElse(VscTestCase):
@@ -41,3 +42,49 @@ class TestConstraintIfElse(VscTestCase):
             my.randomize()
             print("ITERATION : ",i+1)
             print(my.a, list(my.b))            
+
+    def test_if_elseif_scalar_cond(self):
+
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.a = vsc.uint8_t(1)
+                self.b = vsc.rand_uint8_t()
+    
+
+            @vsc.constraint
+            def ab_c(self):
+                with vsc.if_then(self.a):
+                    self.b == 0
+                with vsc.else_then:
+                    self.b == 1
+
+        my = my_s()
+
+        # Randomize
+        for i in range(5):
+            my.randomize()
+            print("ITERATION : ", i+1, my.a, my.b)
+            
+    def test_if_then_foreach_nesting(self):
+        
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.a = vsc.uint8_t(1)
+                self.b = vsc.uint8_t(2)
+                self.c = vsc.uint8_t(2)
+                self.arr = vsc.rand_list_t(vsc.uint8_t(), 10)
+                
+            @vsc.constraint
+            def ab_c(self):
+                with vsc.if_then(self.a == 1):
+                    with vsc.if_then(self.b == 2):
+                        self.c == 2
+                with vsc.foreach(self.arr, idx=True) as i:
+                    with vsc.if_then(self.a == 1):
+                        self.arr[i] == 1
+
+        it = my_s()
+        print("Model: " + ModelPrettyPrinter().print(it.get_model()))
+        it.randomize()

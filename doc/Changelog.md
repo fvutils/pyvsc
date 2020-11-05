@@ -1,3 +1,7 @@
+## 0.2.6
+- (#44) - Correct an issue with nested if_then and foreach constructs
+- (nobug) - Correct an issue with auto-conversion from scalar to bool
+
 ## 0.2.5
 - (#43) - Correct an issue with enum-type fields and solve-fail diagnostics
 - (#34) - Correct an issue with arrays and solve-order constraints
