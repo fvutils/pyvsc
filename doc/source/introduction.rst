@@ -20,7 +20,7 @@ blog posts about PyVSC. Links are below:
 - `Modeling verification data types in Python <http://bitsbytesgates.blogspot.com/2020/04/python-verification-stimulus-and.html>`_.
 - `Modeling and capturing functional coverage in Python <http://bitsbytesgates.blogspot.com/2020/04/python-verification-and-stimulus.html>`_.
 - `Making use of captured coverage data <http://bitsbytesgates.blogspot.com/2020/04/python-verification-working-with.html>`_.
-- _`Python Verification Stimulus and Coverage: Constraints <https://bitsbytesgates.blogspot.com/2020/05/python-verification-stimulus-and.html>`_.
+- `Python Verification Stimulus and Coverage: Constraints <https://bitsbytesgates.blogspot.com/2020/05/python-verification-stimulus-and.html>`_.
 
 Papers
 ------
