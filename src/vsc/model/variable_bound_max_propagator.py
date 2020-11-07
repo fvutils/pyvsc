@@ -4,19 +4,19 @@ Created on May 30, 2020
 @author: ballance
 '''
 from vsc.model.variable_bound_propagator import VariableBoundPropagator
-from vsc.model.expr_model import ExprModel
 
 class VariableBoundMaxPropagator(VariableBoundPropagator):
     
     def __init__(self,
-                 target : 'VariableBoundModel',
-                 max_e : ExprModel):
+                 target : 'VariableBoundModel'):
         super().__init__(target)
-        self.max_e = max_e
+        
+    def max(self):
+        raise NotImplementedError("max")
         
     def propagate(self):
         # Obtain the max value from the
-        max_v = int(self.max_e.val())
+        max_v = self.max()
   
         range_l = self.target.domain.range_l
         i=len(range_l)-1

@@ -3,7 +3,7 @@ Created on Jun 21, 2020
 
 @author: ballance
 '''
-from enum import Enum, auto
+from enum import Enum, auto, IntEnum
 
 import vsc
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
@@ -258,4 +258,54 @@ class TestListScalar(VscTestCase):
         print("Model: " + ModelPrettyPrinter.print(it.get_model()))
         
         self.assertEqual(it.l.sum, 5)
+        
+    def test_transitive_size_relationship(self):
+        """Two arrays are sized using two rand fields
+        that are constrained to a single value"""
+        class reg_t(IntEnum):
+            A = 0
+            B = auto()
+            C = auto()
+            D = auto()
+            E = auto()
+            F = auto()
+            G = auto()
+
+
+        @vsc.randobj
+        class my_c:
+            def __init__(self):
+                self.offset = vsc.randsz_list_t(vsc.int32_t())
+                self.reg = vsc.randsz_list_t(vsc.enum_t(reg_t))
+                self.num_of_regs = vsc.rand_uint32_t()
+                self.reserved_regs = vsc.randsz_list_t(vsc.enum_t(reg_t))
+                self.max_offset = vsc.rand_uint32_t()
+
+
+            @vsc.constraint
+            def num_of_reg_c(self):
+                self.num_of_regs == 2
+                self.reserved_regs.size == 3
+    
+            @vsc.constraint
+            def reg_c(self):
+                vsc.solve_order(self.num_of_regs, self.reg)
+                self.reg.size == self.num_of_regs
+                self.offset.size == self.num_of_regs
+                
+                with vsc.foreach(self.reg, idx=True) as i:
+                    self.reg[i].not_inside(vsc.rangelist(self.reserved_regs, reg_t.A))
+                vsc.unique(self.reg)
+
+            @vsc.constraint
+            def offset_c(self):
+                with vsc.foreach(self.offset, idx=True) as i:
+                    self.offset[i] in vsc.rangelist(vsc.rng(0, self.max_offset - 1))
+
+        obj = my_c()
+        for i in range(20):
+            obj.randomize()
+            print(obj.reg)
+            print(obj.num_of_regs)
+            print(obj.offset)        
         

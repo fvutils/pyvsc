@@ -26,4 +26,6 @@ class VariableBoundEqPropagator(VariableBoundPropagator):
                     
             if should_propagate:
                 self.propagate()
+        else:
+            pass
         

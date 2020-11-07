@@ -22,14 +22,20 @@ from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_model import FieldModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
+from vsc.model.variable_bound_bounds_max_propagator import VariableBoundBoundsMaxPropagator
+from vsc.model.variable_bound_bounds_min_propagator import VariableBoundBoundsMinPropagator
 from vsc.model.variable_bound_enum_model import VariableBoundEnumModel
 from vsc.model.variable_bound_eq_propagator import VariableBoundEqPropagator
+from vsc.model.variable_bound_expr_max_propagator import VariableBoundExprMaxPropagator
+from vsc.model.variable_bound_expr_min_propagator import VariableBoundExprMinPropagator
 from vsc.model.variable_bound_in_propagator import VariableBoundInPropagator
 from vsc.model.variable_bound_max_propagator import VariableBoundMaxPropagator
 from vsc.model.variable_bound_min_propagator import VariableBoundMinPropagator
 from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.model.variable_bound_scalar_model import VariableBoundScalarModel
+from vsc.model.variable_bound_vareq_propagator import VariableBoundVarEqPropagator
 from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+from vsc.visitors.is_nonrand_expr_visitor import IsNonRandExprVisitor
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
@@ -47,6 +53,10 @@ class VariableBoundVisitor(ModelVisitor):
         self._expr = None
         self.depth = 0
         self.process_subscript = True
+        
+        # Result data from processing expressions
+        self.field = None
+        self.const = None
         
     def process(self, 
                 variables,
@@ -108,143 +118,227 @@ class VariableBoundVisitor(ModelVisitor):
 
         # Don't attempt to deal with subscripts when we're
         # establishing array domains.        
-        if self.phase == 0:
+        if self.phase == 0 or self.depth > 0:
             super().visit_expr_bin(e)
-            return
+        else: # phase==1
 
-        if not self.process_subscript and (
-            isinstance(e.lhs, ExprArraySubscriptModel) or 
-            isinstance(e.rhs, ExprArraySubscriptModel)):
-            return
+            if not self.process_subscript and (
+                isinstance(e.lhs, ExprArraySubscriptModel) or 
+                isinstance(e.rhs, ExprArraySubscriptModel)):
+                return
       
-        if self.phase == 1:
-            # Traverse to pick up variable references
-            super().visit_expr_bin(e)
-            
+            lhs_is_nonrand = IsNonRandExprVisitor().is_nonrand(e.lhs)
+            rhs_is_nonrand = IsNonRandExprVisitor().is_nonrand(e.rhs)
+
             if isinstance(e.lhs, ExprArraySubscriptModel):
-                fm = e.lhs.subscript()
+                lhs_fm = e.lhs.subscript()
             elif isinstance(e.lhs, ExprFieldRefModel):
-                fm = e.lhs.fm
+                lhs_fm = e.lhs.fm
             else:
-                fm = None
+                lhs_fm = None
 
-            if self.depth > 0:
-                # Ignore processing if we're deep in an expression
-                pass            
-            elif fm is not None and not isinstance(e.rhs, ExprFieldRefModel):
-                bounds = self.bound_m[fm]
-                if e.op == BinExprType.Lt:
-                    # TODO: 
-                    # The max bound is 
-                    self._propagator = VariableBoundMaxPropagator(
-                        bounds,
-                        ExprBinModel(
-                            e.rhs,
-                            BinExprType.Sub,
-                            ExprLiteralModel(1, False, 4)))
-                    
-                    bounds.add_propagator(self._propagator)
-                    
-                    # Apply propagator
-                    self._propagator.propagate()
-                    
-                    self._propagator = None
-                elif e.op == BinExprType.Le:
-                    # TODO: 
-                    # The max bound is 
-                    self._propagator = VariableBoundMaxPropagator(
-                        bounds,
-                        e.rhs)
-                    
-                    bounds.add_propagator(self._propagator)
-                    
-                    # Apply propagator
-                    self._propagator.propagate()
-                    
-                    self._propagator = None
-                elif e.op == BinExprType.Gt:
-                    # TODO: 
-                    # The minimum bound is 1+ RHS
-                    self._propagator = VariableBoundMinPropagator(
-                        bounds,
-                        ExprBinModel(
-                            e.rhs,
-                            BinExprType.Add,
-                            ExprLiteralModel(1, False, 4)))
-                    
-                    bounds.add_propagator(self._propagator)
-                    
-                    # Apply propagator
-                    self._propagator.propagate()
-                    
-                    self._propagator = None
-                elif e.op == BinExprType.Ge:
-                    # TODO: 
-                    # The minimum bound is 1+ RHS
-                    self._propagator = VariableBoundMinPropagator(
-                        bounds,
-                        e.rhs)
-                    
-                    bounds.add_propagator(self._propagator)
-                    
-                    # Apply propagator
-                    self._propagator.propagate()
-                    
-                    self._propagator = None
-                elif e.op == BinExprType.Eq:
-                    is_const_v = IsConstExprVisitor()
-                    is_const = is_const_v.is_const(e.rhs)
-                    
-                    if is_const:
-                        self._propagator = VariableBoundEqPropagator(
-                            bounds,
-                            e.rhs,
-                            True)
-                    elif isinstance(e.rhs, ExprFieldRefModel):
-                        # TODO: lhs is an alias
-#                        self._propagator = VariableBoundEqPropagator(
-#                            bounds,
-#                            self.bound_m[e.rhs.fm],
-#                            True)
-                        pass
-
-                    if self._propagator is not None:                    
-                        bounds.add_propagator(self._propagator)
-                        self._propagator.propagate()
-#                     
-#                     self._propagator = None
-                    
-            elif isinstance(e.rhs, ExprFieldRefModel):
-                # TODO: Need to do similar calculation for RHS
-                pass
+            if lhs_fm is not None and lhs_fm in self.bound_m.keys():                
+                lhs_bounds = self.bound_m[lhs_fm]
+            else:
+                lhs_bounds = None
                 
+            if isinstance(e.rhs, ExprArraySubscriptModel):
+                rhs_fm = e.rhs.subscript()
+            elif isinstance(e.rhs, ExprFieldRefModel):
+                rhs_fm = e.rhs.fm
+            else:
+                rhs_fm = None
+                
+            if rhs_fm is not None and rhs_fm in self.bound_m.keys():                
+                rhs_bounds = self.bound_m[rhs_fm]
+            else:
+                rhs_bounds = None
+                
+            propagator = None
+                
+            if lhs_bounds is not None and rhs_bounds is not None:
+                # Two-sided relationship involving fields
+                propagator = self.lhsvar_rhsvar_propagator(
+                    lhs_bounds, 
+                    e.op, 
+                    rhs_bounds)
+                pass
+            elif lhs_bounds is not None:
+                # left-hand field and no right-hand field
+                if rhs_is_nonrand:
+                    propagator = self.lhsvar_rhsnre_propagator(
+                        lhs_bounds, 
+                        e.op, 
+                        e.rhs)
+            elif rhs_fm is not None:
+                # right-hand field and no left-hand field
+                if lhs_is_nonrand:
+                    propagator = self.lhsnre_rhsvar_propagator(
+                        e.lhs, 
+                        e.op, 
+                        rhs_bounds)
+
+            if propagator is not None:
+                propagator.propagate()
+                
+    def lhsvar_rhsvar_propagator(self,
+                    lhs_bounds,
+                    op,
+                    rhs_bounds):
+        propagator = None
+
+        if op == BinExprType.Lt:
+            # <v1> < <v2> <-> <v1.max> <= <v2.max-1>
+            propagator = VariableBoundBoundsMaxPropagator(
+                lhs_bounds, rhs_bounds, -1)
+        elif op == BinExprType.Le:
+            # <v1> <= <v2> <-> <v1.max> <= <v2.max>
+            propagator = VariableBoundBoundsMaxPropagator(
+                lhs_bounds, rhs_bounds)
+        elif op == BinExprType.Gt:
+            # <v1> > <v2> <-> <
+            propagator = VariableBoundBoundsMinPropagator(
+                lhs_bounds, rhs_bounds, 1)
+        elif op == BinExprType.Ge:
+            propagator = VariableBoundBoundsMinPropagator(
+                lhs_bounds, rhs_bounds)
+        elif op == BinExprType.Eq:
+            propagator = VariableBoundVarEqPropagator(
+                lhs_bounds,
+                rhs_bounds)
+            
+        if propagator is not None:
+            lhs_bounds.add_propagator(propagator)
+
+        return propagator
+    
+    def lhsvar_rhsnre_propagator(self,
+                    lhs_bounds,
+                    op,
+                    rhs_e):
+        propagator = None
+        if op == BinExprType.Lt:
+            # The max bound is 
+            propagator = VariableBoundExprMaxPropagator(
+                lhs_bounds,
+                ExprBinModel(
+                    rhs_e,
+                    BinExprType.Sub,
+                    ExprLiteralModel(1, False, 4)))
+        elif op == BinExprType.Le:
+            # The max bound is 
+            propagator = VariableBoundExprMaxPropagator(
+                lhs_bounds,
+                rhs_e)
+        elif op == BinExprType.Gt:
+            # The minimum bound is 1+RHS
+            propagator = VariableBoundExprMinPropagator(
+                lhs_bounds,
+                ExprBinModel(
+                    rhs_e,
+                    BinExprType.Add,
+                        ExprLiteralModel(1, False, 4)))
+        elif op == BinExprType.Ge:
+            # The minimum bound is 1+ RHS
+            propagator = VariableBoundExprMinPropagator(
+                lhs_bounds,
+                rhs_e)
+        elif op == BinExprType.Eq:
+            # Know that the right-hand side is a non-rand quantity
+            # This pins the left-hand variable to a single value
+            propagator = VariableBoundEqPropagator(
+                lhs_bounds,
+                rhs_e,
+                True)
+
+        if propagator is not None:
+            lhs_bounds.add_propagator(propagator)
+            
+        return propagator
+    
+    def lhsnre_rhsvar_propagator(self,
+                    lhs_e,
+                    op,
+                    rhs_bounds):
+        propagator = None
+        if op == BinExprType.Lt:
+            # <expr> < <var>  <-> <var> >= <expr>+1
+            # Sets the minimum bound for the variable
+            propagator = VariableBoundExprMinPropagator(
+                rhs_bounds,
+                ExprBinModel(
+                    lhs_e,
+                    BinExprType.Add,
+                    ExprLiteralModel(1, False, 4)))
+        elif op == BinExprType.Le:
+            # <expr> <= <var> <-> <var> >= <expr>
+            propagator = VariableBoundExprMinPropagator(
+                rhs_bounds,
+                lhs_e)
+        elif op == BinExprType.Gt:
+            # <expr> > <var> <-> <var> <= <expr>-1
+            propagator = VariableBoundExprMaxPropagator(
+                rhs_bounds,
+                ExprBinModel(
+                    lhs_e,
+                    BinExprType.Sub,
+                        ExprLiteralModel(1, False, 4)))
+        elif op == BinExprType.Ge:
+            # <expr> >= <var> <-> <var> <= <expr>
+            propagator = VariableBoundExprMaxPropagator(
+                rhs_bounds,
+                lhs_e)
+        elif op == BinExprType.Eq:
+            propagator = VariableBoundEqPropagator(
+                rhs_bounds,
+                lhs_e,
+                True)
+
+        if propagator is not None:
+            rhs_bounds.add_propagator(propagator)        
+        return propagator
 
     def visit_expr_in(self, e : ExprInModel):
         if self.phase == 1:
             if self.depth > 0:
                 pass
-            elif isinstance(e.lhs, ExprFieldRefModel):
-                is_const_v = IsConstExprVisitor()
-                bounds = self.bound_m[e.lhs.fm]
-
-                # Confirm that all expressions are constants
-                is_const = True
-                for r in e.rhs.rl:
-                    if isinstance(r, list):
-                        is_const &= is_const_v.is_const(r[0])
-                        is_const &= is_const_v.is_const(r[1])
-                    else:
-                        is_const &= is_const_v.is_const(r)
+            else:
+                lhs_fm = None
+                
+                if isinstance(e.lhs, ExprArraySubscriptModel):
+                    if self.process_subscript:
+                        lhs_fm = e.lhs.subscript()
+                elif isinstance(e.lhs, ExprFieldRefModel):
+                    lhs_fm = e.lhs.fm
                     
-                    if not is_const:
-                        break
-
-                if is_const:
-                    self._propagator = VariableBoundInPropagator(bounds, e.rhs)
-                    bounds.add_propagator(self._propagator)
-                    self._propagator.propagate()
+                if lhs_fm is not None and lhs_fm in self.bound_m.keys():
+                    lhs_bounds = self.bound_m[lhs_fm]
+                else:
+                    lhs_bounds = None
                     
-                    self._propagator = None
+                if lhs_bounds is not None:
+                    is_nre_v = IsNonRandExprVisitor()
+
+                    # Confirm that all expressions are non-random
+                    is_nre = True
+                    for r in e.rhs.rl:
+                        if isinstance(r, list):
+                            is_nre &= is_nre_v.is_nonrand(r[0])
+                            is_nre &= is_nre_v.is_nonrand(r[1])
+                        elif isinstance(r, ExprFieldRefModel):
+                            # For now. This is likely a reference
+                            # to an array
+                            is_nre = False
+                        else:
+                            is_nre &= is_nre_v.is_nonrand(r)
+                    
+                        if not is_nre:
+                            break
+
+                    if is_nre:
+                        propagator = VariableBoundInPropagator(lhs_bounds, e.rhs)
+                        lhs_bounds.add_propagator(propagator)
+                        propagator.propagate()
                     
     def visit_expr_array_subscript(self, s):
         # This only exists until we flatten out array references

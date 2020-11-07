@@ -135,3 +135,174 @@ class TestRandomDist(VscTestCase):
         self.assertLess(z_cnt, 8)
         self.assertEqual(z_cnt, 0)
 
+    def test_dist_nre_lt(self):
+        @vsc.randobj
+        class cls(object):
+        
+            def __init__(self):
+                self.v1 = vsc.rand_bit_t(8)
+                self.v2 = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def get_random_ch(self):
+                self.v1 < 16
+                self.v2 < 32
+        
+        obj = cls()
+        n_iter = 32*10
+        
+        hist_v1 = [0]*255
+        hist_v2 = [0]*255
+
+        for i in range(n_iter):
+            obj.randomize()
+            
+            hist_v1[obj.v1] += 1
+            hist_v2[obj.v2] += 1
+
+        print("hist_v1: " + str(hist_v1))
+        print("hist_v2: " + str(hist_v2))
+
+        # Check all values
+        for i in range(255):
+            if i < 16:
+                self.assertNotEqual(hist_v1[i], 0)
+            else:
+                self.assertEquals(hist_v1[i], 0)
+                
+        for i in range(255):
+            if i < 32:
+                self.assertNotEqual(hist_v2[i], 0)
+            else:
+                self.assertEquals(hist_v2[i], 0)
+
+    def test_dist_nre_le(self):
+        @vsc.randobj
+        class cls(object):
+        
+            def __init__(self):
+                self.v1 = vsc.rand_bit_t(8)
+                self.v2 = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def get_random_ch(self):
+                self.v1 <= 15
+                self.v2 <= 31
+        
+        obj = cls()
+        n_iter = 32*10
+        
+        hist_v1 = [0]*255
+        hist_v2 = [0]*255
+
+        for i in range(n_iter):
+            obj.randomize()
+            
+            hist_v1[obj.v1] += 1
+            hist_v2[obj.v2] += 1
+
+        print("hist_v1: " + str(hist_v1))
+        print("hist_v2: " + str(hist_v2))
+
+        # Check all values
+        for i in range(255):
+            if i < 16:
+                self.assertNotEqual(hist_v1[i], 0)
+            else:
+                self.assertEquals(hist_v1[i], 0)
+                
+        for i in range(255):
+            if i < 32:
+                self.assertNotEqual(hist_v2[i], 0)
+            else:
+                self.assertEquals(hist_v2[i], 0)
+                
+    def test_dist_var_lt(self):
+        @vsc.randobj
+        class cls(object):
+        
+            def __init__(self):
+                self.v1 = vsc.rand_bit_t(8)
+                self.v1_b = vsc.rand_bit_t(8)
+                self.v2 = vsc.rand_bit_t(8)
+                self.v2_b = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def get_random_ch(self):
+                self.v1_b == 16
+                self.v2_b == 32
+                self.v1 < self.v1_b
+                self.v2 < self.v2_b
+        
+        obj = cls()
+        n_iter = 32*10
+        
+        hist_v1 = [0]*255
+        hist_v2 = [0]*255
+
+        for i in range(n_iter):
+            obj.randomize()
+            
+            hist_v1[obj.v1] += 1
+            hist_v2[obj.v2] += 1
+
+        print("hist_v1: " + str(hist_v1))
+        print("hist_v2: " + str(hist_v2))
+
+        # Check all values
+        for i in range(255):
+            if i < 16:
+                self.assertNotEqual(hist_v1[i], 0)
+            else:
+                self.assertEquals(hist_v1[i], 0)
+                
+        for i in range(255):
+            if i < 32:
+                self.assertNotEqual(hist_v2[i], 0)
+            else:
+                self.assertEquals(hist_v2[i], 0)                
+
+    def test_dist_var_lte(self):
+        @vsc.randobj
+        class cls(object):
+        
+            def __init__(self):
+                self.v1 = vsc.rand_bit_t(8)
+                self.v1_b = vsc.rand_bit_t(8)
+                self.v2 = vsc.rand_bit_t(8)
+                self.v2_b = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def get_random_ch(self):
+                self.v1_b == 15
+                self.v2_b == 31
+                self.v1 <= self.v1_b
+                self.v2 <= self.v2_b
+        
+        obj = cls()
+        n_iter = 32*10
+        
+        hist_v1 = [0]*255
+        hist_v2 = [0]*255
+
+        for i in range(n_iter):
+            obj.randomize()
+            
+            hist_v1[obj.v1] += 1
+            hist_v2[obj.v2] += 1
+
+        print("hist_v1: " + str(hist_v1))
+        print("hist_v2: " + str(hist_v2))
+
+        # Check all values
+        for i in range(255):
+            if i < 16:
+                self.assertNotEqual(hist_v1[i], 0)
+            else:
+                self.assertEquals(hist_v1[i], 0)
+                
+        for i in range(255):
+            if i < 32:
+                self.assertNotEqual(hist_v2[i], 0)
+            else:
+                self.assertEquals(hist_v2[i], 0)                                                

@@ -1,3 +1,10 @@
+## 0.2.7
+- (#45) - Correct an issue with approximate array sizing due to varaible-bound limitations
+- Improve bounding of variables for randomization
+  - Add propagators for equality relationships (a == b)
+  - Add propagators for variable inequalities (a < b) to match constant inequalities
+
+
 ## 0.2.6
 - (#44) - Correct an issue with nested if_then and foreach constructs
 - (nobug) - Correct an issue with auto-conversion from scalar to bool

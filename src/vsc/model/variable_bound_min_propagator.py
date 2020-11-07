@@ -4,19 +4,19 @@ Created on May 30, 2020
 @author: ballance
 '''
 from vsc.model.variable_bound_propagator import VariableBoundPropagator
-from vsc.model.expr_model import ExprModel
 
 class VariableBoundMinPropagator(VariableBoundPropagator):
     
     def __init__(self,
-                 target : 'VariableBoundModel',
-                 min_e : ExprModel):
+                 target : 'VariableBoundModel'):
         super().__init__(target)
-        self.min_e = min_e
-        
+
+    def min(self):
+        raise NotImplementedError("min")
+            
     def propagate(self):
         # Obtain the max value from the
-        min_v = int(self.min_e.val())
+        min_v = self.min()
   
         range_l = self.target.domain.range_l
         
