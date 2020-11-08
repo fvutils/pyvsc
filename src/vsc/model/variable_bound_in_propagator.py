@@ -18,7 +18,6 @@ class VariableBoundInPropagator(VariableBoundPropagator):
         self.in_e = in_e
         
     def propagate(self):
-
         should_propagate = False
         
         # Intersect the 'in' rangelist and the domain

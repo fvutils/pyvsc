@@ -47,6 +47,4 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
 #            print("ran off the end")
             pass
             
-        if must_propagate:
-            # Notify any propagators using the target as a source
-            self.target.propagate()
+        return must_propagate

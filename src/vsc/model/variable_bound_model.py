@@ -56,4 +56,14 @@ class VariableBoundModel(object):
         for p in self.propagators:
             p.propagate()
             
+    def toString(self):
+        ret = self.var.name
+        
+        for i,r in enumerate(self.domain.range_l):
+            if i > 0:
+                ret += " "
+            ret += "[" + str(r[0]) + ".." + str(r[1]) + "]"
+        
+        return ret
+            
     

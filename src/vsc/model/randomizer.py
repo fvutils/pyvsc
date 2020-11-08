@@ -239,6 +239,8 @@ class Randomizer(RandIF):
                 bound_m  : Dict[FieldModel,VariableBoundModel]):
 
         # TODO: we must ignore fields that are otherwise being controlled
+        if Randomizer.EN_DEBUG:
+            print("--> swizzle_randvars")
 
         rand_node_l = []
         rand_e_l = []
@@ -249,6 +251,9 @@ class Randomizer(RandIF):
             rs = ri.randsets()[x]
             
             field_l = rs.rand_fields()
+            
+            if Randomizer.EN_DEBUG:
+                print("  " + str(len(field_l)) + " fields in randset")
             if len(field_l) == 1:
                 # Go ahead and pick values in the domain, since there 
                 # are no other constraints
@@ -264,6 +269,8 @@ class Randomizer(RandIF):
             elif len(field_l) > 0:
                 field_idx = self.randint(0, len(field_l)-1)
                 f = field_l[field_idx]
+                if Randomizer.EN_DEBUG:
+                    print("Swizzling field " + f.name)
                 if f in bound_m.keys():
                     f_bound = bound_m[f]
                  
@@ -279,6 +286,9 @@ class Randomizer(RandIF):
                         # Just ignore.
 #                            rand_node_l.append(None)
                         pass
+                else:
+                    if Randomizer.EN_DEBUG:
+                        print("Note: no bounds found for field " + f.name)
             x += 1
             
         if len(rand_node_l) > 0:            
@@ -287,6 +297,9 @@ class Randomizer(RandIF):
      
             if btor.Sat() != btor.SAT:
                 # Remove any failing assumptions
+                
+                if Randomizer.EN_DEBUG:
+                    print("Randomization constraint failed")
  
                 n_failed = 0
                 for i,n in enumerate(rand_node_l):
@@ -307,6 +320,9 @@ class Randomizer(RandIF):
         else:
             if btor.Sat() != btor.SAT:
                 raise Exception("failed to add in randomization")
+            
+        if Randomizer.EN_DEBUG:
+            print("<-- swizzle_randvars")
                         
     def create_rand_domain_constraint(self, 
                 f : FieldScalarModel, 
@@ -316,6 +332,9 @@ class Randomizer(RandIF):
         range_idx = self.randint(0, len(range_l)-1)
         range = range_l[range_idx]
         domain = range[1]-range[0]
+        
+        if Randomizer.EN_DEBUG:
+            print("create_rand_domain_constraint: " + f.name + " range_idx=" + str(range_idx) + " range=" + str(range))
         if domain > 64:
             r_type = self.randint(0, 3)
             single_val = self.randint(range[0], range[1])

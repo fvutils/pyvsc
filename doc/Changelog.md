@@ -1,3 +1,6 @@
+## 0.2.8
+- Correct an issue with random-sized arrays being 'pinned' to a single size
+
 ## 0.2.7
 - (#45) - Correct an issue with approximate array sizing due to varaible-bound limitations
 - Improve bounding of variables for randomization

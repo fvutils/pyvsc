@@ -18,8 +18,11 @@ class VariableBoundVarEqPropagator(VariableBoundPropagator):
         self.min_p2 = VariableBoundBoundsMinPropagator(other, target)
         
     def propagate(self):
-        self.max_p1.propagate()
-        self.max_p2.propagate()
-        self.min_p1.propagate()
-        self.min_p2.propagate()
+        ret = False
+        ret |= self.max_p1.propagate()
+        ret |= self.max_p2.propagate()
+        ret |= self.min_p1.propagate()
+        ret |= self.min_p2.propagate()
+        
+        return ret
         

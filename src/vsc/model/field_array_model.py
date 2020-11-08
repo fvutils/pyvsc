@@ -109,6 +109,10 @@ class FieldArrayModel(FieldCompositeModel):
         self._set_size(len(self.field_l))
         super().build(builder)
         
+    def set_used_rand(self, is_rand, level=0):
+        super().set_used_rand(is_rand, level)
+        self.size.set_used_rand(is_rand, level+1)
+        
     def get_sum_expr(self):
         if self.sum_expr is None:
             # Build

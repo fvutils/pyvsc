@@ -11,6 +11,7 @@ from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
@@ -53,6 +54,7 @@ class VariableBoundVisitor(ModelVisitor):
         self._expr = None
         self.depth = 0
         self.process_subscript = True
+        self.propagators = []
         
         # Result data from processing expressions
         self.field = None
@@ -81,9 +83,24 @@ class VariableBoundVisitor(ModelVisitor):
         for c in constraints:
             c.accept(self)
             
+        # Now, process propagators until we stabilize
+        changed = True
+        count = 0
+        limit = 100
+        while changed and count < limit:
+            changed = False
+            for p in self.propagators:
+                changed |= p.propagate()
+            count += 1
+            
+        if count >= limit:
+            print("Note: variable bounds model failed to converge in " + str(limit) + " iterations")
+            
         # Update data calcuated from domain ranges
         for f,b in self.bound_m.items():
             b.update()
+#            print(b.toString())
+            
         
 
     def visit_constraint_if_else(self, c:ConstraintIfElseModel):
@@ -103,6 +120,10 @@ class VariableBoundVisitor(ModelVisitor):
     def visit_constraint_foreach(self, f:ConstraintForeachModel):
         # Don't go into an unexpanded foreach block. This 
         # construct is a meta-constraint that will be expanded
+        pass
+    
+    def visit_constraint_soft(self, c : ConstraintSoftModel):
+        # Ignore soft constraints, since they may be at odds with reality
         pass
     
     def visit_constraint_unique(self, c:ConstraintUniqueModel):
@@ -179,7 +200,7 @@ class VariableBoundVisitor(ModelVisitor):
                         rhs_bounds)
 
             if propagator is not None:
-                propagator.propagate()
+                self.propagators.append(propagator)
                 
     def lhsvar_rhsvar_propagator(self,
                     lhs_bounds,

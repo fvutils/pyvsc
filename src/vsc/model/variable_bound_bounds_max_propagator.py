@@ -18,7 +18,10 @@ class VariableBoundBoundsMaxPropagator(VariableBoundMaxPropagator):
         super().__init__(target)
         self.other = other
         self.offset = offset
+        # Ensure that we are notified whenver the other side changes
+        other.add_propagator(self)
         
     def max(self):
+#        print("max: " + str(self.other.domain.range_l[-1][1]+self.offset))
         return (self.other.domain.range_l[-1][1]+self.offset)
     

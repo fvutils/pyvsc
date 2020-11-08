@@ -24,8 +24,5 @@ class VariableBoundEqPropagator(VariableBoundPropagator):
                     should_propagate = True
                     self.target.domain.range_l = [[eq_v, eq_v]]
                     
-            if should_propagate:
-                self.propagate()
-        else:
-            pass
+        return should_propagate
         
