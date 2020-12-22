@@ -521,6 +521,10 @@ class Randomizer(RandIF):
             print("Initial Model:")        
             for fm in field_model_l:
                 print("  " + ModelPrettyPrinter.print(fm))
+                
+        # First, invoke pre_randomize on all elements
+        for fm in field_model_l:
+            fm.pre_randomize()
             
         if constraint_l is None:
             constraint_l = []
@@ -555,9 +559,6 @@ class Randomizer(RandIF):
             for c in constraint_l:
                 print("  " + ModelPrettyPrinter.print(c, show_exp=True))
             
-        # First, invoke pre_randomize on all elements
-        for fm in field_model_l:
-            fm.pre_randomize()
 
         r = Randomizer()
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)

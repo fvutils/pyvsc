@@ -37,6 +37,7 @@ class FieldCompositeModel(FieldModel):
         self.rand_mode = is_rand
         self.rand_if = rand_if
         self.field_l = []
+        self.field_id_m = {}
         self.constraint_model_l = []
         self.constraint_dynamic_model_l = []
         self.exec_l = []
@@ -78,6 +79,7 @@ class FieldCompositeModel(FieldModel):
     def add_field(self, f)->FieldModel:
         f.parent = self
         f.idx    = len(self.field_l)
+        self.field_id_m[f.name] = f.idx
         self.field_l.append(f)
         return f
         

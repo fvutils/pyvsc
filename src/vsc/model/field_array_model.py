@@ -16,6 +16,7 @@ class FieldArrayModel(FieldCompositeModel):
     
     def __init__(self, 
                  name, 
+                 type_t,
                  is_scalar,
                  enums,
                  width,
@@ -24,6 +25,7 @@ class FieldArrayModel(FieldCompositeModel):
                  is_rand_sz):
         super().__init__(name, is_rand)
         # width and is_signed only needed for scalar fields
+        self.type_t = type_t
         self.is_enum = (enums is not None)
         self.enums = enums
         self.is_scalar = is_scalar

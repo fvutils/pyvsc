@@ -75,7 +75,7 @@ class expr(object):
        
         e = ExprBinModel(lhs_e, op, rhs_e)
         
-        return expr(e)        
+        return expr(e)
         
     def __eq__(self, rhs):
         return self.bin_expr(BinExprType.Eq, rhs)
@@ -168,7 +168,31 @@ class expr(object):
                         [ExprFieldRefModel(rhs.get_model())]))))
         else:
             raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
+        
+    
+class expr_subscript(expr):
+    def __init__(self, em):
+        super().__init__(em)
+        
+    def __getattr__(self, aname):
+        em = object.__getattribute__(self, "em")
+        pop_expr()
+      
+        ret = None
+        if isinstance(em, ExprArraySubscriptModel):
+            # TODO: Need to get the core type
+            lhs = em.lhs.fm
+
+            if aname in lhs.type_t.field_id_m.keys():
+                idx = lhs.type_t.field_id_m[aname]
+                ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+            else:
+                raise Exception("Type " + lhs.type_f.name + " does not contain " + aname)
+        else:
+            raise Exception("Expression getattribute access on non-subscript")
             
+        return ret
+    
     
 class rng(object):
     
@@ -723,8 +747,10 @@ class list_t(object):
     def get_model(self):
         if self._int_field_info.model is None:
             enums = None if not self.is_enum else self.t.enum_i.enums
+            type_t = self.t.get_model()
             self._int_field_info.model = FieldArrayModel(
                 "<unknown>",
+                type_t,
                 self.is_scalar,
                 enums,
                 self.t.width if self.is_scalar else -1,
@@ -890,13 +916,13 @@ class list_t(object):
                 to_expr(k)
                 idx_e = pop_expr()
                 
-                return expr(ExprArraySubscriptModel(
+                return expr_subscript(ExprArraySubscriptModel(
                     ExprFieldRefModel(self.get_model()),
                     idx_e))
             else:
                 to_expr(k)
                 idx_e = pop_expr()
-                return expr(ExprArraySubscriptModel(
+                return expr_subscript(ExprArraySubscriptModel(
                     ExprFieldRefModel(self.get_model()),
                     idx_e))
         else:
