@@ -6,7 +6,7 @@ Created on Jan 5, 2021
 import vsc
 from vsc_test_case import VscTestCase
 from vsc.impl.coverage_registry import CoverageRegistry
-from ucis.merge.db_merger import DbMerger
+#from ucis.merge.db_merger import DbMerger
 from ucis.mem.mem_factory import MemFactory
 
 class TestCoverageMerge(VscTestCase):
@@ -40,12 +40,12 @@ class TestCoverageMerge(VscTestCase):
         
         db2 = vsc.write_coverage_db("xx", "mem")
 
-        merger = DbMerger()
+#        merger = DbMerger()
         
-        merger.merge(db1)
-        merger.merge(db2)
+#        merger.merge(db1)
+#        merger.merge(db2)
 
-        dbm = MemFactory.create()
+#        dbm = MemFactory.create()
 #        merger.result(dbm)
         
 #        print("dbm=" + str(dbm))
