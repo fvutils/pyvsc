@@ -78,7 +78,7 @@ def write_coverage_db(
     covergroups = CoverageRegistry.inst().covergroup_types()
     db : UCIS
     
-    if fmt == "xml":
+    if fmt == "xml" or fmt == "mem":
         db = MemFactory.create()
     elif fmt == "libucis":
         if libucis is not None:
@@ -97,6 +97,7 @@ def write_coverage_db(
     
     if fmt == "xml":
         XmlFactory.write(db, filename)
-    else:
+    elif fmt != "mem":
         db.write(filename)
-    
+
+    return db

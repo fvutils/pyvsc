@@ -25,6 +25,10 @@ class CoverageRegistry(object):
             
         return CoverageRegistry._inst
     
+    @staticmethod
+    def clear():
+        CoverageRegistry._inst = None
+    
     def types(self):
         return self.covergroup_type_m.keys()
     

@@ -20,6 +20,7 @@
 # @author: ballance
 
 
+import random
 from _random import Random
 from builtins import set
 from typing import Set, Dict, List
@@ -72,7 +73,8 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             constraint_l : [ConstraintModel],
             rng=None) ->RandInfo:
         if rng is None:
-            rng = Random()
+#            rng = Random()
+            rng = random
             
         builder = RandInfoBuilder(rng)
 

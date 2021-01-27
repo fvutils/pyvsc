@@ -21,6 +21,7 @@
 
 
 import random
+import sys
 import time
 from typing import List, Dict
 
@@ -62,7 +63,7 @@ class Randomizer(RandIF):
         self.pretty_printer = ModelPrettyPrinter()
     
     _state_p = [0,1]
-    _rng = random.Random()
+    _rng = None
     
     def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
         """Randomize the variables and constraints in a RandInfo collection"""
@@ -415,14 +416,23 @@ class Randomizer(RandIF):
             tmp = low
             low = high
             high = tmp
-        return Randomizer._rng.randint(low, high)
+#        if Randomizer._rng is None:
+#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
+#        return Randomizer._rng.randint(low, high)
+        return random.randint(low, high)
     
     def randbits(self, nbits):
-        return Randomizer._rng.randint(0, (1<<nbits)-1)
+#        if Randomizer._rng is None:
+#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
+#        return Randomizer._rng.randint(0, (1<<nbits)-1)
+        return random.randint(0, (1<<nbits)-1)
 
     @staticmethod            
     def _next():
-        ret = Randomizer._rng.randint(0, 0xFFFFFFFF)
+#        if Randomizer._rng is None:
+#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
+#        ret = Randomizer._rng.randint(0, 0xFFFFFFFF)
+        ret = random.randint(0, 0xFFFFFFFF)
 #         ret = (Randomizer._state_p[0] + Randomizer._state_p[1]) & 0xFFFFFFFF
 #         Randomizer._state_p[1] ^= Randomizer._state_p[0]
 #         Randomizer._state_p[0] = (((Randomizer._state_p[0] << 55) | (Randomizer._state_p[0] >> 9))
@@ -512,7 +522,10 @@ class Randomizer(RandIF):
             constraint_l : List[ConstraintModel] = None):
         # All fields passed to do_randomize are treated
         # as randomizable
-        seed = Randomizer._rng.randint(0, (1 << 64)-1)
+#        if Randomizer._rng is None:
+#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
+#        seed = Randomizer._rng.randint(0, (1 << 64)-1)
+        seed = random.randint(0, (1<<64)-1)
         
         for f in field_model_l:
             f.set_used_rand(True, 0)
@@ -561,6 +574,8 @@ class Randomizer(RandIF):
             
 
         r = Randomizer()
+#        if Randomizer._rng is None:
+#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
         try:
             r.randomize(ri, bounds_v.bound_m)
