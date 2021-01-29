@@ -149,7 +149,7 @@ class TestRandomDist(VscTestCase):
                 self.v2 < 32
         
         obj = cls()
-        n_iter = 32*10
+        n_iter = 64*10
         
         hist_v1 = [0]*255
         hist_v2 = [0]*255
