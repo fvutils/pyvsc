@@ -1,3 +1,6 @@
+## 0.2.9
+- Correct an issue with array-bin specifications involving individual values.
+
 ## 0.2.8
 - Correct an issue with random-sized arrays being 'pinned' to a single size
 

@@ -45,6 +45,7 @@ from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.rangelist_model import RangelistModel
 from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum
 from vsc.model.enum_field_model import EnumFieldModel
+from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
 
 def covergroup(T):
     """Covergroup decorator marks as class as being a covergroup"""
@@ -286,10 +287,59 @@ class bin_array(object):
     """Specifies an array of bins"""
     
     def __init__(self, nbins, *args):
+        """
+        args may be one of two formats
+        - Single list of tuples or lists of values or ranges (eg [[1], [2,4], [8]])
+        - Arguments comprising values and ranges (eg 1, [2,4], 8)
+        """
         self.nbins = nbins
-        self.range_l = args
+        self.range_l = []
+        
+        # Convert the specification into canonical form: list of tuples
+        if len(args) == 1:
+            # Argument must be a value, a single-level list, or 
+            if isinstance(args[0], (list,tuple)):
+                # Must determine whether this is a programmatic description
+                # or a single user-specified range
+                if isinstance(args[0][0], (list,tuple)):
+                    # Programmatic description
+                    for r in args:
+                        if isinstance(r, (list,tuple)):
+                            if len(r) not in [1,2]:
+                                raise Exception("Programmatic bin specification elements require 1 or 2 elements: " + str(r))
+                            self.range_l.append(r)
+                        elif isinstance(r, int):
+                            self.range_l.append((r,))
+                        else:
+                            raise Exception("Unknown bin specification " + str(r))
+                else:
+                    # User-specified range
+                    if len(args[0]) != 2:
+                        raise Exception("Expect two elements in a user-specified range")
+                    if not isinstance(args[0][0], int):
+                        raise Exception("Bin value " + str(args[0][0]) + " is not integral")
+                    if not isinstance(args[0][1], int):
+                        raise Exception("Bin value " + str(args[0][1]) + " is not integral")
+                    self.range_l.append(args[0])
+            elif isinstance(args[0],int):
+                # user-specified single-value bin
+                self.range_l.append((args[0],))
+            else:
+                raise Exception("Bin specification " + str(args[0]) + " is neither value nor range")
+            pass
+        else:
+            # Multiple arguments. Expect each to be a single-level tuple or list
+            for a in args:
+                if isinstance(a,(list,tuple)):
+                    if len(a) != 2:
+                        raise Exception("Bin range " + str(a) + " must have two elements")
+                    else:
+                        self.range_l.append(a)
+                elif isinstance(a,int):
+                    self.range_l.append((a,))
+                else:
+                    raise Exception("Bin specification " + str(a) + " is neither value nor range")
 
-                
         if isinstance(nbins,list):
             if len(nbins) not in (0,1):
                 raise Exception("Only 0 or 1 argument can be specified to the nbins argument")
@@ -311,19 +361,24 @@ class bin_array(object):
         # Construct a range model
         if self.nbins == -1:
             # unlimited number of bins
+            print("len(self.range_l) " + str(len(self.range_l)))
             if len(self.range_l) == 1:
                 r = self.range_l[0]
                 ret = CoverpointBinArrayModel(name, r[0], r[1])
             else:
                 ret = CoverpointBinCollectionModel(name)
                 for r in self.range_l:
-                    if isinstance(r, (list,tuple)):
-                        if len(r) != 2: 
-                            raise Exception("Expecting range \"" + str(r) + "\" to have two elements")
+                    if len(r) == 2:
                         b = ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
                         b.srcinfo_decl = self.srcinfo_decl
+                    elif len(r) == 1:
+                        b = ret.add_bin(CoverpointBinSingleValModel(name, r[0]))
+                        b.srcinfo_decl = self.srcinfo_decl
                     else:
-                        raise Exception("Single-value bins unimplemented")
+                        raise Exception("Internal error: expect bin to have 1 or 2 elements not " + 
+                                        str(len(r)) + " (" +
+                                        name + " " + self.srcinfo_decl.filename + ":" +
+                                        str(self.srcinfo_decl.lineno) + ")")
         else:
             ret = CoverpointBinCollectionModel.mk_collection(name, 
                     RangelistModel(self.range_l), self.nbins)
