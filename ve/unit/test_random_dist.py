@@ -190,7 +190,7 @@ class TestRandomDist(VscTestCase):
                 self.v2 <= 31
         
         obj = cls()
-        n_iter = 32*10
+        n_iter = 64*10
         
         hist_v1 = [0]*255
         hist_v2 = [0]*255
@@ -235,7 +235,7 @@ class TestRandomDist(VscTestCase):
                 self.v2 < self.v2_b
         
         obj = cls()
-        n_iter = 32*10
+        n_iter = 64*10
         
         hist_v1 = [0]*255
         hist_v2 = [0]*255
@@ -280,7 +280,7 @@ class TestRandomDist(VscTestCase):
                 self.v2 <= self.v2_b
         
         obj = cls()
-        n_iter = 32*20
+        n_iter = 64*20
         
         hist_v1 = [0]*255
         hist_v2 = [0]*255
@@ -322,7 +322,7 @@ class TestRandomDist(VscTestCase):
                 self.v2.size < 32
         
         obj = cls()
-        n_iter = 32*20
+        n_iter = 64*20
         
         hist_v1 = [0]*255
         hist_v2 = [0]*255
