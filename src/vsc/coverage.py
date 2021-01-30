@@ -361,7 +361,6 @@ class bin_array(object):
         # Construct a range model
         if self.nbins == -1:
             # unlimited number of bins
-            print("len(self.range_l) " + str(len(self.range_l)))
             if len(self.range_l) == 1:
                 r = self.range_l[0]
                 ret = CoverpointBinArrayModel(name, r[0], r[1])
@@ -568,15 +567,26 @@ class cross(object):
         self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
         self.name = name
         
+        self.model = None
+        
     def build_cov_model(self, parent, name):
         # Let the user-specified name take precedence
-        ret = CoverpointCrossModel(
-            name if self.name is None else self.name)
+        if self.model is None:
+            ret = CoverpointCrossModel(
+                name if self.name is None else self.name)
         
-        ret.srcinfo_decl = self.srcinfo_decl
+            ret.srcinfo_decl = self.srcinfo_decl
         
-        for cp in self.target_l:
-            m = cp.get_model()
-            ret.add_coverpoint(m)
+            for cp in self.target_l:
+                m = cp.get_model()
+                ret.add_coverpoint(m)
+                
+            self.model = ret
             
-        return ret
+        return self.model
+    
+    def get_coverage(self):
+        if self.model is None:
+            return 0.0
+        else:
+            return self.model.get_coverage()        

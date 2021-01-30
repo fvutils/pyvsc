@@ -18,6 +18,9 @@ class ValueBool(Value):
     def val(self):
         return self.v != 0
     
+    def __bool__(self):
+        return self.v
+    
     def __int__(self):
         return 1 if self.v else 0
     

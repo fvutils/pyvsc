@@ -37,7 +37,12 @@ class CoverpointBinSingleValModel(CoverpointBinModelBase):
     def sample(self):
         val = self.cp.get_val()
         if val == self.target_val:
+            self.hit_bin_idx = 0
             self.cp.coverage_ev(self.bin_idx_base)
+        else:
+            self.hit_bin_idx = -1
+            
+        return self.hit_bin_idx
             
     def accept(self, v):
         v.visit_coverpoint_bin_single(self)

@@ -26,25 +26,33 @@ class ValueScalar(Value):
         return self.v != 0
     
     def __eq__(self, rhs):
-        return ValueBool(self.v == rhs.v)
+        v = int(rhs)
+        return ValueBool(self.v == v)
     
     def __ne__(self, rhs):
-        return ValueBool(self.v != rhs.v)
+        v = int(rhs)
+        return ValueBool(self.v != v)
     
     def __gt__(self, rhs):
-        return ValueBool(self.v > rhs.v)
+        v = int(rhs)
+        return ValueBool(self.v > v)
     
     def __ge__(self, rhs):
-        return ValueBool(self.v >= rhs.v)
+        v = int(rhs)
+        return ValueBool(self.v >= v)
     
     def __lt__(self, rhs):
-        return ValueBool(self.v < rhs.v)
+        v = int(rhs)
+        return ValueBool(self.v < v)
     
     def __le__(self, rhs):
-        return ValueBool(self.v <= rhs.v)
+        v = int(rhs)
+        return ValueBool(self.v <= v)
     
     def __add__(self, rhs):
-        return ValueScalar(self.v + rhs.v)
+        v = int(rhs)
+        return ValueScalar(self.v + v)
     
     def __sub__(self, rhs):
-        return ValueScalar(self.v - rhs.v)
+        v = int(rhs)
+        return ValueScalar(self.v - v)

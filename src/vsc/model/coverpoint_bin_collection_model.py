@@ -85,8 +85,14 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
     def sample(self):
         self.hit_bin_idx = -1
 
+        bin_offset = 0
         for b in self.bin_l:
             b.sample()
+            if b.hit_bin_idx != -1:
+                self.hit_bin_idx = bin_offset + b.hit_bin_idx
+            bin_offset += b.get_n_bins()
+                
+        return self.hit_bin_idx
             
 
     def dump(self, ind=""):

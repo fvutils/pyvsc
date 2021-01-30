@@ -1,5 +1,8 @@
+
 ## 0.2.9
 - Correct an issue with array-bin specifications involving individual values.
+- Added 'get_coverage' to cross
+- Ensured that bin collections are properly recorded for crosses
 
 ## 0.2.8
 - Correct an issue with random-sized arrays being 'pinned' to a single size

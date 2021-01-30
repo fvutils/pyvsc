@@ -50,6 +50,8 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
         else:
             self.hit_bin_idx = -1
             
+        return self.hit_bin_idx
+            
     def accept(self, v):
         v.visit_coverpoint_bin_single_range(self)
         
