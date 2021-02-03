@@ -20,7 +20,7 @@ class TestCoverageModel(VscTestCase):
             ExprRefModel(lambda: a, 32, False), "a_cp")
         cg.add_coverpoint(a_cp)
         
-        bins = a_cp.add_bin_model(CoverpointBinArrayModel("a", 0, 15))
+        bins = a_cp.add_bin_model(CoverpointBinArrayModel("a", 0, 0, 15))
         
         cg.finalize()
         
