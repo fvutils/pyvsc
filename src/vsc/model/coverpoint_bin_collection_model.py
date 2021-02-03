@@ -150,6 +150,7 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
             else:
                 n_values += (r[1]-r[0]+1)
 
+        idx = 0
         ret = CoverpointBinCollectionModel(name)
         if n_bins < n_values:
             # We need to partition the values into bins
@@ -167,7 +168,10 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                 # If the bin fits within this interval, then just 
                 # create a range bin
                 if (r[1]-r[0]+1) >= values_per_bin:
-                    ret.add_bin(CoverpointBinSingleRangeModel(name, r[0], r[0]+values_per_bin-1))
+                    ret.add_bin(CoverpointBinSingleRangeModel(
+                        name + "[" + str(idx) + "]", 
+                        r[0], r[0]+values_per_bin-1))
+                    idx += 1
 
                     if (r[1]-r[0] > values_per_bin):
                         # We need to continue working on this range
@@ -181,7 +185,8 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                     # The number of values here is smaller than the bin size
                     # We need to start a bin and move forward until we've
                     # collected enough values
-                    b = ret.add_bin(CoverpointBinSingleBagModel(name))
+                    b = ret.add_bin(CoverpointBinSingleBagModel(name + "[" + str(idx) + "]"))
+                    idx += 1
                     
                     b.binspec.add_range(r[0], r[1])
                     n_remaining = values_per_bin - (r[1]-r[0]+1)
@@ -215,8 +220,9 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
             # We don't actually need to partition
             for r in rangelist.range_l:
                 if r[0] == r[1]:
-                    ret.add_bin(CoverpointBinSingleValModel(name, r[0]))
+                    ret.add_bin(CoverpointBinSingleValModel(name + "[" + str(idx) + "]", r[0]))
                 else:
-                    ret.add_bin(CoverpointBinSingleRangeModel(name, r[0], r[1]))
+                    ret.add_bin(CoverpointBinSingleRangeModel(name + "[" + str(idx) + "]", r[0], r[1]))
+                idx += 1
                     
         return ret

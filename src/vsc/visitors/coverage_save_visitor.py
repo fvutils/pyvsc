@@ -61,13 +61,17 @@ class CoverageSaveVisitor(ModelVisitor):
         # the relevant source files        
         self.phase = SavePhase.CollectSources
         
-        # First, create a history node
-        histnode = self.db.createHistoryNode(
-            None,
-            self.logicalname,
-            "foo.ucis", # Why do we need to pass this in?
-            UCIS_HISTORYNODE_TEST)
-        histnode.setTestData(td)
+        # First, create a history node. This must always
+        # be provided if we're creating a bare UCIS file.
+        # If we're just contributing data in the context
+        # of another tool's run, this is omitted
+        if td is not None:
+            histnode = self.db.createHistoryNode(
+                None,
+                self.logicalname,
+                "foo.ucis", # Why do we need to pass this in?
+                UCIS_HISTORYNODE_TEST)
+            histnode.setTestData(td)
         
         for cg in cg_l:
             cg.accept(self)
@@ -145,6 +149,7 @@ class CoverageSaveVisitor(ModelVisitor):
         for bi in range(cp.get_n_bins()):
             decl_location = None
             bn_name = cp.get_bin_name(bi)
+            print("Create Bin: " + str(bn_name))
             cp_bin = cp_scope.createBin(
                 bn_name,
                 decl_location,
@@ -170,6 +175,7 @@ class CoverageSaveVisitor(ModelVisitor):
         for i in range((bn.high-bn.low)+1):
             v = bn.low+i
             bn_name = bn.name + "[%d]" % (v,)
+            print("Create Bin: " + str(bn_name))
             cp_bin = active_cp.createBin(
                 bn_name,
                 decl_location,
@@ -247,9 +253,10 @@ class CoverageSaveVisitor(ModelVisitor):
             return self.active_scope_s[-1]
         else:
             # Need to create a default scope
-            from ucis.source_info import SourceInfo
-            file = self.db.createFileHandle("dummy", os.getcwd())
-            du_src_info = SourceInfo(file, 0, 0)
+#            from ucis.source_info import SourceInfo
+#            file = self.db.createFileHandle("dummy", os.getcwd())
+#            du_src_info = SourceInfo(file, 0, 0)
+            du_src_info = None
             
             cg_default_du = self.db.createScope(
                 self.cg_default_du_name,

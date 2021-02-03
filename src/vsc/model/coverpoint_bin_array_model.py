@@ -31,8 +31,9 @@ from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinArrayModel(CoverpointBinModelBase):
     
-    def __init__(self, name, low, high):
+    def __init__(self, name, idx_base, low, high):
         super().__init__(name)
+        self.idx_base = idx_base
         self.low = low 
         self.high = high 
         self.hit_bin_idx = -1
@@ -50,7 +51,7 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         )
     
     def get_bin_name(self, bin_idx):
-        return self.name + "[" + str(self.low+bin_idx) + "]"
+        return self.name + "[" + str(self.idx_base+bin_idx) + "]"
             
     def sample(self):
         # Query value from the actual coverpoint or expression

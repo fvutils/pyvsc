@@ -16,18 +16,22 @@
 # under the License.
 
 from _io import StringIO
+from ctypes import cdll, c_void_p, CFUNCTYPE
 from datetime import datetime
 import sys
 from typing import List
+
 from ucis import UCIS_TESTSTATUS_OK, db
 import ucis
+from ucis.lib.LibFactory import LibFactory
+from ucis.lib.lib_ucis import LibUCIS
 from ucis.mem.mem_factory import MemFactory
 from ucis.report.coverage_report import CoverageReport
 from ucis.report.coverage_report_builder import CoverageReportBuilder
 from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
 from ucis.test_data import TestData
 from ucis.ucis import UCIS
-
+from ucis.xml.xml_factory import XmlFactory
 from vsc.attrs import *
 from vsc.constraints import *
 from vsc.coverage import *
@@ -35,8 +39,8 @@ from vsc.methods import *
 from vsc.rand_obj import *
 from vsc.types import *
 from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
-from ucis.xml.xml_factory import XmlFactory
-from ucis.lib.LibFactory import LibFactory
+from ucis.ucdb.ucdb_factory import UcdbFactory
+from ucis.ucdb.ucdb_ucis import UcdbUCIS
 
 
 def get_coverage_report(details=False)->str:
@@ -82,8 +86,8 @@ def write_coverage_db(
         db = MemFactory.create()
     elif fmt == "libucis":
         if libucis is not None:
-            libucis.load_ucis_library(libucis)
-        db = LibFactory.create(libucis)
+            LibFactory.load_ucis_library(libucis)
+        db = LibFactory.create(None)
     else:
         raise Exception("Unsupported coverage-report format " + format 
                         + ". Supported formats: " + str(formats))
@@ -101,3 +105,45 @@ def write_coverage_db(
         db.write(filename)
 
     return db
+
+def qsim_save_coverage(ucdb, region, param):
+    """
+    Contributes Python coverage to Mentor Questa's coverage database
+    """
+    
+    print("ucdb=" + str(ucdb) + " region=" + str(region) + " param=" + str(param))
+    # Load the UCIS library and initialize the Python
+    # interface
+    UcdbFactory.load_ucdb_library("libucdb.so")
+    
+    db = UcdbUCIS(db=ucdb)
+    covergroups = CoverageRegistry.inst().covergroup_types()
+    save_visitor = CoverageSaveVisitor(db)
+    
+    save_visitor.save(None, covergroups)
+    
+    pass
+
+# Make the callback-function object global to 
+# prevent it being garbage-collected
+_qsim_cov_save_coverage_cb = None
+
+def vsc_static_init():
+    # Load the application
+    lib = cdll.LoadLibrary(None)
+    print("lib=" + str(lib))
+  
+    # If we're running inside Mentor QuestaSim,
+    # register a callback to save coverage data 
+    if hasattr(lib, "mti_AddUCDBSaveCB"):
+        global _qsim_cov_save_coverage_cb
+        print("PyVSC Note: Registered coverage-save callback with Mentor Questa")
+        ucdb_save_func_t = CFUNCTYPE(None, c_void_p, c_void_p, c_void_p)
+        add_cb = lib.mti_AddUCDBSaveCB
+        add_cb.argtypes = [c_void_p, c_void_p, c_void_p]
+        _qsim_cov_save_coverage_cb = ucdb_save_func_t(qsim_save_coverage)
+        add_cb(None, _qsim_cov_save_coverage_cb, None)
+
+   
+#vsc_static_init()
+

@@ -363,16 +363,19 @@ class bin_array(object):
             # unlimited number of bins
             if len(self.range_l) == 1:
                 r = self.range_l[0]
-                ret = CoverpointBinArrayModel(name, r[0], r[1])
+                ret = CoverpointBinArrayModel(name, 0, r[0], r[1])
             else:
+                idx=0
                 ret = CoverpointBinCollectionModel(name)
                 for r in self.range_l:
                     if len(r) == 2:
-                        b = ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
+                        b = ret.add_bin(CoverpointBinArrayModel(name, idx, r[0], r[1]))
                         b.srcinfo_decl = self.srcinfo_decl
+                        idx += ((r[1] - r[0]) + 1)
                     elif len(r) == 1:
-                        b = ret.add_bin(CoverpointBinSingleValModel(name, r[0]))
+                        b = ret.add_bin(CoverpointBinSingleValModel(name + "[" + str(idx) + "]", r[0]))
                         b.srcinfo_decl = self.srcinfo_decl
+                        idx += 1
                     else:
                         raise Exception("Internal error: expect bin to have 1 or 2 elements not " + 
                                         str(len(r)) + " (" +
