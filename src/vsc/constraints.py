@@ -101,14 +101,12 @@ class weight(object):
             if len(val) != 2:
                 raise Exception("Weight range must have two elements")
             to_expr(val[0])
+            rng_lhs_e = pop_expr()
             to_expr(val[1])
             rng_rhs_e = pop_expr()
-            rng_lhs_e = pop_expr()
         elif isinstance(val, rng):
-            to_expr(val.low)
-            to_expr(val.high)
-            rng_rhs_e = pop_expr()
-            rng_lhs_e = pop_expr()
+            rng_lhs_e = val.low
+            rng_rhs_e = val.high 
         else:
             to_expr(val)
             rng_lhs_e = pop_expr()
@@ -366,7 +364,6 @@ def solve_order(before, after):
             raise Exception("Parameter " + str(after) + " is not a field reference")
         after_l.append(after_e.fm)
 
-    print("-- push_constraint_stmt")        
     push_constraint_stmt(ConstraintSolveOrderModel(before_l, after_l))
 
 

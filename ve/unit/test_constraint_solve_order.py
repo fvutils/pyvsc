@@ -205,4 +205,51 @@ class TestConstraintSolveOrder(VscTestCase):
         for i in range(5):
             obj.randomize()
             print(obj.a, obj.b)
+            
+    def test_max_load_store_offset(self):
+        @vsc.randobj
+        class mem_region_t:
+            def __init__(self, name = "", size_in_bytes = 0, xwr = 0): 
+                self.name = name 
+                self.size_in_bytes = vsc.uint32_t(i = size_in_bytes)
+                self.xwr = vsc.uint8_t(i = xwr)
+
+        @vsc.randobj
+        class classA:
+            def __init__(self):
+                self.base = vsc.rand_int32_t()
+                self.max_load_store_offset = vsc.rand_int32_t()
+                self.max_data_page_id = vsc.int32_t()
+                self.data_page = vsc.list_t(mem_region_t())
+                self.data_page_id = vsc.rand_uint32_t()
+                self.mem_region = vsc.list_t(mem_region_t())
+                self.mem_region.extend([mem_region_t(name = "region_0", size_in_bytes = 4096, xwr = 8), 
+                                        mem_region_t(name = "region_1", size_in_bytes = 4096, xwr = 8)])
+
+            def pre_randomize(self):
+                print("[Pre] max_load_store_offset: ", self.max_load_store_offset)
+                print("[Pre] Base: ", self.base)
+                self.data_page.clear()
+                self.data_page.extend(self.mem_region)
+                self.max_data_page_id = len(self.data_page)
+        
+
+            def post_randomize(self):
+                print("[Post] max_load_store_offset: ", self.max_load_store_offset)
+                print("[Post] Base: ", self.base)
+
+            @vsc.constraint
+            def addr_c(self):
+                vsc.solve_order(self.data_page_id, self.max_load_store_offset)
+                vsc.solve_order(self.max_load_store_offset, self.base)
+                self.data_page_id < self.max_data_page_id
+                with vsc.foreach(self.data_page, idx = True) as i:
+                    with vsc.if_then(i == self.data_page_id):
+                        self.max_load_store_offset == self.data_page[i].size_in_bytes
+                self.base in vsc.rangelist(vsc.rng(0, self.max_load_store_offset - 1))
+
+        obj = classA()
+        for i in range(100):
+            obj.randomize()
+        
 

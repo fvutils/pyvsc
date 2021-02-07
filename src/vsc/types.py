@@ -197,8 +197,10 @@ class expr_subscript(expr):
 class rng(object):
     
     def __init__(self, low, high):
-        self.low = low
-        self.high = high
+        to_expr(low)
+        self.low = pop_expr()
+        to_expr(high)
+        self.high = pop_expr()
         
 class rangelist(object):
     
@@ -214,16 +216,12 @@ class rangelist(object):
                 if len(a) != 2:
                     raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
                 to_expr(a[0])
+                e0 = pop_expr()
                 to_expr(a[1])
                 e1 = pop_expr()
-                e0 = pop_expr()
                 self.range_l.add_range(ExprRangeModel(e0, e1))
             elif isinstance(a, rng):
-                to_expr(a.low)
-                to_expr(a.high)
-                e1 = pop_expr()
-                e0 = pop_expr()
-                self.range_l.add_range(ExprRangeModel(e0, e1))
+                self.range_l.add_range(ExprRangeModel(a.low, a.high))
             elif isinstance(a, list):
                 for ai in a:
                     to_expr(ai)
@@ -246,6 +244,7 @@ class rangelist(object):
 
 def to_expr(t):
     if isinstance(t, expr):
+#        push_expr(t.em)
         return t
     elif type(t) == int:
         return expr(ExprLiteralModel(t, True, 32))
@@ -360,13 +359,13 @@ class type_base(object):
         
     def bin_expr(self, op, rhs):
         to_expr(rhs)
+        rhs_e = pop_expr()
 
 #        push_expr(ExprFieldRefModel(self._int_field_info.model))
         # Push a reference to this field
         self.to_expr()
 
         lhs_e = pop_expr()
-        rhs_e = pop_expr()
         
         e = ExprBinModel(lhs_e, op, rhs_e)
         
