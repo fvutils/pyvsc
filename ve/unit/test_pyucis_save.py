@@ -19,6 +19,10 @@ import vsc
 from vsc.impl import ctor
 from vsc.impl.coverage_registry import CoverageRegistry
 from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
+from ucis.xml.xml_factory import XmlFactory
+from ucis.report.coverage_report_builder import CoverageReportBuilder
+from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
+import sys
 
 
 class TestPyUcisSave(TestCase):
@@ -79,6 +83,54 @@ class TestPyUcisSave(TestCase):
 
         xmlin = StringIO(out.getvalue())        
         XmlReader.validate(xmlin)
-        
+
+    def test_cross(self):
+        @vsc.covergroup
+        class my_covergroup(object):
+
+            def __init__(self): 
+                super().__init__()
+                self.a=None
+                self.b=None
+                self.cp1 = vsc.coverpoint(lambda:self.a,
+                    bins=dict(
+                        a = vsc.bin_array([], [0,15])
+                    ))
+
+                self.cp2 = vsc.coverpoint(lambda:self.b, bins=dict(
+                    b = vsc.bin_array([], [0,15])
+                    ))
+                self.cross = vsc.cross([self.cp1, self.cp2])
+
+
+            #a = 0;
+            #b = 0;
+
+        cg = my_covergroup()
+
+        cg.a = 0 
+        cg.b = 0
+        print("A: ",str(cg.a), " B: ", str(cg.b))
+        cg.sample() # Hit the first bin of cp1 and cp2  
+
+            
+        report = vsc.get_coverage_report()
+        print("Report:\n" + report)
+        out = StringIO()
+        vsc.write_coverage_db("cov.xml")
+        print(">================== Write XML ========================")
+        vsc.write_coverage_db(out)
+        print("<================== Write XML ========================")
+        db = XmlFactory.read(out)
+        print(">================== Build Report =====================")
+        report = CoverageReportBuilder.build(db)
+        print("<================== Build Report =====================")
+        print(">================== Text Reporter ====================")
+        reporter = TextCoverageReportFormatter(report, sys.stdout)
+        print("<================== Text Reporter ====================")
+        reporter.details = True
+        print(">================== XML Report =======================")
+        reporter.report()
+        print("<================== XML Report =======================")        
 
         
