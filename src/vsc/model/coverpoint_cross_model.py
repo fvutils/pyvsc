@@ -134,6 +134,10 @@ class CoverpointCrossModel(CoverItemBase):
         if not self.finalized:
             raise Exception("Cross sampled before finalization")
         
+#        for cp in self.coverpoint_model_l:
+#            for b in cp.bin_model_l:
+#                print("hit_idx: " + str(b.hit_idx()))
+        
         have_cp_hit = False
         key_m = []
         for cp in self.coverpoint_model_l:

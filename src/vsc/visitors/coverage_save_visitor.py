@@ -149,7 +149,6 @@ class CoverageSaveVisitor(ModelVisitor):
         for bi in range(cp.get_n_bins()):
             decl_location = None
             bn_name = cp.get_bin_name(bi)
-            print("Create Bin: " + str(bn_name))
             cp_bin = cp_scope.createBin(
                 bn_name,
                 decl_location,
@@ -175,7 +174,6 @@ class CoverageSaveVisitor(ModelVisitor):
         for i in range((bn.high-bn.low)+1):
             v = bn.low+i
             bn_name = bn.name + "[%d]" % (v,)
-            print("Create Bin: " + str(bn_name))
             cp_bin = active_cp.createBin(
                 bn_name,
                 decl_location,

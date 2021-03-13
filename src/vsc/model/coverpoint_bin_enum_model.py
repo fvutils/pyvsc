@@ -44,7 +44,10 @@ class CoverpointBinEnumModel(CoverpointBinModelBase):
 #        print("sample: binspec=" + str(self.binspec))
         val = self.cp.get_val()
         if int(val) == int(self.target_val):
+            self.hit_bin_idx = 0
             self.cp.coverage_ev(self.bin_idx_base)
+        else:
+            self.hit_bin_idx = -1
             
         return self.hit_bin_idx
             
