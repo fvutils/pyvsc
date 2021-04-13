@@ -1,5 +1,9 @@
 
-## 0.2.9
+
+## 0.3.1
+- (#61) - Correct an issue with multiple failing soft constraints
+
+## 0.3.0
 - (#57) - Correct an issue with cross coverage on enum-type bins
 
 ## 0.2.9

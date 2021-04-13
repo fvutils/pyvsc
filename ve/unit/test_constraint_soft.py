@@ -40,5 +40,33 @@ class TestConstraintSoft(VscTestCase):
         self.assertNotEqual(my_i.a, my_i.b)
         self.assertLess(my_i.a, my_i.b)
         self.assertGreater(my_i.a, 0)
+        
+    def test_soft_dist(self):
+        
+        @vsc.randobj
+        class my_item(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def valid_ab_c(self):
+                self.a < self.b
+                vsc.soft(self.a > 5) #A
+         
+            @vsc.constraint
+            def dist_a(self):
+                vsc.dist(self.a, [
+                    vsc.weight(0,  10),
+                    vsc.weight(1,  100),
+                    vsc.weight(2,  10),
+                    vsc.weight(4,  10),
+                    vsc.weight(8, 10)])
+
+        item = my_item()
+        for i in range(10):
+            with item.randomize_with() as it:
+                it.b > 10
+                it.a == 1 #B
             
         

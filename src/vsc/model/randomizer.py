@@ -154,33 +154,43 @@ class Randomizer(RandIF):
                 
                 if len(soft_node_l) > 0:
                     # Try one more time before giving up
-                    for i,f in enumerate(btor.Failed(*soft_node_l)):
-                        if f:
+                    for i,f in enumerate(soft_node_l):
+                        if btor.Failed(f):
                             soft_node_l[i] = None
                         
                     # Add back the hard-constraint nodes and soft-constraints that
                     # didn't fail                        
-                    for n in filter(lambda n:n is not None, node_l+soft_node_l):
+#                    for n in filter(lambda n:n is not None, node_l+soft_node_l):
+                    for n in filter(lambda n:n is not None, node_l):
+                        btor.Assume(n)
+                        
+                    for n in filter(lambda n:n is not None, soft_node_l):
                         btor.Assume(n)
 
                     # If we fail again, then we truly have a problem
                     if btor.Sat() != btor.SAT:
                     
                         # Ensure we clean up
+#                        active_randsets = []
+#                        x=start_rs_i
+#                        while x < rs_i:
+#                            rs = ri.randsets()[x]
+#                            active_randsets.append(rs)
+#                            for f in rs.all_fields():
+#                                f.dispose()
+#                            x += 1
                         active_randsets = []
-                        x=start_rs_i
-                        while x < rs_i:
-                            rs = ri.randsets()[x]
+                        for rs in ri.randsets():
                             active_randsets.append(rs)
                             for f in rs.all_fields():
                                 f.dispose()
-                            for f in rs.nontarget_field_s:
-                                f.dispose()
-                            x += 1
+                            raise SolveFailure(
+                                "solve failure",
+                                self.create_diagnostics(active_randsets))
 
-                        raise SolveFailure(
-                            "solve failure", 
-                            self.create_diagnostics(active_randsets))
+#                        raise SolveFailure(
+#                            "solve failure", 
+#                            self.create_diagnostics(active_randsets))
                     else:
                         # Still need to convert assumptions to assertions
                         for n in filter(lambda n:n is not None, node_l+soft_node_l):

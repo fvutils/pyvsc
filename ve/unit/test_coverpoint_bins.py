@@ -90,5 +90,21 @@ class TestCoverpointBins(VscTestCase):
         cg.dump()
 
         vsc.report_coverage(details=True)        
+
+    def test_iff(self):
         
+        @vsc.covergroup
+        class my_cg(object):
+            def __init__(self):
+                self.with_sample(dict( a=vsc.uint8_t(),b=vsc.uint8_t()))
+                self.cp1 = vsc.coverpoint(self.a, iff=self.b, bins={ "a" : vsc.bin_array([], 1, 2, 4), "b" : vsc.bin_array([4], [8,16])})
+
+        my_cg_1 = my_cg()
+
+        for i in range(8):
+            my_cg_1.sample(i, 0)
+
+        str_report = vsc.get_coverage_report(details=True)
+        print("Report:\n" + str_report)        
+
         
