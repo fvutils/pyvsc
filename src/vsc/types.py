@@ -592,7 +592,7 @@ class bit_t(type_base):
 class bool_t(type_base):
     """Creates a boolean field"""
     def __init__(self, i=False):
-        super.__init__(1, False, 1 if i else 0)
+        super().__init__(1, False, 1 if i else 0)
 
 class uint8_t(bit_t):
     """Creates an unsigned 8-bit attribute"""

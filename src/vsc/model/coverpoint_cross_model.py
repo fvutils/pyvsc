@@ -32,10 +32,12 @@ from vsc.model.bin_expr_type import BinExprType
 
 class CoverpointCrossModel(CoverItemBase):
     
-    def __init__(self, name):
+    def __init__(self, name, iff=None):
         super().__init__()
         self.parent = None
         self.name = name
+        self.iff = iff
+        self.iff_val_cache = True
         self.coverpoint_model_l = []
         self.finalized = False
         self.n_bins = 0
@@ -134,28 +136,32 @@ class CoverpointCrossModel(CoverItemBase):
         if not self.finalized:
             raise Exception("Cross sampled before finalization")
         
-#        for cp in self.coverpoint_model_l:
-#            for b in cp.bin_model_l:
-#                print("hit_idx: " + str(b.hit_idx()))
+        if self.iff is not None:
+            self.iff_val_cache = bool(self.iff.val())
         
-        have_cp_hit = False
+        have_cp_hit = self.iff_val_cache
         key_m = []
-        for cp in self.coverpoint_model_l:
-            have_bin_hit = False
-            idx = 0
-            for b in cp.bin_model_l:
-                if b.hit_idx() != -1:
-                    key_m.append(b.hit_idx() + idx)
-                    have_bin_hit = True
-                    break
-                else:
-                    idx += b.get_n_bins()
+        if have_cp_hit:
+            for cp in self.coverpoint_model_l:
+                have_bin_hit = False
+                if cp.iff_val_cache:
+                    idx = 0
+                    for b in cp.bin_model_l:
+                        if b.hit_idx() != -1:
+                            key_m.append(b.hit_idx() + idx)
+                            have_bin_hit = True
+                            break
+                        else:
+                            idx += b.get_n_bins()
                     
-            if have_bin_hit:
-                have_cp_hit = True
-            else:
-                have_cp_hit = False
-                break
+                    if have_bin_hit:
+                        have_cp_hit = True
+                    else:
+                        have_cp_hit = False
+                        break
+                else:
+                    have_cp_hit = False
+                    break
             
         if have_cp_hit:
             key = tuple(key_m)

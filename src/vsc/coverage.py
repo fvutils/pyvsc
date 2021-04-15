@@ -43,7 +43,8 @@ from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionMod
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.rangelist_model import RangelistModel
-from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum
+from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum,\
+    expr
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
 
@@ -428,6 +429,8 @@ class coverpoint(object):
         self.options = Options()
         self.type_options = TypeOptions()
         self.name = name
+        self.iff = None
+        self.iff_f = None
         
         # Capture the declaration location of this coverpoint
         frame = inspect.stack()[1]
@@ -468,8 +471,20 @@ class coverpoint(object):
                 print("target=" + str(self.target))
                 self.get_val_f = self.target.val
                 print("self.get_val_f=" + str(self.get_val_f))
+
+            if iff is not None:
+                if isinstance(iff, expr):
+                    self.iff = iff.em
+                elif isinstance(iff, (type_enum,type_base)):
+                    iff.to_expr()
+                    self.iff = pop_expr()
+                elif callable(iff):
+                    # The user has provided a function to
+                    # gate when sampling occurs
+                    self.iff_f = iff
+                else:
+                    raise Exception("Unknown iff type " + str(iff))
             
-        self.iff = iff
         self.bins = bins
         
         ctor.clear_exprs()
@@ -502,10 +517,17 @@ class coverpoint(object):
                     is_signed)
             else:
                 sample_expr = self.target
+                
+            iff_e = None
+            if self.iff_f is not None:
+                iff_e = ExprRefModel(self.iff_f, 1, False)
+            elif self.iff is not None:
+                iff_e = self.iff
             
             self.model = CoverpointModel(
                 sample_expr,
-                name if self.name is None else self.name)
+                name if self.name is None else self.name,
+                iff_e)
             self.model.srcinfo_decl = self.srcinfo_decl
 
             with expr_mode():
@@ -558,12 +580,31 @@ class coverpoint(object):
     
 class cross(object):
     
-    def __init__(self, target_l, bins=None, name=None):
+    def __init__(self, 
+                 target_l, 
+                 bins=None, 
+                 name=None,
+                 iff=None):
         for t in target_l:
             if not isinstance(t, coverpoint):
                 raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint")
         self.target_l = target_l
         self.bins = bins
+        
+        self.iff_f = None
+        self.iff = None
+
+        if iff is not None:        
+            with expr_mode():
+                if isinstance(iff, expr):
+                    self.iff = iff.em
+                elif isinstance(iff, (type_enum,type_base)):
+                    iff.to_expr()
+                    self.iff = pop_expr()
+                elif callable(iff):
+                    self.iff_f = iff
+                else:
+                    raise Exception("Unknown iff type " + str(iff))
         
         # Capture the declaration location of this cross
         frame = inspect.stack()[1]
@@ -575,8 +616,16 @@ class cross(object):
     def build_cov_model(self, parent, name):
         # Let the user-specified name take precedence
         if self.model is None:
+            iff = None
+
+            if self.iff_f:
+                iff = ExprRefModel(self.iff_f, 1, False)
+            elif self.iff:
+                iff = self.iff
+            
             ret = CoverpointCrossModel(
-                name if self.name is None else self.name)
+                name if self.name is None else self.name,
+                iff)
         
             ret.srcinfo_decl = self.srcinfo_decl
         

@@ -34,13 +34,18 @@ from vsc.model.coverage_options_model import CoverageOptionsModel
 
 class CoverpointModel(CoverItemBase):
     
-    def __init__(self, target : ExprModel, name : str):
+    def __init__(self, 
+                 target : ExprModel, 
+                 name : str,
+                 iff : ExprModel = None):
         super().__init__()
         self.parent = None
         self.target = target
+        self.iff = iff
 
         # Cached value Target-ref field. This is used to retrieve values for
         # type covergroups
+        self.iff_val_cache = True
         self.target_val_cache = 0
 
         self.name = name
@@ -108,8 +113,13 @@ class CoverpointModel(CoverItemBase):
         raise Exception("get_inst_coverage unimplemented")
         
     def sample(self):
-        for b in self.bin_model_l:
-            b.sample()
+
+        if self.iff is not None:
+            self.iff_val_cache = bool(self.iff.val())
+
+        if self.iff_val_cache:            
+            for b in self.bin_model_l:
+                b.sample()
             
     def select_unhit_bin(self, r:RandIF)->int:
         if len(self.unhit_s) > 0:

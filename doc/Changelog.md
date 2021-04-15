@@ -1,4 +1,6 @@
 
+## 0.3.2
+- (#60) - Correct issues handling 'iff' on coverpoints and crosses
 
 ## 0.3.1
 - (#61) - Correct an issue with multiple failing soft constraints

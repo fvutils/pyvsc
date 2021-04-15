@@ -67,8 +67,12 @@ class CovergroupModel(FieldCompositeModel):
 
         if self.type_cg is not None:
             # Propagate cached values to the type
+            for i in range(len(self.cross_l)):
+                self.type_cg.cross_l[i].iff_val_cache = self.cross_l[i].iff_val_cache
+                
             for i in range(len(self.coverpoint_l)):
                 self.type_cg.coverpoint_l[i].target_val_cache = self.coverpoint_l[i].target_val_cache
+                self.type_cg.coverpoint_l[i].iff_val_cache = self.coverpoint_l[i].iff_val_cache
 
             # Now, sample the type
             self.type_cg.sample()
