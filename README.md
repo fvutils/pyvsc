@@ -6,3 +6,5 @@ Python package providing a library for Verification Stimulus and Coverage
 [![PyPI](https://img.shields.io/pypi/dm/pyvsc.svg?label=PyPI%20downloads)](https://pypi.org/project/pyvsc/)
 
 Have a look at docs here: [pyvsc.readthedocs.io](https://pyvsc.readthedocs.io)
+
+[![Gitter chat](https://badges.gitter.im/fvutils/pyvsc.png)]
