@@ -7,4 +7,4 @@ Python package providing a library for Verification Stimulus and Coverage
 
 Have a look at docs here: [pyvsc.readthedocs.io](https://pyvsc.readthedocs.io)
 
-[![Gitter chat](https://badges.gitter.im/fvutils/pyvsc.png)]
+[Join the chat on Gitter](https://gitter.im/fvutils/pyvsc)
