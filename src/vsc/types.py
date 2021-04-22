@@ -462,7 +462,7 @@ class type_base(object):
                     ExprRangelistModel(
                         [ExprFieldRefModel(rhs.get_model())]))))
         else:
-            raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
+            raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)) + " expect rangelist or list_t")
         
     
         

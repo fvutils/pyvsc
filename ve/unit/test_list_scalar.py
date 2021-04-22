@@ -236,6 +236,15 @@ class TestListScalar(VscTestCase):
         for i in range(10):
             v.randomize()
             print("v.vals=" + str(v.vals))
+            
+    def test_sum_overflow(self):
+        
+        list = vsc.rand_list_t(vsc.rand_bit_t(32), 8)
+
+        for i in range(10):        
+            with vsc.randomize_with(list):
+                list.sum <= 4096
+            self.assertLessEqual(list.sum, 4096)
 
     def disabled_test_sum_simple(self):
         

@@ -79,4 +79,38 @@ class TestCompoundObj(VscTestCase):
             c2.randomize()  
             print("c1.a=" + str(c2.c1.a) + " c1.b=" + str(c2.c1.b) + " c2.a=" + str(c2.c2.a))    
             self.assertEqual(c2.c1.a, i)
+            
+    def test_uvm_mem(self):
+        @vsc.randobj
+        class my_sub_s(object):
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+
+        @vsc.randobj
+        class my_item_c(object):
+            def __init__(self):
+                self.test = vsc.rand_uint32_t()
+#                self.my_l = vsc.rand_list_t(my_sub_s())
+                self.my_l = vsc.list_t(my_sub_s())
+
+                for i in range(5):
+                    inst = my_sub_s()
+                    inst.a = i*10
+                    inst.b = i*10 + 5
+                    self.my_l.append(inst)
+
+            @vsc.constraint
+            def test_c(self):
+                with vsc.foreach(self.my_l, it=True, idx=True) as (i,it):
+                    self.test.not_inside(vsc.rangelist([it.a,it.b]))
+
+        my_item = my_item_c()
+        for i in range(len(my_item.my_l)):
+            print(str(my_item.my_l[i].a) + "  " + str(my_item.my_l[i].b))
+
+        for i in range(5):
+            my_item.randomize()
+            print(my_item.test)
+        
     

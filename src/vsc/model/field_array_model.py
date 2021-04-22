@@ -118,22 +118,27 @@ class FieldArrayModel(FieldCompositeModel):
     def get_sum_expr(self):
         if self.sum_expr is None:
             # Build
+
+            # Compute clog2 of overflow term to 
+            # ensure that we properly size the result
+            # to avoid overflow            
+            result_bits = self.type_t.width
+            overflow_val = int(self.size.get_val())-1
             
+            while overflow_val > 0:
+                result_bits += 1
+                overflow_val >>= 1
+                
             # Force the result to be 32-bit, in order to 
             # match user expectation
-            ret = ExprLiteralModel(0, self.is_signed, 32)
+            ret = ExprLiteralModel(0, self.is_signed, result_bits)
             for i in range(int(self.size.get_val())):
                 f = self.field_l[i]
-                if ret is None:
-                    ret = ExprFieldRefModel(f)
-                else:
-                    ret = ExprBinModel(
-                        ret,
-                        BinExprType.Add,
-                        ExprFieldRefModel(f))
+                ret = ExprBinModel(
+                    ret,
+                    BinExprType.Add,
+                    ExprFieldRefModel(f))
                 
-            if ret is None:
-                ret = ExprLiteralModel(0, self.is_signed, 32)
             self.sum_expr = ret
             
         return self.sum_expr

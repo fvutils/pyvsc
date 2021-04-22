@@ -1,4 +1,7 @@
 
+## 0.3.3
+- (#68) - Update width of array-sum result to avoid overflow
+
 ## 0.3.2
 - (#60) - Correct issues handling 'iff' on coverpoints and crosses
 
