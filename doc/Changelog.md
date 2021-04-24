@@ -1,4 +1,7 @@
 
+## 0.3.4
+- (#69) - Properly deal with two's complement conversion to Python signed number
+
 ## 0.3.3
 - (#68) - Update width of array-sum result to avoid overflow
 

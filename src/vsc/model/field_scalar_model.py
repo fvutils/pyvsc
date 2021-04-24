@@ -36,6 +36,7 @@ class FieldScalarModel(FieldModel):
         rand_if=None): 
         super().__init__(name)
         self.width = width
+        self.mask = (1 << width)-1
         self.is_signed = is_signed
         self.is_declared_rand = is_rand
         self.is_used_rand = is_rand
@@ -96,13 +97,15 @@ class FieldScalarModel(FieldModel):
     
     def post_randomize(self):
         if self.var is not None:
-#             val = 0
-#             for b in self.var.assignment:
-#                 val <<= 1
-#                 if b == '1':
-#                     val |= 1
-#             self.set_val(val)
-            self.set_val(int(self.var.assignment, 2))
+            # Convert to a Python base-10 integer (unsigned)
+            val = int(self.var.assignment, 2)
+            
+            if self.is_signed and (val&(1 << self.width-1)) != 0:
+                # The value is actually signed, and must be
+                # converted
+                val = -((~val&self.mask)+1)
+            
+            self.set_val(val)
             
         if self.rand_if is not None:
             self.rand_if.do_post_randomize()
