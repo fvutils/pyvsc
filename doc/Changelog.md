@@ -1,4 +1,9 @@
 
+## 0.3.5
+- (#70) - Correct bugs and improve test suite for handling of signed types. 
+
+- (#71) - Correct handling of 'at_least' option for coverpoints and crosses
+
 ## 0.3.4
 - (#69) - Properly deal with two's complement conversion to Python signed number
 

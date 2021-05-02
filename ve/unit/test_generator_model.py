@@ -15,6 +15,7 @@ from vsc.model.randomizer import Randomizer
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
 from vsc.model.rangelist_model import RangelistModel
+from vsc.model.coverage_options_model import CoverageOptionsModel
 
 class TestGeneratorModel(TestCase):
     
@@ -27,12 +28,14 @@ class TestGeneratorModel(TestCase):
         
         cg = CovergroupModel("cg")
         
-        cp = CoverpointModel(ExprFieldRefModel(f), "cp1")
+        cp = CoverpointModel(ExprFieldRefModel(f), "cp1",
+                             CoverageOptionsModel())
         cg.add_coverpoint(cp)
         bn = CoverpointBinArrayModel("cp", 0, 1, 16)
         cp.add_bin_model(bn)
         
-        cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2")
+        cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2",
+                              CoverageOptionsModel())
         cg.add_coverpoint(cp2)
         bn = CoverpointBinArrayModel("cp", 0, 1, 16)
         cp2.add_bin_model(bn)
@@ -68,7 +71,8 @@ class TestGeneratorModel(TestCase):
         
         cg = CovergroupModel("cg")
         
-        cp = CoverpointModel(ExprFieldRefModel(f), "cp1")
+        cp = CoverpointModel(ExprFieldRefModel(f), "cp1",
+                             CoverageOptionsModel())
         cg.add_coverpoint(cp)
         cp.add_bin_model(CoverpointBinArrayModel("bn1", 0, 1, 16))
         cp.add_bin_model(CoverpointBinCollectionModel.mk_collection("bn2", RangelistModel([
@@ -76,7 +80,8 @@ class TestGeneratorModel(TestCase):
             ]), 16))
         cp.add_bin_model(CoverpointBinArrayModel("bn3", 0, 65535-16, 65535))
         
-        cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2")
+        cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2",
+                              CoverageOptionsModel())
         cg.add_coverpoint(cp2)
         bn = CoverpointBinArrayModel("cp", 0, 1, 16)
         cp2.add_bin_model(bn)
@@ -112,17 +117,20 @@ class TestGeneratorModel(TestCase):
         
         cg = CovergroupModel("cg")
         
-        cp = CoverpointModel(ExprFieldRefModel(f), "cp1")
+        cp = CoverpointModel(ExprFieldRefModel(f), "cp1",
+                             CoverageOptionsModel())
         cg.add_coverpoint(cp)
         bn = CoverpointBinArrayModel("cp", 0, 1, 16)
         cp.add_bin_model(bn)
         
-        cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2")
+        cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2",
+                              CoverageOptionsModel())
         cg.add_coverpoint(cp2)
         bn = CoverpointBinArrayModel("cp", 0, 1, 16)
         cp2.add_bin_model(bn)
         
-        cr = CoverpointCrossModel("aXb")
+        cr = CoverpointCrossModel("aXb",
+                                  CoverageOptionsModel())
         cr.add_coverpoint(cp)
         cr.add_coverpoint(cp2)
         cg.add_coverpoint(cr)

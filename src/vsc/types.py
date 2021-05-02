@@ -705,6 +705,8 @@ class list_t(object):
         self.t = t
         self._int_field_info = field_info()
         self.is_scalar = isinstance(t, (type_base,type_enum))
+        if self.is_scalar:
+            self.mask = (1 << self.t.width)-1
         self.is_enum = isinstance(t, type_enum)
         self._int_field_info.is_rand = is_rand
         self.is_rand_sz = is_randsz
@@ -836,7 +838,8 @@ class list_t(object):
         elif self.is_scalar:
             # Working with a scalar
             f = model.add_field()
-            f.set_val(int(v) & (1 << self.t.width)-1)
+            mask_v = int(v) & self.mask
+            f.set_val(mask_v)
         else:
             if not issubclass(type(v), type(self.t)):
                 raise Exception("Attempting to append illegal element to object array")
@@ -846,7 +849,9 @@ class list_t(object):
             v.get_model().is_declared_rand = self.get_model().is_declared_rand
             
     def extend(self, v):
+        print("extend:")
         for vi in v:
+            print("vi=" + str(vi))
             self.append(vi)
         
     def clear(self):
@@ -878,6 +883,7 @@ class list_t(object):
     def __iter__(self):
         class list_scalar_it(object):
             def __init__(self, l):
+                self.l = l
                 self.model = l._int_field_info.model
                 self.idx = 0
                 
@@ -885,7 +891,13 @@ class list_t(object):
                 if self.idx >= int(self.model.size.get_val()):
                     raise StopIteration()
                 else:
-                    v = self.model.field_l[self.idx].get_val()
+                    # The model's view is always masked 2's complement
+                    v = int(self.model.field_l[self.idx].get_val())
+                    
+                    if self.l.t.is_signed:
+                        if (v & (1 << (self.l.t.width-1))) != 0:
+                            v = -((~v & self.l.mask)+1)
+                        
                     self.idx += 1
                     return int(v)
         class list_object_it(object):
@@ -929,7 +941,14 @@ class list_t(object):
                 ei : EnumInfo = self.t.enum_i
                 return ei.v2e(model.field_l[k].get_val())
             elif self.is_scalar:
-                return int(model.field_l[k].get_val())
+                # The model's view is always masked 2's complement
+                v = int(model.field_l[k].get_val())
+                
+                if self.t.is_signed:
+                    if (v & (1 << (self.t.width-1))) != 0:
+                        v = -((~v & self.mask)+1)
+                        
+                return v
             else:
                 return self.backing_arr[k]
             

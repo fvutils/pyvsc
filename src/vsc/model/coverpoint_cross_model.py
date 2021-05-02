@@ -32,7 +32,7 @@ from vsc.model.bin_expr_type import BinExprType
 
 class CoverpointCrossModel(CoverItemBase):
     
-    def __init__(self, name, iff=None):
+    def __init__(self, name, options, iff=None):
         super().__init__()
         self.parent = None
         self.name = name
@@ -53,6 +53,7 @@ class CoverpointCrossModel(CoverItemBase):
         self.srcinfo_decl = None
         self.coverage = 0.0
         self.coverage_calc_valid = False
+        self.options = options
 
     def coverpoints(self):
         return self.coverpoint_model_l
@@ -190,7 +191,7 @@ class CoverpointCrossModel(CoverItemBase):
         return eq
 
     def clone(self, coverpoint_m)->'CoverpointCrossModel':
-        ret = CoverpointCrossModel(self.name)
+        ret = CoverpointCrossModel(self.name, self.options.clone())
         ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         for cp in self.coverpoint_model_l:

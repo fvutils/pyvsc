@@ -29,7 +29,9 @@ from vsc.model.coverage_options_model import CoverageOptionsModel
 
 class CovergroupModel(FieldCompositeModel):
     
-    def __init__(self, name:str):
+    def __init__(self, 
+                 name:str,
+                 options=None):
         super().__init__(name)
         
         # Handle to the type covergroup this instance is associated with
@@ -46,8 +48,11 @@ class CovergroupModel(FieldCompositeModel):
         
         self.coverage = 0.0
         self.coverage_calc_valid = False
-        
-        self.options = CoverageOptionsModel()
+
+        if options is None:        
+            self.options = CoverageOptionsModel()
+        else:
+            self.options = options
         
         
     def finalize(self):

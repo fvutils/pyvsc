@@ -23,3 +23,68 @@ class TestCovergroupOptions(VscTestCase):
         cg1 = my_cg(lambda:a, lambda:b)
         cg1.options.name = "my_cg1"
         cg1.options.comment = "cg1"
+
+    def test_covergroup_atleast(self):
+        
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+                
+                self.options.at_least = 2
+                
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8),
+                    })
+                self.cp2 = vsc.coverpoint(self.b, bins={
+                    "b" : vsc.bin_array([], 1, 2, 4, 8)
+                    })
+                
+        cg_i = cg()
+        
+        cg_i.sample(1, 1)
+        cg_i.sample(1, 2)
+        cg_i.sample(2, 4)
+        cg_i.sample(2, 8)
+        
+        vsc.report_coverage(details=True)
+        report = vsc.get_coverage_report_model()
+        self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[0].coverage, 50.0)
+        self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[1].coverage, 0.0)
+        
+    def test_coverpoint_atleast(self):
+        
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+                
+                self.options.at_least = 2
+                
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8),
+                    }, options=dict(at_least=1))
+                self.cp2 = vsc.coverpoint(self.b, bins={
+                    "b" : vsc.bin_array([], 1, 2, 4, 8)
+                    })
+                
+        cg_i = cg()
+        
+        cg_i.sample(1, 1)
+        cg_i.sample(2, 2)
+        cg_i.sample(4, 4)
+        cg_i.sample(8, 8)
+        cg_i.sample(1, 1)
+        cg_i.sample(2, 2)
+        
+        vsc.report_coverage(details=True)
+        report = vsc.get_coverage_report_model()
+        self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[0].coverage, 100.0)
+        self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[1].coverage, 50.0)
+        

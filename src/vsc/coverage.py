@@ -152,6 +152,8 @@ def covergroup(T):
         def build_model(self):
             cg_i = self._get_int()
             self.get_model()
+
+            cg_i.model.options = self.options.create_model(None) 
             
             obj_name_m = {}
             for n in dir(self):
@@ -503,6 +505,7 @@ class coverpoint(object):
     
     def build_cov_model(self, parent, name):
         if self.model is None:
+            options = self.options.create_model(parent.options)
             if self.get_val_f is not None:
                 if self.cp_t is not None and isinstance(self.cp_t, type_base):
                     width = self.cp_t.width
@@ -527,6 +530,7 @@ class coverpoint(object):
             self.model = CoverpointModel(
                 sample_expr,
                 name if self.name is None else self.name,
+                options,
                 iff_e)
             self.model.srcinfo_decl = self.srcinfo_decl
 
@@ -546,7 +550,7 @@ class coverpoint(object):
                             binspec.add_range(-low, high)
 
                         self.model.add_bin_model(CoverpointBinCollectionModel.mk_collection(
-                            name, binspec, self.options.auto_bin_max))
+                            name, binspec, options.auto_bin_max))
                     else:
                         raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))
                 else:
@@ -555,7 +559,7 @@ class coverpoint(object):
                             raise Exception("Bin specification doesn't have a build_cov_model method")
                         bin_m = bin_spec.build_cov_model(self.model, bin_name)
                         self.model.add_bin_model(bin_m)
-         
+
         return self.model
     
     def get_model(self):
@@ -583,6 +587,7 @@ class cross(object):
     def __init__(self, 
                  target_l, 
                  bins=None, 
+                 options=None,
                  name=None,
                  iff=None):
         for t in target_l:
@@ -590,6 +595,10 @@ class cross(object):
                 raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint")
         self.target_l = target_l
         self.bins = bins
+        self.options = Options()
+        
+        if options is not None:
+            self.options.set(options)
         
         self.iff_f = None
         self.iff = None
@@ -617,6 +626,7 @@ class cross(object):
         # Let the user-specified name take precedence
         if self.model is None:
             iff = None
+            options = self.options.create_model(parent.options)
 
             if self.iff_f:
                 iff = ExprRefModel(self.iff_f, 1, False)
@@ -625,6 +635,7 @@ class cross(object):
             
             ret = CoverpointCrossModel(
                 name if self.name is None else self.name,
+                options,
                 iff)
         
             ret.srcinfo_decl = self.srcinfo_decl

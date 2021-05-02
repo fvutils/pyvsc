@@ -152,7 +152,7 @@ class CoverageSaveVisitor(ModelVisitor):
             cp_bin = cp_scope.createBin(
                 bn_name,
                 decl_location,
-                1, # weight,
+                at_least, # at_least
                 cp.get_bin_hits(bi),
                 bn_name)
         
@@ -201,9 +201,9 @@ class CoverageSaveVisitor(ModelVisitor):
             
         # Obtain weight from coverpoint
         # TODO: obtain from .options vs .type_options?
-        weight = cp.options.weight
+        weight = cr.options.weight
         # TODO: obtain at_least from coverpoint and set on cp_scope
-        at_least = cp.options.at_least
+        at_least = cr.options.at_least
         # TODO: obtain goal from coverpoint and set on cp_scope
         # TODO: obtain comment from coverpoint and set on cp_scope
         cr_scope = active_s.createCross(
@@ -221,7 +221,7 @@ class CoverageSaveVisitor(ModelVisitor):
             cr_bin = cr_scope.createBin(
                 bn_name,
                 decl_location,
-                1, # weight,
+                at_least,
                 cr.get_bin_hits(bi),
                 bn_name)        
             
