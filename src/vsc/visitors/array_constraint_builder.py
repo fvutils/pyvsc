@@ -123,9 +123,10 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
                 # TODO: how do we manage a max size here?                
                 if max_size > 100000:
                     raise Exception("Max size for array " + f.name + " (" + str(max_size) + " exceeds 100000")
-
+                
                 if len(f.field_l) < max_size:
                     # Extend the size appropriately
+                    print("Note: Extending array to size " + str(max_size))
                     for i in range(max_size-len(f.field_l)):
                         f.add_field()
         elif self.phase == 1:

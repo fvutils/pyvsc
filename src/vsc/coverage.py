@@ -142,6 +142,7 @@ def covergroup(T):
         
         def get_model(self):
             cg_i = self._get_int()
+            
             if cg_i.model is None:
                 cg_i.model = CovergroupModel(T.__name__)
                 cg_i.model.srcinfo_decl = getattr(type(self), "_srcinfo_decl")
@@ -153,7 +154,19 @@ def covergroup(T):
             cg_i = self._get_int()
             self.get_model()
 
-            cg_i.model.options = self.options.create_model(None) 
+            cg_i.model.options = self.options.create_model(None)
+            
+            # Configure the covergroup name
+            # - name specified via 'set_name' takes precedence
+            # - name specified via option has second level
+            
+            name = T.__name__
+            if hasattr(self, "name") and self.name is not None:
+                name = self.name
+            elif self.options.name is not None:
+                name = self.options.name
+                
+            cg_i.model.name = name
             
             obj_name_m = {}
             for n in dir(self):
@@ -196,6 +209,16 @@ def covergroup(T):
                 self.buildable_l.append(val)
             object.__setattr__(self, field, val)
             
+        def set_name(self, name):
+            self.name = name
+           
+            cg_i = self._get_int()
+            if cg_i.model is not None:
+                cg_i.model.name = name
+                
+        def get_name(self) -> str:
+            return self.name
+            
         def configure_options(self, *args, **kwargs):
             if len(args) == 1 and isinstance(args[0], dict):
                 opts=args[0]
@@ -217,6 +240,8 @@ def covergroup(T):
         setattr(T, "_get_int", _get_int)
         setattr(T, "lock", lock)
         setattr(T, "__setattr__", _setattr)
+        setattr(T, "set_name", set_name)
+        setattr(T, "get_name", get_name)
         setattr(T, "_cg_init", True)
         setattr(T, "configure_options", configure_options)
     else:
@@ -262,7 +287,7 @@ def covergroup(T):
             if cg_i.ctor_level == 0:
                 # TODO: need to actually elaborate the model
                 self.build_model()
-    
+                
     ret = type(T.__name__, (covergroup_interposer,), dict())
     
     return ret

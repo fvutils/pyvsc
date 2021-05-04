@@ -42,7 +42,7 @@ class CovergroupModel(FieldCompositeModel):
         
         self.coverpoint_l = []
         self.cross_l = []
-        self.typename = None # Typename of this covergroup
+        self.typename = name # Typename of this covergroup
         self.du_name = None # Design-unit typename in which this covergroup is instanced
         self.instname = None # Design-unit instance name in which this covergroup is instanced
         
@@ -131,8 +131,6 @@ class CovergroupModel(FieldCompositeModel):
     def equals(self, oth : 'CovergroupModel')->bool:
         eq = True
         
-        eq &= (self.name == oth.name)
-
         if len(self.coverpoint_l) == len(oth.coverpoint_l):
             for i in range(len(self.coverpoint_l)):
                 eq &= self.coverpoint_l[i].equals(oth.coverpoint_l[i])

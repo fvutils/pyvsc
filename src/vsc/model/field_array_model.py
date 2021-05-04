@@ -65,6 +65,7 @@ class FieldArrayModel(FieldCompositeModel):
         self.name_elems()
         
     def _set_size(self, sz):
+        self.size.set_used_rand(False)
         if sz != int(self.size.get_val()):
             self.size.set_val(sz)
             self.sum_expr = None
@@ -82,6 +83,8 @@ class FieldArrayModel(FieldCompositeModel):
         # have a random size
         if not self.is_rand_sz:
             self._set_size(len(self.field_l))
+        else:
+            self.size.set_used_rand(True)
         FieldCompositeModel.pre_randomize(self)
         
     def post_randomize(self):
