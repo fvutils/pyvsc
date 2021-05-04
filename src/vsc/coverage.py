@@ -142,6 +142,7 @@ def covergroup(T):
         
         def get_model(self):
             cg_i = self._get_int()
+            
             if cg_i.model is None:
                 cg_i.model = CovergroupModel(T.__name__)
                 cg_i.model.srcinfo_decl = getattr(type(self), "_srcinfo_decl")
@@ -152,6 +153,20 @@ def covergroup(T):
         def build_model(self):
             cg_i = self._get_int()
             self.get_model()
+
+            cg_i.model.options = self.options.create_model(None)
+            
+            # Configure the covergroup name
+            # - name specified via 'set_name' takes precedence
+            # - name specified via option has second level
+            
+            name = T.__name__
+            if hasattr(self, "name") and self.name is not None:
+                name = self.name
+            elif self.options.name is not None:
+                name = self.options.name
+                
+            cg_i.model.name = name
             
             obj_name_m = {}
             for n in dir(self):
@@ -194,6 +209,16 @@ def covergroup(T):
                 self.buildable_l.append(val)
             object.__setattr__(self, field, val)
             
+        def set_name(self, name):
+            self.name = name
+           
+            cg_i = self._get_int()
+            if cg_i.model is not None:
+                cg_i.model.name = name
+                
+        def get_name(self) -> str:
+            return self.name
+            
         def configure_options(self, *args, **kwargs):
             if len(args) == 1 and isinstance(args[0], dict):
                 opts=args[0]
@@ -215,6 +240,8 @@ def covergroup(T):
         setattr(T, "_get_int", _get_int)
         setattr(T, "lock", lock)
         setattr(T, "__setattr__", _setattr)
+        setattr(T, "set_name", set_name)
+        setattr(T, "get_name", get_name)
         setattr(T, "_cg_init", True)
         setattr(T, "configure_options", configure_options)
     else:
@@ -260,7 +287,7 @@ def covergroup(T):
             if cg_i.ctor_level == 0:
                 # TODO: need to actually elaborate the model
                 self.build_model()
-    
+                
     ret = type(T.__name__, (covergroup_interposer,), dict())
     
     return ret
@@ -503,6 +530,7 @@ class coverpoint(object):
     
     def build_cov_model(self, parent, name):
         if self.model is None:
+            options = self.options.create_model(parent.options)
             if self.get_val_f is not None:
                 if self.cp_t is not None and isinstance(self.cp_t, type_base):
                     width = self.cp_t.width
@@ -527,6 +555,7 @@ class coverpoint(object):
             self.model = CoverpointModel(
                 sample_expr,
                 name if self.name is None else self.name,
+                options,
                 iff_e)
             self.model.srcinfo_decl = self.srcinfo_decl
 
@@ -546,7 +575,7 @@ class coverpoint(object):
                             binspec.add_range(-low, high)
 
                         self.model.add_bin_model(CoverpointBinCollectionModel.mk_collection(
-                            name, binspec, self.options.auto_bin_max))
+                            name, binspec, options.auto_bin_max))
                     else:
                         raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))
                 else:
@@ -555,7 +584,7 @@ class coverpoint(object):
                             raise Exception("Bin specification doesn't have a build_cov_model method")
                         bin_m = bin_spec.build_cov_model(self.model, bin_name)
                         self.model.add_bin_model(bin_m)
-         
+
         return self.model
     
     def get_model(self):
@@ -583,6 +612,7 @@ class cross(object):
     def __init__(self, 
                  target_l, 
                  bins=None, 
+                 options=None,
                  name=None,
                  iff=None):
         for t in target_l:
@@ -590,6 +620,10 @@ class cross(object):
                 raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint")
         self.target_l = target_l
         self.bins = bins
+        self.options = Options()
+        
+        if options is not None:
+            self.options.set(options)
         
         self.iff_f = None
         self.iff = None
@@ -617,6 +651,7 @@ class cross(object):
         # Let the user-specified name take precedence
         if self.model is None:
             iff = None
+            options = self.options.create_model(parent.options)
 
             if self.iff_f:
                 iff = ExprRefModel(self.iff_f, 1, False)
@@ -625,6 +660,7 @@ class cross(object):
             
             ret = CoverpointCrossModel(
                 name if self.name is None else self.name,
+                options,
                 iff)
         
             ret.srcinfo_decl = self.srcinfo_decl

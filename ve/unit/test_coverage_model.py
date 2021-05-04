@@ -8,6 +8,7 @@ from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.expr_ref_model import ExprRefModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
+from vsc.model.coverage_options_model import CoverageOptionsModel
 
 class TestCoverageModel(VscTestCase):
     
@@ -17,7 +18,8 @@ class TestCoverageModel(VscTestCase):
 
         a = 0        
         a_cp = CoverpointModel(
-            ExprRefModel(lambda: a, 32, False), "a_cp")
+            ExprRefModel(lambda: a, 32, False), "a_cp",
+            CoverageOptionsModel())
         cg.add_coverpoint(a_cp)
         
         bins = a_cp.add_bin_model(CoverpointBinArrayModel("a", 0, 0, 15))

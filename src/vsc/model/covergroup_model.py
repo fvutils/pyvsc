@@ -29,7 +29,9 @@ from vsc.model.coverage_options_model import CoverageOptionsModel
 
 class CovergroupModel(FieldCompositeModel):
     
-    def __init__(self, name:str):
+    def __init__(self, 
+                 name:str,
+                 options=None):
         super().__init__(name)
         
         # Handle to the type covergroup this instance is associated with
@@ -40,14 +42,17 @@ class CovergroupModel(FieldCompositeModel):
         
         self.coverpoint_l = []
         self.cross_l = []
-        self.typename = None # Typename of this covergroup
+        self.typename = name # Typename of this covergroup
         self.du_name = None # Design-unit typename in which this covergroup is instanced
         self.instname = None # Design-unit instance name in which this covergroup is instanced
         
         self.coverage = 0.0
         self.coverage_calc_valid = False
-        
-        self.options = CoverageOptionsModel()
+
+        if options is None:        
+            self.options = CoverageOptionsModel()
+        else:
+            self.options = options
         
         
     def finalize(self):
@@ -126,8 +131,6 @@ class CovergroupModel(FieldCompositeModel):
     def equals(self, oth : 'CovergroupModel')->bool:
         eq = True
         
-        eq &= (self.name == oth.name)
-
         if len(self.coverpoint_l) == len(oth.coverpoint_l):
             for i in range(len(self.coverpoint_l)):
                 eq &= self.coverpoint_l[i].equals(oth.coverpoint_l[i])

@@ -1,3 +1,4 @@
+from vsc.model.coverage_options_model import CoverageOptionsModel
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -26,16 +27,16 @@ class Options():
     
     def __init__(self):
         self.locked = False
-        self.name = ""
-        self.weight = 1
-        self.goal = 100
-        self.comment = ""
-        self.at_least = 1
-        self.auto_bin_max = 64
-        self.cross_num_print_missing = False
-        self.detect_overlap = False
-        self.per_instance = False
-        self.get_inst_coverage = False
+        self.name = None
+        self.weight = None
+        self.goal = None
+        self.comment = None
+        self.at_least = None
+        self.auto_bin_max = None
+        self.cross_num_print_missing = None
+        self.detect_overlap = None
+        self.per_instance = None
+        self.get_inst_coverage = None
 
     def set(self, values):
         for key in values.keys():
@@ -50,3 +51,39 @@ class Options():
         
     def lock(self):
         self.locked = True
+        
+    def create_model(self, parent=None):
+        ret = CoverageOptionsModel()
+        
+        if self.weight is not None:
+            ret.weight = self.weight
+        elif parent is not None:
+            ret.weight = parent.weight
+            
+        if self.goal is not None:
+            ret.goal = self.goal
+        elif parent is not None:
+            ret.goal = parent.goal
+
+        # Comment doesn't cascade        
+        if self.comment is not None:
+            ret.comment = self.comment
+            
+        if self.at_least is not None:
+            ret.at_least = self.at_least
+        elif parent is not None:
+            ret.at_least = parent.at_least
+            
+        if self.auto_bin_max is not None:
+            ret.auto_bin_max = self.auto_bin_max
+        elif parent is not None:
+            ret.auto_bin_max = parent.auto_bin_max
+            
+        return ret
+            
+        
+    def propagate(self, options_m):
+        options_m.weight = self.weight
+        options_m.at_least = self.at_least
+        options_m.goal = self.goal
+        

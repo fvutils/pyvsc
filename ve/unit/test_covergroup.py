@@ -357,8 +357,72 @@ class TestCovergroup(VscTestCase):
             pass
         
         self.assertTrue(caught_exception)
-
+        
+    def test_covergroup_set_name(self):
+        
+        @vsc.covergroup
+        class cg_t(object):
             
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t()
+                    ))
+                self.cp = vsc.coverpoint(self.a)
+                
+        cg1 = cg_t()
+        cg1.set_name("cg1")
+        cg2 = cg_t()
+        cg2.set_name("cg2")
 
+        vsc.report_coverage()
+        report = vsc.get_coverage_report_model()
+        self.assertEqual(len(report.covergroups), 1)
+        self.assertEqual(len(report.covergroups[0].covergroups), 2)
+        self.assertEqual(report.covergroups[0].covergroups[0].name, "cg1")
+        self.assertEqual(report.covergroups[0].covergroups[1].name, "cg2")
+
+    def test_covergroup_name_option(self):
+        
+        @vsc.covergroup
+        class cg_t(object):
+            
+            def __init__(self, name):
+                self.with_sample(dict(
+                    a=vsc.uint8_t()
+                    ))
+                self.options.name = name
+                self.cp = vsc.coverpoint(self.a)
+                
+        cg1 = cg_t("cg1")
+        cg2 = cg_t("cg2")
+
+        vsc.report_coverage()
+        report = vsc.get_coverage_report_model()
+        self.assertEqual(len(report.covergroups), 1)
+        self.assertEqual(len(report.covergroups[0].covergroups), 2)
+        self.assertEqual(report.covergroups[0].covergroups[0].name, "cg1")
+        self.assertEqual(report.covergroups[0].covergroups[1].name, "cg2")
+            
+    def test_covergroup_setname_init(self):
+        
+        @vsc.covergroup
+        class cg_t(object):
+            
+            def __init__(self, name):
+                self.with_sample(dict(
+                    a=vsc.uint8_t()
+                    ))
+                self.set_name(name)
+                self.cp = vsc.coverpoint(self.a)
+                
+        cg1 = cg_t("cg1")
+        cg2 = cg_t("cg2")
+
+        vsc.report_coverage()
+        report = vsc.get_coverage_report_model()
+        self.assertEqual(len(report.covergroups), 1)
+        self.assertEqual(len(report.covergroups[0].covergroups), 2)
+        self.assertEqual(report.covergroups[0].covergroups[0].name, "cg1")
+        self.assertEqual(report.covergroups[0].covergroups[1].name, "cg2")
 
     

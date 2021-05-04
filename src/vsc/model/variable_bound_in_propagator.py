@@ -11,6 +11,8 @@ from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 class VariableBoundInPropagator(VariableBoundPropagator):
     
+    DEBUG_EN = False
+    
     def __init__(self,
                  target : VariableBoundModel,
                  in_e : ExprInModel):
@@ -29,7 +31,8 @@ class VariableBoundInPropagator(VariableBoundPropagator):
         in_r_l = list(map(lambda e:[int(e.lhs.val()),int(e.rhs.val())] if isinstance(e, ExprRangeModel) 
                           else [int(e.val()),int(e.val())], self.in_e.rl))
         in_r_l.sort(key=lambda e:e[0])
-#        print("--> propagate: " + str(in_r_l) + " " + self.target.domain.toString())
+        if VariableBoundInPropagator.DEBUG_EN:
+            print("--> propagate: " + str(in_r_l) + " " + self.target.domain.toString())
         
         prev_in_r_v = None
         dom_r = None
@@ -37,9 +40,10 @@ class VariableBoundInPropagator(VariableBoundPropagator):
             in_r_v = in_r_l[in_i]
             dom_r = self.target.domain.range_l[dom_i]
             
-#            print("in_i=" + str(in_i) + " dom_i=" + str(dom_i))
-#            print("  in_r_v=" + str(int(in_r_v[0])) + ".." + str(int(in_r_v[1])))
-#            print("  dom_r=" + str(dom_r[0]) + ".." + str(dom_r[1]))
+            if VariableBoundInPropagator.DEBUG_EN:
+                print("in_i=" + str(in_i) + " dom_i=" + str(dom_i))
+                print("  in_r_v=" + str(int(in_r_v[0])) + ".." + str(int(in_r_v[1])))
+                print("  dom_r=" + str(dom_r[0]) + ".." + str(dom_r[1]))
             
             # Check to see if the range starts above the domain element
             if in_r_v[0] > dom_r[1]:
@@ -47,48 +51,63 @@ class VariableBoundInPropagator(VariableBoundPropagator):
                 if prev_in_r_v is not None and int(prev_in_r_v[1]) >= dom_r[0] and int(prev_in_r_v[1]) <= dom_r[1]:
                     # The previous inside element was inside this domain element
                     # We need to adjust the reachable domain
-#                    print("Reduce domain max " + str(dom_r[1]) + " -> " + str(int(prev_in_r_v[1])))
+                    if VariableBoundInPropagator.DEBUG_EN:
+                        print("Reduce domain max " + str(dom_r[1]) + " -> " + str(int(prev_in_r_v[1])))
                     dom_r[1] = int(prev_in_r_v[1])
                     should_propagate = (prev_in_r_v[1] < dom_r[1])
                     dom_i += 1
                 else:
                     # The previous element wasn't inside either. Discard
-#                    print("Discarding domain element")
+                    if VariableBoundInPropagator.DEBUG_EN:
+                        print("Discarding domain element")
                     self.target.domain.range_l.pop(dom_i)
                     should_propagate = True
             elif int(in_r_v[0]) > dom_r[0]:
                 if prev_in_r_v is not None and int(prev_in_r_v[1]) >= dom_r[0]:
                     # Must partition the domain
-#                    print("Creating a new domain partition")
+                    if VariableBoundInPropagator.DEBUG_EN:
+                        print("Creating a new domain partition")
                     should_propagate = True
                     self.target.domain.range_l.insert(
                         dom_i, 
                         [dom_r[0], int(prev_in_r_v[1])])
                     dom_i += 1
                         
-#                print("Narrowing domain min " + str(dom_r[0]) + " -> " + str(in_r_v[0]))
+                if VariableBoundInPropagator.DEBUG_EN:
+                    print("Narrowing domain min " + str(dom_r[0]) + " -> " + str(in_r_v[0]))
                 dom_r[0] = int(in_r_v[0])
                 should_propagate = True
                 
                 if int(in_r_v[1]) < dom_r[1]:
-#                    print("Advancing inside")
+                    if VariableBoundInPropagator.DEBUG_EN:
+                        print("Advancing inside")
                     in_i += 1
                     prev_in_r_v = in_r_v
                 else:
-#                    print("Advancing domain")
+                    if VariableBoundInPropagator.DEBUG_EN:
+                        print("Advancing domain")
                     dom_i += 1
             elif in_r_v[1] > dom_r[1]:
                 # This domain element is still inside the in-range
-#                print("Advancing domain")
+                if VariableBoundInPropagator.DEBUG_EN:
+                    print("Advancing domain")
                 dom_i += 1
+            elif in_i+1 < len(in_r_l) and in_r_l[in_i+1][0] < dom_r[1]:
+                # We still have elements that are less than the current limit.
+                # Keep moving...
+                if VariableBoundInPropagator.DEBUG_EN:
+                    print("Moving in_r")
+                in_i += 1
             else:
-#                print("Advancing both domain and inside")
+                if VariableBoundInPropagator.DEBUG_EN:
+                    print("Advancing both domain and inside")
                 prev_in_r_v = in_r_v
                 in_i += 1
                 dom_i += 1
 
         if dom_r[1] > int(in_r_v[1]):
-#            print("Reducing final domain: " + str(dom_r[0]) + ".." + str(dom_r[1]) + " " + str(int(in_r_v[0])) + ".." + str(int(in_r_v[1])))
+            if VariableBoundInPropagator.DEBUG_EN:
+                print("Reducing final domain: " + str(dom_r[0]) + ".." + str(dom_r[1]) + " " + str(int(in_r_v[0])) + ".." + str(int(in_r_v[1])))
             dom_r[1] = int(in_r_v[1])
             should_propagate = True
         
@@ -96,4 +115,5 @@ class VariableBoundInPropagator(VariableBoundPropagator):
         if should_propagate:
             self.target.propagate()
             
-#        print("<-- propagate: " + str(in_r_l) + " " + self.target.domain.toString())
+        if VariableBoundInPropagator.DEBUG_EN:
+            print("<-- propagate: " + str(in_r_l) + " " + self.target.domain.toString())

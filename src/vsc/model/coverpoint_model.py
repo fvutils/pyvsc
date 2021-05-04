@@ -1,4 +1,3 @@
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -37,6 +36,7 @@ class CoverpointModel(CoverItemBase):
     def __init__(self, 
                  target : ExprModel, 
                  name : str,
+                 options,
                  iff : ExprModel = None):
         super().__init__()
         self.parent = None
@@ -59,8 +59,12 @@ class CoverpointModel(CoverItemBase):
         # Tracks 
         self.coverage = 0.0
         self.coverage_calc_valid = False
-        
-        self.options = CoverageOptionsModel()
+
+        if options is None:        
+            self.options = CoverageOptionsModel()
+        else:
+            self.options = options
+            
             
     def add_bin_model(self, bin_m):
         bin_m.parent = self
@@ -194,7 +198,7 @@ class CoverpointModel(CoverItemBase):
         return eq
     
     def clone(self)->'CoverpointModel':
-        ret = CoverpointModel(self.target, self.name)
+        ret = CoverpointModel(self.target, self.name, self.options.clone())
         ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         
         for bn in self.bin_model_l:

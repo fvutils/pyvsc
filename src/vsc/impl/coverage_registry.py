@@ -37,13 +37,13 @@ class CoverageRegistry(object):
     
     def register_cg(self, cg : CovergroupModel):
         cg_t : CovergroupModel = None
-        
+
         # First, see if there's an existing entry
-        if cg.name in self.covergroup_type_m.keys():
+        if cg.typename in self.covergroup_type_m.keys():
             # Okay, now we need to do some detailed comparison
             # Covergroups with the same base typename can have different
             # content if constructor parameters are used to customize content.
-            for cg_c in self.covergroup_type_m[cg.name]:
+            for cg_c in self.covergroup_type_m[cg.typename]:
                 if cg_c.equals(cg):
                     cg_t = cg_c
                     break
@@ -59,12 +59,12 @@ class CoverageRegistry(object):
                     
                 cg_t.srcinfo_inst = None # Types do not have instance information
                 cg_t.finalize()
-                self.covergroup_type_m[cg.name].append(cg_t)
-                n_cg = len(self.covergroup_type_m[cg.name])
+                self.covergroup_type_m[cg.typename].append(cg_t)
+                n_cg = len(self.covergroup_type_m[cg.typename])
 
                 # Base covergroup type is called 'name', while derivatives
                 # are labeled _1, _2, _3                
-                cg_t.name = cg_t.name + "_" + str(n_cg)
+                cg_t.name = cg_t.typename + "_" + str(n_cg)
                 
         else:
             # No, nothing here yet. Create a clone of this instance
@@ -78,7 +78,7 @@ class CoverageRegistry(object):
 
             cg_t.srcinfo_inst = None # Types do not have instance information
             cg_t.finalize()
-            self.covergroup_type_m[cg.name] = [cg_t]
+            self.covergroup_type_m[cg.typename] = [cg_t]
             
         # Hook up the instance to the relevant type covergroup
         cg.type_cg = cg_t
