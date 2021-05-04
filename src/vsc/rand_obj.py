@@ -103,10 +103,10 @@ def randobj(T):
                 else:
                     object.__setattr__(self, field, val)                
                     
-        def randomize(self):
+        def randomize(self, debug=0):
             model = self.get_model()
             try:
-                Randomizer.do_randomize([model])
+                Randomizer.do_randomize([model], debug=debug)
             except SolveFailure as e:
                 print(e.diagnostics)
                 raise e
@@ -183,14 +183,15 @@ def randobj(T):
             leave_expr_mode()
             model = self.get_model() # Ensure model is constructed
             try:
-                Randomizer.do_randomize([model], [c])
+                Randomizer.do_randomize([model], [c], debug=self.debug)
             except SolveFailure as e:
                 print(e.diagnostics)
                 raise e
         
-        def randomize_with(self, solve_fail_debug=False):
+        def randomize_with(self, debug=0, solve_fail_debug=False):
             # Ensure the 'model' data structures have been built
             self.get_model()
+            self.debug = debug
     
             return self
         

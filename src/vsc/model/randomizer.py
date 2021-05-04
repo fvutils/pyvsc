@@ -59,8 +59,9 @@ class Randomizer(RandIF):
     
     EN_DEBUG = False
     
-    def __init__(self):
+    def __init__(self, debug=0):
         self.pretty_printer = ModelPrettyPrinter()
+        self.debug = debug
     
     _state_p = [0,1]
     _rng = None
@@ -69,7 +70,7 @@ class Randomizer(RandIF):
         """Randomize the variables and constraints in a RandInfo collection"""
         
 
-        if Randomizer.EN_DEBUG:
+        if self.debug > 0:
             for rs in ri.randsets():
                 print("RandSet")
                 for f in rs.all_fields():
@@ -83,7 +84,7 @@ class Randomizer(RandIF):
         # Assign values to the unconstrained fields first
         uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
         for uf in uc_rand:
-            if Randomizer.EN_DEBUG:
+            if self.debug > 0:
                 print("Randomizing unconstrained: " + uf.fullname)
             bounds = bound_m[uf]
             range_l = bounds.domain.range_l
@@ -121,7 +122,7 @@ class Randomizer(RandIF):
                 rs_node_builder = RandSetNodeBuilder(btor)
 
                 all_fields = rs.all_fields()
-                if Randomizer.EN_DEBUG:                
+                if self.debug > 0:
                     print("Pre-Randomize: RandSet")
                     for f in all_fields:
                         if f in bound_m.keys():
@@ -250,7 +251,7 @@ class Randomizer(RandIF):
                 bound_m  : Dict[FieldModel,VariableBoundModel]):
 
         # TODO: we must ignore fields that are otherwise being controlled
-        if Randomizer.EN_DEBUG:
+        if self.debug > 0:
             print("--> swizzle_randvars")
 
         rand_node_l = []
@@ -263,7 +264,7 @@ class Randomizer(RandIF):
             
             field_l = rs.rand_fields()
             
-            if Randomizer.EN_DEBUG:
+            if self.debug > 0:
                 print("  " + str(len(field_l)) + " fields in randset")
             if len(field_l) == 1:
                 # Go ahead and pick values in the domain, since there 
@@ -280,7 +281,7 @@ class Randomizer(RandIF):
             elif len(field_l) > 0:
                 field_idx = self.randint(0, len(field_l)-1)
                 f = field_l[field_idx]
-                if Randomizer.EN_DEBUG:
+                if self.debug > 0:
                     print("Swizzling field " + f.name)
                 if f in bound_m.keys():
                     f_bound = bound_m[f]
@@ -298,7 +299,7 @@ class Randomizer(RandIF):
 #                            rand_node_l.append(None)
                         pass
                 else:
-                    if Randomizer.EN_DEBUG:
+                    if self.debug > 0:
                         print("Note: no bounds found for field " + f.name)
             x += 1
             
@@ -309,7 +310,7 @@ class Randomizer(RandIF):
             if btor.Sat() != btor.SAT:
                 # Remove any failing assumptions
                 
-                if Randomizer.EN_DEBUG:
+                if self.debug > 0:
                     print("Randomization constraint failed")
  
                 n_failed = 0
@@ -332,7 +333,7 @@ class Randomizer(RandIF):
             if btor.Sat() != btor.SAT:
                 raise Exception("failed to add in randomization")
             
-        if Randomizer.EN_DEBUG:
+        if self.debug > 0:
             print("<-- swizzle_randvars")
                         
     def create_rand_domain_constraint(self, 
@@ -344,7 +345,7 @@ class Randomizer(RandIF):
         range = range_l[range_idx]
         domain = range[1]-range[0]
         
-        if Randomizer.EN_DEBUG:
+        if self.debug > 0:
             print("create_rand_domain_constraint: " + f.name + " range_idx=" + str(range_idx) + " range=" + str(range))
         if domain > 64:
             r_type = self.randint(0, 3)
@@ -529,7 +530,8 @@ class Randomizer(RandIF):
     @staticmethod
     def do_randomize(
             field_model_l : List[FieldModel],
-            constraint_l : List[ConstraintModel] = None):
+            constraint_l : List[ConstraintModel] = None,
+            debug=0):
         # All fields passed to do_randomize are treated
         # as randomizable
 #        if Randomizer._rng is None:
@@ -540,7 +542,7 @@ class Randomizer(RandIF):
         for f in field_model_l:
             f.set_used_rand(True, 0)
            
-        if Randomizer.EN_DEBUG: 
+        if debug > 0: 
             print("Initial Model:")        
             for fm in field_model_l:
                 print("  " + ModelPrettyPrinter.print(fm))
@@ -575,7 +577,7 @@ class Randomizer(RandIF):
 #        if len(constraint_l) != constraints_len:
         bounds_v.process(field_model_l, constraint_l)
 
-        if Randomizer.EN_DEBUG:
+        if debug > 0:
             print("Final Model:")        
             for fm in field_model_l:
                 print("  " + ModelPrettyPrinter.print(fm))
@@ -583,7 +585,7 @@ class Randomizer(RandIF):
                 print("  " + ModelPrettyPrinter.print(c, show_exp=True))
             
 
-        r = Randomizer()
+        r = Randomizer(debug=debug)
 #        if Randomizer._rng is None:
 #            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
