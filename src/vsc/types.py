@@ -849,9 +849,7 @@ class list_t(object):
             v.get_model().is_declared_rand = self.get_model().is_declared_rand
             
     def extend(self, v):
-        print("extend:")
         for vi in v:
-            print("vi=" + str(vi))
             self.append(vi)
         
     def clear(self):
