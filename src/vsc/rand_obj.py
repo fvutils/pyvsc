@@ -126,6 +126,7 @@ def randobj(T):
                             if hasattr(fo, "_int_field_info"):
                                 if fo._int_field_info.model is None:
                                     fo._int_field_info.model = fo.build_field_model(f)
+                                fo._int_field_info.parent = self._int_field_info
 
                                 model.add_field(fo._int_field_info.model)
                 
@@ -202,6 +203,24 @@ def randobj(T):
         def do_post_randomize(self):
             if hasattr(self, "post_randomize"):
                 self.post_randomize()
+        
+        def _id_fields(self, it, parent):
+            """Apply an ID to all fields so they can be 
+            referenced using indexed expressions
+            """
+            it._int_field_info.parent = parent
+
+            fid = 0        
+            for fn in dir(it):
+                fo = getattr(it, fn)
+                if hasattr(fo, "_int_field_info"):
+                    fi = fo._int_field_info
+                    fi.id = fid
+                    fi.parent = it._int_field_info
+                    fid += 1
+                
+                    if fi.is_composite:
+                        self._id_fields(fo, fi)
 
         setattr(T, "__getattribute__", __getattribute__)
         setattr(T, "__setattr__", __setattr__)
@@ -214,6 +233,7 @@ def randobj(T):
         setattr(T, "__exit__", __exit__)
         setattr(T, "do_pre_randomize", do_pre_randomize)
         setattr(T, "do_post_randomize", do_post_randomize)
+        setattr(T, "_id_fields", _id_fields)
         setattr(T, "_ro_init", True)
         
     return ret
