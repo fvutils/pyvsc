@@ -19,34 +19,35 @@
 #
 # @author: ballance
 
+from enum import Enum, auto
 import enum
-from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
-from vsc.impl.expr_mode import expr_mode
+import inspect
+
+from vsc.impl import ctor
+from vsc.impl.coverage_registry import CoverageRegistry
 from vsc.impl.covergroup_int import CovergroupInt
+from vsc.impl.ctor import pop_expr
+from vsc.impl.expr_mode import expr_mode
 from vsc.impl.options import Options
 from vsc.impl.type_options import TypeOptions
-from vsc.model.expr_ref_model import ExprRefModel
-from vsc.model.field_scalar_model import FieldScalarModel
-from vsc.model.field_composite_model import FieldCompositeModel
-from vsc.impl import ctor
-import inspect
-from vsc.model.source_info import SourceInfo
-from vsc.impl.coverage_registry import CoverageRegistry
-from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
-
-from enum import Enum, auto
-
-from vsc.impl.ctor import pop_expr
 from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
+from vsc.model.coverpoint_bin_enum_model import CoverpointBinEnumModel
+from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
+from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
 from vsc.model.coverpoint_cross_model import CoverpointCrossModel
 from vsc.model.coverpoint_model import CoverpointModel
-from vsc.model.rangelist_model import RangelistModel
-from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum,\
-    expr
 from vsc.model.enum_field_model import EnumFieldModel
-from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_ref_model import ExprRefModel
+from vsc.model.field_composite_model import FieldCompositeModel
+from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.rangelist_model import RangelistModel
+from vsc.model.source_info import SourceInfo
+from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum, \
+    expr, field_info
+
 
 def covergroup(T):
     """Covergroup decorator marks as class as being a covergroup"""
@@ -63,15 +64,30 @@ def covergroup(T):
             if len(args) == 1 and isinstance(args[0], dict):
                 params = args[0]
                 for pn,pt in params.items():
-                    pm = pt.build_field_model(pn)
-                    if hasattr(pm, "_id_fields"):
-                        pm._id_fields()
-                    setattr(self, pn, pt)
-                    cg_i.sample_var_l.append(pn)
-                    cg_i.sample_obj_l.append(pt)
+                    if hasattr(pt, "_int_field_info"):
+                        pm = pt.build_field_model(pn)
+                        pt._int_field_info.name = pn
+                        # Note: this is only used if the field is a list
+                        pt._int_field_info.id = len(model.field_l)
+                        if hasattr(pt, "_id_fields"):
+                            # This field is a composite field, and we
+                            # must access its children via indexed references
+                            pt._id_fields(
+                                pt,
+                                self._int_field_info)
+                        else:
+                            # Scalar field
+                            pt._int_field_info.parent = self._int_field_info
+                        setattr(self, pn, pt)
+                        cg_i.sample_var_l.append(pn)
+                        cg_i.sample_obj_l.append(pt)
                 
-                    # Add a field to the covergroup model
-                    model.add_field(pm)
+                        # Add a field to the covergroup model
+                        model.add_field(pm)
+                        
+                        pt._int_field_info.root_e = ExprFieldRefModel(model)
+                    else:
+                        raise Exception("Sample arguments must vsc objects, not " + str(pt))
             elif len(kwargs) > 0:
                 for pn,pt in kwargs.items():
                     if hasattr(pt, "build_field_model"):
@@ -267,7 +283,7 @@ def covergroup(T):
             self.buildable_l = []
             
             # Construct the model            
-            self.get_model()
+            model = self.get_model()
             
             # Ensure options/type_options created before 
             # calling (user) base-class __init__
@@ -280,6 +296,10 @@ def covergroup(T):
                 if hasattr(a, "_ro_init"):
                     # Ensure the model is constructed
                     a.get_model()
+                    
+            if cg_i.ctor_level == 0:
+                self._int_field_info = field_info()
+                self._int_field_info.root_e = ExprFieldRefModel(model)
 
             with cg_i:                
                 super().__init__(*args, **kwargs)
