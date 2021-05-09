@@ -52,12 +52,15 @@ from vsc.model.solve_failure import SolveFailure
 from vsc.visitors.ref_fields_postrand_visitor import RefFieldsPostRandVisitor
 from vsc.model.rand_set_node_builder import RandSetNodeBuilder
 from vsc.model.rand_set_dispose_visitor import RandSetDisposeVisitor
+from vsc.model.retarget_indexed_coverpoint_target import RetargetIndexedCoverpointTarget
+from vsc.model.coverpoint_cross_model import CoverpointCrossModel
+from vsc.model.constraint_expr_model import ConstraintExprModel
+from vsc.model.expr_in_model import ExprInModel
+from vsc.model.constraint_block_model import ConstraintBlockModel
 
 
 class Randomizer(RandIF):
     """Implements the core randomization algorithm"""
-    
-    EN_DEBUG = False
     
     def __init__(self, debug=0):
         self.pretty_printer = ModelPrettyPrinter()
@@ -423,20 +426,27 @@ class Randomizer(RandIF):
         return e
     
     def randint(self, low, high):
-        if low > high:
-            tmp = low
-            low = high
-            high = tmp
-#        if Randomizer._rng is None:
-#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
-#        return Randomizer._rng.randint(low, high)
-        return random.randint(low, high)
+        if low == high:
+            return low
+        else:
+            if low > high:
+                tmp = low
+                low = high
+                high = tmp
+
+            if (high-low) <= 100:
+                return low+int(random.randint(0,10000)%(high-low+1))
+            else:                                
+                return random.randint(low, high)
     
     def randbits(self, nbits):
 #        if Randomizer._rng is None:
 #            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
 #        return Randomizer._rng.randint(0, (1<<nbits)-1)
         return random.randint(0, (1<<nbits)-1)
+    
+    def sample(self, s, k):
+        return random.sample(s, k)
 
     @staticmethod            
     def _next():
@@ -531,6 +541,7 @@ class Randomizer(RandIF):
     def do_randomize(
             field_model_l : List[FieldModel],
             constraint_l : List[ConstraintModel] = None,
+            cg=None,
             debug=0):
         # All fields passed to do_randomize are treated
         # as randomizable
@@ -553,10 +564,45 @@ class Randomizer(RandIF):
             
         if constraint_l is None:
             constraint_l = []
+            
+        r = Randomizer(debug=debug)
+        
+        # If a covergroup was provided with unmet goals,
+        # add in some constraints to steer things
+        if cg is not None:
+            candidate_l = []
+            
+            for cp in cg.coverpoint_l:
+                if cp.get_n_unhit_bins() > 0:
+                    candidate_l.append(cp)
+                    
+#            for cr in cg.cross_l:
+#                if cr.get_n_unhit_bins() > 0:
+#                    candidate_l.append(cr)
+
+            if len(candidate_l) > 0:                    
+#                candidate_i = int(r.randint(0, 10000) % len(candidate_l))
+                candidate_i = r.randint(0, len(candidate_l)-1)
+                candidate = candidate_l[candidate_i]
+
+                if isinstance(candidate, CoverpointCrossModel):
+                    pass
+                    # Actually, have a series of target expressions and bin values
+                else:                
+                    bin_i = candidate.select_unhit_bin(r)
+                    target_e = RetargetIndexedCoverpointTarget(
+                        cg, field_model_l[0]).retarget(candidate.target)
+                    rl = candidate.get_bin_rangelist(bin_i)
+                    constraint_l.append(ConstraintBlockModel("__bias_c", [
+                        ConstraintSoftModel(
+                            ExprInModel(
+                                target_e, 
+                                rl))]))
 
         # Collect all variables (pre-array) and establish bounds            
         bounds_v = VariableBoundVisitor()
         bounds_v.process(field_model_l, constraint_l, False)
+        
 
         # TODO: need to handle inline constraints that impact arrays
         constraints_len = len(constraint_l)
@@ -571,7 +617,7 @@ class Randomizer(RandIF):
                 c, bounds_v.bound_m))
             # Now, handle dist constraints
             DistConstraintBuilder.build(seed, c)
-
+            
         # If we made changes during array remodeling,
         # re-run bounds checking on the updated model
 #        if len(constraint_l) != constraints_len:
@@ -584,10 +630,6 @@ class Randomizer(RandIF):
             for c in constraint_l:
                 print("  " + ModelPrettyPrinter.print(c, show_exp=True))
             
-
-        r = Randomizer(debug=debug)
-#        if Randomizer._rng is None:
-#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
         try:
             r.randomize(ri, bounds_v.bound_m)
@@ -598,7 +640,6 @@ class Randomizer(RandIF):
         
         for fm in field_model_l:
             fm.post_randomize()
-        
-        
+            
         # Process constraints to identify variable/constraint sets
         

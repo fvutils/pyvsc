@@ -80,6 +80,19 @@ class CoverpointModel(CoverItemBase):
         # Track unhit bins within this coverpoint
         self.unhit_s.update(range(self.n_bins))
         self.hit_l = [0]*self.n_bins
+        
+    def get_bin_rangelist(self, bin_idx):
+        b = None
+
+        # First, find the bin this index applies to
+        for i in range(len(self.bin_model_l)):
+            b = self.bin_model_l[i]
+            if b.get_n_bins() > bin_idx:
+                break
+            bin_idx -= b.get_n_bins()
+
+        # Now, return the actual expression            
+        return b.get_bin_rangelist(bin_idx)
             
     def get_bin_expr(self, bin_idx):
         b = None
@@ -159,6 +172,9 @@ class CoverpointModel(CoverItemBase):
     
     def get_n_hit_bins(self):
         return len(self.hit_l)-len(self.unhit_s)
+    
+    def get_n_unhit_bins(self):
+        return len(self.unhit_s)
         
     def get_bin_hits(self, bin_idx):
         return self.hit_l[bin_idx]

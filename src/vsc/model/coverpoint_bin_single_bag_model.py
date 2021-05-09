@@ -38,7 +38,10 @@ class CoverpointBinSingleBagModel(CoverpointBinModelBase):
     def finalize(self, bin_idx_base:int)->int:
         super().finalize(bin_idx_base)
         return 1
-        
+    
+    def get_bin_rangelist(self, bin_idx):
+        return self.binspec
+
     def get_bin_expr(self, bin_idx):
         """Builds expressions to represent the values in this bin"""
         expr = None

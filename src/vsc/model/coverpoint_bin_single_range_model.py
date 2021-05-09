@@ -8,6 +8,8 @@ from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.bin_expr_type import BinExprType
+from vsc.model.expr_rangelist_model import ExprRangelistModel
+from vsc.model.expr_range_model import ExprRangeModel
 
 class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
     
@@ -23,6 +25,11 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
     def finalize(self, bin_idx_base:int)->int:
         super().finalize(bin_idx_base)
         return 1
+    
+    def get_bin_rangelist(self, bin_idx):
+        return ExprRangelistModel([ExprRangeModel(
+            ExprLiteralModel(self.target_val_low+bin_idx, False, 32),
+            ExprLiteralModel(self.target_val_low+bin_idx, False, 32))])
     
     def get_bin_expr(self, bin_idx):
         """Builds expressions to represent the values in this bin"""

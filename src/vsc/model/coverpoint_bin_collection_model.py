@@ -45,6 +45,19 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
             self.n_bins += b.finalize(self.bin_idx_base+self.n_bins)
         
         return self.n_bins
+    
+    def get_bin_rangelist(self, bin_idx):
+        b = None
+
+        # First, find the bin this index applies to
+        for i in range(len(self.bin_l)):
+            b = self.bin_l[i]
+            if b.get_n_bins() > bin_idx:
+                break
+            bin_idx -= b.get_n_bins()
+
+        # Now, return the actual expression            
+        return b.get_bin_rangelist(bin_idx)
             
     def get_bin_expr(self, idx):
         """Builds expressions to represent the values in this bin"""

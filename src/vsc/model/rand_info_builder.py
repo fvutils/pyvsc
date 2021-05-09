@@ -45,6 +45,8 @@ from vsc.model.rand_set import RandSet
 
 class RandInfoBuilder(ModelVisitor,RandIF):
     
+    DEBUG_EN = True
+    
     def __init__(self, rng):
         # TODO: need access to the random state
         super().__init__()
@@ -237,6 +239,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint
             # relationships
+            
+            if RandInfoBuilder.DEBUG_EN:
+                print("visit_expr_fieldref: field=" + str(e.fm.name))
             
             # If the field is already referenced by an existing randset
             # that is not this one, we need to merge the sets

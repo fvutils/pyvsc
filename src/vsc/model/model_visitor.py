@@ -240,6 +240,9 @@ class ModelVisitor(object):
         for sb in bn.bin_l:
             sb.accept(self)
             
+    def visit_coverpoint_bin_single(self, bn):
+        pass
+            
     def visit_coverpoint_bin_single_range(self, bn : CoverpointBinSingleRangeModel):
         pass
             

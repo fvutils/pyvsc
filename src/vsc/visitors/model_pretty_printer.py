@@ -3,7 +3,6 @@ Created on Apr 28, 2020
 
 @author: ballance
 '''
-from vsc.model.field_composite_model import FieldCompositeModel
 '''
 Created on Apr 28, 2020
 
@@ -16,6 +15,7 @@ import vsc.model as vm
 from vsc.model.constraint_dist_model import ConstraintDistModel
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
@@ -24,6 +24,7 @@ from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRange
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.field_array_model import FieldArrayModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rangelist_model import RangelistModel
@@ -89,6 +90,11 @@ class ModelPrettyPrinter(ModelVisitor):
                 self.write(", ")
             d.weights[i].accept(self)
         self.write("}\n")
+        
+    def visit_constraint_soft(self, c : ConstraintSoftModel):
+        self.write("soft ")
+        c.expr.accept(self)
+        self.write("\n")
         
     def visit_dist_weight(self, w : DistWeightExprModel):
         if w.rng_rhs is not None:

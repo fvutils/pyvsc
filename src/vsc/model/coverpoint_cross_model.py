@@ -68,6 +68,9 @@ class CoverpointCrossModel(CoverItemBase):
     def get_n_bins(self):
         return self.n_bins
     
+    def get_n_unhit_bins(self):
+        return len(self.unhit_s)
+    
     def get_bin_expr(self, bin_idx:int)->ExprModel:
         ret = None
         

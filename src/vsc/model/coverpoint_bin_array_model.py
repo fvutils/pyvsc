@@ -21,13 +21,14 @@
 # @author: ballance
 
 
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.expr_bin_model import ExprBinModel
-from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_range_model import ExprRangeModel
+from vsc.model.expr_rangelist_model import ExprRangelistModel
 
-
-from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 
 class CoverpointBinArrayModel(CoverpointBinModelBase):
     
@@ -41,6 +42,11 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
     def finalize(self, bin_idx_base:int)->int:
         super().finalize(bin_idx_base)
         return (self.high-self.low+1)
+    
+    def get_bin_rangelist(self, bin_idx):
+        return ExprRangelistModel([ExprRangeModel(
+            ExprLiteralModel(self.low+bin_idx, False, 32),
+            ExprLiteralModel(self.low+bin_idx, False, 32))])    
         
     def get_bin_expr(self, idx):
         """Builds expressions to represent a single bin"""

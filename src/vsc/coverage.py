@@ -90,19 +90,30 @@ def covergroup(T):
                         raise Exception("Sample arguments must vsc objects, not " + str(pt))
             elif len(kwargs) > 0:
                 for pn,pt in kwargs.items():
-                    if hasattr(pt, "build_field_model"):
-                        setattr(self, pn, pt)
+                    if hasattr(pt, "_int_field_info"):
                         pm = pt.build_field_model(pn)
-                        # Add a field to the covergroup model
-                        model.add_field(pm)
+                        pt._int_field_info.name = pn
+                        # Note: this is only used if the field is a list
+                        pt._int_field_info.id = len(model.field_l)
+                        if hasattr(pt, "_id_fields"):
+                            # This field is a composite field, and we
+                            # must access its children via indexed references
+                            pt._id_fields(
+                                pt,
+                                self._int_field_info)
+                        else:
+                            # Scalar field
+                            pt._int_field_info.parent = self._int_field_info
+                        setattr(self, pn, pt)
                         cg_i.sample_var_l.append(pn)
                         cg_i.sample_obj_l.append(pt)
-                    else:
-                        print("TODO: handle non-field-model")
-                        setattr(self, pn, lambda:getattr(self, "_" + pn))
-                        
-                        
                 
+                        # Add a field to the covergroup model
+                        model.add_field(pm)
+                        
+                        pt._int_field_info.root_e = ExprFieldRefModel(model)
+                    else:
+                        raise Exception("Sample arguments must vsc objects, not " + str(pt))
             else:
                 raise Exception("incorrect call to with_sample")
                 
