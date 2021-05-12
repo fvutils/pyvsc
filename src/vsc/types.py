@@ -21,7 +21,6 @@
 
 
 from enum import IntEnum, Enum, EnumMeta
-from lib2to3.btm_utils import TYPE_ALTERNATIVES
 
 from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope, \
     is_foreach_arr, expr_l
