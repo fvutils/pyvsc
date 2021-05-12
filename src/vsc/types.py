@@ -261,7 +261,11 @@ def to_expr(t):
 class field_info(object):
     """Model-specific information about the field"""
     def __init__(self, is_composite=False):
-        self.id = -1
+        # a non-negative id means that this field
+        # can be referenced via an indirect indexed 
+        # expression. This is used for coverage of
+        # composite fields and for lists
+        self.id = -1 
         self.parent = None
         self.root_e = None
         self.is_composite = is_composite
@@ -308,16 +312,17 @@ class type_base(object):
     
     def to_expr(self):
         if self._int_field_info.id != -1:
-            # Need something like an indirect reference
-            # - root reference
-            # - leaf reference
+            # A non-negative id means that this field
+            # should be referenced indirectly. Follow the
+            # parent/child relationhips up to construct an
+            # index list back to this field
             id_l = []
             fi = self._int_field_info
             
             while fi.parent is not None:
                 id_l.insert(0, fi.id)
                 fi = fi.parent
-
+                
             return expr(ExprIndexedFieldRefModel(fi.root_e, id_l))
         else:
             return expr(ExprFieldRefModel(self._int_field_info.model))
@@ -729,7 +734,9 @@ class list_t(object):
         self.backing_arr = []
         
     def _id_fields(self, it, parent):
-        """Apply an ID to all fields, so they can be referenced in foreach constraints"""
+        """Apply an ID to all fields, so they can be referenced in 
+        foreach constraints
+        """
         it._int_field_info.parent = parent
 
         fid = 0        

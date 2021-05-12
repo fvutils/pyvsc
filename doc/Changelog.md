@@ -1,4 +1,7 @@
 
+## 0.3.6
+- Add support for passing VSC class objects to the covergroup sample method
+
 ## 0.3.5
 - (#70) - Correct bugs and improve test suite for handling of signed types. 
 

@@ -16,7 +16,7 @@ class ExprIndexedFieldRefModel(ExprModel):
         super().__init__()
         
         if not isinstance(root, (ExprFieldRefModel,ExprArraySubscriptModel)):
-            raise Exception("unsupported root for an indexed reference")
+            raise Exception("unsupported root for an indexed reference: " + str(root))
         
         self.root = root
         self.idx_t = idx_t
