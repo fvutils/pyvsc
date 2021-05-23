@@ -41,6 +41,10 @@ def randomize_with(*args, **kwargs):
         if not hasattr(v, "get_model"):
             raise Exception("Parameter \"" + str(v) + " to randomize is not a vsc object")
         field_l.append(v.get_model())
+
+    debug=0        
+    if "debug" in kwargs.keys():
+        debug = kwargs["debug"]
         
     solve_fail_debug = False
     
@@ -64,7 +68,7 @@ def randomize_with(*args, **kwargs):
             leave_expr_mode()
           
             try:
-                Randomizer.do_randomize(self.field_l, [c])
+                Randomizer.do_randomize(self.field_l, [c], debug=debug)
             except SolveFailure as e:
                 if _solve_fail_debug or self.solve_fail_debug:
                     print("Solve Failure")
@@ -82,7 +86,11 @@ def randomize(*args,**kwargs):
         else:
             raise Exception("Parameter \"" + str(v) + " to randomize is not a vsc object")
         
-    Randomizer.do_randomize(fields)
+    debug=0
+    if "debug" in kwargs.keys():
+        debug=kwargs["debug"]
+        
+    Randomizer.do_randomize(fields, debug=debug)
 
 class raw_mode(object):
     """Raw mode provides raw access to primitive VSC Fields"""

@@ -229,7 +229,8 @@ class implies(object):
 def soft(e):
     
     to_expr(e)
-    push_constraint_stmt(ConstraintSoftModel(pop_expr()))
+    em = pop_expr()
+    push_constraint_stmt(ConstraintSoftModel(em))
     
 
 def unique(*args):

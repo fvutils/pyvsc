@@ -12,7 +12,10 @@ class ConstraintSoftModel(ConstraintModel):
     
     def __init__(self, e : ExprModel):
         super().__init__()
+        if not isinstance(e, ExprModel):
+            raise Exception("SoftModel expr type error")
         self.expr = e
+        self.priority = 0
 
     def build(self, btor):
         return self.expr.build(btor)

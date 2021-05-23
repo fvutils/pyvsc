@@ -25,6 +25,8 @@ from typing import Set, List
 
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.field_model import FieldModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 class RandSet(object):
@@ -36,6 +38,9 @@ class RandSet(object):
         # Related fields that shouldn't be targeted for randomization
         self.dnr_field_s : Set[FieldModel] = set()
         self.constraint_s :Set[ConstraintModel] = set()
+        self.soft_constraint_s : Set[ConstraintModel] = set()
+        self.soft_priority = 0
+        self.dist_field_m = {}
         self.field_l = None
         self.field_rand_l = None
         self.all_field_l = None
@@ -101,8 +106,14 @@ class RandSet(object):
         
         
     def add_constraint(self, c):
-        self.constraint_s.add(c)
+        if isinstance(c, ConstraintSoftModel):
+            self.soft_constraint_s.add(c)
+        else:
+            self.constraint_s.add(c)
         
     def constraints(self) ->Set[ConstraintModel]:
         return self.constraint_s
+    
+    def soft_constraints(self) -> Set[ConstraintSoftModel]:
+        return self.soft_constraint_s
     

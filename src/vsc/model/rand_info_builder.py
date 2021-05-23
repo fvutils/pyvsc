@@ -41,6 +41,7 @@ from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
+from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 
 
 class RandInfoBuilder(ModelVisitor,RandIF):
@@ -60,6 +61,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self._randset_s : Set[RandSet] = set()
         self._randset_field_m : Dict[FieldModel,RandSet] = {} # map<field,randset>
         self._constraint_s : List[ConstraintModel] = []
+        self._soft_priority = 0
         self._used_rand = True
         self._in_generator = False
         self.active_cp = None
@@ -190,7 +192,23 @@ class RandInfoBuilder(ModelVisitor,RandIF):
     def visit_constraint_expr(self, c):
         super().visit_constraint_expr(c)
         
+    def visit_constraint_dist_scope(self, s : ConstraintDistScopeModel):
+        super().visit_constraint_dist_scope(s)
+        
+        # Save information on dist constraints to the 
+        # appropriate randset
+        if self._active_randset is not None:
+            f = s.dist_c.lhs.fm
+            if f in self._active_randset.dist_field_m.keys():
+                self._active_randset.dist_field_m[f].append(s)
+            else:
+                self._active_randset.dist_field_m[f] = [s]
+        
     def visit_constraint_soft(self, c:ConstraintSoftModel):
+        # Update the priority of this constraint
+        c.priority += self._soft_priority
+        self._soft_priority += 1
+        
         super().visit_constraint_soft(c)
         
     def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):

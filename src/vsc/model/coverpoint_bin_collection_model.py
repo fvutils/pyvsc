@@ -94,6 +94,16 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                 
         return self.hit_bin_idx
             
+    def get_bin_range(self, idx):
+        print("get_bin_range: " + str(idx))
+        b = None
+        for i in range(len(self.bin_l)):
+            b = self.bin_l[i]
+            if b.get_n_bins() > idx:
+                break;
+            idx -= b.get_n_bins()
+            
+        return b.get_bin_range(idx)
 
     def dump(self, ind=""):
         print(ind + "Bins " + self.name)

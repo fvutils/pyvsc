@@ -19,6 +19,7 @@ from vsc.model.unary_expr_type import UnaryExprType
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 import random
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 
 
 class DistConstraintBuilder(ConstraintOverrideVisitor):
@@ -36,7 +37,7 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
     def visit_constraint_dist(self, c):
         # We replace the dist constraint with an equivalent 
         # set of hard and soft constraints
-        scope = ConstraintInlineScopeModel()
+        scope = ConstraintDistScopeModel(c)
         
         ranges = ExprRangelistModel()
         for w in c.weights:        
@@ -119,30 +120,32 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
 
         if i >= len(weight_l):
             i = len(weight_l)-1
-            
+
+        scope.target_range = weight_l[i][1]            
         target_w = c.weights[weight_l[i][1]]
+        dist_soft_c = None
         if target_w.rng_rhs is not None:
-            scope.addConstraint(
-                ConstraintSoftModel(
-                    ConstraintExprModel(
-                        ExprBinModel(
-                            ExprBinModel(
-                                c.lhs,
-                                BinExprType.Ge,
-                                target_w.rng_lhs),
-                            BinExprType.And,
-                            ExprBinModel(
-                                c.lhs,
-                                BinExprType.Le,
-                                target_w.rng_rhs)))))
+            dist_soft_c = ConstraintSoftModel(
+                ExprBinModel(
+                    ExprBinModel(
+                        c.lhs,
+                        BinExprType.Ge,
+                        target_w.rng_lhs),
+                    BinExprType.And,
+                    ExprBinModel(
+                        c.lhs,
+                        BinExprType.Le,
+                        target_w.rng_rhs)))
         else:
-            scope.addConstraint(
-                ConstraintSoftModel(
-                    ConstraintExprModel(
-                        ExprBinModel(
-                            c.lhs,
-                            BinExprType.Eq,
-                            target_w.rng_lhs))))
+            dist_soft_c = ConstraintSoftModel(
+                ExprBinModel(
+                    c.lhs,
+                    BinExprType.Eq,
+                    target_w.rng_lhs))
+        # Give dist constraints a high priority to allow
+        # them to override all user-defined soft constraints
+        dist_soft_c.priority = 1000000
+        scope.set_dist_soft_c(dist_soft_c)
         
         self.override_constraint(scope)
         

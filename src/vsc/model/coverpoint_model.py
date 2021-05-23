@@ -24,6 +24,7 @@ from typing import Set, List, Tuple
 import random
 from _random import Random
 from vsc.model.coverage_options_model import CoverageOptionsModel
+from vsc.model.rangelist_model import RangelistModel
 
 
 # Created on Aug 3, 2019
@@ -131,6 +132,12 @@ class CoverpointModel(CoverItemBase):
 #            return random.sample(self.unhit_s,1)[0]
         else:
             return -1
+        
+    def get_bin_range(self, bin_idx) -> RangelistModel:
+        b,off = self._get_target_bin(bin_idx)
+        
+        return b.get_bin_range(off)
+        pass
             
     def coverage_ev(self, bin_idx):
         """Called by a bin to signal that an uncovered bin has been covered"""

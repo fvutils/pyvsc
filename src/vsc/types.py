@@ -440,6 +440,10 @@ class type_base(object):
         
         if isinstance(rhs, rangelist):
             return expr(ExprInModel(lhs_e, rhs.range_l))
+        elif isinstance(rhs, rng):
+            rl = ExprRangelistModel()
+            rl.add_range(ExprRangeModel(rhs.low, rhs.high))
+            return expr(ExprInModel(lhs_e, rl))
         elif isinstance(rhs, list_t):
             return expr(ExprInModel(
                 lhs_e,

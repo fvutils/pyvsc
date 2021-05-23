@@ -79,6 +79,9 @@ class ModelVisitor(object):
     def visit_constraint_dist(self, c):
         pass
     
+    def visit_constraint_dist_scope(self, s):
+        self.visit_constraint_inline_scope(s)
+    
     def visit_dist_weight(self, w):
         w.rng_lhs.accept(self)
         if w.rng_rhs is not None:

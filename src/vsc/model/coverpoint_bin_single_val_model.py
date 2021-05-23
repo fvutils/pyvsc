@@ -8,6 +8,7 @@ from vsc.model.bin_expr_type import BinExprType
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.rangelist_model import RangelistModel
 
 
 class CoverpointBinSingleValModel(CoverpointBinModelBase):
@@ -43,7 +44,11 @@ class CoverpointBinSingleValModel(CoverpointBinModelBase):
             self.hit_bin_idx = -1
             
         return self.hit_bin_idx
-            
+    
+    def get_bin_range(self, idx):
+        print("get_bin_range: " + str(idx))
+        return RangelistModel([self.target_val])
+
     def accept(self, v):
         v.visit_coverpoint_bin_single(self)
         

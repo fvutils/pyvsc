@@ -27,7 +27,7 @@ from typing import List, Dict
 
 from pyboolector import Boolector, BoolectorNode
 import pyboolector
-from vsc.constraints import constraint
+from vsc.constraints import constraint, soft
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
@@ -52,6 +52,7 @@ from vsc.model.solve_failure import SolveFailure
 from vsc.visitors.ref_fields_postrand_visitor import RefFieldsPostRandVisitor
 from vsc.model.rand_set_node_builder import RandSetNodeBuilder
 from vsc.model.rand_set_dispose_visitor import RandSetDisposeVisitor
+from vsc.visitors.clear_soft_priority_visitor import ClearSoftPriorityVisitor
 
 
 class Randomizer(RandIF):
@@ -69,7 +70,6 @@ class Randomizer(RandIF):
     def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
         """Randomize the variables and constraints in a RandInfo collection"""
         
-
         if self.debug > 0:
             for rs in ri.randsets():
                 print("RandSet")
@@ -114,6 +114,8 @@ class Randomizer(RandIF):
             start_rs_i = rs_i
 
             constraint_l = []
+            soft_constraint_l = []
+            
             # Collect up to max_fields fields to randomize at a time
             n_fields = 0
             while rs_i < len(ri.randsets()):
@@ -133,7 +135,13 @@ class Randomizer(RandIF):
                 rs_node_builder.build(rs)
                 n_fields += len(all_fields)
                 
-                constraint_l.extend(list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints())))
+#                constraint_l.extend(list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints())))
+                constraint_l.extend(list(map(lambda c:(c,c.build(btor)), rs.constraints())))
+                soft_constraint_l.extend(list(map(lambda c:(c,c.build(btor)), rs.soft_constraints())))
+                
+                # Sort the list in descending order so we know which constraints
+                # to prioritize
+                soft_constraint_l.sort(key=lambda c:c[0].priority, reverse=True)
                 
                 rs_i += 1
                 if n_fields > max_fields or rs.order != -1:
@@ -143,82 +151,61 @@ class Randomizer(RandIF):
                 try:
                     btor.Assume(c[1])
                 except Exception as e:
-                    from ..visitors.model_pretty_printer import ModelPrettyPrinter
-                    print("Exception: " + ModelPrettyPrinter.print(c[0]))
+                    print("Exception: " + self.pretty_printer.print(c[0]))
                     raise e
                 
-            soft_node_l = list(map(lambda c:c[1], filter(lambda c:c[2], constraint_l)))
-            node_l = list(map(lambda c:c[1], filter(lambda c:not c[2], constraint_l)))
-
-            # Perform an initial solve to establish correctness
             if btor.Sat() != btor.SAT:
-                
-                if len(soft_node_l) > 0:
-                    # Try one more time before giving up
-                    for i,f in enumerate(soft_node_l):
-                        if btor.Failed(f):
-                            soft_node_l[i] = None
-                        
-                    # Add back the hard-constraint nodes and soft-constraints that
-                    # didn't fail                        
-#                    for n in filter(lambda n:n is not None, node_l+soft_node_l):
-                    for n in filter(lambda n:n is not None, node_l):
-                        btor.Assume(n)
-                        
-                    for n in filter(lambda n:n is not None, soft_node_l):
-                        btor.Assume(n)
-
-                    # If we fail again, then we truly have a problem
-                    if btor.Sat() != btor.SAT:
-                    
-                        # Ensure we clean up
-#                        active_randsets = []
-#                        x=start_rs_i
-#                        while x < rs_i:
-#                            rs = ri.randsets()[x]
-#                            active_randsets.append(rs)
-#                            for f in rs.all_fields():
-#                                f.dispose()
-#                            x += 1
-                        active_randsets = []
-                        for rs in ri.randsets():
-                            active_randsets.append(rs)
-                            for f in rs.all_fields():
-                                f.dispose()
-                            raise SolveFailure(
-                                "solve failure",
-                                self.create_diagnostics(active_randsets))
-
-#                        raise SolveFailure(
-#                            "solve failure", 
-#                            self.create_diagnostics(active_randsets))
-                    else:
-                        # Still need to convert assumptions to assertions
-                        for n in filter(lambda n:n is not None, node_l+soft_node_l):
-                            btor.Assert(n)
-                else:
-#                    print("Failed constraints:")
-#                    i=1
-#                    for c in constraint_l:
-#                        if btor.Failed(c[1]):
-#                            print("[" + str(i) + "]: " + self.pretty_printer.do_print(c[0], False))
-#                            print("[" + str(i) + "]: " + self.pretty_printer.do_print(c[0], True))
-#                            i+=1
-                            
-                    # Ensure we clean up
-                    active_randsets = []
-                    for rs in ri.randsets():
-                        active_randsets.append(rs)
-                        for f in rs.all_fields():
-                            f.dispose()
-                    raise SolveFailure(
-                        "solve failure",
-                        self.create_diagnostics(active_randsets))
+                # If the system doesn't solve with hard constraints added,
+                # then we may as well bail now
+                active_randsets = []
+                for rs in ri.randsets():
+                    active_randsets.append(rs)
+                    for f in rs.all_fields():
+                        f.dispose()
+                raise SolveFailure(
+                    "solve failure",
+                    self.create_diagnostics(active_randsets))
             else:
-                # Still need to convert assumptions to assertions
-                btor.Assert(*(node_l+soft_node_l))
+                # Lock down the hard constraints that are confirmed
+                # to be valid
+                for c in constraint_l:
+                    btor.Assert(c[1])
 
-
+            # If there are soft constraints, add these now
+            if len(soft_constraint_l) > 0:                
+                for c in soft_constraint_l:
+                    try:
+                        btor.Assume(c[1])
+                    except Exception as e:
+                        from ..visitors.model_pretty_printer import ModelPrettyPrinter
+                        print("Exception: " + ModelPrettyPrinter.print(c[0]))
+                        raise e
+                    
+                if btor.Sat() != btor.SAT:
+                    # All the soft constraints cannot be satisfied. We'll need to
+                    # add them incrementally
+                    if self.debug > 0:
+                        print("Note: some of the %d soft constraints could not be satisfied" % len(soft_constraint_l))
+                        
+                    for c in soft_constraint_l:
+                        btor.Assume(c[1])
+                        
+                        if btor.Sat() == btor.SAT:
+                            if self.debug > 0:
+                                print("Note: soft constraint %s (%d) passed" % (
+                                    self.pretty_printer.print(c[0]), c[0].priority))
+                            btor.Assert(c[1])
+                        else:
+                            if self.debug > 0:
+                                print("Note: soft constraint %s (%d) failed" % (
+                                    self.pretty_printer.print(c[0]), c[0].priority))
+                else:
+                    # All the soft constraints could be satisfied. Assert them now
+                    if self.debug > 0:
+                        print("Note: all %d soft constraints could be satisfied" % len(soft_constraint_l))
+                    for c in soft_constraint_l:
+                        btor.Assert(c[1])
+                
             self.swizzle_randvars(btor, ri, start_rs_i, rs_i, bound_m)
 
         # Finalize the value of the field
@@ -266,41 +253,64 @@ class Randomizer(RandIF):
             
             if self.debug > 0:
                 print("  " + str(len(field_l)) + " fields in randset")
+            f = None
             if len(field_l) == 1:
                 # Go ahead and pick values in the domain, since there 
                 # are no other constraints
                 f = field_l[0]
-                if f in bound_m.keys():
-                    f_bound = bound_m[f]
-                    if not f_bound.isEmpty():
-                        e = self.create_rand_domain_constraint(f, f_bound)
-                        if e is not None:
-                            n = e.build(btor)
-                            rand_node_l.append(n)
-                            rand_e_l.append(e)
+
             elif len(field_l) > 0:
                 field_idx = self.randint(0, len(field_l)-1)
                 f = field_l[field_idx]
+            if f is not None:
                 if self.debug > 0:
-                    print("Swizzling field " + f.name)
-                if f in bound_m.keys():
-                    f_bound = bound_m[f]
-                 
-                    if not f_bound.isEmpty():
-                        e = self.create_rand_domain_constraint(f, f_bound)
-                        if e is not None:
-                            n = e.build(btor)
-                            rand_node_l.append(n)
-                            rand_e_l.append(e)
-#                                btor.Assume(n)
-                    else:
-                        # It's always possible that this value is already fixed.
-                        # Just ignore.
-#                            rand_node_l.append(None)
-                        pass
-                else:
+                    print("Swizzling field %s" % f.name)
+                    
+                if f in rs.dist_field_m.keys():
                     if self.debug > 0:
-                        print("Note: no bounds found for field " + f.name)
+                        print("Note: field %s is in dist map" % f.name)
+                        for d in rs.dist_field_m[f]:
+                            print("  Target interval %d" % d.target_range)
+                    if len(rs.dist_field_m[f]) > 1:
+                        target_d = self.randint(0, len(rs.dist_field_m[f])-1)
+                        dist_scope_c = rs.dist_field_m[f][target_d]
+                    else:
+                        dist_scope_c = rs.dist_field_m[f][0]
+                    target_w = dist_scope_c.dist_c.weights[dist_scope_c.target_range]
+                    if target_w.rng_rhs is not None:
+                        # Dual-bound range
+                        val_l = target_w.rng_lhs.val()
+                        val_r = target_w.rng_rhs.val()
+                        val = self.randint(val_l, val_r)
+                        if self.debug > 0:
+                            print("Select dist-weight range: %d..%d ; specific value %d" % (
+                                int(val_l), int(val_r), int(val)))
+                        e = ExprBinModel(
+                            ExprFieldRefModel(f),
+                            BinExprType.Eq,
+                            ExprLiteralModel(val, f.is_signed, f.width))
+                        n = e.build(btor)
+                        rand_node_l.append(n)
+                        rand_e_l.append(e)
+                    else:
+                        # Single value
+                        val = target_w.rng_lhs.val()
+                        e = ExprBinModel(
+                            ExprFieldRefModel(f),
+                            BinExprType.Eq,
+                            ExprLiteralModel(int(val), f.is_signed, f.width))
+                        n = e.build(btor)
+                        rand_node_l.append(n)
+                        rand_e_l.append(e)
+                else:
+                    if f in bound_m.keys():
+                        f_bound = bound_m[f]
+                        if not f_bound.isEmpty():
+                            e = self.create_rand_domain_constraint(f, f_bound)
+                            if e is not None:
+                                n = e.build(btor)
+                                rand_node_l.append(n)
+                                rand_e_l.append(e)                
             x += 1
             
         if len(rand_node_l) > 0:            
@@ -345,14 +355,17 @@ class Randomizer(RandIF):
         range = range_l[range_idx]
         domain = range[1]-range[0]
         
+        
         if self.debug > 0:
             print("create_rand_domain_constraint: " + f.name + " range_idx=" + str(range_idx) + " range=" + str(range))
         if domain > 64:
             r_type = self.randint(0, 3)
+            r_type = 3 # Note: hard-coded to selecting single value for 
             single_val = self.randint(range[0], range[1])
                 
             if r_type >= 0 and r_type <= 2: # range
                 # Pretty simple. Partition and randomize
+#                bin_sz_h = 1 if int(domain/128) == 0 else int(domain/128)
                 bin_sz_h = 1 if int(domain/128) == 0 else int(domain/128)
 
                 if r_type == 0:                
@@ -366,6 +379,9 @@ class Randomizer(RandIF):
                     else:
                         max = single_val+bin_sz_h
                         min = single_val-bin_sz_h
+                        
+                    if self.debug > 0:
+                        print("rand_domain range-type is bin center value: center=%d => %d..%d" % (single_val,min,max))
                 elif r_type == 1:
                     # Bin starts at value
                     if single_val+2*bin_sz_h > range[1]:
@@ -377,6 +393,8 @@ class Randomizer(RandIF):
                     else:
                         max = single_val+2*bin_sz_h
                         min = single_val
+                    if self.debug > 0:
+                        print("rand_domain range-type is bin left-target value: left=%d %d..%d" % (single_val, min,max))
                 elif r_type == 2:
                     # Bin ends at value
                     if single_val+2*bin_sz_h > range[1]:
@@ -388,6 +406,9 @@ class Randomizer(RandIF):
                     else:
                         max = single_val
                         min = single_val-2*bin_sz_h
+                        
+                    if self.debug > 0:
+                        print("rand_domain range-type is bin right-target value: left=%d %d..%d" % (single_val, min,max))
                  
                 e = ExprBinModel(
                     ExprBinModel(
@@ -409,12 +430,16 @@ class Randomizer(RandIF):
                     )
                 )
             elif r_type == 3: # Single value
+                if self.debug > 0:
+                    print("rand_domain range-type is single value: %d" % single_val)
                 e = ExprBinModel(
                         ExprFieldRefModel(f),
                         BinExprType.Eq,
                         ExprLiteralModel(single_val, f.is_signed, f.width))
         else:
             val = self.randint(range[0], range[1])
+            if self.debug > 0:
+                print("rand_domain on small domain [%d..%d] => %d" % (range[0], range[1], val))
             e = ExprBinModel(
                 ExprFieldRefModel(f),
                 BinExprType.Eq,
@@ -427,11 +452,9 @@ class Randomizer(RandIF):
             tmp = low
             low = high
             high = tmp
-#        if Randomizer._rng is None:
-#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
-#        return Randomizer._rng.randint(low, high)
-        return random.randint(low, high)
-    
+
+        return random.randint(low,high)
+
     def randbits(self, nbits):
 #        if Randomizer._rng is None:
 #            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
@@ -539,8 +562,11 @@ class Randomizer(RandIF):
 #        seed = Randomizer._rng.randint(0, (1 << 64)-1)
         seed = random.randint(0, (1<<64)-1)
         
+        clear_soft_priority = ClearSoftPriorityVisitor()
+        
         for f in field_model_l:
             f.set_used_rand(True, 0)
+            clear_soft_priority.clear(f)
            
         if debug > 0: 
             print("Initial Model:")        
@@ -553,6 +579,9 @@ class Randomizer(RandIF):
             
         if constraint_l is None:
             constraint_l = []
+            
+        for c in constraint_l:
+            clear_soft_priority.clear(c)
 
         # Collect all variables (pre-array) and establish bounds            
         bounds_v = VariableBoundVisitor()

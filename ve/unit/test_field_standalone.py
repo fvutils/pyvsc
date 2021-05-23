@@ -4,6 +4,7 @@ Created on Jul 30, 2020
 @author: ballance
 '''
 
+import random
 from enum import IntEnum, auto
 
 import vsc
@@ -139,3 +140,58 @@ class TestFieldStandalone(VscTestCase):
         imm.set_val(2)
         self.assertEqual(imm.get_val(), 2)
         self.assertEqual(imm[1], 1)
+        
+    def test_distweight(self):
+        PCID = vsc.rand_uint16_t()
+        
+        hist1 = [0]*65536
+        hist2 = [0]*65536
+
+        items = 10000
+        for i in range(items):
+#            vsc.randomize(PCID)
+            with vsc.randomize_with(PCID, debug=0):
+#                PCID.inside(vsc.rng(1,65534))
+                vsc.dist(PCID, [
+                    vsc.weight(0, 1),
+                    vsc.weight(vsc.rng(1,65534), 900),
+                    vsc.weight(65535, 1)
+                    ])
+#            print("PCID: " + str(PCID.get_val()))
+            hist1[PCID.get_val()] += 1 
+            hist2[random.randint(1,65534)] += 1
+
+        hist1_hit = 0
+        hist2_hit = 0
+        for e in hist1[1:65534]:
+            if e != 0:
+                hist1_hit += 1
+        for e in hist2[1:65534]:
+            if e != 0:
+                hist2_hit += 1
+
+        print("Items: %d hist1=%f hist2=%f" % (items, hist1_hit/65534, hist2_hit/65534))
+
+        # Only check deeper if full random actually hit more than weighted
+        if hist1_hit > hist2_hit:
+            # Fail if plain randomization hit 15% more than weighted
+            hist1_15p = int(hist1_hit * 0.15)
+            self.assertLessEqual((hist1_hit-hist2_hit), hist1_15p)
+            
+#     def test_distweight_partitioned(self):
+#         PCID = vsc.rand_uint16_t()
+# 
+#         for i in range(100):
+#             print("==> randomize")
+#             with vsc.randomize_with(PCID, debug=0):
+#                 vsc.dist(PCID, [
+#                     vsc.weight(0, 1),
+#                     vsc.weight(vsc.rng(1,16383), 80),
+#                     vsc.weight(vsc.rng(16384,32767), 30),
+#                     vsc.weight(vsc.rng(32768,49151), 30),
+#                     vsc.weight(vsc.rng(49152,65534), 30),
+#                     vsc.weight(65535, 1)])
+#             print("<== randomize")
+#             print("PCID: %d" % int(PCID.get_val()))
+
+

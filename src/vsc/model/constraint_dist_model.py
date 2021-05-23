@@ -17,6 +17,7 @@ class ConstraintDistModel(ConstraintModel):
                  weights : List[DistWeightExprModel]):
         self.lhs = lhs
         self.weights = weights
+        
         pass
     
     def accept(self, v):

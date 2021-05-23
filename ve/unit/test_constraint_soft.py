@@ -65,8 +65,42 @@ class TestConstraintSoft(VscTestCase):
 
         item = my_item()
         for i in range(10):
-            with item.randomize_with() as it:
+            with item.randomize_with(debug=1) as it:
                 it.b > 10
                 it.a == 1 #B
-            
+
+    def test_soft_dist_priority(self):
+        """Ensures that dist constraints take priority over soft constraints"""
+        
+        @vsc.randobj
+        class my_item(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def valid_ab_c(self):
+                self.a < self.b
+                vsc.soft(self.a > 5) #A
+         
+            @vsc.constraint
+            def dist_a(self):
+                vsc.dist(self.a, [
+                    vsc.weight(0,  10),
+                    vsc.weight(1,  10),
+                    vsc.weight(2,  10),
+                    vsc.weight(4,  10),
+                    vsc.weight(8, 10)])
+
+        hist = [0]*9
+        item = my_item()
+        for i in range(100):
+            item.randomize()
+            hist[item.a] += 1
+
+        self.assertGreater(hist[0], 0) 
+        self.assertGreater(hist[1], 0) 
+        self.assertGreater(hist[2], 0) 
+        self.assertGreater(hist[4], 0) 
+        self.assertGreater(hist[8], 0) 
         

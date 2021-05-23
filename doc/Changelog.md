@@ -1,4 +1,11 @@
 
+## 0.3.7
+- Add priorities to soft constraints
+- Change randomization strategy to select a single value
+- Make randomization aware of dist constraints
+- Give dist soft constraints a high (1M+) priority to distiguish from 
+  user soft constraints
+
 ## 0.3.6
 - Add support for passing VSC class objects to the covergroup sample method
 
