@@ -79,7 +79,8 @@ class TestConstraintSolveOrder(VscTestCase):
             pass
         self.assertTrue(caught_exception, "Failed to detect solve_order incorrect arguments")
 
-    def test_order_model_1(self):
+    # We've changed the way that ordering constraints are handled
+    def disabled_test_order_model_1(self):
         @vsc.randobj
         class my_c(object):
             
@@ -109,7 +110,7 @@ class TestConstraintSolveOrder(VscTestCase):
         self.assertIn(a, info.randset_l[0].fields())
         self.assertIn(b, info.randset_l[1].fields())
 
-    def test_order_model_2(self):
+    def disabled_test_order_model_2(self):
         @vsc.randobj
         class my_c(object):
             
@@ -251,5 +252,74 @@ class TestConstraintSolveOrder(VscTestCase):
         obj = classA()
         for i in range(100):
             obj.randomize()
-        
+
+    def test_num_of_tested_loop_randomiation(self):
+        import vsc
+        from enum import Enum,auto
+
+        @vsc.randobj
+        class riscv_instr:
+            def __init__(self):
+                self.temp = vsc.rand_uint8_t()
+
+
+        class my_e(Enum):
+            A = 0
+            B = auto()
+            C = auto()
+            D = auto()
+            E = auto()
+            F = auto()
+            G = auto()
+
+        @vsc.randobj
+        class riscv_loop_instr:
+            def __init__(self):
+                self.loop_cnt_reg = vsc.randsz_list_t(vsc.enum_t(my_e))
+                self.loop_limit_reg = vsc.randsz_list_t(vsc.enum_t(my_e))
+                self.loop_init_val = vsc.randsz_list_t(vsc.uint32_t())
+                self.loop_step_val = vsc.randsz_list_t(vsc.uint32_t())
+                self.loop_limit_val = vsc.randsz_list_t(vsc.uint32_t())
+                self.num_of_nested_loop = vsc.rand_bit_t(3)
+                self.num_of_instr_in_loop = vsc.rand_uint32_t()
+                self.branch_type = vsc.randsz_list_t(vsc.enum_t(my_e))
+
+            @vsc.constraint
+            def legal_loop_regs_c(self):
+                vsc.solve_order(self.num_of_nested_loop, self.loop_init_val)
+                vsc.solve_order(self.num_of_nested_loop, self.loop_step_val)
+                vsc.solve_order(self.num_of_nested_loop, self.loop_limit_val)
+                vsc.solve_order(self.loop_limit_val, self.loop_limit_reg)
+                vsc.solve_order(self.branch_type, self.loop_init_val)
+                vsc.solve_order(self.branch_type, self.loop_step_val)
+                vsc.solve_order(self.branch_type, self.loop_limit_val)
+                self.num_of_instr_in_loop.inside(vsc.rangelist((1, 25)))
+                self.num_of_nested_loop.inside(vsc.rangelist(1, 2))
+                self.loop_init_val.size == self.num_of_nested_loop
+                self.loop_step_val.size == self.num_of_nested_loop
+                self.loop_limit_val.size == self.num_of_nested_loop
+                self.loop_init_val.size == self.num_of_nested_loop
+                self.branch_type.size == self.num_of_nested_loop
+                self.loop_step_val.size == self.num_of_nested_loop
+                self.loop_limit_val.size == self.num_of_nested_loop
+                self.branch_type.size == self.num_of_nested_loop
+
+            @vsc.constraint
+            def loop_c(self):
+                vsc.solve_order(self.num_of_nested_loop, self.loop_cnt_reg)
+                vsc.solve_order(self.num_of_nested_loop, self.loop_limit_reg)
+                self.loop_cnt_reg.size == self.num_of_nested_loop
+                self.loop_limit_reg.size == self.num_of_nested_loop
+
+
+        obj = riscv_loop_instr()
+        num_of_nested_loop_hist = [0]*3
+        for i in range(10):
+            obj.randomize(debug=0)
+            num_of_nested_loop_hist[obj.num_of_nested_loop] += 1
+
+        print("hist: " + str(num_of_nested_loop_hist))
+        self.assertEqual(0, num_of_nested_loop_hist[0])
+        self.assertNotEqual(0, num_of_nested_loop_hist[1])
+        self.assertNotEqual(0, num_of_nested_loop_hist[2])
 

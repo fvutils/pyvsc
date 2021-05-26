@@ -260,6 +260,6 @@ class ModelPrettyPrinter(ModelVisitor):
             f_str += "signed "
         else:
             f_str += "unsigned "
-        f_str += "[" + str(f.width) + "] " + f.name
+        f_str += "[" + str(f.width) + "] " + f.fullname
         self.writeln(f_str)
 

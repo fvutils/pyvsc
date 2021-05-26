@@ -208,7 +208,7 @@ class Randomizer(RandIF):
                 
             self.swizzle_randvars(btor, ri, start_rs_i, rs_i, bound_m)
 
-        # Finalize the value of the field
+            # Finalize the value of the field
             x = start_rs_i
             reset_v = DynamicExprResetVisitor()
             while x < rs_i:
@@ -228,8 +228,6 @@ class Randomizer(RandIF):
                 
         end = int(round(time.time() * 1000))
 
-
-                    
     def swizzle_randvars(self, 
                 btor     : Boolector, 
                 ri       : RandInfo,
@@ -248,103 +246,93 @@ class Randomizer(RandIF):
             # For each random variable, select a partition with it's known 
             # domain and add the corresponding constraint
             rs = ri.randsets()[x]
-            
             field_l = rs.rand_fields()
             
             if self.debug > 0:
                 print("  " + str(len(field_l)) + " fields in randset")
-            f = None
-            if len(field_l) == 1:
-                # Go ahead and pick values in the domain, since there 
-                # are no other constraints
-                f = field_l[0]
-
-            elif len(field_l) > 0:
-                field_idx = self.randint(0, len(field_l)-1)
-                f = field_l[field_idx]
-            if f is not None:
-                if self.debug > 0:
-                    print("Swizzling field %s" % f.name)
-                    
-                if f in rs.dist_field_m.keys():
-                    if self.debug > 0:
-                        print("Note: field %s is in dist map" % f.name)
-                        for d in rs.dist_field_m[f]:
-                            print("  Target interval %d" % d.target_range)
-                    if len(rs.dist_field_m[f]) > 1:
-                        target_d = self.randint(0, len(rs.dist_field_m[f])-1)
-                        dist_scope_c = rs.dist_field_m[f][target_d]
-                    else:
-                        dist_scope_c = rs.dist_field_m[f][0]
-                    target_w = dist_scope_c.dist_c.weights[dist_scope_c.target_range]
-                    if target_w.rng_rhs is not None:
-                        # Dual-bound range
-                        val_l = target_w.rng_lhs.val()
-                        val_r = target_w.rng_rhs.val()
-                        val = self.randint(val_l, val_r)
-                        if self.debug > 0:
-                            print("Select dist-weight range: %d..%d ; specific value %d" % (
-                                int(val_l), int(val_r), int(val)))
-                        e = ExprBinModel(
-                            ExprFieldRefModel(f),
-                            BinExprType.Eq,
-                            ExprLiteralModel(val, f.is_signed, f.width))
-                        n = e.build(btor)
-                        rand_node_l.append(n)
-                        rand_e_l.append(e)
-                    else:
-                        # Single value
-                        val = target_w.rng_lhs.val()
-                        e = ExprBinModel(
-                            ExprFieldRefModel(f),
-                            BinExprType.Eq,
-                            ExprLiteralModel(int(val), f.is_signed, f.width))
-                        n = e.build(btor)
-                        rand_node_l.append(n)
-                        rand_e_l.append(e)
-                else:
-                    if f in bound_m.keys():
-                        f_bound = bound_m[f]
-                        if not f_bound.isEmpty():
-                            e = self.create_rand_domain_constraint(f, f_bound)
-                            if e is not None:
-                                n = e.build(btor)
-                                rand_node_l.append(n)
-                                rand_e_l.append(e)                
-            x += 1
             
-        if len(rand_node_l) > 0:            
-            btor.Assume(*rand_node_l)
-#            btor.Assert(*rand_node_l)
-     
-            if btor.Sat() != btor.SAT:
-                # Remove any failing assumptions
+            if rs.rand_order_l is not None:
+                # Perform an ordered randomization
+                for ro_l in rs.rand_order_l:
+                    self.swizzle_field_l(ro_l, rs, bound_m, btor)
+            else:
+                self.swizzle_field_l(rs.rand_fields(), rs, bound_m, btor)
                 
-                if self.debug > 0:
-                    print("Randomization constraint failed")
- 
-                n_failed = 0
-                for i,n in enumerate(rand_node_l):
-                    if n is not None and btor.Failed(n):
-                        rand_node_l[i] = None
-                        n_failed += 1
-
-                # Sanity check                
-                if n_failed == 0:
-                    for e in rand_e_l:
-                        print("Constraint: " + ModelPrettyPrinter.print(e))
-                    raise Exception("UNSAT reported, but no failing assertions")
-# 
-                # Re-apply the constraints that succeeded
-                btor.Assert(*filter(lambda n:n is not None, rand_node_l))
-                if btor.Sat() != btor.SAT:
-                    raise Exception("failed to add in randomization (2)")
-        else:
-            if btor.Sat() != btor.SAT:
-                raise Exception("failed to add in randomization")
+            x += 1
             
         if self.debug > 0:
             print("<-- swizzle_randvars")
+            
+    def swizzle_field_l(self, field_l, rs, bound_m, btor):
+        e = None                
+        if len(field_l) > 0:
+            field_idx = self.randint(0, len(field_l)-1)
+            f = field_l[field_idx]
+                    
+            e = self.swizzle_field(f, rs, bound_m)
+                    
+            if e is not None:
+                n = e.build(btor)
+                btor.Assume(n)
+                    
+                if btor.Sat() != btor.SAT:
+                    if self.debug > 0:
+                        print("Randomization constraint failed")
+                else:
+                    # Randomization constraints succeeded. Go ahead and assert
+                    btor.Assert(n)
+                    
+            if btor.Sat() != btor.SAT:
+                raise Exception("failed to add in randomization (2)")                           
+            
+    def swizzle_field(self, f, rs, bound_m) -> ExprModel:
+        ret = None
+        
+        if self.debug > 0:
+            print("Swizzling field %s" % f.name)
+             
+        if f in rs.dist_field_m.keys():
+            if self.debug > 0:
+                print("Note: field %s is in dist map" % f.name)
+                for d in rs.dist_field_m[f]:
+                    print("  Target interval %d" % d.target_range)
+            if len(rs.dist_field_m[f]) > 1:
+                target_d = self.randint(0, len(rs.dist_field_m[f])-1)
+                dist_scope_c = rs.dist_field_m[f][target_d]
+            else:
+                dist_scope_c = rs.dist_field_m[f][0]
+                
+            target_w = dist_scope_c.dist_c.weights[dist_scope_c.target_range]
+            if target_w.rng_rhs is not None:
+                # Dual-bound range
+                val_l = target_w.rng_lhs.val()
+                val_r = target_w.rng_rhs.val()
+                val = self.randint(val_l, val_r)
+                if self.debug > 0:
+                    print("Select dist-weight range: %d..%d ; specific value %d" % (
+                        int(val_l), int(val_r), int(val)))
+                ret = ExprBinModel(
+                    ExprFieldRefModel(f),
+                    BinExprType.Eq,
+                    ExprLiteralModel(val, f.is_signed, f.width))
+            else:
+                # Single value
+                val = target_w.rng_lhs.val()
+                ret = ExprBinModel(
+                    ExprFieldRefModel(f),
+                    BinExprType.Eq,
+                    ExprLiteralModel(int(val), f.is_signed, f.width))
+        else:
+            if f in bound_m.keys():
+                f_bound = bound_m[f]
+                if not f_bound.isEmpty():
+                    ret = self.create_rand_domain_constraint(f, f_bound)
+                    
+        return ret
+#                    if e is not None:
+#                        n = e.build(btor)
+#                        rand_node_l.append(n)
+#                        rand_e_l.append(e)
                         
     def create_rand_domain_constraint(self, 
                 f : FieldScalarModel, 

@@ -23,6 +23,7 @@
 import random
 from _random import Random
 from builtins import set
+from toposort import toposort
 from typing import Set, Dict, List
 
 from vsc.model.constraint_block_model import ConstraintBlockModel
@@ -42,6 +43,7 @@ from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
 from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
+from vsc.visitors.expand_solve_order_visitor import ExpandSolveOrderVisitor
 
 
 class RandInfoBuilder(ModelVisitor,RandIF):
@@ -68,6 +70,8 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self._rng = rng
         self._order_l = []
         self._order_s = set()
+        
+        self._order_m = {}
         
     @staticmethod
     def build(
@@ -113,7 +117,30 @@ class RandInfoBuilder(ModelVisitor,RandIF):
 #                 print("RS Constraint: " + str(c))
 
         randset_l = list(builder._randset_s)
-        randset_l.sort(key=lambda e:e.order)
+        
+        # Handle ordering constraints.
+        # - Collect fields that are members of this randset
+        # - Sort in dependency order
+        # - Create a randomization ordering list
+        if len(builder._order_m.keys()) > 0:
+            for rs in randset_l:
+                # Create an ordering list of any 
+                rs_deps = {}
+                for i,f in enumerate(rs.fields()):
+                    if f in builder._order_m.keys():
+                        rs_deps[f] = builder._order_m[f]
+
+                    if len(rs_deps) > 0:
+                        rs.rand_order_l = []
+                        for fs in list(toposort(rs_deps)):
+                            field_l = []
+                            for fi in fs:
+                                if fi in rs.field_s:
+                                    field_l.append(fi)
+                            if len(field_l) > 0:
+                                rs.rand_order_l.append(field_l)
+                
+#        randset_l.sort(key=lambda e:e.order)
         
         return RandInfo(randset_l, list(builder._field_s))
     
@@ -139,29 +166,31 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         if self._pass == 0:
             for b in c.before_l:
                 for a in c.after_l:
-                    b_i = -1
-                    a_i = -1
-                    if b in self._order_s:
-                        b_i = self._order_l.index(b)
-                    if a in self._order_s:
-                        a_i = self._order_l.index(a)
-                    
-                    if b_i == -1 and a_i == -1:
-                        # Just add the elements to the list
-                        self._order_l.append(b)
-                        self._order_l.append(a)
-                        self._order_s.add(a)
-                        self._order_s.add(b)
-                    elif b_i != -1:
-                        self._order_l.insert(b_i+1, a)
-                        self._order_s.add(a)
-                    elif a_i != -1:
-                        self._order_l.insert(a_i, b)
-                        self._order_s.add(b)
-                    else:
-                        # Found both in the list already.
-                        # They might be in the list for good reasons or bad
-                        pass
+                    ExpandSolveOrderVisitor(self._order_m).expand(a, b)
+
+#                     b_i = -1
+#                     a_i = -1
+#                     if b in self._order_s:
+#                         b_i = self._order_l.index(b)
+#                     if a in self._order_s:
+#                         a_i = self._order_l.index(a)
+#                     
+#                     if b_i == -1 and a_i == -1:
+#                         # Just add the elements to the list
+#                         self._order_l.append(b)
+#                         self._order_l.append(a)
+#                         self._order_s.add(a)
+#                         self._order_s.add(b)
+#                     elif b_i != -1:
+#                         self._order_l.insert(b_i+1, a)
+#                         self._order_s.add(a)
+#                     elif a_i != -1:
+#                         self._order_l.insert(a_i, b)
+#                         self._order_s.add(b)
+#                     else:
+#                         # Found both in the list already.
+#                         # They might be in the list for good reasons or bad
+#                         pass
         
     def visit_constraint_stmt_enter(self, c):
         if self._pass == 1 and len(self._constraint_s) == 1:

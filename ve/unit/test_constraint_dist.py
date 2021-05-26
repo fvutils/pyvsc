@@ -334,7 +334,234 @@ class TestConstraintDist(VscTestCase):
         for v in hist:
             self.assertNotEqual(v, 0)
     
-    
-    
-        
+    def test_dist_soft_0(self):
+
+        @vsc.randobj
+        class my_item(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def valid_ab_c(self):
+                pass
+                # vsc.soft(self.a < 5) #Case A: this is fine since it is a looser bound than the dist constraint
+                # vsc.soft(self.a > 5) #Case B: this throws off distribution; would have expected this soft constraint to be ignored as if it were commented out and distribution to follow 1:97:1:1)
+                # self.a > 5 #Case C: this causes a constraint error since this value domain is disjoint from that of the dist constraint
+         
+            @vsc.constraint
+            def dist_a(self):
+                vsc.dist(self.a, [
+                    vsc.weight(0,  1),
+                    vsc.weight(1,  97),
+                    vsc.weight(2,  1),
+                    vsc.weight(3,  1),
+                    #vsc.weight(20, 10000) #Case D: this throws off distribution when combined with the line labeled below (the larger the weight, the worse -- seems that the weights get redistributed unevenly)
+            ])
+
+        hist = {}
+        total_cnt = 0
+
+        def add_to_hist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            total_cnt += 1
+            if val not in hist: hist[val] = 0
+            hist[val] += 1
+
+        def print_dist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            print(f"{val}: {hist[val]} " + "(%.1f%%)" %(hist[val] / total_cnt * 100))
+
+        item = my_item()
+        for i in range(1000):
+            with item.randomize_with() as it:
+                pass
+                #it.a <= 5 #Case D
+            add_to_hist(item.a)
+
+        for key in sorted(hist.keys()):
+            print_dist(key)
             
+        self.assertIn(0, hist.keys())
+        self.assertIn(1, hist.keys())
+        self.assertIn(2, hist.keys())
+        self.assertIn(3, hist.keys())
+
+        # We expect 97% distribution, but only worry about
+        # cases below 90%
+        self.assertGreater(hist[1]/total_cnt, 0.90)
+        
+    def test_dist_soft_1(self):
+
+        @vsc.randobj
+        class my_item(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def valid_ab_c(self):
+                pass
+                vsc.soft(self.a < 5) #Case A: this is fine since it is a looser bound than the dist constraint
+                # vsc.soft(self.a > 5) #Case B: this throws off distribution; would have expected this soft constraint to be ignored as if it were commented out and distribution to follow 1:97:1:1)
+                # self.a > 5 #Case C: this causes a constraint error since this value domain is disjoint from that of the dist constraint
+         
+            @vsc.constraint
+            def dist_a(self):
+                vsc.dist(self.a, [
+                    vsc.weight(0,  1),
+                    vsc.weight(1,  97),
+                    vsc.weight(2,  1),
+                    vsc.weight(3,  1),
+                    #vsc.weight(20, 10000) #Case D: this throws off distribution when combined with the line labeled below (the larger the weight, the worse -- seems that the weights get redistributed unevenly)
+            ])
+
+        hist = {}
+        total_cnt = 0
+
+        def add_to_hist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            total_cnt += 1
+            if val not in hist: hist[val] = 0
+            hist[val] += 1
+
+        def print_dist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            print(f"{val}: {hist[val]} " + "(%.1f%%)" %(hist[val] / total_cnt * 100))
+
+        item = my_item()
+        for i in range(1000):
+            with item.randomize_with() as it:
+                pass
+                #it.a <= 5 #Case D
+            add_to_hist(item.a)
+
+        for key in sorted(hist.keys()):
+            print_dist(key)
+            
+        self.assertIn(0, hist.keys())
+        self.assertIn(1, hist.keys())
+        self.assertIn(2, hist.keys())
+        self.assertIn(3, hist.keys())
+
+        # We expect 97% distribution, but only worry about
+        # cases below 90%
+        self.assertGreater(hist[1]/total_cnt, 0.90)
+        
+    def test_dist_soft_2(self):
+
+        @vsc.randobj
+        class my_item(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def valid_ab_c(self):
+                pass
+                # vsc.soft(self.a < 5) #Case A: this is fine since it is a looser bound than the dist constraint
+                vsc.soft(self.a > 5) #Case B: this throws off distribution; would have expected this soft constraint to be ignored as if it were commented out and distribution to follow 1:97:1:1)
+                # self.a > 5 #Case C: this causes a constraint error since this value domain is disjoint from that of the dist constraint
+         
+            @vsc.constraint
+            def dist_a(self):
+                vsc.dist(self.a, [
+                    vsc.weight(0,  1),
+                    vsc.weight(1,  97),
+                    vsc.weight(2,  1),
+                    vsc.weight(3,  1),
+                    #vsc.weight(20, 10000) #Case D: this throws off distribution when combined with the line labeled below (the larger the weight, the worse -- seems that the weights get redistributed unevenly)
+            ])
+
+        hist = {}
+        total_cnt = 0
+
+        def add_to_hist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            total_cnt += 1
+            if val not in hist: hist[val] = 0
+            hist[val] += 1
+
+        def print_dist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            print(f"{val}: {hist[val]} " + "(%.1f%%)" %(hist[val] / total_cnt * 100))
+
+        item = my_item()
+        for i in range(1000):
+            with item.randomize_with() as it:
+                pass
+                #it.a <= 5 #Case D
+            add_to_hist(item.a)
+
+        for key in sorted(hist.keys()):
+            print_dist(key)
+            
+        self.assertIn(0, hist.keys())
+        self.assertIn(1, hist.keys())
+        self.assertIn(2, hist.keys())
+        self.assertIn(3, hist.keys())
+
+        # We expect 97% distribution, but only worry about
+        # cases below 90%
+        self.assertGreater(hist[1]/total_cnt, 0.90)        
+
+    def disabled_test_dist_soft_3(self):
+
+        @vsc.randobj
+        class my_item(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def valid_ab_c(self):
+                pass
+                # vsc.soft(self.a < 5) #Case A: this is fine since it is a looser bound than the dist constraint
+                # vsc.soft(self.a > 5) #Case B: this throws off distribution; would have expected this soft constraint to be ignored as if it were commented out and distribution to follow 1:97:1:1)
+#                self.a > 5 #Case C: this causes a constraint error since this value domain is disjoint from that of the dist constraint
+         
+            @vsc.constraint
+            def dist_a(self):
+                vsc.dist(self.a, [
+                    vsc.weight(0,  1),
+                    vsc.weight(1,  97),
+                    vsc.weight(2,  1),
+                    vsc.weight(3,  1),
+                    vsc.weight(20, 10000) #Case D: this throws off distribution when combined with the line labeled below (the larger the weight, the worse -- seems that the weights get redistributed unevenly)
+            ])
+
+        hist = {}
+        total_cnt = 0
+
+        def add_to_hist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            total_cnt += 1
+            if val not in hist: hist[val] = 0
+            hist[val] += 1
+
+        def print_dist(val):
+            nonlocal hist
+            nonlocal total_cnt
+            print(f"{val}: {hist[val]} " + "(%.1f%%)" %(hist[val] / total_cnt * 100))
+
+        item = my_item()
+        for i in range(1000):
+            with item.randomize_with() as it:
+                pass
+                it.a <= 5 #Case D
+            add_to_hist(item.a)
+
+        for key in sorted(hist.keys()):
+            print_dist(key)
+            
+        self.assertIn(0, hist.keys())
+        self.assertIn(1, hist.keys())
+        self.assertIn(2, hist.keys())
+        self.assertIn(3, hist.keys())
+
+        # We expect 97% distribution, but only worry about
+        # cases below 90%
+        self.assertGreater(hist[1]/total_cnt, 0.90)        

@@ -126,7 +126,6 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
                 
                 if len(f.field_l) < max_size:
                     # Extend the size appropriately
-                    print("Note: Extending array to size " + str(max_size))
                     for i in range(max_size-len(f.field_l)):
                         f.add_field()
         elif self.phase == 1:

@@ -1,4 +1,8 @@
 
+## 0.3.8
+- Adjust the solve-ordering algorithm to affect randomization
+  order and priority instead of solve-set partitioning
+
 ## 0.3.7
 - Add priorities to soft constraints
 - Change randomization strategy to select a single value

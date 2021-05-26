@@ -45,6 +45,10 @@ class RandSet(object):
         self.field_rand_l = None
         self.all_field_l = None
         self.nontarget_sets = set()
+
+        # List of fields in each ordered set
+        # Only non-none if order constraints impact this randset
+        self.rand_order_l = None
         
     def build(self, btor, constraint_l):
         for f in self.field_s:

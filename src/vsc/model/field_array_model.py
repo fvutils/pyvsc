@@ -46,6 +46,7 @@ class FieldArrayModel(FieldCompositeModel):
             32,
             False,
             is_rand_sz)
+        self.size.parent = self
         self._set_size(0)
         
     def append(self, fm):
@@ -64,8 +65,9 @@ class FieldArrayModel(FieldCompositeModel):
         self._set_size(len(self.field_l))
         self.name_elems()
         
+        
     def _set_size(self, sz):
-        self.size.set_used_rand(False)
+#        self.size.set_used_rand(False)
         if sz != int(self.size.get_val()):
             self.size.set_val(sz)
             self.sum_expr = None
@@ -81,10 +83,10 @@ class FieldArrayModel(FieldCompositeModel):
     def pre_randomize(self):
         # Set the size field for arrays that don't
         # have a random size
-        if not self.is_rand_sz:
-            self._set_size(len(self.field_l))
-        else:
+        if self.is_rand_sz:
             self.size.set_used_rand(True)
+        else:
+            self._set_size(len(self.field_l))
         FieldCompositeModel.pre_randomize(self)
         
     def post_randomize(self):
@@ -114,6 +116,10 @@ class FieldArrayModel(FieldCompositeModel):
         self._set_size(len(self.field_l))
         super().build(builder)
         
+#    def set_used_rand(self, is_rand, level=0):
+#        if self.is_rand_sz:
+#            self.size.set_used_rand(is_rand)
+#        FieldCompositeModel.set_used_rand(self, is_rand, level=level)
     def set_used_rand(self, is_rand, level=0):
         super().set_used_rand(is_rand, level)
         self.size.set_used_rand(is_rand, level+1)
