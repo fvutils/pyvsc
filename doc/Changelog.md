@@ -1,4 +1,9 @@
 
+## 0.3.9
+- Adjust the randomization process to produce better spread of results.
+  Previously, a single field was selected from each randset. Now, a 
+  random ordering of up to N (4) fields is selected.
+
 ## 0.3.8
 - Adjust the solve-ordering algorithm to affect randomization
   order and priority instead of solve-set partitioning

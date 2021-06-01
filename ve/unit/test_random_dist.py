@@ -348,3 +348,30 @@ class TestRandomDist(VscTestCase):
                 self.assertNotEqual(hist_v2[i], 0)
             else:
                 self.assertEquals(hist_v2[i], 0)                                     
+
+    def test_xy_constraint_dist(self):
+        
+        @vsc.randobj
+        class cls(object):
+            
+            def __init__(self):
+                self.x = vsc.rand_bit_t(3)
+                self.y = vsc.rand_bit_t(3)
+                
+            @vsc.constraint
+            def x_lt_y_c(self):
+                self.x < self.y
+                
+            
+        x_hist = [0]*8
+        y_hist = [0]*8
+
+        c = cls()        
+        for i in range(10000):
+            c.randomize(debug=0)
+            x_hist[c.x] += 1
+            y_hist[c.y] += 1
+
+        print("x_hist=" + str(x_hist))
+        print("y_hist=" + str(y_hist))
+        

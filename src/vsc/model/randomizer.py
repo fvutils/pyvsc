@@ -264,23 +264,44 @@ class Randomizer(RandIF):
             print("<-- swizzle_randvars")
             
     def swizzle_field_l(self, field_l, rs, bound_m, btor):
-        e = None                
+        e = None
         if len(field_l) > 0:
-            field_idx = self.randint(0, len(field_l)-1)
-            f = field_l[field_idx]
-                    
-            e = self.swizzle_field(f, rs, bound_m)
-                    
-            if e is not None:
-                n = e.build(btor)
-                btor.Assume(n)
+            # Make a copy of the field list so we don't
+            # destroy the original
+            field_l = field_l.copy()
+            
+            swizzle_node_l = []
+            swizzle_expr_l = []
+            max_swizzle = 4
+
+            # Select up to `max_swizzle` fields to swizzle            
+            for i in range(max_swizzle):
+                if len(field_l) > 0:
+                    field_idx = self.randint(0, len(field_l)-1)
+                    f = field_l.pop(field_idx)
+                    e = self.swizzle_field(f, rs, bound_m)
+                    if e is not None:
+                        swizzle_expr_l.append(e)
+                        swizzle_node_l.append(e.build(btor))
+                else:
+                    break
+                
+            while len(swizzle_node_l) > 0:
+                # Start by assuming all
+                for n in swizzle_node_l:
+                    btor.Assume(n)
                     
                 if btor.Sat() != btor.SAT:
+                    e = swizzle_expr_l.pop()
+                    n = swizzle_node_l.pop()
                     if self.debug > 0:
-                        print("Randomization constraint failed")
+                        print("Randomization constraint failed. Removing last: %s" %
+                              self.pretty_printer.print(e))
                 else:
                     # Randomization constraints succeeded. Go ahead and assert
-                    btor.Assert(n)
+                    for n in swizzle_node_l:
+                        btor.Assert(n)
+                    break
                     
             if btor.Sat() != btor.SAT:
                 raise Exception("failed to add in randomization (2)")                           
