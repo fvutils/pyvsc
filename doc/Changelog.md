@@ -1,4 +1,8 @@
 
+## 0.4.0
+- Correct an issue with using literal array indexes on arrays of
+  classes (eg self.arr[0].field < 10). 
+
 ## 0.3.9
 - Adjust the randomization process to produce better spread of results.
   Previously, a single field was selected from each randset. Now, a 

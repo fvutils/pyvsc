@@ -9,6 +9,7 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 
 class ExprIndexedFieldRefModel(ExprModel):
+    """Indexed-path mechanism to access a field"""
     
     def __init__(self,
                  root : ExprModel,
@@ -22,7 +23,13 @@ class ExprIndexedFieldRefModel(ExprModel):
         self.idx_t = idx_t
         
     def get_target(self, root=None):
-        ret = root if root is not None else self.root.fm
+        if root is not None:
+            ret = root
+        elif isinstance(self.root, ExprArraySubscriptModel):
+            ret = self.root.subscript()
+        else:
+            ret = self.root.fm
+
         for i in self.idx_t:
             ret = ret.get_field(i)
             
@@ -33,10 +40,10 @@ class ExprIndexedFieldRefModel(ExprModel):
         return self.get_target().build(btor)
     
     def is_signed(self):
-        return self.get_target().is_signed()
+        return self.get_target().is_signed
     
     def width(self):
-        return self.get_target().width()
+        return self.get_target().width
     
     def accept(self, v):
         v.visit_expr_indexed_fieldref(self)

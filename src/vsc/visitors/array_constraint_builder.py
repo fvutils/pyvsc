@@ -23,6 +23,7 @@ from vsc.visitors.constraint_override_visitor import ConstraintOverrideVisitor
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.visitors.has_indexvar_visitor import HasIndexVarVisitor
 
 
 class ArrayConstraintBuilder(ConstraintOverrideVisitor):
@@ -105,8 +106,7 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
             ConstraintCopyBuilder.visit_expr_fieldref(self, e)
             
     def visit_expr_indexed_fieldref(self, e):
-        from .model_pretty_printer import ModelPrettyPrinter
-        if isinstance(e.root, ExprArraySubscriptModel) and e.root.rhs.fm in self.index_set:
+        if isinstance(e.root, ExprArraySubscriptModel) and HasIndexVarVisitor(self.index_set).has(e.root.rhs):
             actual_root = e.root.lhs.fm.field_l[int(e.root.rhs.fm.get_val())]
             self._expr = ExprFieldRefModel(e.get_target(actual_root))
         else:

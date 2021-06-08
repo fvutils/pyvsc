@@ -112,5 +112,57 @@ class TestCompoundObj(VscTestCase):
         for i in range(5):
             my_item.randomize()
             print(my_item.test)
+            
+    def test_cross_array_elem_constraints(self):
+        import vsc 
+
+        @vsc.randobj
+        class Parent:
+            def __init__(self):
+                self.id = 0
+                self.c1 = vsc.rand_list_t(vsc.attr(Child1()))
+                for i in range(10):    
+                    self.c1.append(vsc.attr(Child1()))
+
+                self.c2 = vsc.rand_list_t(vsc.attr(Child2()))
+                for i in range(10):
+                    self.c2.append(vsc.attr(Child2()))
+
+            @vsc.constraint
+            def ab_c(self):
+                with vsc.foreach(self.c1, idx=True) as idx:
+                    with vsc.if_then(idx == 0):
+                        self.c1[idx].a < 6
+#                     with vsc.if_then(idx == 0):
+#                         with vsc.if_then(idx == 0):
+#                             self.c1[idx].a == self.c2[idx].x
+                self.c1[0].a < 6
+#                self.c1[0].a == self.c2[0].x
+                pass
+
+        @vsc.randobj
+        class Child1():
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+    
+            @vsc.constraint
+            def test_c(self):
+                self.a < 3
+
+        @vsc.randobj
+        class Child2():
+            def __init__(self):
+                self.x = vsc.rand_uint8_t()
+                self.y = vsc.rand_uint8_t()
+    
+            @vsc.constraint
+            def test_c(self):
+                self.x < 6
+
+        inst=Parent()
+        inst.randomize()
+        print(inst.c1[0].a)
+        print(inst.c2[1].x)
         
     
