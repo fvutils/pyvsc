@@ -1,4 +1,10 @@
 
+## 0.4.1
+- Correct an issue with constraints on nested arrays of objects
+- Correct an issue where disabling a constraint in one 
+  compound-array 'branch' resulted in disabling the constraint
+  in a different branch
+
 ## 0.4.0
 - Correct an issue with using literal array indexes on arrays of
   classes (eg self.arr[0].field < 10). 

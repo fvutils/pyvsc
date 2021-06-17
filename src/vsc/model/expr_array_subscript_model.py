@@ -22,15 +22,19 @@ class ExprArraySubscriptModel(ExprModel):
             raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
         
     def subscript(self):
+        from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):
-            if index < len(self.lhs.fm.field_l):
-                return self.lhs.fm.field_l[index]
-            else:
-                raise Exception("List size: " + str(len(self.lhs.fm.field_l)) + " index: " + str(index))
+            fm = self.lhs.fm
+        elif isinstance(self.lhs, ExprIndexedFieldRefModel):
+            fm = self.lhs.get_target()
         else:
-            # TODO: support array slicing
             raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
+            
+        if index < len(fm.field_l):
+            return fm.field_l[index]
+        else:
+            raise Exception("List size: " + str(len(self.lhs.fm.field_l)) + " index: " + str(index))
         
         
     def is_signed(self):

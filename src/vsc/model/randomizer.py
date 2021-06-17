@@ -128,7 +128,7 @@ class Randomizer(RandIF):
                     print("Pre-Randomize: RandSet")
                     for f in all_fields:
                         if f in bound_m.keys():
-                            print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+                            print("  Field: " + f.fullname + " is_rand=" + str(f.is_used_rand) + " " + str(bound_m[f].domain.range_l) + " var=" + str(f.var))
                     for c in rs.constraints():
                         print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
 
@@ -223,6 +223,15 @@ class Randomizer(RandIF):
                 for c in rs.constraints():
                     c.accept(reset_v)
                 RandSetDisposeVisitor().dispose(rs)
+                
+                if self.debug > 0:
+                    print("Post-Randomize: RandSet")
+                    for f in all_fields:
+                        if f in bound_m.keys():
+                            print("  Field: " + f.fullname + " " + str(f.val.val))
+                    for c in rs.constraints():
+                        print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+                        
                 x += 1
                 
                 

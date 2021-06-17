@@ -27,7 +27,7 @@ from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope, \
     clear_exprs
 from vsc.impl.generator_int import GeneratorInt
 from vsc.impl.expr_mode import _expr_mode, get_expr_mode, expr_mode, get_expr_mode_depth, \
-    enter_expr_mode, leave_expr_mode, is_raw_mode
+    enter_expr_mode, leave_expr_mode, is_raw_mode, is_expr_mode
 from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.randomizer import Randomizer
@@ -35,6 +35,7 @@ from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.source_info import SourceInfo
 from vsc.types import type_base, field_info, list_t
 from vsc.model.solve_failure import SolveFailure
+from vsc.impl.constraint_proxy import ConstraintProxy
 
 
 def randobj(T):
@@ -51,6 +52,7 @@ def randobj(T):
 
             # Initialize the field_info member before going deeper            
             if ro_i.ctor_level == 0:
+                self.tname = T.__qualname__
                 self._int_field_info = field_info()
                 
             # Call the user's constructor
@@ -74,6 +76,15 @@ def randobj(T):
                 ret = ret.get_val()
             elif a == "rand_mode":
                 ret = self._int_rand_info.rand_mode
+            elif isinstance(ret, constraint_t):
+                if not is_expr_mode():
+                    # The constraint_t wrapper is per-type. In regular
+                    # procedural code we need to return a reference 
+                    # to the instance object. The proxy provides a 
+                    # way to do so.
+                    model = object.__getattribute__(self, "get_model")()
+                    cm = model.get_constraint(a)
+                    ret = ConstraintProxy(cm)
             
             return ret
     
@@ -126,6 +137,11 @@ def randobj(T):
                             if hasattr(fo, "_int_field_info"):
                                 if fo._int_field_info.model is None:
                                     fo._int_field_info.model = fo.build_field_model(f)
+                                else:
+                                    # Some fields may already be created, and will
+                                    # have been given a placeholder name. Back-annotate
+                                    # the proper name now
+                                    fo._int_field_info.model.name = f
                                 fo._int_field_info.parent = self._int_field_info
 
                                 model.add_field(fo._int_field_info.model)

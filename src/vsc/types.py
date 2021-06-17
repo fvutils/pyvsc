@@ -49,6 +49,7 @@ from vsc.model.value_scalar import ValueScalar
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
 from _operator import is_
 from vsc.model.expr_array_product_model import ExprArrayProductModel
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 def unsigned(v, w=-1):
@@ -168,6 +169,21 @@ class expr(object):
         else:
             raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
         
+    def __getitem__(self, k):
+        if is_expr_mode():
+            if isinstance(k, slice):
+                raise Exception("Attempting to slice an expression")
+            else:
+                # single value
+                to_expr(k)
+                idx_e = pop_expr()
+                base_e = pop_expr()
+                
+                return expr_subscript(ExprArraySubscriptModel(
+                    base_e,
+                    idx_e))
+        else:
+            raise Exception("Calling __getitem__ on an expr on non-expression context")
     
 class expr_subscript(expr):
     def __init__(self, em):
@@ -175,21 +191,31 @@ class expr_subscript(expr):
         
     def __getattr__(self, aname):
         em = object.__getattribute__(self, "em")
+        
+        # This pops 'this expr' off the stack, so we can
+        # replace it with an extended expression
         pop_expr()
       
         ret = None
         if isinstance(em, ExprArraySubscriptModel):
             # TODO: Need to get the core type
-            lhs = em.lhs.fm
-
-            if aname in lhs.type_t.field_id_m.keys():
-                idx = lhs.type_t.field_id_m[aname]
+            fm = None
+            if isinstance(em.lhs, ExprIndexedFieldRefModel):
+                fm = em.lhs.get_target()
+            elif isinstance(em.lhs, ExprFieldRefModel):
+                fm = em.lhs.fm
+            else:
+                raise Exception("Unsupported path-chaining expression " + str(em.lhs))
+            
+            if aname in fm.type_t.field_id_m.keys():
+                idx = fm.type_t.field_id_m[aname]
                 ret = expr(ExprIndexedFieldRefModel(em, [idx]))
             else:
-                raise Exception("Type " + lhs.type_f.name + " does not contain " + aname)
+                raise Exception("Type %s does not contain a field \"%s\"" % (
+                    fm.type_t.name, aname))
         else:
             raise Exception("Expression getattribute access on non-subscript")
-            
+
         return ret
     
     
@@ -243,6 +269,7 @@ class rangelist(object):
 
 def to_expr(t):
     if isinstance(t, expr):
+        # This expression is already on the stack
 #        push_expr(t.em)
         return t
     elif type(t) == int:
@@ -254,7 +281,6 @@ def to_expr(t):
     elif callable(t):
         raise Exception("TODO: support lambda references")
     else:
-        print("Type: " + str(t) + " " + str(type(t)))
         raise Exception("Element \"" + str(t) + "\" isn't recognized, and doesn't provide to_expr")
     
     
@@ -759,8 +785,13 @@ class list_t(object):
         if self._int_field_info.model is None:
             enums = None if not self.is_enum else self.t.enum_i.enums
             type_t = self.t.get_model()
+            # Save the user-visible (Python) name for later use
+            if hasattr(self.t, "name"):
+                type_t.name = self.t.tname
+            else:
+                type_t.name = "<primitive>"
             self._int_field_info.model = FieldArrayModel(
-                "<unknown>",
+                "<unknown-array>",
                 type_t,
                 self.is_scalar,
                 enums,

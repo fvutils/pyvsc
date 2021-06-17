@@ -36,17 +36,7 @@ class ExprBinModel(ExprModel):
         self.signed = 0
         self.is_composite = False
         
-        if isinstance(lhs, ExprFieldRefModel) and isinstance(lhs.fm, FieldCompositeModel):
-            if isinstance(rhs, ExprFieldRefModel) and isinstance(rhs.fm, FieldCompositeModel):
-                self.is_composite = True
-                if len(lhs.fm.field_l) != len(rhs.fm.field_l):
-                    raise Exception("Incorrect number of fields")
-            else:
-                raise Exception("BinExpr between composite and non-composite: " + str(lhs) + " ; " + str(rhs))
-        
     def build_composite(self, btor, lhs, rhs):
-        print("build_composite: " + str(type(lhs)))
-        
         if isinstance(lhs, FieldCompositeModel):
             # Keep recursing
             ret = None
@@ -211,7 +201,6 @@ class ExprBinModel(ExprModel):
     
     @staticmethod
     def mkCompositeEq(lhs, rhs):
-        print("build_composite: " + str(type(lhs)))
         ret = None
         
         if isinstance(lhs, FieldCompositeModel):

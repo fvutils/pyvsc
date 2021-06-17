@@ -295,6 +295,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
  
 
         super().visit_expr_fieldref(e)
+                                    
+    def visit_expr_indexed_fieldref(self, e):
+        self.process_fieldref(e.get_target())
         
     def process_fieldref(self, fm):
         if fm in self._randset_field_m.keys():

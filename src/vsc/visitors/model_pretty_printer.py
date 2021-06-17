@@ -220,6 +220,12 @@ class ModelPrettyPrinter(ModelVisitor):
     def visit_expr_literal(self, e : vm.ExprLiteralModel):
         self.write(str(int(e.val())))
         
+    def visit_expr_indexed_fieldref(self, e):
+        e.root.accept(self)
+        self.write(".")
+        for i,idx in enumerate(e.idx_t):
+            self.write("[%d]" % idx)
+        
     def visit_expr_fieldref(self, e : vm.ExprFieldRefModel):
         if self.print_values and hasattr(e.fm, "is_used_rand") and not e.fm.is_used_rand:
             if isinstance(e.fm, FieldArrayModel):

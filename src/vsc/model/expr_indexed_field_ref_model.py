@@ -37,7 +37,9 @@ class ExprIndexedFieldRefModel(ExprModel):
         
         
     def build(self, btor):
-        return self.get_target().build(btor)
+        t = self.get_target()
+        ret = t.build(btor)
+        return ret
     
     def is_signed(self):
         return self.get_target().is_signed

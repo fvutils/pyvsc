@@ -21,7 +21,6 @@ class RandSetDisposeVisitor(ModelVisitor):
         for c in rs.constraint_s:
             c.accept(self)
             
-            
     def visit_scalar_field(self, f:FieldScalarModel):
         f.dispose()
         
@@ -33,6 +32,9 @@ class RandSetDisposeVisitor(ModelVisitor):
         
     def visit_constraint_stmt_enter(self, c:ConstraintModel):
         c.dispose()
+        
+    def visit_expr_indexed_fieldref(self, e):
+        e.get_target().accept(self)
         
     def visit_expr_fieldref(self, e):
         e.fm.accept(self)

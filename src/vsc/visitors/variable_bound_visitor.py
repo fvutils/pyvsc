@@ -378,7 +378,7 @@ class VariableBoundVisitor(ModelVisitor):
                 bounds.constrained = True
 #                bounds.add_propagator(self._propagator)
             else:
-                raise Exception("Field " + e.fm.name + " not in map")
+                raise Exception("Field " + e.fm.fullname + " not in map")
             
     def visit_scalar_field(self, f:FieldScalarModel):
         if self.phase == 0:

@@ -101,6 +101,13 @@ class FieldCompositeModel(FieldModel):
         c.parent = self
         self.constraint_model_l.append(c)
         
+    def get_constraint(self, name):
+        for c in self.constraint_model_l:
+            if c.name == name:
+                return c
+            
+        return None
+        
     def add_dynamic_constraint(self, c):
         c.parent = self
         self.constraint_dynamic_model_l.append(c)
