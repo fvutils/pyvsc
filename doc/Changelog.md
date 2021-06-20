@@ -1,4 +1,8 @@
 
+## 0.4.2
+- Correct the build process for Boolector nodes to only build
+  needed nodes for arrays. This avoids nodes being left behind.
+
 ## 0.4.1
 - Correct an issue with constraints on nested arrays of objects
 - Correct an issue where disabling a constraint in one 

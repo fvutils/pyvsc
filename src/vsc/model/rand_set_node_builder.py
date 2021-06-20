@@ -43,6 +43,9 @@ class RandSetNodeBuilder(ModelVisitor):
     def visit_enum_field(self, f:EnumFieldModel):
         if self.phase == 0:
             f.build(self.btor)
+            
+    def visit_expr_indexed_fieldref(self, e):
+        e.get_target().accept(self)
         
     def visit_expr_fieldref(self, e):
         if self.phase == 0:
