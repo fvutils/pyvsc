@@ -15,16 +15,13 @@ class ExprArraySumModel(ExprDynamicModel):
         return self.arr.is_signed
     
     def width(self):
-        ret = self.arr.width
-        if ret < 32:
-            ret = 32
-        return ret
+        return self.arr.get_sum_width()
     
     def build_expr(self):
         return self.arr.get_sum_expr()
     
-    def build(self, btor):
-        return self.arr.build_sum_expr(btor)
+    def build(self, btor, ctx_width=-1):
+        return self.arr.build_sum_expr(btor, ctx_width)
     
     def accept(self, v):
         v.visit_expr_array_sum(self)

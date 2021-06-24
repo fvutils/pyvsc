@@ -14,14 +14,18 @@ class ExprUnaryModel(ExprModel):
         self.expr = e
         self.op = op
         
-    def build(self, btor : Boolector):
+    def build(self, btor : Boolector, ctx_width=-1):
         ret = None
         
+        e_w = self.expr.width()
+        if e_w > ctx_width:
+            ctx_width = e_w
+        
+        
         if self.op == UnaryExprType.Not:
-            ret = btor.Not(self.expr.build(btor))
+            ret = btor.Not(self.expr.build(btor, ctx_width))
         
         return ret
-        ExprModel.build(self, btor)
         
     def accept(self, v):
         v.visit_expr_unary(self)

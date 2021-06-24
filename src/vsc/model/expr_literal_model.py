@@ -31,16 +31,21 @@ class ExprLiteralModel(ExprModel):
         super().__init__()
         self._val = ValueScalar(val)
         self.signed = is_signed
-        self.width = width
+        self._width = width
         
         if width < 1:
             raise Exception("Error: literal with a width of " + str(width))
         
-    def build(self, btor):
-        return btor.Const(int(self.val()), self.width)
+    def build(self, btor, ctx_width=-1):
+        if self._width > ctx_width:
+            ctx_width = self._width
+        return btor.Const(int(self.val()), ctx_width)
     
     def is_signed(self):
         return self.signed
+    
+    def width(self):
+        return self._width
     
     def accept(self, visitor):
         visitor.visit_expr_literal(self)

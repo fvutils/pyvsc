@@ -1,4 +1,8 @@
 
+## 0.4.3
+- (#81,#82) Correctly propagate context-dependent expression widths 
+  down the evaluation tree
+
 ## 0.4.2
 - Correct the build process for Boolector nodes to only build
   needed nodes for arrays. This avoids nodes being left behind.

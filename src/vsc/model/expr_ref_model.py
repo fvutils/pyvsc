@@ -18,7 +18,7 @@ class ExprRefModel(ExprModel):
         self.ref_width = ref_width
         self.ref_signed = ref_signed
         
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         return btor.Const(self.val(), self.ref_width())
         
     def is_signed(self):

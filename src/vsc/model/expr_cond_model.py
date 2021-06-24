@@ -30,7 +30,7 @@ class ExprCondModel(ExprModel):
         self.true_e = true_e
         self.false_e = false_e
         
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         cond_n = self.cond_e.build(btor)
         true_n = self.true_e.build(btor)
         false_n = self.false_e.build(btor)

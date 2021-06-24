@@ -37,7 +37,7 @@ class ExprInModel(ExprModel):
         self.lhs = lhs
         self.rhs = rhs
         
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         t = None
         expr = None
         for r in self.rhs.rl:
@@ -83,6 +83,11 @@ class ExprInModel(ExprModel):
 
         from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
         return expr.build(btor) if expr is not None else None
+    def is_signed(self):
+        return False
+    
+    def width(self):
+        return 1
     
     def accept(self, visitor):
         visitor.visit_expr_in(self)

@@ -22,7 +22,7 @@ class ExprDynamicModel(ExprModel):
             self.cached_expr = self.build_expr()
         return self.cached_expr
         
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         if self.cached_expr is None:
             self.cached_expr = self.build_expr()
         if self.cached_node is None:

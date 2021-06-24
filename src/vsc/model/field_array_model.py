@@ -151,10 +151,20 @@ class FieldArrayModel(FieldCompositeModel):
             self.sum_expr = ret
             
         return self.sum_expr
+    
+    def get_sum_width(self):
+        result_bits = self.type_t.width
+        overflow_val = int(self.size.get_val())-1
+            
+        while overflow_val > 0:
+            result_bits += 1
+            overflow_val >>= 1
+
+        return result_bits
         
-    def build_sum_expr(self, btor):
+    def build_sum_expr(self, btor, ctx_width=-1):
         if self.sum_expr_btor is None:
-            self.sum_expr_btor = self.get_sum_expr().build(btor)
+            self.sum_expr_btor = self.get_sum_expr().build(btor, ctx_width)
         return self.sum_expr_btor
     
     def get_product_expr(self):
@@ -178,9 +188,9 @@ class FieldArrayModel(FieldCompositeModel):
             
         return self.product_expr
         
-    def build_product_expr(self, btor):
+    def build_product_expr(self, btor, ctx_width=-1):
         if self.product_expr_btor is None:
-            self.product_expr_btor = self.get_product_expr().build(btor)
+            self.product_expr_btor = self.get_product_expr().build(btor, ctx_width)
         return self.product_expr_btor    
         
     def accept(self, v):

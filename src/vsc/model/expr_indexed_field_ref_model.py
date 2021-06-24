@@ -36,7 +36,7 @@ class ExprIndexedFieldRefModel(ExprModel):
         return ret
         
         
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         t = self.get_target()
         ret = t.build(btor)
         return ret

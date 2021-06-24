@@ -32,7 +32,7 @@ class ExprPartselectModel(ExprModel):
         self.upper = upper 
         self.lower = lower 
     
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         upper = self.upper
         lower = self.lower if self.lower is not None else self.upper 
         return btor.Slice(

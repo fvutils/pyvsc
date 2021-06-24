@@ -32,7 +32,7 @@ class ExprFieldRefModel(ExprModel):
         if fm is None:
             raise Exception("Field Model None specified")
 
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         if self.fm.var is None:
             raise Exception("Field " + str(self.fm) + " (" + self.fm.name + ") has not been built")
         return self.fm.var

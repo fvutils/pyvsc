@@ -211,4 +211,56 @@ class TestTypes(VscTestCase):
             it.x == 0xFFFF
         
         self.assertEqual(c.x, 0xFFFF)
+        
+    def test_overflow(self):
+        import vsc
+        import random
+        random.seed(0)
 
+        @vsc.randobj
+        class Test:
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def test_c(self):
+#                self.a < 256
+#                self.b < 256
+                self.a*self.b == 50
+
+        inst = Test()
+        inst.randomize()
+        
+        a = inst.a
+        b = inst.b
+        
+        print("a =", inst.a, "b =", inst.b)
+        print("Binary representation of a*b:", f"{inst.a*inst.b:b}")
+        print("Binary representation of 50:", f"{50:b}")        
+        self.assertEqual(a*b, 50)
+
+    def test_constant_resizing(self):
+        """Test that a literal properly up-sizes the expression"""
+        import vsc
+        import random
+        random.seed(0)
+
+        @vsc.randobj
+        class Test:
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+                self.c = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def test_c(self):
+                # Error
+                self.a*self.b == 256
+
+                # Works
+                #self.a*self.b < 256
+
+        inst = Test()
+        inst.randomize()
+        print("a =", inst.a, "b =", inst.b)

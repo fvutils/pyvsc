@@ -12,7 +12,7 @@ class ExprArraySubscriptModel(ExprModel):
         self.lhs = lhs
         self.rhs = rhs
         
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):
             fm = self.lhs.fm.field_l[index]
@@ -48,7 +48,7 @@ class ExprArraySubscriptModel(ExprModel):
     def width(self):
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):
-            return self.lhs.fm.field_l[index].width()
+            return self.lhs.fm.field_l[index].width
         else:
             # TODO: support array slicing
             raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))

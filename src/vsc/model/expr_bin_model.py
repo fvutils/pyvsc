@@ -32,9 +32,10 @@ class ExprBinModel(ExprModel):
         self.lhs = lhs
         self.op = op
         self.rhs = rhs
-        self.width = 0
         self.signed = 0
         self.is_composite = False
+        self._width_valid = False
+        self._width = -1
         
     def build_composite(self, btor, lhs, rhs):
         if isinstance(lhs, FieldCompositeModel):
@@ -61,49 +62,58 @@ class ExprBinModel(ExprModel):
         return ret
             
 
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         ret = None
         if self.is_composite:
             return self.build_composite(btor, self.lhs.fm, self.rhs.fm)
+
+        # Determine the context width before building the sub-elements
+        lhs_w = self.lhs.width()
+        rhs_w = self.rhs.width()
         
-        lhs_n = self.lhs.build(btor)
+        if lhs_w > ctx_width:
+            ctx_width = lhs_w
+        if rhs_w > ctx_width:
+            ctx_width = rhs_w
+            
+        lhs_n = self.lhs.build(btor, ctx_width)
         if lhs_n is None:
             raise Exception("Expression " + str(self.lhs) + " build returned None")
         
-        rhs_n = self.rhs.build(btor)
+        rhs_n = self.rhs.build(btor, ctx_width)
         if rhs_n is None:
             raise Exception("Expression " + str(self.rhs) + " build returned None")
-       
+
+        is_signed = (self.lhs.is_signed() and self.rhs.is_signed())
         try:
-            lhs_n = ExprBinModel.extend(lhs_n, rhs_n, self.lhs.is_signed(), btor)
-            rhs_n = ExprBinModel.extend(rhs_n, lhs_n, self.rhs.is_signed(), btor)
+            lhs_n = ExprBinModel.extend(lhs_n, ctx_width, is_signed, btor)
+            rhs_n = ExprBinModel.extend(rhs_n, ctx_width, is_signed, btor)
         except Exception as e:
             from ..visitors.model_pretty_printer import ModelPrettyPrinter
             print("Failed with expression: " + ModelPrettyPrinter().print(self))
             raise e
-                
-        
+
         if self.op == BinExprType.Eq:
             ret = btor.Eq(lhs_n, rhs_n)
         elif self.op == BinExprType.Ne:
             ret = btor.Ne(lhs_n, rhs_n)
         elif self.op == BinExprType.Gt:
-            if not self.lhs.is_signed() or not self.rhs.is_signed():
+            if not is_signed:
                 ret = btor.Ugt(lhs_n, rhs_n)
             else:
                 ret = btor.Sgt(lhs_n, rhs_n)
         elif self.op == BinExprType.Ge:
-            if not self.lhs.is_signed() or not self.rhs.is_signed():
+            if not is_signed:
                 ret = btor.Ugte(lhs_n, rhs_n)
             else:
                 ret = btor.Sgte(lhs_n, rhs_n)
         elif self.op == BinExprType.Lt:
-            if not self.lhs.is_signed() or not self.rhs.is_signed():
+            if not is_signed:
                 ret = btor.Ult(lhs_n, rhs_n)
             else:
                 ret = btor.Slt(lhs_n, rhs_n)
         elif self.op == BinExprType.Le:
-            if not self.lhs.is_signed() or not self.rhs.is_signed():
+            if not is_signed:
                 ret = btor.Ulte(lhs_n, rhs_n)
             else:
                 ret = btor.Slte(lhs_n, rhs_n)
@@ -135,19 +145,31 @@ class ExprBinModel(ExprModel):
         return ret
 
     @staticmethod
-    def extend(e1, e2, signed, btor):
+    def extend(e1, ctx_width, signed, btor):
         ret = e1
         
-        if e2.width > e1.width:
+        if ctx_width > e1.width:
             if signed:
-                ret = btor.Sext(e1, e2.width-e1.width)
+                ret = btor.Sext(e1, ctx_width-e1.width)
             else:
-                ret = btor.Uext(e1, e2.width-e1.width)
+                ret = btor.Uext(e1, ctx_width-e1.width)
 
         return ret        
 
     def is_signed(self):
-        return self.signed
+        return (self.lhs.is_signed() and self.rhs.is_signed())
+    
+    def width(self):
+        if not self._width_valid:
+            if self.op in (BinExprType.Eq, BinExprType.Ge, BinExprType.Le,
+                           BinExprType.Gt, BinExprType.Lt, BinExprType.Ne):
+                self._width = 1
+            else:
+                lhs_w = self.lhs.width()
+                rhs_w = self.rhs.width()
+                self._width = lhs_w if lhs_w > rhs_w else rhs_w
+            self._width_valid = True
+        return self._width
     
     def __str__(self):
         return "ExprBin: " + str(self.lhs) + " " + str(self.op) + " " + str(self.rhs)

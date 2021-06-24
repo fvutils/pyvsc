@@ -17,7 +17,7 @@ class ExprDynRefModel(ExprModel):
         super().__init__()
         self.c = c
         
-    def build(self, btor)->BoolectorNode:
+    def build(self, btor, ctx_width=-1)->BoolectorNode:
         return self.c.build(btor)
         
     def accept(self, v):

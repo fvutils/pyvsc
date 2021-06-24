@@ -15,16 +15,17 @@ class ExprArrayProductModel(ExprDynamicModel):
         return self.arr.is_signed
     
     def width(self):
-        ret = self.arr.width
-        if ret < 32:
-            ret = 32
-        return ret        
+#        ret = self.arr.width
+#        if ret < 32:
+#            ret = 32
+#        return ret        
+        return 64
         
     def build_expr(self):
         return self.arr.get_product_expr()
     
-    def build(self, btor):
-        return self.arr.build_product_expr(btor);
+    def build(self, btor, ctx_width=-1):
+        return self.arr.build_product_expr(btor, ctx_width);
     
     def accept(self, v):
         v.visit_expr_array_product(self)

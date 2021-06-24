@@ -28,7 +28,7 @@ class ExprModel(object):
     def __init__(self):
         pass
     
-    def build(self, btor):
+    def build(self, btor, ctx_width=-1):
         raise Exception("Expression build() unimplemented for " + str(type(self)))
     
     def is_signed(self):
