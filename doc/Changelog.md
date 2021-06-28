@@ -1,4 +1,18 @@
 
+## 0.4.4
+- (#92) Corrected an issue where soft constraints were dropped while
+  combining solve sets
+- (#91) Corrected the field-access overloading to properly handle
+  re-assignment to VSC fields
+- (#88) Correct how the width of unary expressions is propagated 
+- (#87) Correct handling of enum-type fields by increasing common
+  implementation with scalar/int-type fields
+- (#86) Properly handle part-select on array-element references
+- (#85) Correct an issue with complex-reference resolution and
+  dist constraints
+- (#84) Correct an issue with expanding complex references inside
+  foreach constraints
+
 ## 0.4.3
 - (#81,#82) Correctly propagate context-dependent expression widths 
   down the evaluation tree

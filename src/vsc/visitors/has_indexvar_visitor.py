@@ -22,5 +22,6 @@ class HasIndexVarVisitor(ModelVisitor):
         return self.ret
     
     def visit_expr_fieldref(self, e):
+        print("HasIndex: fm=" + e.fm.fullname)
         self.ret |= e.fm in self.index_set
     

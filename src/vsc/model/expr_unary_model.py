@@ -26,6 +26,11 @@ class ExprUnaryModel(ExprModel):
             ret = btor.Not(self.expr.build(btor, ctx_width))
         
         return ret
+    
+    def width(self):
+        # Currently-supported unary expressions have the 
+        # same width as the base expression
+        return self.expr.width()
         
     def accept(self, v):
         v.visit_expr_unary(self)

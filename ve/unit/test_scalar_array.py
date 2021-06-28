@@ -3,11 +3,13 @@ Created on Jun 9, 2020
 
 @author: ballance
 '''
+from enum import auto, Enum, IntEnum
 import time
 
 import vsc
 from vsc.types import uint8_t
 from vsc_test_case import VscTestCase
+from vsc.methods import raw_mode
 
 
 class TestScalarArray(VscTestCase):
@@ -152,4 +154,177 @@ class TestScalarArray(VscTestCase):
        
         print("Delta: " + str(delta_m)) 
         print("Items/s: " + str(count_per_s) + " Time/item (ms): " + str(ms_per_i))
+        
 
+    def test_compound_enum_array(self):
+        import vsc 
+
+        level_list = [('level_'+str(level), auto()) for level in range(3)]
+        level_e = Enum('level', dict(level_list))
+
+#        level_list = [('level_'+str(level), auto()) for level in range(3)]
+#        level_e = IntEnum('level', dict(level_list))
+
+        @vsc.randobj
+        class Parent:
+            def __init__(self):
+                self.id = 0
+                self.c1 = vsc.rand_list_t(vsc.attr(Child1()))
+                for i in range(10):    
+                    self.c1.append(vsc.attr(Child1()))
+
+                self.c2 = vsc.rand_list_t(vsc.attr(Child2()))
+                for i in range(10):
+                    self.c2.append(vsc.attr(Child2()))
+
+                self.val = vsc.rand_uint16_t(5)
+
+            @vsc.constraint
+            def enum_inter_class(self):
+                # Does not work
+                self.c1[0].a[0].enum_test == level_e.level_1
+
+                with vsc.if_then(self.c1[0].a[0].enum_test == level_e.level_0):
+                    self.c2[0].x[0].value == 0
+        
+                with vsc.else_if(self.c1[0].a[0].enum_test == level_e.level_1):
+                    self.c2[0].x[0].value == 1
+
+                with vsc.else_then:
+                    self.c2[0].x[0].value == 2
+        
+        @vsc.randobj
+        class Field():
+            def __init__(self, name, def_value):
+                self.name = name
+                self.enum_test = vsc.rand_enum_t(level_e)
+                self.value = vsc.rand_uint8_t(def_value)
+
+
+        @vsc.randobj
+        class Child1:
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.attr(Field('a', 10)))
+                for i in range(5):    
+                    self.a.append(vsc.attr(Field('a', 10)))
+
+                self.b = vsc.rand_list_t(vsc.attr(Field('b', 10)))
+                for i in range(5):    
+                    self.b.append(vsc.attr(Field('b', 10)))
+
+                #self.enum_test = vsc.rand_enum_t(level_e)
+
+            @vsc.constraint
+            def test_c(self):
+                self.a[0].value < self.a[1].value
+
+        @vsc.randobj
+        class Child2:
+            def __init__(self):
+                self.x = vsc.rand_list_t(vsc.attr(Field('x', 10)))
+                for i in range(5):    
+                    self.x.append(vsc.attr(Field('x', 10)))
+
+                self.y = vsc.rand_list_t(vsc.attr(Field('y', 10)))
+                for i in range(5):    
+                    self.y.append(vsc.attr(Field('y', 10)))
+    
+            @vsc.constraint
+            def test_c(self):
+                self.x[0].value < self.x[1].value
+
+        inst=Parent()
+        inst.randomize()
+
+        for i in range(10):
+            inst.randomize()
+            self.assertEqual(inst.c1[0].a[0].enum_test, level_e.level_1)
+            self.assertEqual(inst.c2[0].x[0].value, 1)
+
+    def test_compound_enum_array_min(self):
+        import vsc 
+
+#        level_list = [('level_'+str(level), auto()) for level in range(3)]
+#        level_e = Enum('level', dict(level_list))
+
+        level_list = [('level_'+str(level), auto()) for level in range(3)]
+        level_e = IntEnum('level', dict(level_list))
+        level_list = [('level_'+str(level), auto()) for level in range(3)]
+#         class level_e(Enum):
+#             level_0 = 0
+#             level_1 = 1
+#             level_2 = 2
+
+        @vsc.randobj
+        class Parent:
+            def __init__(self):
+                self.id = 0
+                self.c1 = vsc.rand_list_t(vsc.attr(Child1()))
+                for i in range(1):    
+                    self.c1.append(vsc.attr(Child1()))
+
+                self.c2 = vsc.rand_list_t(vsc.attr(Child2()))
+                for i in range(1):
+                    self.c2.append(vsc.attr(Child2()))
+
+                self.val = vsc.rand_uint16_t(5)
+
+            @vsc.constraint
+            def enum_inter_class(self):
+                # Does not work
+                self.c1[0].a[0].enum_test == level_e.level_2
+
+                with vsc.if_then(self.c1[0].a[0].enum_test == level_e.level_0):
+                    self.c2[0].x[0].value == 1
+                with vsc.else_if(self.c1[0].a[0].enum_test == level_e.level_1):
+                    self.c2[0].x[0].value == 2
+                with vsc.else_then:
+                    self.c2[0].x[0].value == 3
+        
+        @vsc.randobj
+        class Field():
+            def __init__(self, name, def_value):
+                self.name = name
+                self.enum_test = vsc.rand_enum_t(level_e)
+#                self.enum_test = vsc.rand_int32_t()
+                self.value = vsc.rand_uint8_t(def_value)
+
+
+        @vsc.randobj
+        class Child1:
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.attr(Field('a', 10)))
+                for i in range(2):    
+                    self.a.append(vsc.attr(Field('a', 10)))
+
+                self.b = vsc.rand_list_t(vsc.attr(Field('b', 10)))
+                for i in range(2):    
+                    self.b.append(vsc.attr(Field('b', 10)))
+
+                #self.enum_test = vsc.rand_enum_t(level_e)
+
+            @vsc.constraint
+            def test_c(self):
+                self.a[0].value < self.a[1].value
+
+        @vsc.randobj
+        class Child2:
+            def __init__(self):
+                self.x = vsc.rand_list_t(vsc.attr(Field('x', 10)))
+                for i in range(2):
+                    self.x.append(vsc.attr(Field('x', 10)))
+
+                self.y = vsc.rand_list_t(vsc.attr(Field('y', 10)))
+                for i in range(2):
+                    self.y.append(vsc.attr(Field('y', 10)))
+    
+            @vsc.constraint
+            def test_c(self):
+                self.x[0].value < self.x[1].value
+
+        inst=Parent()
+        inst.randomize(debug=1)
+
+        inst.randomize()
+        self.assertEqual(inst.c1[0].a[0].enum_test, level_e.level_2)
+        self.assertEqual(inst.c2[0].x[0].value, 3)

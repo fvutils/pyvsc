@@ -71,15 +71,25 @@ class Randomizer(RandIF):
         """Randomize the variables and constraints in a RandInfo collection"""
         
         if self.debug > 0:
-            for rs in ri.randsets():
-                print("RandSet")
+            rs_i = 0
+            while rs_i < len(ri.randsets()):
+                rs = ri.randsets()[rs_i]
+                print("RandSet[%d]" % rs_i)
                 for f in rs.all_fields():
                     if f in bound_m.keys():
-                        print("  Field: " + f.fullname + " " + str(bound_m[f].domain.range_l))
+                        print("  Field: %s is_rand=%s %s" % (f.fullname, str(f.is_used_rand), str(bound_m[f].domain.range_l)))
+                    else:
+                        print("  Field: %s is_rand=%s (unbounded)" % (f.fullname, str(f.is_used_rand)))
+                        
                 for c in rs.constraints():
                     print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True))
+                for c in rs.soft_constraints():
+                    print("  SoftConstraint: " + self.pretty_printer.do_print(c, show_exp=True))
+                    
+                rs_i += 1
+                    
             for uf in ri.unconstrained():
-                print("Unconstrained: " + uf.name)
+                print("Unconstrained: " + uf.fullname)
                
         # Assign values to the unconstrained fields first
         uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
@@ -104,7 +114,8 @@ class Randomizer(RandIF):
 
         rs_i = 0
         start_rs_i = 0
-        max_fields = 20
+#        max_fields = 20
+        max_fields = 0
         while rs_i < len(ri.randsets()):        
             btor = Boolector()
             self.btor = btor
@@ -125,12 +136,16 @@ class Randomizer(RandIF):
 
                 all_fields = rs.all_fields()
                 if self.debug > 0:
-                    print("Pre-Randomize: RandSet")
+                    print("Pre-Randomize: RandSet[%d]" % rs_i)
                     for f in all_fields:
                         if f in bound_m.keys():
-                            print("  Field: " + f.fullname + " is_rand=" + str(f.is_used_rand) + " " + str(bound_m[f].domain.range_l) + " var=" + str(f.var))
+                            print("  Field: %s is_rand=%s %s var=%s" % (f.fullname, str(f.is_used_rand), str(bound_m[f].domain.range_l), str(f.var)))
+                        else:
+                            print("  Field: %s is_rand=%s (unbounded) var=%s" % (f.fullname, str(f.is_used_rand), str(f.var)))
                     for c in rs.constraints():
                         print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+                    for c in rs.soft_constraints():
+                        print("  SoftConstraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
 
                 rs_node_builder.build(rs)
                 n_fields += len(all_fields)
@@ -206,6 +221,7 @@ class Randomizer(RandIF):
                     for c in soft_constraint_l:
                         btor.Assert(c[1])
                 
+#            btor.Sat()
             self.swizzle_randvars(btor, ri, start_rs_i, rs_i, bound_m)
 
             # Finalize the value of the field
@@ -225,12 +241,17 @@ class Randomizer(RandIF):
                 RandSetDisposeVisitor().dispose(rs)
                 
                 if self.debug > 0:
-                    print("Post-Randomize: RandSet")
+                    print("Post-Randomize: RandSet[%d]" % x)
                     for f in all_fields:
                         if f in bound_m.keys():
-                            print("  Field: " + f.fullname + " " + str(f.val.val))
+                            print("  Field: %s %s" % (f.fullname, str(f.val.val)))
+                        else:
+                            print("  Field: %s (unbounded) %s" % (f.fullname, str(f.val.val)))
+                                  
                     for c in rs.constraints():
                         print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+                    for c in rs.soft_constraints():
+                        print("  SoftConstraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
                         
                 x += 1
                 
@@ -251,6 +272,7 @@ class Randomizer(RandIF):
         rand_node_l = []
         rand_e_l = []
         x=start_rs
+        swizzled_field = False
         while x < end_rs:
             # For each random variable, select a partition with it's known 
             # domain and add the corresponding constraint
@@ -263,11 +285,14 @@ class Randomizer(RandIF):
             if rs.rand_order_l is not None:
                 # Perform an ordered randomization
                 for ro_l in rs.rand_order_l:
-                    self.swizzle_field_l(ro_l, rs, bound_m, btor)
+                    swizzled_field |= self.swizzle_field_l(ro_l, rs, bound_m, btor)
             else:
-                self.swizzle_field_l(rs.rand_fields(), rs, bound_m, btor)
+                swizzled_field |= self.swizzle_field_l(rs.rand_fields(), rs, bound_m, btor)
                 
             x += 1
+            
+        if not swizzled_field:
+            btor.Sat()
             
         if self.debug > 0:
             print("<-- swizzle_randvars")
@@ -314,6 +339,10 @@ class Randomizer(RandIF):
                     
             if btor.Sat() != btor.SAT:
                 raise Exception("failed to add in randomization (2)")                           
+            return True
+        else:
+            return False
+                
             
     def swizzle_field(self, f, rs, bound_m) -> ExprModel:
         ret = None

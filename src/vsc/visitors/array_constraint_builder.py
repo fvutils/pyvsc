@@ -24,6 +24,7 @@ from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.has_indexvar_visitor import HasIndexVarVisitor
+from vsc.visitors.foreach_ref_expander import ForeachRefExpander
 
 
 class ArrayConstraintBuilder(ConstraintOverrideVisitor):
@@ -35,6 +36,7 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         self.phase = 0
         self.foreach_scope_s = []
         self.constraint_collector_s = []
+        self.foreach_ref_expander = ForeachRefExpander(self.index_set)
         
     @staticmethod
     def build(m, bound_m : typing.Dict[FieldModel,VariableBoundModel]):
@@ -88,29 +90,55 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         if self.phase != 1:
             return
 
-        if isinstance(s.rhs, ExprFieldRefModel) and s.rhs.fm in self.index_set:
-            # Convert this index into a direct reference
-            self._expr = ExprFieldRefModel(
-                s.lhs.fm.field_l[int(s.rhs.fm.get_val())])
+        e = self.foreach_ref_expander.expand(s)
+
+        if e is not None:
+            self._expr = e
         else:
             ConstraintCopyBuilder.visit_expr_array_subscript(self, s)
+                            
+#         if isinstance(s.rhs, ExprFieldRefModel) and s.rhs.fm in self.index_set:
+#             # Convert this index into a direct reference
+#             self._expr = ExprFieldRefModel(
+#                 s.lhs.fm.field_l[int(s.rhs.fm.get_val())])
+#         else:
+#             ConstraintCopyBuilder.visit_expr_array_subscript(self, s)
         
     def visit_expr_fieldref(self, e : ExprFieldRefModel):
         if self.phase != 1:
             return
+
+        e_p = self.foreach_ref_expander.expand(e)
         
-        if e.fm in self.index_set:
-            # Replace the index with the appropriate literal value
-            self._expr = ExprLiteralModel(int(e.fm.get_val()), False, 32)
+        if e_p is not None:
+            self._expr = e_p
         else:
             ConstraintCopyBuilder.visit_expr_fieldref(self, e)
             
+        
+#         print("visit_expr_fieldref: in_index=%d" % (e.fm in self.index_set))
+#         if e.fm in self.index_set:
+#             # Replace the index with the appropriate literal value
+#             self._expr = ExprLiteralModel(int(e.fm.get_val()), False, 32)
+#         else:
+#             ConstraintCopyBuilder.visit_expr_fieldref(self, e)
+            
     def visit_expr_indexed_fieldref(self, e):
-        if isinstance(e.root, ExprArraySubscriptModel) and HasIndexVarVisitor(self.index_set).has(e.root.rhs):
-            actual_root = e.root.lhs.fm.field_l[int(e.root.rhs.fm.get_val())]
-            self._expr = ExprFieldRefModel(e.get_target(actual_root))
+        
+        e_p = self.foreach_ref_expander.expand(e)
+        
+        if e_p is not None:
+            self._expr = e_p
         else:
             ConstraintCopyBuilder.visit_expr_indexed_fieldref(self, e)
+            
+#         print("visit_expr_indexed_fieldref: e.root type=%s" % (str(type(e.root))))
+#         if isinstance(e.root, ExprArraySubscriptModel) and HasIndexVarVisitor(self.index_set).has(e.root.rhs):
+#             print("  expansion")
+#             actual_root = e.root.lhs.fm.field_l[int(e.root.rhs.fm.get_val())]
+#             self._expr = ExprFieldRefModel(e.get_target(actual_root))
+#         else:
+#             ConstraintCopyBuilder.visit_expr_indexed_fieldref(self, e)
             
     def visit_field_scalar_array(self, f:FieldArrayModel):
         if self.phase == 0:

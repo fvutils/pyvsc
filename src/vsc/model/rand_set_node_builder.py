@@ -51,4 +51,5 @@ class RandSetNodeBuilder(ModelVisitor):
         if self.phase == 0:
             e.fm.accept(self)
         super().visit_expr_fieldref(e)
+
         

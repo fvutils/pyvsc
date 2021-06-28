@@ -103,4 +103,148 @@ class TestConstraintSoft(VscTestCase):
         self.assertGreater(hist[2], 0) 
         self.assertGreater(hist[4], 0) 
         self.assertGreater(hist[8], 0) 
+
+    def test_compound_array(self):
+        import vsc 
+        
+        @vsc.randobj
+        class Parent:
+            def __init__(self):
+                self.id = 0
+                self.c1 = vsc.rand_list_t(vsc.attr(Child1()))
+                for i in range(10):    
+                    self.c1.append(vsc.attr(Child1()))      
+
+                self.c2 = vsc.rand_list_t(vsc.attr(Child2()))
+                for i in range(10):
+                    self.c2.append(vsc.attr(Child2()))
+
+            @vsc.constraint
+            def parent_c(self):
+                self.c1[0].a[1].value == self.c2[0].x[1].value       # Multi-level 
+                pass
+
+        @vsc.randobj
+        class Field:
+            def __init__(self, name, def_value):
+                self.name = name
+                self.value = vsc.rand_uint8_t(def_value)
+
+            # @vsc.constraint
+            # def soft_t(self):
+            #     #soft(self.value == 5)
+
+        @vsc.randobj
+        class Child1:
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.attr(Field('a', 10)))
+                for i in range(5):    
+                    self.a.append(vsc.attr(Field('a', 10)))
+
+                self.b = vsc.rand_list_t(vsc.attr(Field('b', 10)))
+                for i in range(5):    
+                    self.b.append(vsc.attr(Field('b', 10)))
+    
+            @vsc.constraint
+            def test_c(self):
+                #self.a[0].value < 7                # Works
+                vsc.soft(self.a[0].value == 5)          # Fails
+                self.a[0].value < self.a[1].value   
+        
+        @vsc.randobj
+        class Child2:
+            def __init__(self):
+                self.x = vsc.rand_list_t(vsc.attr(Field('x', 10)))
+                for i in range(5):    
+                    self.x.append(vsc.attr(Field('x', 10)))
+ 
+                self.y = vsc.rand_list_t(vsc.attr(Field('y', 10)))
+                for i in range(5):    
+                    self.y.append(vsc.attr(Field('y', 10)))
+     
+            @vsc.constraint
+            def test_c(self):
+                self.x[0].value < self.x[1].value
+
+        inst=Parent()
+        inst.randomize(debug=0)
+        print("inst.c1[0].a[0].value", inst.c1[0].a[0].value)
+        self.assertEqual(inst.c1[0].a[0].value, 5)
+        print("inst.c1[0].a[1].value", inst.c1[0].a[1].value)
+#        print()
+
+#        print("inst.c2[0].x[0].value", inst.c2[0].x[0].value)
+#        print("inst.c2[0].x[1].value", inst.c2[0].x[1].value)
+
+    def test_compound_array_min(self):
+        import vsc 
+        
+        @vsc.randobj
+        class Parent:
+            def __init__(self):
+                self.id = 0
+                self.c1 = vsc.rand_list_t(vsc.attr(Child1()))
+                for i in range(1):    
+                    self.c1.append(vsc.attr(Child1()))      
+
+                self.c2 = vsc.rand_list_t(vsc.attr(Child2()))
+                for i in range(1):
+                    self.c2.append(vsc.attr(Child2()))
+
+            @vsc.constraint
+            def parent_c(self):
+                self.c1[0].a[1].value == self.c2[0].x[1].value       # Multi-level 
+                pass
+
+        @vsc.randobj
+        class Field:
+            def __init__(self, name, def_value):
+                self.name = name
+                self.value = vsc.rand_uint8_t(def_value)
+
+            # @vsc.constraint
+            # def soft_t(self):
+            #     #soft(self.value == 5)
+
+        @vsc.randobj
+        class Child1:
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.attr(Field('a', 10)))
+                for i in range(2):
+                    self.a.append(vsc.attr(Field('a', 10)))
+
+                self.b = vsc.rand_list_t(vsc.attr(Field('b', 10)))
+                for i in range(2):    
+                    self.b.append(vsc.attr(Field('b', 10)))
+    
+            @vsc.constraint
+            def test_c(self):
+                #self.a[0].value < 7                # Works
+                vsc.soft(self.a[0].value == 5)          # Fails
+                self.a[0].value < self.a[1].value   
+        
+        @vsc.randobj
+        class Child2:
+            def __init__(self):
+                self.x = vsc.rand_list_t(vsc.attr(Field('x', 10)))
+                for i in range(2):
+                    self.x.append(vsc.attr(Field('x', 10)))
+ 
+                self.y = vsc.rand_list_t(vsc.attr(Field('y', 10)))
+                for i in range(2):
+                    self.y.append(vsc.attr(Field('y', 10)))
+     
+            @vsc.constraint
+            def test_c(self):
+                self.x[0].value < self.x[1].value
+
+        inst=Parent()
+        inst.randomize(debug=0)
+        print("inst.c1[0].a[0].value", inst.c1[0].a[0].value)
+        self.assertEqual(inst.c1[0].a[0].value, 5)
+        print("inst.c1[0].a[1].value", inst.c1[0].a[1].value)
+#        print()
+
+#        print("inst.c2[0].x[0].value", inst.c2[0].x[0].value)
+#        print("inst.c2[0].x[1].value", inst.c2[0].x[1].value)
         

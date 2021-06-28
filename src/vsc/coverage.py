@@ -127,11 +127,6 @@ def covergroup(T):
                 if isinstance(ex_f, FieldCompositeModel):
                     # TODO: probably need to do something a bit more than this?
                     model.set_field(i, args[i].get_model())
-                elif isinstance(ex_f, FieldScalarModel):
-                    if isinstance(args[i], type_base):
-                        ex_f.set_val(args[i].get_val())
-                    else:
-                        ex_f.set_val(int(args[i]))
                 elif isinstance(ex_f, EnumFieldModel):
                     ei = us_f.enum_i
                     if isinstance(args[i], type_enum):
@@ -139,6 +134,11 @@ def covergroup(T):
                     else:
                         # Use the enum map to convert to an int
                         ex_f.set_val(ei.e2v(args[i]))
+                elif isinstance(ex_f, FieldScalarModel):
+                    if isinstance(args[i], type_base):
+                        ex_f.set_val(args[i].get_val())
+                    else:
+                        ex_f.set_val(int(args[i]))
                 else:
                     raise Exception("unhandled sample case")
                         

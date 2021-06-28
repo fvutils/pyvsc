@@ -47,7 +47,6 @@ from vsc.model.value_scalar import ValueScalar
 
 
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
-from _operator import is_
 from vsc.model.expr_array_product_model import ExprArrayProductModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
@@ -172,7 +171,16 @@ class expr(object):
     def __getitem__(self, k):
         if is_expr_mode():
             if isinstance(k, slice):
-                raise Exception("Attempting to slice an expression")
+                # Part-select on a field expression
+                print("k=" + str(k) + " start=" + str(k.start) + " stop=" + str(k.stop))
+                
+                to_expr(k.start)
+                upper = pop_expr()
+                to_expr(k.stop)
+                lower = pop_expr()
+                
+                base_e = pop_expr()
+                return expr(ExprPartselectModel(base_e, upper, lower))
             else:
                 # single value
                 to_expr(k)
@@ -505,11 +513,11 @@ class type_base(object):
             if isinstance(rng, slice):
                 # slice
                 to_expr(rng.start)
+                upper = pop_expr()
                 to_expr(rng.stop)
-                e0 = pop_expr()
-                e1 = pop_expr()
+                lower = pop_expr()
                 return expr(ExprPartselectModel(
-                    ExprFieldRefModel(self._int_field_info.model), e0, e1))
+                    ExprFieldRefModel(self._int_field_info.model), upper, lower))
             else:
                 # single value
                 to_expr(rng)

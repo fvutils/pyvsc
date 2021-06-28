@@ -1,5 +1,3 @@
-from vsc.model.expr_literal_model import ExprLiteralModel
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
 # distributed with this work for additional information
@@ -23,6 +21,7 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 #
 # @author: ballance
 
+from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
 
 class ExprPartselectModel(ExprModel):
@@ -37,8 +36,8 @@ class ExprPartselectModel(ExprModel):
         lower = self.lower if self.lower is not None else self.upper 
         return btor.Slice(
             self.lhs.build(btor),
-            lower.val(), 
-            upper.val())
+            upper.val(),
+            lower.val()) 
         
     def width(self):
         upper = self.upper

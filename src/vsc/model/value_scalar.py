@@ -6,6 +6,15 @@ Created on May 16, 2020
 from vsc.model.value import Value, ValueType
 from vsc.model.value_bool import ValueBool
 
+# class ValueInt(int):
+#     
+#     def __getitem__(self, rng):
+#         val =  str.__int__()
+#         if 
+#         print("int rng: " + str(self.__int__()))
+#         for v in dir(self):
+#             print("  v: " + str(v))
+
 class ValueScalar(Value):
     
     def __init__(self, v : int):
@@ -21,6 +30,9 @@ class ValueScalar(Value):
     
     def __int__(self):
         return self.v
+    
+#    def toInt(self):
+#        return ValueInt(self.v)
     
     def __bool__(self):
         return self.v != 0
@@ -56,3 +68,7 @@ class ValueScalar(Value):
     def __sub__(self, rhs):
         v = int(rhs)
         return ValueScalar(self.v - v)
+    
+    def __getitem__(self, rng):
+        print("getitem")
+

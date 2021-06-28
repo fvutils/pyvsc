@@ -44,9 +44,12 @@ from vsc.model.rand_info import RandInfo
 from vsc.model.rand_set import RandSet
 from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 from vsc.visitors.expand_solve_order_visitor import ExpandSolveOrderVisitor
+from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
 
 
 class RandInfoBuilder(ModelVisitor,RandIF):
+    
+    EN_DEBUG = 0
     
     def __init__(self, rng):
         # TODO: need access to the random state
@@ -69,9 +72,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self.active_cp = None
         self._rng = rng
         self._order_l = []
-        self._order_s = set()
         
         self._order_m = {}
+        self._expr2fm = Expr2FieldVisitor()
         
     @staticmethod
     def build(
@@ -167,30 +170,6 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             for b in c.before_l:
                 for a in c.after_l:
                     ExpandSolveOrderVisitor(self._order_m).expand(a, b)
-
-#                     b_i = -1
-#                     a_i = -1
-#                     if b in self._order_s:
-#                         b_i = self._order_l.index(b)
-#                     if a in self._order_s:
-#                         a_i = self._order_l.index(a)
-#                     
-#                     if b_i == -1 and a_i == -1:
-#                         # Just add the elements to the list
-#                         self._order_l.append(b)
-#                         self._order_l.append(a)
-#                         self._order_s.add(a)
-#                         self._order_s.add(b)
-#                     elif b_i != -1:
-#                         self._order_l.insert(b_i+1, a)
-#                         self._order_s.add(a)
-#                     elif a_i != -1:
-#                         self._order_l.insert(a_i, b)
-#                         self._order_s.add(b)
-#                     else:
-#                         # Found both in the list already.
-#                         # They might be in the list for good reasons or bad
-#                         pass
         
     def visit_constraint_stmt_enter(self, c):
         if self._pass == 1 and len(self._constraint_s) == 1:
@@ -219,7 +198,13 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             c_stmt.accept(self)
     
     def visit_constraint_expr(self, c):
+        if RandInfoBuilder.EN_DEBUG:
+            print("--> RandInfoBuilder::visit_constraint_expr")
+            
         super().visit_constraint_expr(c)
+        
+        if RandInfoBuilder.EN_DEBUG:
+            print("<-- RandInfoBuilder::visit_constraint_expr")
         
     def visit_constraint_dist_scope(self, s : ConstraintDistScopeModel):
         super().visit_constraint_dist_scope(s)
@@ -227,18 +212,24 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         # Save information on dist constraints to the 
         # appropriate randset
         if self._active_randset is not None:
-            f = s.dist_c.lhs.fm
+            f = self._expr2fm.field(s.dist_c.lhs)
             if f in self._active_randset.dist_field_m.keys():
                 self._active_randset.dist_field_m[f].append(s)
             else:
                 self._active_randset.dist_field_m[f] = [s]
         
     def visit_constraint_soft(self, c:ConstraintSoftModel):
+        if RandInfoBuilder.EN_DEBUG:
+            print("--> RandInfoBuilder::visit_constraint_soft")
+            
         # Update the priority of this constraint
         c.priority += self._soft_priority
         self._soft_priority += 1
         
         super().visit_constraint_soft(c)
+        
+        if RandInfoBuilder.EN_DEBUG:
+            print("<-- RandInfoBuilder::visit_constraint_soft")
         
     def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
         fm = s.getFieldModel()
@@ -281,53 +272,64 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 self._field_s.remove(fm)
         
     def visit_expr_fieldref(self, e):
-        if self._pass == 1:
+        # If the field is already referenced by an existing randset
+        # that is not this one, we need to merge the sets
+        fm = self._expr2fm.field(e)
+        
+        if self._pass == 0:
+            fm.accept(self)
+        elif self._pass == 1:
             # During pass 1, build out randsets based on constraint
             # relationships
             
-            # If the field is already referenced by an existing randset
-            # that is not this one, we need to merge the sets
-            if isinstance(e.fm, FieldArrayModel):
+            
+            if isinstance(fm, FieldArrayModel):
+                # Note: this is important for unique constraints on an
+                # entire (possibly variable-size) scalar array
                 for f in e.fm.field_l:
                     self.process_fieldref(f)
             else:
-                self.process_fieldref(e.fm)
+                self.process_fieldref(fm)
  
-
-        super().visit_expr_fieldref(e)
+#        super().visit_expr_fieldref(e)
                                     
     def visit_expr_indexed_fieldref(self, e):
         self.process_fieldref(e.get_target())
         
     def process_fieldref(self, fm):
+        if RandInfoBuilder.EN_DEBUG > 0:
+            print("--> RandInfoBuilder::process_fieldref %s" % fm.fullname)
         if fm in self._randset_field_m.keys():
             # There's an existing randset that holds this field
             ex_randset = self._randset_field_m[fm]
             if self._active_randset is None:
                 self._active_randset = ex_randset
             elif ex_randset is not self._active_randset:
-                if fm in self._order_s:
-                    # This field is part of the ordering constraint set. 
-                    if self._active_randset.order != -1 and self._active_randset.order < ex_randset.order:
-                        # If the active randset is also ordered, and comes before
-                        # the one containing this field as primary, then we must
-                        # save the constraints
-                        self._active_order_randset_s.add(ex_randset)
-                        self._active_randset.add_nontarget(fm)
-                else:
-                    # This field isn't being ordered, so go ahead and
-                    for f in self._active_randset.fields():
-                        # Relink to the new consolidated randset
-                        self._randset_field_m[f] = ex_randset
-                        ex_randset.add_field(f)
+                if RandInfoBuilder.EN_DEBUG > 0:
+                    print("RandInfoBuilder: combine two randsets")
+                    
+                # This field isn't being ordered, so go ahead and
+                for f in self._active_randset.fields():
+                    # Relink to the new consolidated randset
+                    self._randset_field_m[f] = ex_randset
+                    ex_randset.add_field(f)
 
-                    for c in self._active_randset.constraints():
-                        ex_randset.add_constraint(c)
+                for c in self._active_randset.constraints():
+                    ex_randset.add_constraint(c)
+                    
+                for c in self._active_randset.soft_constraints():
+                    ex_randset.add_constraint(c)
 
-                    # Remove the previous randset
-                    self._randset_s.remove(self._active_randset)                    
-                    self._active_randset = ex_randset
+                # Remove the previous randset
+                self._randset_s.remove(self._active_randset)                    
+                self._active_randset = ex_randset
+            else:
+                # Field is handled by a randset that is the active one
+                pass
         else:
+            if RandInfoBuilder.EN_DEBUG > 0:
+                print("RandInfoBuilder: create new randset")
+                
             # No existing randset holds this field
             if self._active_randset is None:
                 self._active_randset = RandSet()
@@ -339,6 +341,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             
         if fm in self._field_s:
             self._field_s.remove(fm)        
+            
+        if RandInfoBuilder.EN_DEBUG > 0:
+            print("<-- RandInfoBuilder::process_fieldref %s" % fm.fullname)
         
         
     def visit_composite_field(self, f):

@@ -76,7 +76,7 @@ def randobj(T):
                 ret = ret.get_val()
             elif a == "rand_mode":
                 ret = self._int_rand_info.rand_mode
-            elif isinstance(ret, constraint_t):
+            elif isinstance(ret, (constraint_t,dynamic_constraint_t)):
                 if not is_expr_mode():
                     # The constraint_t wrapper is per-type. In regular
                     # procedural code we need to return a reference 
@@ -102,7 +102,14 @@ def randobj(T):
                         # We're not in an expression context, so the 
                         # user really wants us to set the actual value
                         # of the field
-                        fo.set_val(val)
+                        if isinstance(val, type_base):
+                            # Looks like we're re-assigning it. 
+                            if self._get_ro_int().ctor_level > 0:
+                                object.__setattr__(self, field, val)
+                            else:
+                                raise Exception("Cannot re-construct field")
+                        else:
+                            fo.set_val(val)
                     else:
                         raise Exception("Attempting to use '=' in a constraint")
                 elif isinstance(fo, list_t):

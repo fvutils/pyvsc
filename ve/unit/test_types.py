@@ -264,3 +264,53 @@ class TestTypes(VscTestCase):
         inst = Test()
         inst.randomize()
         print("a =", inst.a, "b =", inst.b)
+
+    def test_bit_subscript_alt(self):
+        import vsc
+ 
+        @vsc.randobj
+        class my_item_c(object):
+            def __init__(self):
+                self.a = vsc.bit_t(8)
+    
+        @vsc.covergroup
+        class my_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    it=my_item_c()))
+
+                self.cp_my = vsc.coverpoint(lambda: ((self.it.a >> 2) & 0x3F),
+                                            bins={
+                                                "a": vsc.bin_array([], [0, 3])
+                                            }
+                                            )
+        # Create an instance of the covergroup
+        my_cg_i = my_cg()
+        # Create an instance of the item class
+        my_item_i = my_item_c()
+        my_cg_i.sample(my_item_i)
+        
+    def disabled_test_bit_subscript(self):
+        import vsc
+ 
+        @vsc.randobj
+        class my_item_c(object):
+            def __init__(self):
+                self.a = vsc.bit_t(8)
+    
+        @vsc.covergroup
+        class my_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    it=my_item_c()))
+
+                self.cp_my = vsc.coverpoint(lambda:self.it.a[7:2],
+                                            bins={
+                                                "a": vsc.bin_array([], [0, 3])
+                                            }
+                                            )
+        # Create an instance of the covergroup
+        my_cg_i = my_cg()
+        # Create an instance of the item class
+        my_item_i = my_item_c()
+        my_cg_i.sample(my_item_i)    

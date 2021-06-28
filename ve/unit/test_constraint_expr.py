@@ -315,3 +315,89 @@ class TestConstraintExpr(VscTestCase):
             it.c == it.a[2:1]
         self.assertEqual(my_i.c, (my_i.a & 0x6) >> 1)
         
+    def test_unary_not(self):
+        import vsc
+        import random
+        random.seed(0)
+
+        @vsc.randobj
+        class Test:
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def test_c(self):
+                self.a == ~self.b 
+
+        inst = Test()
+        inst.randomize()
+        print("a =", inst.a, "b =", inst.b)
+        print("Binary representation of a:", f"{inst.a:b}")
+        print("Binary representation of b:", f"{inst.b:b}")        
+        self.assertEqual(inst.a, ~inst.b & 0xFF)
+
+    def test_partselect_compound_array(self):
+        import vsc 
+
+        @vsc.randobj
+        class Parent:
+            def __init__(self):
+                self.id = 0
+                self.c1 = vsc.rand_list_t(vsc.attr(Child1()))
+                for i in range(10):    
+                    self.c1.append(vsc.attr(Child1()))
+
+                self.c2 = vsc.rand_list_t(vsc.attr(Child2()))
+                for i in range(10):
+                    self.c2.append(vsc.attr(Child2()))
+
+            # Fails
+            @vsc.constraint
+            def parent_c(self):
+                self.c1[0].test_bit[4:2] == 0
+       
+        @vsc.randobj
+        class Field():
+            def __init__(self, name, def_value):
+                self.name = name
+                self.value = vsc.rand_uint8_t(def_value)
+
+        @vsc.randobj
+        class Child1:
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.attr(Field('a', 10)))
+                for i in range(5):    
+                    self.a.append(vsc.attr(Field('a', 10)))
+
+                self.b = vsc.rand_list_t(vsc.attr(Field('b', 10)))
+                for i in range(5):    
+                    self.b.append(vsc.attr(Field('b', 10)))
+
+                self.test_bit =  vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def test_c(self):
+                #self.test_bit[4:2] == 0
+                self.a[0].value < self.a[1].value
+
+        @vsc.randobj
+        class Child2:
+            def __init__(self):
+                self.x = vsc.rand_list_t(vsc.attr(Field('x', 10)))
+                for i in range(5):    
+                    self.x.append(vsc.attr(Field('x', 10)))
+
+                self.y = vsc.rand_list_t(vsc.attr(Field('y', 10)))
+                for i in range(5):    
+                    self.y.append(vsc.attr(Field('y', 10)))
+    
+            @vsc.constraint
+            def test_c(self):
+                self.x[0].value < self.x[1].value
+
+        inst=Parent()
+        inst.randomize()
+        print(f"{inst.c1[0].test_bit:b}")
+        
+        self.assertEqual((inst.c1[0].test_bit >> 2) & 0x3, 0)

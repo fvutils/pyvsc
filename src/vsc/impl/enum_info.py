@@ -36,7 +36,7 @@ class EnumInfo(object):
         return self.e2v_m[ev]
     
     def v2e(self, v):
-        return self.v2e_m[v]
+        return self.v2e_m[int(v)]
     
     def e2e(self, ev):
         v = self.e2v_m[ev]
