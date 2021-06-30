@@ -384,7 +384,7 @@ class type_base(object):
             self.get_model().set_val(ValueScalar(v))
             
     def get_val(self):
-        return int(self.get_model().get_val())
+        return self.get_model().get_val().toInt()
     
     def set_val(self, val):
         if self.is_signed:

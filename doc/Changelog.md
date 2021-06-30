@@ -1,4 +1,10 @@
 
+## 0.4.5
+- (#93) Support slices/part selects on int/bit-type fields in
+  procedural code. 
+- (#83) Correct an issue with variable-bounds detetion that
+  resulted in little randomization being applied to 
+  constrained nested fields
 ## 0.4.4
 - (#92) Corrected an issue where soft constraints were dropped while
   combining solve sets

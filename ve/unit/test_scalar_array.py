@@ -323,7 +323,7 @@ class TestScalarArray(VscTestCase):
                 self.x[0].value < self.x[1].value
 
         inst=Parent()
-        inst.randomize(debug=1)
+        inst.randomize(debug=0)
 
         inst.randomize()
         self.assertEqual(inst.c1[0].a[0].enum_test, level_e.level_2)

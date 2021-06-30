@@ -375,3 +375,131 @@ class TestRandomDist(VscTestCase):
         print("x_hist=" + str(x_hist))
         print("y_hist=" + str(y_hist))
         
+    def test_compound_arrays(self):
+        import vsc 
+        import matplotlib.pyplot as plt
+        
+        @vsc.randobj
+        class Parent:
+            def __init__(self):
+                self.id = 0
+                self.c1 = vsc.rand_list_t(vsc.attr(Child1()))
+                for i in range(10):    
+                    self.c1.append(vsc.attr(Child1()))
+        
+                self.c2 = vsc.rand_list_t(vsc.attr(Child2()))
+                for i in range(10):
+                    self.c2.append(vsc.attr(Child2()))
+        
+                self.non_list_child = vsc.rand_attr(Child1())
+        
+                self.top_lvl_val = vsc.rand_uint8_t(0)
+            
+            @vsc.constraint
+            def parent_c(self):
+                self.top_lvl_val < 10       # Works fine
+        
+                # Presence of list causes high skewness
+                self.c1[0].one_lvl_below_val < 10
+                self.c1[0].a[0].value < 10      # Two levels below
+        
+                self.non_list_child.one_lvl_below_val < 10      # Works fine
+                
+        @vsc.randobj
+        class Field():
+            def __init__(self, name, def_value):
+                self.name = name
+                self.value = vsc.rand_uint8_t(def_value)
+        
+        @vsc.randobj
+        class Child1:
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.attr(Field('a', 10)))
+                for i in range(5):    
+                    self.a.append(vsc.attr(Field('a', 10)))
+        
+                self.b = vsc.rand_list_t(vsc.attr(Field('b', 10)))
+                for i in range(5):    
+                    self.b.append(vsc.attr(Field('b', 10)))
+        
+                self.one_lvl_below_val = vsc.rand_uint8_t(0)
+            
+        
+        @vsc.randobj
+        class Child2:
+            def __init__(self):
+                self.x = vsc.rand_list_t(vsc.attr(Field('x', 10)))
+                for i in range(5):    
+                    self.x.append(vsc.attr(Field('x', 10)))
+        
+                self.y = vsc.rand_list_t(vsc.attr(Field('y', 10)))
+                for i in range(5):    
+                    self.y.append(vsc.attr(Field('y', 10)))
+            
+            @vsc.constraint
+            def test_c(self):
+                self.x[0].value < self.x[1].value
+        
+        inst=Parent()
+        
+        top_lvl = []
+        top_lvl_hist = [0]*10
+        one_below = []
+        one_below_hist = [0]*10
+        two_below = []
+        two_below_hist = [0]*10
+        non_list = []
+        non_list_hist = [0]*10
+        
+        for i in range(1000):
+            inst.randomize(debug=0)
+            top_lvl.append(inst.top_lvl_val)
+            top_lvl_hist[inst.top_lvl_val%10] += 1
+            one_below.append(inst.c1[0].one_lvl_below_val)
+            one_below_hist[inst.c1[0].one_lvl_below_val%10] += 1
+            two_below.append(inst.c1[0].a[0].value)
+            two_below_hist[inst.c1[0].a[0].value%10] += 1
+            non_list.append(inst.non_list_child.one_lvl_below_val)
+            non_list_hist[inst.non_list_child.one_lvl_below_val%10] += 1
+        
+#        plt.hist(top_lvl)
+#        plt.title("Top level variable values")
+#        plt.show()
+        print("top_lvl_hist: " + str(top_lvl_hist))
+        zeros = 0
+        for e in top_lvl_hist:
+            if e == 0:
+                zeros += 1
+        self.assertEqual(zeros, 0)
+        
+#        plt.hist(one_below)
+#        plt.title("Variables one level below (with list)")
+#        plt.show()
+        print("one_below: " + str(one_below_hist))
+        zeros = 0
+        for e in one_below_hist:
+            if e == 0:
+                zeros += 1
+        self.assertEqual(zeros, 0)
+        
+#        plt.hist(two_below)
+#        plt.title("Variables two levels below (with lists)")
+#        plt.show()
+        print("two_below: " + str(two_below_hist))
+        zeros = 0
+        for e in two_below_hist:
+            if e == 0:
+                zeros += 1
+        self.assertEqual(zeros, 0)
+        
+#        plt.hist(non_list)
+#        plt.title("Child not in list")
+#        plt.show()
+        print("non_list: " + str(non_list_hist))
+        zeros = 0
+        for e in non_list_hist:
+            if e == 0:
+                zeros += 1
+        self.assertEqual(zeros, 0)
+        
+        

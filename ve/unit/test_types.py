@@ -290,7 +290,7 @@ class TestTypes(VscTestCase):
         my_item_i = my_item_c()
         my_cg_i.sample(my_item_i)
         
-    def disabled_test_bit_subscript(self):
+    def test_bit_subscript(self):
         import vsc
  
         @vsc.randobj

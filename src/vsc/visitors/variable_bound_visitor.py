@@ -38,6 +38,7 @@ from vsc.model.variable_bound_vareq_propagator import VariableBoundVarEqPropagat
 from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
 from vsc.visitors.is_nonrand_expr_visitor import IsNonRandExprVisitor
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
 
 
 class VariableBoundVisitor(ModelVisitor):
@@ -147,28 +148,18 @@ class VariableBoundVisitor(ModelVisitor):
                 isinstance(e.lhs, ExprArraySubscriptModel) or 
                 isinstance(e.rhs, ExprArraySubscriptModel)):
                 return
-      
+            
+            lhs_fm = Expr2FieldVisitor().field(e.lhs, fail_on_failure=False)
+            rhs_fm = Expr2FieldVisitor().field(e.rhs, fail_on_failure=False)
+
+            # Check whether the expressions involve *any* random variables            
             lhs_is_nonrand = IsNonRandExprVisitor().is_nonrand(e.lhs)
             rhs_is_nonrand = IsNonRandExprVisitor().is_nonrand(e.rhs)
-
-            if isinstance(e.lhs, ExprArraySubscriptModel):
-                lhs_fm = e.lhs.subscript()
-            elif isinstance(e.lhs, ExprFieldRefModel):
-                lhs_fm = e.lhs.fm
-            else:
-                lhs_fm = None
 
             if lhs_fm is not None and lhs_fm in self.bound_m.keys():                
                 lhs_bounds = self.bound_m[lhs_fm]
             else:
                 lhs_bounds = None
-                
-            if isinstance(e.rhs, ExprArraySubscriptModel):
-                rhs_fm = e.rhs.subscript()
-            elif isinstance(e.rhs, ExprFieldRefModel):
-                rhs_fm = e.rhs.fm
-            else:
-                rhs_fm = None
                 
             if rhs_fm is not None and rhs_fm in self.bound_m.keys():                
                 rhs_bounds = self.bound_m[rhs_fm]

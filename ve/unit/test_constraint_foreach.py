@@ -66,7 +66,7 @@ class TestConstraintForeach(VscTestCase):
                 self.x[0].value < self.x[1].value
 
         inst=Parent()
-        inst.randomize(debug=1)
+        inst.randomize(debug=0)
         print(inst.c1[0].a[0].value)
         print(inst.c2[0].x[0].value)
         self.assertEqual(inst.c1[0].a[0].value, inst.c2[0].x[0].value)
@@ -132,7 +132,7 @@ class TestConstraintForeach(VscTestCase):
                 pass
 
         inst=Parent()
-        inst.randomize(debug=1)
+        inst.randomize(debug=0)
         print(inst.c1[0].a[0].value)
         print(inst.c2[0].x[0].value)
         self.assertEqual(inst.c1[0].a[0].value, inst.c2[0].x[0].value)        

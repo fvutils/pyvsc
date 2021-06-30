@@ -6,14 +6,21 @@ Created on May 16, 2020
 from vsc.model.value import Value, ValueType
 from vsc.model.value_bool import ValueBool
 
-# class ValueInt(int):
-#     
-#     def __getitem__(self, rng):
-#         val =  str.__int__()
-#         if 
-#         print("int rng: " + str(self.__int__()))
-#         for v in dir(self):
-#             print("  v: " + str(v))
+class ValueInt(int):
+    """Wrapper for 'int' values. Permits operators"""
+     
+    def __getitem__(self, rng):
+        val =  self.__int__()
+        
+        if isinstance(rng, slice):
+            if (rng.start < rng.stop):
+                raise Exception("integer slice bounds are reversed. Expect [%d:%d]" % (
+                    rng.stop, rng.start))
+            mask = ((1 << ((rng.start-rng.stop)+1)) - 1)
+            return ((val >> rng.stop) & mask)
+        else:
+            # Single bit
+            return ((val >> rng) & 1)
 
 class ValueScalar(Value):
     
@@ -29,10 +36,10 @@ class ValueScalar(Value):
         return self.v
     
     def __int__(self):
-        return self.v
+        return ValueInt(self.v)
     
-#    def toInt(self):
-#        return ValueInt(self.v)
+    def toInt(self):
+        return ValueInt(self.v)
     
     def __bool__(self):
         return self.v != 0
@@ -64,6 +71,10 @@ class ValueScalar(Value):
     def __add__(self, rhs):
         v = int(rhs)
         return ValueScalar(self.v + v)
+    
+    def __and__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v & v)
     
     def __sub__(self, rhs):
         v = int(rhs)

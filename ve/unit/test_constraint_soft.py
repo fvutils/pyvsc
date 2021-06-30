@@ -65,7 +65,7 @@ class TestConstraintSoft(VscTestCase):
 
         item = my_item()
         for i in range(10):
-            with item.randomize_with(debug=1) as it:
+            with item.randomize_with(debug=0) as it:
                 it.b > 10
                 it.a == 1 #B
 

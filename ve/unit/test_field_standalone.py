@@ -194,4 +194,14 @@ class TestFieldStandalone(VscTestCase):
 #             print("<== randomize")
 #             print("PCID: %d" % int(PCID.get_val()))
 
+    def test_bit_partselect(self):
+            
+        field = vsc.rand_uint32_t(0xFFEEAA55)
+            
+        self.assertEqual(field.get_val(), 0xFFEEAA55)
+        self.assertEqual(field.get_val()[7:0], 0x55)
+        self.assertEqual(field.get_val()[11:4], 0xA5)
+        self.assertEqual(field.get_val()[31], 1)
+        self.assertEqual(field.get_val()[0], 1)
+        self.assertEqual(field.get_val()[8], 0)
 
