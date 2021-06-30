@@ -377,7 +377,7 @@ class TestRandomDist(VscTestCase):
         
     def test_compound_arrays(self):
         import vsc 
-        import matplotlib.pyplot as plt
+#        import matplotlib.pyplot as plt
         
         @vsc.randobj
         class Parent:
