@@ -105,7 +105,7 @@ class ModelVisitor(object):
         self.visit_constraint_scope(c)
         
     def visit_constraint_dynref(self, c):
-        pass
+        c.c.accept(self)
         
     def visit_constraint_expr(self, c : ConstraintExprModel):
         from ..visitors.model_pretty_printer import ModelPrettyPrinter

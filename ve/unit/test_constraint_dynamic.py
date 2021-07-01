@@ -141,4 +141,99 @@ class TestConstraintDynamic(VscTestCase):
         print(inst.c1[0].a[0].value)
         print(inst.c1[0].a[1].value)         
              
+    def test_dynamic_constraint_dist(self):
         
+        @vsc.randobj
+        class my_cls(object):
+        
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+        
+            @vsc.constraint
+            def a_c(self):
+                self.a <= 100
+                
+                # Not skew
+                self.b in vsc.rangelist(vsc.rng(1, 10))
+        
+            @vsc.dynamic_constraint
+            def a_small(self):
+                self.a in vsc.rangelist(vsc.rng(1,10))
+        
+            @vsc.dynamic_constraint
+            def a_large(self):
+                self.a in vsc.rangelist(vsc.rng(90,100))
+        
+        my_i = my_cls()
+        
+        non_dynamic = []
+        non_dynamic_hist = [0]*101
+        small=[]
+        small_hist = [0]*10
+        large = []
+        large_hist = [0]*10
+        both = []
+        both_hist = [0]*21
+        for i in range(1000):
+#            my_i.randomize()
+#            non_dynamic.append(my_i.b)
+        
+            with my_i.randomize_with(debug=0) as it:
+                it.a_small()
+            small.append(my_i.a)
+            small_hist[(my_i.a-1)%10] += 1
+        
+            with my_i.randomize_with() as it:
+                it.a_large()
+            large.append(my_i.a)
+            large_hist[(my_i.a-90)%10] += 1
+        
+            with my_i.randomize_with() as it:
+                it.a_small() | it.a_large()
+            if my_i.a <= 10:
+                both_hist[(my_i.a-1)%10] += 1
+            elif my_i.a >= 90:
+                both_hist[10+((my_i.a-90)%11)] += 1
+            else:
+                self.fail("out-of-bounds value %d" % my_i.a)
+
+        print("small_hist=" + str(small_hist))
+        print("large_hist=" + str(large_hist))
+        print("both_hist=" + str(both_hist))
+        zeros = 0
+        for v in small_hist:
+            if v == 0:
+                zeros += 1
+        self.assertEqual(zeros, 0)
+        
+        zeros = 0
+        for v in large_hist:
+            if v == 0:
+                zeros += 1
+        self.assertEqual(zeros, 0)
+        
+        # TODO: for now, the | term in the dynamic constraint
+        # prevents the solver from seeing two two possible domain sets
+        zeros = 0
+        for v in both_hist:
+            if v == 0:
+                zeros += 1
+        self.assertEqual(zeros, 0)
+        
+#        plt.hist(small)
+#        plt.title('Small')
+#        plt.show()
+        
+#        plt.hist(non_dynamic)
+#        plt.title('Non dynamic')
+#        plt.show()
+        
+#        plt.hist(large)
+#        plt.title('Large')
+#        plt.show()
+        
+#        plt.hist(both)
+#        plt.title('Small or large')
+#        plt.show()
+

@@ -1,4 +1,8 @@
 
+## 0.4.6
+- (#89) Correct general solution-bias issue when using 
+  dynamic constraints
+  
 ## 0.4.5
 - (#93) Support slices/part selects on int/bit-type fields in
   procedural code. 

@@ -315,13 +315,11 @@ class VariableBoundVisitor(ModelVisitor):
             if self.depth > 0:
                 pass
             else:
-                lhs_fm = None
-                
-                if isinstance(e.lhs, ExprArraySubscriptModel):
-                    if self.process_subscript:
-                        lhs_fm = e.lhs.subscript()
-                elif isinstance(e.lhs, ExprFieldRefModel):
-                    lhs_fm = e.lhs.fm
+                lhs_fm = Expr2FieldVisitor().field(e.lhs, fail_on_failure=False)
+
+            # Check whether the expressions involve *any* random variables            
+#            lhs_is_nonrand = IsNonRandExprVisitor().is_nonrand(e.lhs)
+#            rhs_is_nonrand = IsNonRandExprVisitor().is_nonrand(e.rhs)
                     
                 if lhs_fm is not None and lhs_fm in self.bound_m.keys():
                     lhs_bounds = self.bound_m[lhs_fm]
