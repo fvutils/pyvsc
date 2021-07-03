@@ -4,18 +4,21 @@ Created on Mar 17, 2020
 @author: ballance
 '''
 from unittest.case import TestCase
-from vsc.model.field_composite_model import FieldCompositeModel
-from vsc.model.generator_model import GeneratorModel
-from vsc.model.covergroup_model import CovergroupModel
-from vsc.model.coverpoint_model import CoverpointModel
-from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
-from vsc.model.field_scalar_model import FieldScalarModel
-from vsc.model.expr_fieldref_model import ExprFieldRefModel
-from vsc.model.randomizer import Randomizer
-from vsc.model.coverpoint_cross_model import CoverpointCrossModel
-from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
-from vsc.model.rangelist_model import RangelistModel
+
 from vsc.model.coverage_options_model import CoverageOptionsModel
+from vsc.model.covergroup_model import CovergroupModel
+from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
+from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
+from vsc.model.coverpoint_cross_model import CoverpointCrossModel
+from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.field_composite_model import FieldCompositeModel
+from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.generator_model import GeneratorModel
+from vsc.model.randomizer import Randomizer
+from vsc.model.rangelist_model import RangelistModel
+from vsc.model.source_info import SourceInfo
+
 
 class TestGeneratorModel(TestCase):
     
@@ -51,7 +54,7 @@ class TestGeneratorModel(TestCase):
 
         count = 0        
         for i in range(1000):
-            r.do_randomize([gen])
+            r.do_randomize(SourceInfo("",-1), [gen])
             cg.sample()
             count += 1
             cov = cg.get_coverage()
@@ -97,7 +100,7 @@ class TestGeneratorModel(TestCase):
 
         count = 0        
         for i in range(1000):
-            r.do_randomize([gen])
+            r.do_randomize(SourceInfo("",-1), [gen])
             cg.sample()
             count += 1
             cov = cg.get_coverage()
@@ -146,7 +149,7 @@ class TestGeneratorModel(TestCase):
 
         count = 0        
         for i in range(1000):
-            r.do_randomize([gen])
+            r.do_randomize(SourceInfo("",-1), [gen])
             cg.sample()
             count += 1
             cov = cg.get_coverage()

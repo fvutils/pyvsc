@@ -53,6 +53,9 @@ from vsc.visitors.ref_fields_postrand_visitor import RefFieldsPostRandVisitor
 from vsc.model.rand_set_node_builder import RandSetNodeBuilder
 from vsc.model.rand_set_dispose_visitor import RandSetDisposeVisitor
 from vsc.visitors.clear_soft_priority_visitor import ClearSoftPriorityVisitor
+from vsc.profile import randomize_start, randomize_done, profile_on
+from vsc.model.source_info import SourceInfo
+from vsc.profile.solve_info import SolveInfo
 
 
 class Randomizer(RandIF):
@@ -60,8 +63,9 @@ class Randomizer(RandIF):
     
     EN_DEBUG = False
     
-    def __init__(self, debug=0):
+    def __init__(self, debug=0, solve_info=None):
         self.pretty_printer = ModelPrettyPrinter()
+        self.solve_info = solve_info
         self.debug = debug
     
     _state_p = [0,1]
@@ -69,6 +73,9 @@ class Randomizer(RandIF):
     
     def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
         """Randomize the variables and constraints in a RandInfo collection"""
+        
+        if self.solve_info is not None:
+            self.solve_info.n_randsets = len(ri.randsets())
         
         if self.debug > 0:
             rs_i = 0
@@ -116,7 +123,7 @@ class Randomizer(RandIF):
         start_rs_i = 0
 #        max_fields = 20
         max_fields = 0
-        while rs_i < len(ri.randsets()):        
+        while rs_i < len(ri.randsets()):
             btor = Boolector()
             self.btor = btor
             btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
@@ -146,6 +153,9 @@ class Randomizer(RandIF):
                         print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
                     for c in rs.soft_constraints():
                         print("  SoftConstraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+                        
+                if self.solve_info is not None:
+                    self.solve_info.n_cfields += len(all_fields)
 
                 rs_node_builder.build(rs)
                 n_fields += len(all_fields)
@@ -168,6 +178,9 @@ class Randomizer(RandIF):
                 except Exception as e:
                     print("Exception: " + self.pretty_printer.print(c[0]))
                     raise e
+                
+            if self.solve_info is not None:
+                self.solve_info.n_sat_calls += 1
                 
             if btor.Sat() != btor.SAT:
                 # If the system doesn't solve with hard constraints added,
@@ -195,7 +208,9 @@ class Randomizer(RandIF):
                         from ..visitors.model_pretty_printer import ModelPrettyPrinter
                         print("Exception: " + ModelPrettyPrinter.print(c[0]))
                         raise e
-                    
+
+                if self.solve_info is not None:
+                    self.solve_info.n_sat_calls += 1                    
                 if btor.Sat() != btor.SAT:
                     # All the soft constraints cannot be satisfied. We'll need to
                     # add them incrementally
@@ -205,6 +220,8 @@ class Randomizer(RandIF):
                     for c in soft_constraint_l:
                         btor.Assume(c[1])
                         
+                        if self.solve_info is not None:
+                            self.solve_info.n_sat_calls += 1                    
                         if btor.Sat() == btor.SAT:
                             if self.debug > 0:
                                 print("Note: soft constraint %s (%d) passed" % (
@@ -292,6 +309,8 @@ class Randomizer(RandIF):
             x += 1
             
         if not swizzled_field:
+            if self.solve_info is not None:
+                self.solve_info.n_sat_calls += 1                    
             btor.Sat()
             
         if self.debug > 0:
@@ -324,7 +343,9 @@ class Randomizer(RandIF):
                 # Start by assuming all
                 for n in swizzle_node_l:
                     btor.Assume(n)
-                    
+
+                if self.solve_info is not None:
+                    self.solve_info.n_sat_calls += 1
                 if btor.Sat() != btor.SAT:
                     e = swizzle_expr_l.pop()
                     n = swizzle_node_l.pop()
@@ -337,6 +358,8 @@ class Randomizer(RandIF):
                         btor.Assert(n)
                     break
                     
+            if self.solve_info is not None:
+                self.solve_info.n_sat_calls += 1
             if btor.Sat() != btor.SAT:
                 raise Exception("failed to add in randomization (2)")                           
             return True
@@ -599,14 +622,23 @@ class Randomizer(RandIF):
         
     @staticmethod
     def do_randomize(
+            srcinfo : SourceInfo,
             field_model_l : List[FieldModel],
             constraint_l : List[ConstraintModel] = None,
             debug=0):
+        if profile_on():
+            solve_info = SolveInfo()
+            solve_info.totaltime = time.time()
+            randomize_start(srcinfo, field_model_l, constraint_l)
+        else:
+            solve_info = None
+        
         # All fields passed to do_randomize are treated
         # as randomizable
 #        if Randomizer._rng is None:
 #            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
 #        seed = Randomizer._rng.randint(0, (1 << 64)-1)
+            
         seed = random.randint(0, (1<<64)-1)
         
         clear_soft_priority = ClearSoftPriorityVisitor()
@@ -659,16 +691,21 @@ class Randomizer(RandIF):
                 print("  " + ModelPrettyPrinter.print(fm))
             for c in constraint_l:
                 print("  " + ModelPrettyPrinter.print(c, show_exp=True))
+                
             
 
-        r = Randomizer(debug=debug)
+        r = Randomizer(debug=debug, solve_info=solve_info)
 #        if Randomizer._rng is None:
 #            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
+        
         try:
             r.randomize(ri, bounds_v.bound_m)
         finally:
             # Rollback any constraints we've replaced for arrays
+            if solve_info is not None:
+                solve_info.totaltime = int((time.time() - solve_info.totaltime)*1000)
+                randomize_done(srcinfo, solve_info)
             for fm in field_model_l:
                 ConstraintOverrideRollbackVisitor.rollback(fm)
         

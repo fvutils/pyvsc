@@ -122,9 +122,14 @@ def randobj(T):
                     object.__setattr__(self, field, val)                
                     
         def randomize(self, debug=0):
+            frame = inspect.stack()[1]
+            
             model = self.get_model()
             try:
-                Randomizer.do_randomize([model], debug=debug)
+                Randomizer.do_randomize(
+                    SourceInfo(frame.filename, frame.lineno),
+                    [model], 
+                    debug=debug)
             except SolveFailure as e:
                 print(e.diagnostics)
                 raise e
@@ -132,6 +137,7 @@ def randobj(T):
         def build_field_model(self, name):
             if self._int_field_info.model is None:
                 model = FieldCompositeModel(name, self._int_field_info.is_rand, self)
+                model.typename = T.__qualname__
                 self._int_field_info.model = model
             
                 # Iterate through the fields and constraints
@@ -203,11 +209,16 @@ def randobj(T):
             return self
         
         def __exit__(self, t, v, tb):
+            frame = inspect.stack()[1]
             c = pop_constraint_scope()
             leave_expr_mode()
             model = self.get_model() # Ensure model is constructed
             try:
-                Randomizer.do_randomize([model], [c], debug=self.debug)
+                Randomizer.do_randomize(
+                    SourceInfo(frame.filename, frame.lineno),
+                    [model], 
+                    [c], 
+                    debug=self.debug)
             except SolveFailure as e:
                 print(e.diagnostics)
                 raise e
@@ -324,6 +335,7 @@ def generator(T):
         def build_field_model(self, name):
             if self._int_field_info.model is None:
                 model = FieldCompositeModel(name, self._int_field_info.is_rand, self)
+                model.typename = T.__name__
                 self._int_field_info.model = model
             
                 # Iterate through the fields and constraints

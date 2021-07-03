@@ -20,17 +20,21 @@
 #
 # @author: ballance
 
-from vsc.impl import expr_mode
-from vsc.impl.expr_mode import enter_raw_mode, leave_raw_mode, enter_expr_mode,\
-    leave_expr_mode
-from vsc.model.randomizer import Randomizer
-from vsc.types import field_info, type_base
-from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope
-from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.constraints import weight
-import random
 from builtins import callable
+import inspect
+import random
+
+from vsc.constraints import weight
+from vsc.impl import expr_mode
+from vsc.impl.ctor import push_constraint_scope, pop_constraint_scope
+from vsc.impl.expr_mode import enter_raw_mode, leave_raw_mode, enter_expr_mode, \
+    leave_expr_mode
+from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.model.randomizer import Randomizer
 from vsc.model.solve_failure import SolveFailure
+from vsc.model.source_info import SourceInfo
+from vsc.types import field_info, type_base
+
 
 _solve_fail_debug = False
 
@@ -64,11 +68,16 @@ def randomize_with(*args, **kwargs):
             return self
         
         def __exit__(self, t, v, tb):
+            frame = inspect.stack()[1]
             c = pop_constraint_scope()
             leave_expr_mode()
           
             try:
-                Randomizer.do_randomize(self.field_l, [c], debug=debug)
+                Randomizer.do_randomize(
+                    SourceInfo(frame.filename, frame.lineno),
+                    self.field_l, 
+                    [c], 
+                    debug=debug)
             except SolveFailure as e:
                 if _solve_fail_debug or self.solve_fail_debug:
                     print("Solve Failure")
@@ -79,6 +88,7 @@ def randomize_with(*args, **kwargs):
 
 def randomize(*args,**kwargs):
     """Randomize a list of variables"""
+    frame = inspect.stack()[1]
     fields = []
     for v in args:
         if hasattr(v, "get_model"):
@@ -90,7 +100,10 @@ def randomize(*args,**kwargs):
     if "debug" in kwargs.keys():
         debug=kwargs["debug"]
         
-    Randomizer.do_randomize(fields, debug=debug)
+    Randomizer.do_randomize(
+        SourceInfo(frame.filename, frame.lineno),
+        fields, 
+        debug=debug)
 
 class raw_mode(object):
     """Raw mode provides raw access to primitive VSC Fields"""

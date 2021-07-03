@@ -41,6 +41,7 @@ from vsc.types import *
 from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
 from ucis.ucdb.ucdb_factory import UcdbFactory
 from ucis.ucdb.ucdb_ucis import UcdbUCIS
+from vsc import profile
 
 
 def get_coverage_report(details=False)->str:

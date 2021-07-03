@@ -6,14 +6,16 @@ Created on Feb 29, 2020
 from unittest.case import TestCase
 
 from vsc.model.bin_expr_type import BinExprType
-from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.randomizer import Randomizer
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.randomizer import Randomizer
+from vsc.model.source_info import SourceInfo
 from vsc.model.value_scalar import ValueScalar
+
 from vsc_test_case import VscTestCase
 
 
@@ -33,7 +35,7 @@ class TestRandModel(VscTestCase):
         
         rand = Randomizer()
         
-        rand.do_randomize([obj])
+        rand.do_randomize(SourceInfo("",-1), [obj])
 
         self.assertLess(a.val, b.val)
 
@@ -52,7 +54,7 @@ class TestRandModel(VscTestCase):
         
         rand = Randomizer()
         
-        rand.do_randomize([obj])
+        rand.do_randomize(SourceInfo("",-1), [obj])
 
         print("a=" + hex(int(a.val)))
         self.assertGreater(a.val, ValueScalar(0x80000000000000000))

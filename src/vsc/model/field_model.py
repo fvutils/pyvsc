@@ -32,6 +32,7 @@ class FieldModel(object):
         self.parent       = None
         self.idx          = -1
         self.name         = name
+        self.typename     = "<unknown>"
         self.srcinfo_decl = None
         self.srcinfo_inst = None
     

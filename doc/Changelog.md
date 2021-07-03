@@ -1,4 +1,9 @@
 
+## 0.4.7
+- Added the beginnings of a rudimentary solve profiler
+  to collect statistics on class randomization. It's
+  currently undocumented, but enabled with the environment
+  variable VSC_PROFILE=1
 ## 0.4.6
 - (#89) Correct general solution-bias issue when using 
   dynamic constraints
