@@ -1,4 +1,7 @@
 
+## 0.4.8
+- (#95) Correct issues with multi-level nested foreach constraints
+
 ## 0.4.7
 - Added the beginnings of a rudimentary solve profiler
   to collect statistics on class randomization. It's

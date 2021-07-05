@@ -25,6 +25,7 @@ from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.has_indexvar_visitor import HasIndexVarVisitor
 from vsc.visitors.foreach_ref_expander import ForeachRefExpander
+from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
 
 
 class ArrayConstraintBuilder(ConstraintOverrideVisitor):
@@ -69,8 +70,10 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         with ConstraintCollector(self, scope) as cc:
             # TODO: need to be a bit more flexible in getting the size
             # Ensure the array is big enough
+            
+            fm = Expr2FieldVisitor().field(f.lhs, True)
 
-            for i in range(len(f.lhs.fm.field_l)):
+            for i in range(len(fm.field_l)):
                 f.index.set_val(i)
                 for c in f.constraint_l:
                     c.accept(self)

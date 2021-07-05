@@ -348,7 +348,7 @@ class type_base(object):
         if self._int_field_info.id != -1:
             # A non-negative id means that this field
             # should be referenced indirectly. Follow the
-            # parent/child relationhips up to construct an
+            # parent/child relationships up to construct an
             # index list back to this field
             id_l = []
             fi = self._int_field_info
@@ -970,19 +970,26 @@ class list_t(object):
         model = self._int_field_info.model
         if get_expr_mode():
             # TODO: must determine whether we're within a foreach or just on our own
-            if is_foreach_arr(self):
-                to_expr(k)
-                idx_e = pop_expr()
-                
-                return expr_subscript(ExprArraySubscriptModel(
-                    ExprFieldRefModel(self.get_model()),
-                    idx_e))
-            else:
-                to_expr(k)
-                idx_e = pop_expr()
-                return expr_subscript(ExprArraySubscriptModel(
-                    ExprFieldRefModel(self.get_model()),
-                    idx_e))
+            to_expr(k)
+            idx_e = pop_expr()
+                 
+            return expr_subscript(ExprArraySubscriptModel(
+                ExprFieldRefModel(self.get_model()),
+                idx_e))
+            
+#             if is_foreach_arr(self):
+#                 to_expr(k)
+#                 idx_e = pop_expr()
+#                 
+#                 return expr_subscript(ExprArraySubscriptModel(
+#                     ExprFieldRefModel(self.get_model()),
+#                     idx_e))
+#             else:
+#                 to_expr(k)
+#                 idx_e = pop_expr()
+#                 return expr_subscript(ExprArraySubscriptModel(
+#                     ExprFieldRefModel(self.get_model()),
+#                     idx_e))
         else:
             if self.is_enum:
                 ei : EnumInfo = self.t.enum_i

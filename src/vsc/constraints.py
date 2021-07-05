@@ -23,19 +23,23 @@
 from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr, \
     pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr, \
     push_foreach_arr, pop_foreach_arr, constraint_scope_depth
-from vsc.model.dist_weight_expr_model import DistWeightExprModel
+from vsc.model.constraint_dist_model import ConstraintDistModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
+from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.types import to_expr, expr, type_base, rng
-from vsc.model.constraint_dist_model import ConstraintDistModel
-from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
+from vsc.visitors.expr2fieldtype_visitor import Expr2FieldTypeVisitor
+
 
 class constraint_t(object):
     
@@ -263,11 +267,40 @@ class foreach(object):
             return expr(ExprFieldRefModel(self.index))
         
     class it_term_c(type_base):
-        def __init__(self, it):
+        def __init__(self, em):
             super().__init__(32, False)
-            self.it = it
+            self.em = em
         def to_expr(self):
-            return expr(self.it)
+            return expr(self.em)
+        
+        def __getattr__(self, aname):
+            em = object.__getattribute__(self, "em")
+            
+            # This pops 'this expr' off the stack, so we can
+            # replace it with an extended expression
+#            pop_expr()
+          
+            ret = None
+            if isinstance(em, ExprArraySubscriptModel):
+                # TODO: Need to get the core type
+                fm = None
+                if isinstance(em.lhs, ExprIndexedFieldRefModel):
+                    fm = em.lhs.get_target()
+                elif isinstance(em.lhs, ExprFieldRefModel):
+                    fm = em.lhs.fm
+                else:
+                    raise Exception("Unsupported path-chaining expression " + str(em.lhs))
+                
+                if aname in fm.type_t.field_id_m.keys():
+                    idx = fm.type_t.field_id_m[aname]
+                    ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+                else:
+                    raise Exception("Type %s does not contain a field \"%s\"" % (
+                        fm.type_t.name, aname))
+            else:
+                raise Exception("Expression getattribute access on non-subscript")
+    
+            return ret        
     
     def __init__(self, l, it=None, idx=None):
         self.stmt = None
@@ -285,36 +318,30 @@ class foreach(object):
                 
         if not idx and not it:
             raise Exception("Neither it nor idx specified")
+
+        # Form an expression to the array        
+        to_expr(l)
+        e = pop_expr()
+
+        self.arr_ref_e = e
+        self.elem_t = Expr2FieldTypeVisitor().fieldtype(e)
             
         self.it = it
         self.idx = idx
-        self.arr = l
-        self.arr_model = l._int_field_info.model
+        
         if not in_constraint_scope():
             raise Exception("Attempting to use foreach constraint outside constraint scope")
 
-        to_expr(l)
-        e = pop_expr()
         self.stmt = ConstraintForeachModel(e)
         
     def __enter__(self):
         push_constraint_stmt(self.stmt)
         push_constraint_scope(self.stmt)
-        model = self.arr_model
-#        return expr(ExprArraySubscriptModel())
-
-        push_foreach_arr(self.arr)
 
         idx_term = foreach.idx_term_c(self.stmt.index)
-        if self.arr_model.is_scalar:
-            it_term = foreach.it_term_c(ExprArraySubscriptModel(
-                ExprFieldRefModel(model),
-                ExprFieldRefModel(self.stmt.index)))
-        else:
-            self.arr.t._int_field_info.root_e = ExprArraySubscriptModel(
-                ExprFieldRefModel(model),
-                ExprFieldRefModel(self.stmt.index))
-            it_term = self.arr.t
+        it_term = foreach.it_term_c(ExprArraySubscriptModel(
+            self.arr_ref_e,
+            ExprFieldRefModel(self.stmt.index)))
         
         if self.idx and self.it:
             return (idx_term, it_term)
@@ -326,7 +353,6 @@ class foreach(object):
 
     def __exit__(self, t, v, tb):
         pop_constraint_scope()
-        pop_foreach_arr()
        
 
 def solve_order(before, after):
