@@ -1,4 +1,7 @@
 
+## 0.4.9
+- (#97) Correct issues with support of part select as a general expression
+
 ## 0.4.8
 - (#95) Correct issues with multi-level nested foreach constraints
 

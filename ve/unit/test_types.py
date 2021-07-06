@@ -314,3 +314,46 @@ class TestTypes(VscTestCase):
         # Create an instance of the item class
         my_item_i = my_item_c()
         my_cg_i.sample(my_item_i)    
+
+    def test_bit_subscript_2(self):
+        import vsc
+ 
+        @vsc.randobj
+        class my_item_c(object):
+            def __init__(self):
+                self.a = vsc.bit_t(8)
+    
+        @vsc.covergroup
+        class my_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    it=my_item_c()))
+
+                self.cp_my = vsc.coverpoint(self.it.a[7:2],
+                                            bins={
+                                                "a": vsc.bin_array([], [0, 3])
+                                            }
+                                            )
+        # Create an instance of the covergroup
+        my_cg_i = my_cg()
+        # Create an instance of the item class
+        my_item_i = my_item_c()
+        my_cg_i.sample(my_item_i)    
+        
+    def test_samplevar_subscript(self):
+             
+        @vsc.covergroup
+        class my_cg(object):
+            def __init__(self):
+                self.with_sample(a = vsc.bit_t(32))
+        
+                self.cp_my = vsc.coverpoint(self.a[7:2],
+                                                    bins={
+                                                        "a": vsc.bin_array([], [0, 3])
+                                                    }
+                                                    )
+        # Create an instance of the covergroup
+        my_cg_i = my_cg()
+        my_cg_i.sample(1)
+
+        

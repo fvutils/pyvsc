@@ -23,6 +23,8 @@
 
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
+from vsc.model.value_scalar import ValueScalar
+
 
 class ExprPartselectModel(ExprModel):
     
@@ -46,6 +48,22 @@ class ExprPartselectModel(ExprModel):
     
     def is_signed(self):
         return False
+    
+    def val(self):
+        ival = int(self.lhs.val())
+        
+        if self.lower is not None:
+            upper_i = int(self.upper.val())
+            lower_i = int(self.lower.val())
+            mask = (1 << (upper_i-lower_i+1))-1
+            ival = ((ival >> lower_i) & mask)
+        else:
+            # Just a bit select
+            upper_i = int(self.upper.val())
+            ival = ((ival >> upper_i) & 1)
+
+        return ValueScalar(ival)            
+    
     
     def accept(self, visitor):
         visitor.visit_expr_partselect(self)

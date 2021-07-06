@@ -509,6 +509,14 @@ class coverpoint(object):
             
                 self.target = target
                 self.get_val_f = target
+            elif isinstance(target, expr):
+                self.have_var = True
+                self.target = target.em
+                if cp_t is not None:
+                    self.cp_t = cp_t
+                else:
+                    # Get the express width for the implied type
+                    self.cp_t = bit_t(target.em.width())
             else:
                 # should be an actual variable (?)
                 # TODO: or, could be an expression
