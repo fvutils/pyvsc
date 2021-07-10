@@ -338,7 +338,7 @@ class TestTypes(VscTestCase):
         my_cg_i = my_cg()
         # Create an instance of the item class
         my_item_i = my_item_c()
-        my_cg_i.sample(my_item_i)    
+        my_cg_i.sample(my_item_i)
         
     def test_samplevar_subscript(self):
              

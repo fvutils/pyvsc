@@ -148,7 +148,7 @@ class Randomizer(RandIF):
                         if f in bound_m.keys():
                             print("  Field: %s is_rand=%s %s var=%s" % (f.fullname, str(f.is_used_rand), str(bound_m[f].domain.range_l), str(f.var)))
                         else:
-                            print("  Field: %s is_rand=%s (unbounded) var=%s" % (f.fullname, str(f.is_used_rand), str(f.var)))
+                            print("  Field: %s is_rand=%s (unbounded)" % (f.fullname, str(f.is_used_rand)))
                     for c in rs.constraints():
                         print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
                     for c in rs.soft_constraints():

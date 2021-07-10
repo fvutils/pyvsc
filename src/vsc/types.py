@@ -49,6 +49,7 @@ from vsc.model.value_scalar import ValueScalar
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
 from vsc.model.expr_array_product_model import ExprArrayProductModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.model.expr_indexed_dynref_model import ExprIndexedDynRefModel
 
 
 def unsigned(v, w=-1):
@@ -192,6 +193,14 @@ class expr(object):
                     idx_e))
         else:
             raise Exception("Calling __getitem__ on an expr on non-expression context")
+        
+class dynamic_constraint_proxy(object):
+    
+    def __init__(self, em):
+        self.em = em
+        
+    def __call__(self):
+        return expr(self.em)
     
 class expr_subscript(expr):
     def __init__(self, em):
@@ -214,10 +223,13 @@ class expr_subscript(expr):
                 fm = em.lhs.fm
             else:
                 raise Exception("Unsupported path-chaining expression " + str(em.lhs))
-            
+
             if aname in fm.type_t.field_id_m.keys():
                 idx = fm.type_t.field_id_m[aname]
                 ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+            elif aname in fm.type_t.constraint_dynamic_m.keys():
+                idx = fm.type_t.constraint_dynamic_m[aname]
+                ret = dynamic_constraint_proxy(ExprIndexedDynRefModel(em, idx))
             else:
                 raise Exception("Type %s does not contain a field \"%s\"" % (
                     fm.type_t.name, aname))

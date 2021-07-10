@@ -175,6 +175,9 @@ class ModelVisitor(object):
     def visit_expr_fieldref(self, e):
         pass
     
+    def visit_expr_indexed_dynref(self, e):
+        e.root.accept(self)
+        
     def visit_expr_indexed_fieldref(self, e):
         e.root.accept(self)
     

@@ -40,6 +40,7 @@ class FieldCompositeModel(FieldModel):
         self.field_id_m = {}
         self.constraint_model_l = []
         self.constraint_dynamic_model_l = []
+        self.constraint_dynamic_m = {}
         self.exec_l = []
         self.function_l = []
         self.constraint_l = []
@@ -110,6 +111,7 @@ class FieldCompositeModel(FieldModel):
         
     def add_dynamic_constraint(self, c):
         c.parent = self
+        self.constraint_dynamic_m[c.name] = len(self.constraint_dynamic_model_l)
         self.constraint_dynamic_model_l.append(c)
         
     def get_constraints(self, constraint_l):

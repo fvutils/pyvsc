@@ -1,4 +1,8 @@
 
+## 0.5.0
+- (#90) Correct issues with use of dynamic constraint defined
+  within an array of composite types
+
 ## 0.4.9
 - (#97) Correct issues with support of part select as a general expression
 

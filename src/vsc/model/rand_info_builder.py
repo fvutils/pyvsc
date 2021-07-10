@@ -45,6 +45,7 @@ from vsc.model.rand_set import RandSet
 from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 from vsc.visitors.expand_solve_order_visitor import ExpandSolveOrderVisitor
 from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
+from vsc.model.field_composite_model import FieldCompositeModel
 
 
 class RandInfoBuilder(ModelVisitor,RandIF):
@@ -292,7 +293,16 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 self.process_fieldref(fm)
  
 #        super().visit_expr_fieldref(e)
-                                    
+
+    def visit_expr_indexed_dynref(self, e):
+        fm : FieldCompositeModel = Expr2FieldVisitor().field(e.root, True)
+        c = fm.constraint_dynamic_model_l[e.idx]
+        
+        # Treat a dynamic constraint as an inline expansion
+        # of the constraints in the referenced block
+        for c_stmt in c.constraint_l:
+            c_stmt.accept(self)
+        
     def visit_expr_indexed_fieldref(self, e):
         self.process_fieldref(e.get_target())
         

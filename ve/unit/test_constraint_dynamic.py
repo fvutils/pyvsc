@@ -73,7 +73,7 @@ class TestConstraintDynamic(VscTestCase):
             self.assertTrue(((my_i.a >= 1 and my_i.a <= 10) or (my_i.a >= 90 and my_i.a <= 100)))
             
 
-    def disabled_test_array_compound(self):
+    def test_array_compound(self):
         import vsc 
 
         @vsc.randobj
@@ -104,7 +104,7 @@ class TestConstraintDynamic(VscTestCase):
                     self.b.append(vsc.attr(Field('b', 10)))
     
             @vsc.dynamic_constraint
-            def test_c(self):
+            def test_dyn_c(self):
                 self.a[0].value == self.a[1].value
 
         @vsc.randobj
@@ -129,17 +129,21 @@ class TestConstraintDynamic(VscTestCase):
                 self.value = vsc.rand_uint8_t(def_value)
 
         inst=Parent()
-        inst.randomize()
-        with inst.randomize_with() as it:
-            #it.parent_c()
-            it.c1[0].test_c()
+#        inst.randomize()
+        with inst.randomize_with(debug=0) as it:
+#            #it.parent_c()
+            it.c1[0].test_dyn_c()
+            pass
+        
    
     
         print(inst.c1[0].a[1].value)
         print(inst.c2[0].x[1].value)
         print()
         print(inst.c1[0].a[0].value)
-        print(inst.c1[0].a[1].value)         
+        print(inst.c1[0].a[1].value)
+        
+        self.assertEqual(inst.c1[0].a[0].value, inst.c1[0].a[1].value)
              
     def test_dynamic_constraint_dist(self):
         
