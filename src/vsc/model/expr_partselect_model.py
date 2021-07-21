@@ -29,6 +29,7 @@ from vsc.model.value_scalar import ValueScalar
 class ExprPartselectModel(ExprModel):
     
     def __init__(self, lhs, upper, lower=None):
+        super().__init__()
         self.lhs = lhs
         self.upper = upper 
         self.lower = lower 
