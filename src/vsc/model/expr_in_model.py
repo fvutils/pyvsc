@@ -34,6 +34,7 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 class ExprInModel(ExprModel):
     
     def __init__(self, lhs : ExprModel, rhs : ExprRangelistModel):
+        super().__init__()
         self.lhs = lhs
         self.rhs = rhs
         

@@ -40,4 +40,32 @@ class TestSolveFailure(VscTestCase):
         except vsc.SolveFailure as e:
             print("Exception: " + str(e.diagnostics))
 
+
+    def test_fail_constraint_pair(self):
+        
+        @vsc.randobj
+        class my_c(object):
+            
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+                self.c = vsc.rand_uint8_t()
+                self.d = vsc.rand_uint8_t()
+                
+            @vsc.constraint
+            def abcd_c(self):
+                self.c > self.b
+                self.a < self.b
+                self.c < self.a
+                self.c < 10
+                self.a > 0
+                self.b <= 20
+                
+        it = my_c()
+
+        try:        
+            it.randomize()
+            self.fail("Expected a solve failure")
+        except vsc.SolveFailure as e:
+            print("Exception: " + str(e.diagnostics))
     

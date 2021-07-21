@@ -26,6 +26,7 @@
 class ExprModel(object):
     
     def __init__(self):
+        self.srcinfo = None
         pass
     
     def build(self, btor, ctx_width=-1):

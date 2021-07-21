@@ -50,6 +50,7 @@ from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
 from vsc.model.expr_array_product_model import ExprArrayProductModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.model.expr_indexed_dynref_model import ExprIndexedDynRefModel
+from vsc.model.source_info import SourceInfo
 
 
 def unsigned(v, w=-1):
@@ -74,6 +75,7 @@ class expr(object):
         lhs_e = pop_expr()
        
         e = ExprBinModel(lhs_e, op, rhs_e)
+        e.srcinfo = SourceInfo.mk(2)
         
         return expr(e)
         
@@ -418,6 +420,7 @@ class type_base(object):
         lhs_e = pop_expr()
         
         e = ExprBinModel(lhs_e, op, rhs_e)
+        e.srcinfo = SourceInfo.mk(2)
         
         return expr(e)
 

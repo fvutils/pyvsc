@@ -56,6 +56,8 @@ from vsc.visitors.clear_soft_priority_visitor import ClearSoftPriorityVisitor
 from vsc.profile import randomize_start, randomize_done, profile_on
 from vsc.model.source_info import SourceInfo
 from vsc.profile.solve_info import SolveInfo
+from vsc.visitors.lint_visitor import LintVisitor
+from pip._internal.cli.cmdoptions import src
 
 
 class Randomizer(RandIF):
@@ -63,10 +65,11 @@ class Randomizer(RandIF):
     
     EN_DEBUG = False
     
-    def __init__(self, debug=0, solve_info=None):
+    def __init__(self, debug=0, lint=0, solve_info=None):
         self.pretty_printer = ModelPrettyPrinter()
         self.solve_info = solve_info
         self.debug = debug
+        self.lint = lint
     
     _state_p = [0,1]
     _rng = None
@@ -545,12 +548,13 @@ class Randomizer(RandIF):
         
         return ret
 
-    def create_diagnostics(self, active_randsets) -> str:
+    def create_diagnostics_1(self, active_randsets) -> str:
         ret = ""
         
         btor = Boolector()
         btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
         btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
+        model_valid = False
         
         diagnostic_constraint_l = [] 
         diagnostic_field_l = []
@@ -576,6 +580,7 @@ class Randomizer(RandIF):
                 diagnostic_field_l.extend(rs.fields())
                 
             i += 1
+            
 
         problem_constraints = []
         solving_constraints = []
@@ -583,6 +588,7 @@ class Randomizer(RandIF):
         # constraints that are actually a problem
         for c in diagnostic_constraint_l:
             btor.Assume(c[1])
+            model_valid = False
             
             if btor.Sat() != btor.SAT:
                 # This is a problematic constraint
@@ -592,6 +598,7 @@ class Randomizer(RandIF):
                 # Not a problem. Assert it now
                 btor.Assert(c[1])
                 solving_constraints.append(c[0])
+                model_valid = True
 #                problem_constraints.append(c[0])
                 
         if btor.Sat() != btor.SAT:
@@ -609,7 +616,7 @@ class Randomizer(RandIF):
         ret += "Problem Constraints:\n"
         for i,pc in enumerate(problem_constraints):
 
-            ret += "Constraint " + str(i+1) + ":\n"
+            ret += "Constraint %d: %s\n" % (i, SourceInfo.toString(pc.srcinfo))
             ret += ModelPrettyPrinter.print(pc, print_values=True)
             ret += ModelPrettyPrinter.print(pc, print_values=False)
 
@@ -618,14 +625,143 @@ class Randomizer(RandIF):
                 f.dispose()
             
         return ret
-            
+
+    def create_diagnostics(self, active_randsets) -> str:
         
+        btor = Boolector()
+        btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
+        btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
+        model_valid = False
+        
+        diagnostic_constraint_l = [] 
+        diagnostic_field_l = []
+        
+        # First, determine how many randsets are actually failing
+        i = 0
+        while i < len(active_randsets):
+            rs = active_randsets[i]
+            for f in rs.all_fields():
+                f.build(btor)
+
+            # Assume that we can omit all soft constraints, since they
+            # will have already been omitted (?)                
+            constraint_l = list(map(lambda c:(c,c.build(btor)), filter(lambda c:not isinstance(c,ConstraintSoftModel), rs.constraints())))
+                
+            for c in constraint_l:
+                btor.Assume(c[1])
+
+            if btor.Sat() != btor.SAT:
+                # Save fields and constraints if the randset doesn't 
+                # solve on its own
+                diagnostic_constraint_l.extend(constraint_l)
+                diagnostic_field_l.extend(rs.fields())
+                
+            i += 1
+            
+        problem_sets = []
+        degree = 1
+        
+        while True:
+            init_size = len(diagnostic_constraint_l)
+            tmp_l = []
+
+            ret = self._collect_failing_constraints(
+                btor, 
+                diagnostic_constraint_l,
+                0, 
+                degree,
+                tmp_l,
+                problem_sets)
+                
+            if len(diagnostic_constraint_l) == init_size and degree > 3:
+                break
+            else:
+                degree += 1
+
+        if Randomizer.EN_DEBUG > 0:
+            print("%d constraints remaining ; %d problem sets" % (len(diagnostic_constraint_l), len(problem_sets)))
+
+        # Assert the remaining constraints
+        for c in diagnostic_constraint_l:
+            btor.Assert(c[1])
+                
+        if btor.Sat() != btor.SAT:
+            raise Exception("internal error: system should solve")
+        
+        # Okay, we now have a constraint system that solves, and
+        # a list of constraints that are a problem. We want to 
+        # resolve the value of all variables referenced by the 
+        # solving constraints so and then display the non-solving
+        # constraints. This will (hopefully) help highlight the
+        # reason for the failure
+        
+        ret = ""
+        for ps in problem_sets:
+            ret += ("Problem Set: %d constraints\n" % len(ps))
+            for pc in ps:
+                ret += "  %s:\n" % SourceInfo.toString(pc[0].srcinfo)
+                ret += "    %s" % ModelPrettyPrinter.print(pc[0], print_values=False)
+
+            pc = []
+            for c in ps:
+                pc.append(c[0])
+            
+            lint_r = LintVisitor().lint(
+              [],
+              pc)
+            
+            if lint_r != "":
+                ret += "Lint Results:\n" + lint_r
+                
+        for rs in active_randsets:
+            for f in rs.all_fields():
+                f.dispose()
+            
+        return ret            
+    
+    def _collect_failing_constraints(self,
+                                     btor,
+                                     src_constraint_l,
+                                     idx,
+                                     max,
+                                     tmp_l,
+                                     fail_set_l):
+        ret = False
+        if len(tmp_l) < max:
+            i = idx
+            while i < len(src_constraint_l):
+                tmp_l.append(i)
+                ret = self._collect_failing_constraints(
+                    btor, src_constraint_l, i+1, max, tmp_l, fail_set_l)
+                tmp_l.pop()
+                if ret:
+                    src_constraint_l.pop(i)
+                else:
+                    i += 1
+        else:
+            # Assume full set of collected constraints
+            if Randomizer.EN_DEBUG:
+                print("Assume: " + str(tmp_l))
+            for c in tmp_l:
+                btor.Assume(src_constraint_l[c][1])
+            if btor.Sat() != btor.SAT:
+                # Set failed. Add to fail_set
+                fail_s = []
+                for ci in tmp_l:
+                    fail_s.append(src_constraint_l[ci])
+                fail_set_l.append(tuple(fail_s))
+                ret = True
+                
+        return ret
+
+    
     @staticmethod
     def do_randomize(
             srcinfo : SourceInfo,
             field_model_l : List[FieldModel],
             constraint_l : List[ConstraintModel] = None,
-            debug=0):
+            debug=0,
+            lint=0):
         if profile_on():
             solve_info = SolveInfo()
             solve_info.totaltime = time.time()
@@ -691,10 +827,14 @@ class Randomizer(RandIF):
                 print("  " + ModelPrettyPrinter.print(fm))
             for c in constraint_l:
                 print("  " + ModelPrettyPrinter.print(c, show_exp=True))
-                
+
+#        if lint > 0:
+#            LintVisitor().lint(
+#                field_model_l,
+#                constraint_l)
             
 
-        r = Randomizer(debug=debug, solve_info=solve_info)
+        r = Randomizer(debug=debug, lint=lint, solve_info=solve_info)
 #        if Randomizer._rng is None:
 #            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)

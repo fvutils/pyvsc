@@ -121,7 +121,9 @@ def randobj(T):
                 else:
                     object.__setattr__(self, field, val)                
                     
-        def randomize(self, debug=0):
+        def randomize(self, 
+                      debug=0,
+                      lint=0):
             frame = inspect.stack()[1]
             
             model = self.get_model()
@@ -129,7 +131,8 @@ def randobj(T):
                 Randomizer.do_randomize(
                     SourceInfo(frame.filename, frame.lineno),
                     [model], 
-                    debug=debug)
+                    debug=debug,
+                    lint=lint)
             except SolveFailure as e:
                 print(e.diagnostics)
                 raise e
@@ -218,15 +221,20 @@ def randobj(T):
                     SourceInfo(frame.filename, frame.lineno),
                     [model], 
                     [c], 
-                    debug=self.debug)
+                    debug=self.debug,
+                    lint=self.lint)
             except SolveFailure as e:
                 print(e.diagnostics)
                 raise e
         
-        def randomize_with(self, debug=0, solve_fail_debug=False):
+        def randomize_with(self, 
+                           debug=0, 
+                           lint=0,
+                           solve_fail_debug=False):
             # Ensure the 'model' data structures have been built
             self.get_model()
             self.debug = debug
+            self.lint = lint
     
             return self
         

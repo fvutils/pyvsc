@@ -74,12 +74,16 @@ def push_constraint_scope(s):
     
 def push_constraint_stmt(s):
     for e in pop_exprs():
-        constraint_scope_stack[-1].constraint_l.append(ConstraintExprModel(e))
+        c = ConstraintExprModel(e)
+        c.srcinfo = e.srcinfo
+        constraint_scope_stack[-1].constraint_l.append(c)
     constraint_scope_stack[-1].constraint_l.append(s)
     
 def pop_constraint_scope():
     for e in pop_exprs():
-        constraint_scope_stack[-1].constraint_l.append(ConstraintExprModel(e))
+        c = ConstraintExprModel(e)
+        c.srcinfo = e.srcinfo
+        constraint_scope_stack[-1].constraint_l.append(c)
     return constraint_scope_stack.pop()
 
 def constraint_scope():

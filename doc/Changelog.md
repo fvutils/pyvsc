@@ -1,4 +1,9 @@
 
+## 0.5.1
+- Adjust the debug approach to collect singles, pairs,
+  triples of failing constraints.
+- Add the very beginnings of a linting feature
+
 ## 0.5.0
 - (#90) Correct issues with use of dynamic constraint defined
   within an array of composite types

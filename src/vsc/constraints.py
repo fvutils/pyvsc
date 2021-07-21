@@ -39,6 +39,7 @@ from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.types import to_expr, expr, type_base, rng
 from vsc.visitors.expr2fieldtype_visitor import Expr2FieldTypeVisitor
+from vsc.model.source_info import SourceInfo
 
 
 class constraint_t(object):
@@ -47,6 +48,7 @@ class constraint_t(object):
         self.c = c
         self.enabled = True
         self.model = None
+        self.srcinfo = None
         pass
     
     def constraint_mode(self, en):
@@ -63,11 +65,11 @@ class constraint_t(object):
         print("elab")
         
 class dynamic_constraint_t(object):
-    # TODO:
     
     def __init__(self, c):
         self.c = c
         self.model = None
+        self.srcinfo = None
         
     def set_model(self, m):
         self.model = m
@@ -90,10 +92,14 @@ class dynamic_constraint_t(object):
         
 
 def dynamic_constraint(c):
-    return dynamic_constraint_t(c)
+    ret = dynamic_constraint_t(c)
+    ret.srcinfo = SourceInfo.mk()
+    return ret
 
 def constraint(c):
-    return constraint_t(c)
+    ret = constraint_t(c)
+    ret.srcinfo = SourceInfo.mk()
+    return ret
 
 class weight(object):
     
@@ -136,7 +142,10 @@ def dist(lhs, weights):
                             str(w))
         weight_l.append(w.weight_e)
         
-    push_constraint_stmt(ConstraintDistModel(lhs_e, weight_l))
+    c = ConstraintDistModel(lhs_e, weight_l)
+    c.srcinfo = SourceInfo.mk()
+        
+    push_constraint_stmt(c)
     
 
 class if_then(object):
@@ -147,6 +156,7 @@ class if_then(object):
         
         to_expr(e)
         self.stmt = ConstraintIfElseModel(pop_expr())
+        self.stmt.srcinfo = SourceInfo.mk()
         push_constraint_stmt(self.stmt)
         
     def __enter__(self):
@@ -175,6 +185,7 @@ class else_if(object):
             last_stmt = last_stmt.false_c
             
         self.stmt = ConstraintIfElseModel(pop_expr())
+        self.stmt.srcinfo = SourceInfo.mk()
         last_stmt.false_c = self.stmt
         
     def __enter__(self):
@@ -222,6 +233,7 @@ class implies(object):
         
         to_expr(e)
         self.stmt = ConstraintImpliesModel(pop_expr())
+        self.stmt.srcinfo = SourceInfo.mk()
         
     def __enter__(self):
         push_constraint_stmt(self.stmt)
@@ -234,7 +246,9 @@ def soft(e):
     
     to_expr(e)
     em = pop_expr()
-    push_constraint_stmt(ConstraintSoftModel(em))
+    c = ConstraintSoftModel(em)
+    c.srcinfo = em.srcinfo
+    push_constraint_stmt(c)
     
 
 def unique(*args):
@@ -242,8 +256,10 @@ def unique(*args):
     for i in range(-1, -(len(args)+1), -1):
         to_expr(args[i])
         expr_l.insert(0, pop_expr())
-        
-    push_constraint_stmt(ConstraintUniqueModel(expr_l))
+
+    c = ConstraintUniqueModel(expr_l)
+    c.srcinfo = SourceInfo.mk()
+    push_constraint_stmt(c)
     
 class forall(object):
     
@@ -333,6 +349,7 @@ class foreach(object):
             raise Exception("Attempting to use foreach constraint outside constraint scope")
 
         self.stmt = ConstraintForeachModel(e)
+        self.stmt.srcinfo = SourceInfo.mk()
         
     def __enter__(self):
         push_constraint_stmt(self.stmt)
@@ -391,7 +408,9 @@ def solve_order(before, after):
             raise Exception("Parameter " + str(after) + " is not a field reference")
         after_l.append(after_e.fm)
 
-    push_constraint_stmt(ConstraintSolveOrderModel(before_l, after_l))
+    c = ConstraintSolveOrderModel(before_l, after_l)
+    c.srcinfo = SourceInfo.mk()
+    push_constraint_stmt(c)
 
 
     

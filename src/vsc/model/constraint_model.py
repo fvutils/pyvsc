@@ -26,6 +26,7 @@ class ConstraintModel(object):
     
     def __init__(self):
         self.node = None
+        self.srcinfo = None
         pass
     
     def dispose(self):
