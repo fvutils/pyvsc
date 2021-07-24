@@ -208,6 +208,69 @@ a callable is providing the target value. Consequently, the cp_t
 parameter is used to specify that the value being sampled is an 8-bit
 unsigned integer.
 
+Wildcard Bins (Single)
+^^^^^^^^^^^^^^^^^^^^^^
+A wildcard specification may be used to specify the values within 
+single bins. The checked value may either be specified as a string
+that contains wildcard characters ('x', '?') or may be specified
+as a tuple of (value, mask).
+
+When using the string form of specifying a wildcard bin, the 
+specification string must start with "0x" (hexadecimal), 
+"0o" (octal), or "0b" (binary).
+
+Here is an example showing specification of a wildcard bin that 
+matches any value 0x80..0x8F:
+
+.. code-block:: python3
+
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    dict(a=vsc.bit_t(8)))
+                
+                self.cp_a = vsc.coverpoint(self.a, bins=dict(
+                    a=vsc.wildcard_bin("0x8x")))
+
+Here is the same coverpoint specification using the value/mask
+form:
+
+.. code-block:: python3
+
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    dict(a=vsc.bit_t(8)))
+                
+                self.cp_a = vsc.coverpoint(self.a, bins=dict(
+                    a=vsc.wildcard_bin((0x80,0xF0))
+                    ))
+
+Wildcard Bins (Array)
+^^^^^^^^^^^^^^^^^^^^^                    
+A wildcard specification may also be used to specify arrays of bins.
+In this case, the wildcard characters specify a location where all
+possibilities must be expanded.
+
+The example below creates 16 bins for the values 0x80..0x8F:
+
+.. code-block:: python3
+
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    dict(a=vsc.bit_t(8)))
+                
+                self.cp_a = vsc.coverpoint(self.a, bins=dict(
+                    a=vsc.wildcard_bin_array([], "0x8x")
+                    ))
+
 Coverpoint Crosses
 ------------------
 

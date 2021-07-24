@@ -1,4 +1,8 @@
 
+## 0.5.2
+- (#77) Add support for wildcard bins. Both single and
+  array bins are supported.
+
 ## 0.5.1
 - Adjust the debug approach to collect singles, pairs,
   triples of failing constraints.

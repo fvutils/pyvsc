@@ -47,6 +47,9 @@ from vsc.model.rangelist_model import RangelistModel
 from vsc.model.source_info import SourceInfo
 from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum, \
     expr, field_info
+from vsc.impl.wildcard_bin_factory import WildcardBinFactory
+from vsc.model.coverpoint_bin_single_wildcard_model import CoverpointBinSingleWildcardModel
+from vsc.model.wildcard_binspec import WildcardBinspec
 
 
 def covergroup(T):
@@ -437,6 +440,138 @@ class bin_array(object):
 
         return ret
     
+class wildcard_bin(object):
+    """Specifies a single wildcard coverage bin"""
+    def __init__(self, *args):
+        # Capture the declaration location of this bin
+        self.srcinfo_decl = SourceInfo.mk()
+
+        self.range_l = []        
+        for a in args:
+            if isinstance(a, tuple):
+                # Expressed in mask form
+                # (value, mask) where 1-bits in mask are compared and 0-bits are ignored
+                self.range_l.append(a)
+            elif isinstance(a, str):
+                # Expressed in string form in either oct, hex, or bin format
+                # 
+                value, mask = WildcardBinFactory.str2bin(a)
+                self.range_l.append((value,mask))
+            else:
+                raise Exception("Unknown argument %s to wildcard bin. Expect tuple or string" % (
+                    str(a)))
+        
+    def build_cov_model(self, parent, name):
+        ret = CoverpointBinSingleWildcardModel(
+            name, 
+            WildcardBinspec(self.range_l))
+        ret.srcinfo_decl = self.srcinfo_decl
+        
+        return ret    
+
+class wildcard_bin_array(object):
+    """Specifies an array of bins using wildcard specifications"""
+    
+    def __init__(self, nbins, *args):
+        """
+        args may be one of two formats
+        - Single list of wildcard strings (eg "0x82x")
+        - Single list of value/mask tuples (eg [(0x820,0xFF0)])
+        - Single string
+        - Single tuple
+        """
+        self.nbins = nbins
+        self.range_l = []
+        
+        # Convert the specification into canonical form: list of tuples
+        if len(args) == 1:
+            if isinstance(args[0], str):
+                value, mask = WildcardBinFactory.str2bin(args[0])
+                self.range_l.extend(WildcardBinFactory.valmask2binlist(value, mask))
+            elif isinstance(args[0], (list,tuple)):
+                # value/mask
+                if len(args[0]) != 2:
+                    raise Exception("Wildcard bin specification requires two elements (value,mask)")
+                
+                self.range_l.extend(WildcardBinFactory.valmask2binlist(args[0][0], args[0][1]))
+            else:
+                raise Exception("Bin specification " + str(args[0]) + " is neither string nor value/mask")
+            pass
+        else:
+            # Multiple arguments. Expect each to be a single-level string or tuple
+            for a in args:
+                if isinstance(a,(list,tuple)):
+                    if len(a) != 2:
+                        raise Exception("Wildcard bin range " + str(a) + " must have two elements")
+                    else:
+                        self.range_l.extend(WildcardBinFactory.valmask2binlist(a[0], a[1]))
+                elif isinstance(a,str):
+                    value, mask = WildcardBinFactory.str2bin(a)
+                    self.range_l.extend(WildcardBinFactory.valmask2binlist(value, mask))
+                else:
+                    raise Exception("Wildcard bin specification " + str(a) + " is neither value nor range")
+                
+        # TODO: handle overlap
+        self.range_l.sort(key=lambda e: e[0])
+        
+        # Now, collapse overlaps
+        i=0
+        while i < len(self.range_l):
+            if i+1 < len(self.range_l) and self.range_l[i][1]+1 >= self.range_l[i][0]:
+                self.range_l[i][1] = self.range_l[i+1][1]
+                self.range_l.pop(i+1)
+            else:
+                i += 1
+
+        if isinstance(nbins,list):
+            if len(nbins) not in (0,1):
+                raise Exception("Only 0 or 1 argument can be specified to the nbins argument")
+            self.nbins = -1 if len(nbins) == 0 else nbins[0]
+        else:
+            self.nbins = int(nbins)
+        
+        if len(args) == 0:
+            raise Exception("No bins range specified")
+        
+        # Capture the declaration location of this bin
+        frame = inspect.stack()[1]
+        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+    
+    def build_cov_model(self, parent, name):
+        ret = None
+
+        # First, need to determine how many total bins
+        # Construct a range model
+        if self.nbins == -1:
+            # unlimited number of bins
+            if len(self.range_l) == 1:
+                r = self.range_l[0]
+                ret = CoverpointBinArrayModel(name, 0, r[0], r[1])
+            else:
+                idx=0
+                ret = CoverpointBinCollectionModel(name)
+                for r in self.range_l:
+                    if len(r) == 2:
+                        b = ret.add_bin(CoverpointBinArrayModel(name, idx, r[0], r[1]))
+                        b.srcinfo_decl = self.srcinfo_decl
+                        idx += ((r[1] - r[0]) + 1)
+                    elif len(r) == 1:
+                        b = ret.add_bin(CoverpointBinSingleValModel(name + "[" + str(idx) + "]", r[0]))
+                        b.srcinfo_decl = self.srcinfo_decl
+                        idx += 1
+                    else:
+                        raise Exception("Internal error: expect bin to have 1 or 2 elements not " + 
+                                        str(len(r)) + " (" +
+                                        name + " " + self.srcinfo_decl.filename + ":" +
+                                        str(self.srcinfo_decl.lineno) + ")")
+        else:
+            ret = CoverpointBinCollectionModel.mk_collection(name, 
+                    RangelistModel(self.range_l), self.nbins)
+        
+        ret.srcinfo_decl = self.srcinfo_decl
+
+        return ret
+        
 class binsof(object):
     # TODO: future implementation of the 'binsof' operator
     
