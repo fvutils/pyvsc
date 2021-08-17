@@ -93,4 +93,19 @@ class TestCoverageWildcardBins(VscTestCase):
             cg_i.sample(0x80+i)
             self.assertEqual(cg_i.get_coverage(), 100*((1+i)/16))
 
+    def test_array_wildcard_bin_2(self):
+        @vsc.covergroup
+        class cg(object):
+        
+            def __init__(self):
+                self.with_sample(
+                    dict(a=vsc.bit_t(8)))
+        
+                self.cp_a = vsc.coverpoint(lambda: self.a[7:0], bins=dict(
+                    a=vsc.wildcard_bin_array([], "0b1011011x", "0b0x101010")
+                    ))
+        
+        obj1 = cg()
+
+
         

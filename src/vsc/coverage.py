@@ -518,7 +518,7 @@ class wildcard_bin_array(object):
         i=0
         while i < len(self.range_l):
             if i+1 < len(self.range_l) and self.range_l[i][1]+1 >= self.range_l[i][0]:
-                self.range_l[i][1] = self.range_l[i+1][1]
+                self.range_l[i] = (self.range_l[i][0], self.range_l[i+1][1])
                 self.range_l.pop(i+1)
             else:
                 i += 1

@@ -66,3 +66,29 @@ class TestRandomizeWith(VscTestCase):
         
             print("i=" + str(i) + " c.a=" + hex(c.a) + " c.b=" + hex(c.b) + " c.c=" + hex(c.c) + " c.d=" + hex(c.d))
             
+
+    def test_randomize_with_randselect(self):
+                    
+        @vsc.randobj
+        class my_class:
+            def __init__(self):
+                self.value = vsc.rand_bit_t(32)
+                self.randselect = self.get_val()
+        
+            def task(self, a, b):
+                print("self.value: %d" % self.value)
+                with vsc.raw_mode():
+                    with vsc.randomize_with(self.value):
+                        self.value in vsc.rangelist(a, b)
+            
+            def get_val(self):
+                vsc.randselect([
+                (1, lambda: self.task(0x12345678, 0x9abcdef0)),
+                        (0, lambda: self.task(0x232456ab, 0x00000000))])
+        
+        
+        obj = my_class()
+        print("self.randselect", obj.value)
+
+
+

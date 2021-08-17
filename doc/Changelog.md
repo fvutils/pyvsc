@@ -1,4 +1,8 @@
 
+## 0.5.3
+- (#105) Correct an issue when collapsing overlapping bins
+  in a wildcard bin array
+
 ## 0.5.2
 - (#77) Add support for wildcard bins. Both single and
   array bins are supported.
