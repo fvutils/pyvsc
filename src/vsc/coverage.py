@@ -517,7 +517,7 @@ class wildcard_bin_array(object):
         # Now, collapse overlaps
         i=0
         while i < len(self.range_l):
-            if i+1 < len(self.range_l) and self.range_l[i][1]+1 >= self.range_l[i][0]:
+            if i+1 < len(self.range_l) and self.range_l[i][1]+1 >= self.range_l[i+1][0]:
                 self.range_l[i] = (self.range_l[i][0], self.range_l[i+1][1])
                 self.range_l.pop(i+1)
             else:
@@ -539,7 +539,7 @@ class wildcard_bin_array(object):
     
     def build_cov_model(self, parent, name):
         ret = None
-
+        
         # First, need to determine how many total bins
         # Construct a range model
         if self.nbins == -1:
@@ -552,9 +552,14 @@ class wildcard_bin_array(object):
                 ret = CoverpointBinCollectionModel(name)
                 for r in self.range_l:
                     if len(r) == 2:
-                        b = ret.add_bin(CoverpointBinArrayModel(name, idx, r[0], r[1]))
-                        b.srcinfo_decl = self.srcinfo_decl
-                        idx += ((r[1] - r[0]) + 1)
+                        if r[0] != r[1]:
+                            b = ret.add_bin(CoverpointBinArrayModel(name, idx, r[0], r[1]))
+                            b.srcinfo_decl = self.srcinfo_decl
+                            idx += ((r[1] - r[0]) + 1)
+                        else:
+                            b = ret.add_bin(CoverpointBinSingleValModel(name + "[" + str(idx) + "]", r[0]))
+                            b.srcinfo_decl = self.srcinfo_decl
+                            idx += 1
                     elif len(r) == 1:
                         b = ret.add_bin(CoverpointBinSingleValModel(name + "[" + str(idx) + "]", r[0]))
                         b.srcinfo_decl = self.srcinfo_decl

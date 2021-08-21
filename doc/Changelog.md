@@ -1,4 +1,8 @@
 
+## 0.5.4
+- (#nobug) Correct an issue with expanding wildcard bins.
+  Regions were incorrectly being merged.
+
 ## 0.5.3
 - (#105) Correct an issue when collapsing overlapping bins
   in a wildcard bin array

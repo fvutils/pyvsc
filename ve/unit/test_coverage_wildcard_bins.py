@@ -106,6 +106,29 @@ class TestCoverageWildcardBins(VscTestCase):
                     ))
         
         obj1 = cg()
+        
+    def test_array_wildcard_bin_3(self):
+        import vsc
+        
+        @vsc.covergroup
+        class cg(object):
+        
+            def __init__(self):
+                self.with_sample(
+                    dict(a=vsc.bit_t(8)))
+        
+                self.cp_a = vsc.coverpoint(lambda: self.a[7:0],
+                    bins=dict(
+                        a=vsc.wildcard_bin_array([], "0b1011011x", "0b0x101010"),
+                        b=vsc.wildcard_bin_array([], "0b1011011x", "0b0x10x01x"))
+                    )
+        
+        obj1 = cg()
+        model = vsc.get_coverage_report_model()
+        self.assertEqual(len(model.covergroups), 1)
+        self.assertEqual(len(model.covergroups[0].coverpoints), 1)
+        self.assertEqual(len(model.covergroups[0].coverpoints[0].bins), 14)
+        vsc.report_coverage(details=True)
 
 
         

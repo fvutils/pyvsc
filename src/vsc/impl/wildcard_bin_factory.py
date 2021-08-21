@@ -73,7 +73,7 @@ class WildcardBinFactory(object):
                 
         if total_mask_bits > 20:
             raise Exception("Wildcard array bins limited to 20 mask bits")
-
+        
         ranges = []
         for val in range(0, (1 << total_mask_bits)):
 
@@ -87,6 +87,6 @@ class WildcardBinFactory(object):
                 ranges[-1] = (ranges[-1][0], val_t)
             else:  
                 ranges.append((val_t, val_t))
-                    
+
         return ranges
 
