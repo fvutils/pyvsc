@@ -278,7 +278,7 @@ class TestConstraintDist(VscTestCase):
             hist.append([0]*4)
             
         for i in range(400):
-            my.randomize()
+            my.randomize(debug=0)
             for i in range(4):
                 v = my.a[i]
                 if v == 1:
@@ -290,7 +290,7 @@ class TestConstraintDist(VscTestCase):
                 elif v == 8:
                     hist[i][3] += 1
                 else:
-                    raise Exception("Value " + str(v) + " out of range")
+                    raise Exception("Value[%d] %d out of range" % (i, v))
                     
         for i in range(len(hist)):
             print("hist[" + str(i) + "] " + str(hist[i]))

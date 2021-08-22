@@ -23,7 +23,7 @@
 from enum import IntEnum, Enum, EnumMeta
 
 from vsc.impl.ctor import push_expr, pop_expr, in_constraint_scope, \
-    is_foreach_arr, expr_l
+    is_foreach_arr, expr_l, in_srcinfo_mode
 from vsc.impl.enum_info import EnumInfo
 from vsc.impl.expr_mode import is_expr_mode
 from vsc.model.bin_expr_type import BinExprType
@@ -75,7 +75,8 @@ class expr(object):
         lhs_e = pop_expr()
        
         e = ExprBinModel(lhs_e, op, rhs_e)
-        e.srcinfo = SourceInfo.mk(2)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
         
         return expr(e)
         
@@ -420,7 +421,8 @@ class type_base(object):
         lhs_e = pop_expr()
         
         e = ExprBinModel(lhs_e, op, rhs_e)
-        e.srcinfo = SourceInfo.mk(2)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
         
         return expr(e)
 

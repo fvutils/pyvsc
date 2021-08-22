@@ -21,7 +21,7 @@ class SourceInfo(object):
     @classmethod
     def mk(cls, levels=1):
         stack = inspect.stack()
-        
+       
         if len(stack) <= (levels+1):
             raise Exception("requested stack frame %d out-of-bounds (%d)" % (
                 levels, len(stack)))

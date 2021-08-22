@@ -1,4 +1,11 @@
 
+## 0.5.5
+- (#nobug) Work on removing undesirable sources of randomness
+  due to use of sets/maps. 
+
+- (#nobug) Make source-information collection and solve-failure
+  diagnosis on-request, due to performance overhead
+
 ## 0.5.4
 - (#nobug) Correct an issue with expanding wildcard bins.
   Regions were incorrectly being merged.

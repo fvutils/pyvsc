@@ -16,7 +16,7 @@ class RandSetDisposeVisitor(ModelVisitor):
         super().__init__()
         
     def dispose(self, rs : RandSet):
-        for f in rs.field_s:
+        for f in rs.fields():
             f.accept(self)
         for c in rs.constraint_s:
             c.accept(self)

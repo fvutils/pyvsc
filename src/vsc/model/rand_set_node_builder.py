@@ -19,7 +19,7 @@ class RandSetNodeBuilder(ModelVisitor):
         
     def build(self, rs : RandSet):
         self.phase = 0
-        for f in rs.field_s:
+        for f in rs.fields():
             f.accept(self)
         for c in rs.constraint_s:
             c.accept(self)

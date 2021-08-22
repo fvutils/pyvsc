@@ -56,7 +56,8 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         # TODO: need access to the random state
         super().__init__()
         self._pass = 0
-        self._field_s = set()
+        self._field_m = {}
+        self._field_l = []
         self._active_constraint = None
         self._active_randset = None
         
@@ -64,7 +65,8 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         # dependencies against  ordered fields
         self._active_order_randset_s = set()
         
-        self._randset_s : Set[RandSet] = set()
+        self._randset_m : Dict[RandSet,int] = {}
+        self._randset_l = []
         self._randset_field_m : Dict[FieldModel,RandSet] = {} # map<field,randset>
         self._constraint_s : List[ConstraintModel] = []
         self._soft_priority = 0
@@ -72,7 +74,6 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self._in_generator = False
         self.active_cp = None
         self._rng = rng
-        self._order_l = []
         
         self._order_m = {}
         self._expr2fm = Expr2FieldVisitor()
@@ -93,16 +94,10 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         for fm in field_model_l:
             fm.accept(builder)
             
-        builder._randset_s.clear()
+        builder._randset_m.clear()
+        builder._randset_l.clear()
         builder._randset_field_m.clear()
 
-        # Create rand sets around explicitly-ordered fields
-        for i,o in enumerate(builder._order_l):
-            s = RandSet(i)
-            s.field_s.add(o)
-            builder._randset_s.add(s)
-            builder._randset_field_m[o] = s
-            
         # Now, build the randset
         builder._pass = 1
         builder._used_rand = True
@@ -115,12 +110,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         for c in constraint_l:
             c.accept(builder)
             
-#         for rs in builder._randset_s:
-#             print("RS: " + str(rs))
-#             for c in rs.constraint_s:
-#                 print("RS Constraint: " + str(c))
-
-        randset_l = list(builder._randset_s)
+        randset_l = list(filter(lambda e: e is not None, builder._randset_l))
         
         # Handle ordering constraints.
         # - Collect fields that are members of this randset
@@ -139,14 +129,22 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                         for fs in list(toposort(rs_deps)):
                             field_l = []
                             for fi in fs:
-                                if fi in rs.field_s:
+                                if fi in rs.fields():
                                     field_l.append(fi)
                             if len(field_l) > 0:
                                 rs.rand_order_l.append(field_l)
                 
-#        randset_l.sort(key=lambda e:e.order)
+        # It's important to maintain a fixed order for the
+        # unconstrained fields, since this affects their
+        # randomization. 
+        nonrand_fields = []
+        for f,i in builder._field_m.items():
+            nonrand_fields.append((i, f))
+        # Sort by add order
+        nonrand_fields.sort(key=lambda e: e[0])
         
-        return RandInfo(randset_l, list(builder._field_s))
+        return RandInfo(randset_l, 
+                list(map(lambda e: e[1], nonrand_fields)))
     
     def randint(self, low:int, high:int)->int:
         return self._rng.randint(low,high)
@@ -256,22 +254,26 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                         ex_randset.add_constraint(c)
 
                     # Remove the previous randset
-                    self._randset_s.remove(self._active_randset)                    
+                    idx = self._randset_m[self._active_randset]
+                    self._randset_m.pop(idx)
+                    self._randset_l[idx] = None
                     self._active_randset = ex_randset
             else:
                 # No existing randset holds this field as a
                 # solve target
                 if self._active_randset is None:
                     self._active_randset = RandSet()
-                    self._randset_s.add(self._active_randset)
+                    idx = len(self._randset_l)
+                    self._randset_m[self._active_randset] = idx
+                    self._randset_l.append(self._active_randset)
                     
                 # Need to register this field/randset mapping
                 self._active_randset.add_field(fm)
                 self._randset_field_m[fm] = self._active_randset
-                
-            if fm in self._field_s:
-                self._field_s.remove(fm)
-        
+
+            if fm in self._field_m.keys():
+                self._field_m.pop(fm)
+       
     def visit_expr_fieldref(self, e):
         # If the field is already referenced by an existing randset
         # that is not this one, we need to merge the sets
@@ -331,7 +333,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                     ex_randset.add_constraint(c)
 
                 # Remove the previous randset
-                self._randset_s.remove(self._active_randset)                    
+                idx = self._randset_m[self._active_randset]
+                self._randset_m.pop(self._active_randset)
+                self._randset_l[idx] = None
                 self._active_randset = ex_randset
             else:
                 # Field is handled by a randset that is the active one
@@ -343,14 +347,16 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             # No existing randset holds this field
             if self._active_randset is None:
                 self._active_randset = RandSet()
-                self._randset_s.add(self._active_randset)
+                idx = len(self._randset_l)
+                self._randset_m[self._active_randset] = idx
+                self._randset_l.append(self._active_randset)
                 
             # Need to register this field/randset mapping
             self._active_randset.add_field(fm)
             self._randset_field_m[fm] = self._active_randset
-            
-        if fm in self._field_s:
-            self._field_s.remove(fm)        
+
+        if fm in self._field_m.keys():
+            self._field_m.pop(fm)        
             
         if RandInfoBuilder.EN_DEBUG > 0:
             print("<-- RandInfoBuilder::process_fieldref %s" % fm.fullname)
@@ -364,11 +370,15 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         
     def visit_scalar_field(self, f):
         if self._pass == 0:
-            self._field_s.add(f)
+            if not f in self._field_m.keys():
+                idx = len(self._field_l)
+                self._field_m[f] = idx
             
     def visit_enum_field(self, f):
         if self._pass == 0:
-            self._field_s.add(f)
+            if not f in self._field_m.keys():
+                idx = len(self._field_l)
+                self._field_m[f] = idx
             
     def visit_covergroup(self, cg:CovergroupModel):
         

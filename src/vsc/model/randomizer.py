@@ -65,11 +65,12 @@ class Randomizer(RandIF):
     
     EN_DEBUG = False
     
-    def __init__(self, debug=0, lint=0, solve_info=None):
+    def __init__(self, debug=0, lint=0, solve_fail_debug=0, solve_info=None):
         self.pretty_printer = ModelPrettyPrinter()
         self.solve_info = solve_info
         self.debug = debug
         self.lint = lint
+        self.solve_fail_debug = solve_fail_debug
     
     _state_p = [0,1]
     _rng = None
@@ -193,9 +194,15 @@ class Randomizer(RandIF):
                     active_randsets.append(rs)
                     for f in rs.all_fields():
                         f.dispose()
-                raise SolveFailure(
-                    "solve failure",
-                    self.create_diagnostics(active_randsets))
+                        
+                if self.solve_fail_debug > 0:
+                    raise SolveFailure(
+                        "solve failure",
+                        self.create_diagnostics(active_randsets))
+                else:
+                    raise SolveFailure(
+                        "solve failure",
+                        "Solve failure: set 'solve_fail_debug=1' for more details")
             else:
                 # Lock down the hard constraints that are confirmed
                 # to be valid
@@ -761,7 +768,8 @@ class Randomizer(RandIF):
             field_model_l : List[FieldModel],
             constraint_l : List[ConstraintModel] = None,
             debug=0,
-            lint=0):
+            lint=0,
+            solve_fail_debug=0):
         if profile_on():
             solve_info = SolveInfo()
             solve_info.totaltime = time.time()
@@ -834,7 +842,11 @@ class Randomizer(RandIF):
 #                constraint_l)
             
 
-        r = Randomizer(debug=debug, lint=lint, solve_info=solve_info)
+        r = Randomizer(
+            solve_info=solve_info,
+            debug=debug, 
+            lint=lint, 
+            solve_fail_debug=solve_fail_debug)
 #        if Randomizer._rng is None:
 #            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
         ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)

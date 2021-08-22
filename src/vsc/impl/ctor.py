@@ -29,6 +29,9 @@ constraint_scope_stack = []
 expr_l = []
 foreach_arr_s = []
 
+# Tracks whether srcinfo should be collected for a type
+srcinfo_mode_s = []
+
 def test_setup():
     rand_obj_type_m.clear()
     constraint_scope_stack.clear()
@@ -54,6 +57,16 @@ def is_foreach_arr(arr):
 
 def pop_foreach_arr():
     foreach_arr_s.pop()
+    
+def push_srcinfo_mode(m):
+    srcinfo_mode_s.append(m)
+    
+def in_srcinfo_mode():
+    return len(srcinfo_mode_s) > 0 and srcinfo_mode_s[-1]
+
+def pop_srcinfo_mode():
+    if len(srcinfo_mode_s) > 0:
+        srcinfo_mode_s.pop()
 
 def push_expr(e):
     expr_l.append(e)

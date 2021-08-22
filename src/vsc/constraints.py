@@ -22,7 +22,7 @@
 
 from vsc.impl.ctor import push_constraint_scope, push_constraint_stmt, pop_expr, \
     pop_constraint_scope, in_constraint_scope, last_constraint_stmt, push_expr, \
-    push_foreach_arr, pop_foreach_arr, constraint_scope_depth
+    push_foreach_arr, pop_foreach_arr, constraint_scope_depth, in_srcinfo_mode
 from vsc.model.constraint_dist_model import ConstraintDistModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
@@ -93,11 +93,17 @@ class dynamic_constraint_t(object):
 
 def dynamic_constraint(c):
     ret = dynamic_constraint_t(c)
+    
+    # Capture source info, since it's only
+    # captured once during loading
     ret.srcinfo = SourceInfo.mk()
     return ret
 
 def constraint(c):
     ret = constraint_t(c)
+    
+    # Capture source info, since it's only
+    # captured once during loading
     ret.srcinfo = SourceInfo.mk()
     return ret
 
@@ -143,7 +149,8 @@ def dist(lhs, weights):
         weight_l.append(w.weight_e)
         
     c = ConstraintDistModel(lhs_e, weight_l)
-    c.srcinfo = SourceInfo.mk()
+    if in_srcinfo_mode():
+        c.srcinfo = SourceInfo.mk()
         
     push_constraint_stmt(c)
     
@@ -156,7 +163,8 @@ class if_then(object):
         
         to_expr(e)
         self.stmt = ConstraintIfElseModel(pop_expr())
-        self.stmt.srcinfo = SourceInfo.mk()
+        if in_srcinfo_mode():
+            self.stmt.srcinfo = SourceInfo.mk()
         push_constraint_stmt(self.stmt)
         
     def __enter__(self):
@@ -185,7 +193,8 @@ class else_if(object):
             last_stmt = last_stmt.false_c
             
         self.stmt = ConstraintIfElseModel(pop_expr())
-        self.stmt.srcinfo = SourceInfo.mk()
+        if in_srcinfo_mode():
+            self.stmt.srcinfo = SourceInfo.mk()
         last_stmt.false_c = self.stmt
         
     def __enter__(self):
@@ -233,7 +242,8 @@ class implies(object):
         
         to_expr(e)
         self.stmt = ConstraintImpliesModel(pop_expr())
-        self.stmt.srcinfo = SourceInfo.mk()
+        if in_srcinfo_mode():
+            self.stmt.srcinfo = SourceInfo.mk()
         
     def __enter__(self):
         push_constraint_stmt(self.stmt)
@@ -258,7 +268,8 @@ def unique(*args):
         expr_l.insert(0, pop_expr())
 
     c = ConstraintUniqueModel(expr_l)
-    c.srcinfo = SourceInfo.mk()
+    if in_srcinfo_mode():
+        c.srcinfo = SourceInfo.mk()
     push_constraint_stmt(c)
     
 class forall(object):
@@ -349,7 +360,8 @@ class foreach(object):
             raise Exception("Attempting to use foreach constraint outside constraint scope")
 
         self.stmt = ConstraintForeachModel(e)
-        self.stmt.srcinfo = SourceInfo.mk()
+        if in_srcinfo_mode():
+            self.stmt.srcinfo = SourceInfo.mk()
         
     def __enter__(self):
         push_constraint_stmt(self.stmt)
@@ -409,7 +421,8 @@ def solve_order(before, after):
         after_l.append(after_e.fm)
 
     c = ConstraintSolveOrderModel(before_l, after_l)
-    c.srcinfo = SourceInfo.mk()
+    if in_srcinfo_mode():
+        c.srcinfo = SourceInfo.mk()
     push_constraint_stmt(c)
 
 
