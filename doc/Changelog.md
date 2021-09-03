@@ -1,4 +1,6 @@
 
+## 0.5.6
+- (#nobug) Fix for random instability
 ## 0.5.5
 - (#nobug) Work on removing undesirable sources of randomness
   due to use of sets/maps. 

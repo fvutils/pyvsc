@@ -39,7 +39,9 @@ class RandSet(object):
         self.all_field_l = []
         
         self.constraint_s :Set[ConstraintModel] = set()
+        self.constraint_l : List[ConstraintModel] = []
         self.soft_constraint_s : Set[ConstraintModel] = set()
+        self.soft_constraint_l : List[ConstraintModel] = []
         self.soft_priority = 0
         self.dist_field_m = {}
 
@@ -50,13 +52,13 @@ class RandSet(object):
     def build(self, btor, constraint_l):
         for f in self.all_field_l:
             f.build(btor)
-        for c in self.constraint_s:
+        for c in self.constraint_l:
             c.build(btor)
     
     def dispose(self):
         for f in self.all_field_l:
             f.dispose()
-        for c in self.constraint_s:
+        for c in self.constraint_l:
             c.dispose()
         
     def add_field(self, f):
@@ -65,7 +67,7 @@ class RandSet(object):
             if f.is_used_rand:
                 self.field_rand_l.append(f)
             self.all_field_l.append(f)
-        
+            
     def fields(self):
         return self.all_field_l
     
@@ -77,13 +79,18 @@ class RandSet(object):
         
     def add_constraint(self, c):
         if isinstance(c, ConstraintSoftModel):
-            self.soft_constraint_s.add(c)
+            if c not in self.soft_constraint_s:
+                self.soft_constraint_s.add(c)
+                self.soft_constraint_l.append(c)
         else:
-            self.constraint_s.add(c)
+            if c not in self.constraint_s:
+                self.constraint_s.add(c)
+                self.constraint_l.append(c)
         
-    def constraints(self) ->Set[ConstraintModel]:
-        return self.constraint_s
+    def constraints(self) ->List[ConstraintModel]:
+        return self.constraint_l
     
-    def soft_constraints(self) -> Set[ConstraintSoftModel]:
-        return self.soft_constraint_s
+    def soft_constraints(self) -> List[ConstraintSoftModel]:
+        return self.soft_constraint_l
+
     

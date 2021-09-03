@@ -96,7 +96,7 @@ class TestConstraintExpr(VscTestCase):
                 self.b < 128
                 
         my_i = my_c()
-        with my_i.randomize_with() as it:
+        with my_i.randomize_with(debug=1) as it:
             it.c == (it.a + it.b)
         self.assertEqual(my_i.c, (my_i.a+my_i.b))
 

@@ -21,10 +21,10 @@ class RandSetNodeBuilder(ModelVisitor):
         self.phase = 0
         for f in rs.fields():
             f.accept(self)
-        for c in rs.constraint_s:
+        for c in rs.constraints():
             c.accept(self)
         self.phase = 1
-        for c in rs.constraint_s:
+        for c in rs.constraints():
             c.accept(self)
     
     def visit_constraint_stmt_enter(self, c:ConstraintModel):

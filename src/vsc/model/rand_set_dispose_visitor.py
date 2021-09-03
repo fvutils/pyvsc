@@ -18,7 +18,7 @@ class RandSetDisposeVisitor(ModelVisitor):
     def dispose(self, rs : RandSet):
         for f in rs.fields():
             f.accept(self)
-        for c in rs.constraint_s:
+        for c in rs.constraints():
             c.accept(self)
             
     def visit_scalar_field(self, f:FieldScalarModel):
