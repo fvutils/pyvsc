@@ -175,4 +175,48 @@ class TestCovergroupSampling(VscTestCase):
 #        vsc.report_coverage(details=False)
         print("Coverage: " + str(cg.get_coverage()))
 
+    def test_object_sample_2(self):        
+        import vsc
+        
+        @vsc.randobj
+        class BranchInstr:
+            def __init__(self):
+                self.type = vsc.rand_bit_t(1)
+                self.disp = vsc.rand_bit_t(19)
+        
+            @vsc.constraint
+            def short_offset_cnstr(self):
+                self.disp <= 4096
+        
+            def __str__(self):
+                return(f"type = {self.type}, displacement = {self.disp}")
+            
+        @vsc.covergroup
+        class BranchInstr_cg:
+            def __init__(self):
+                self.with_sample(
+                    item = BranchInstr()
+                )
+        
+                self.type = vsc.coverpoint(self.item.type)
+        
+                self.disp_cp = vsc.coverpoint(self.item.disp, bins = {
+                    "small_pos" : vsc.bin_array([4], [0, 4096])
+                })
+                
+        branchInstr = BranchInstr()
+        branchInstr_cg = BranchInstr_cg()
+        
+        for i in range(32):
+            branchInstr.randomize()
+            branchInstr_cg.sample(branchInstr)
+            print(branchInstr)
+
+        rpt = vsc.get_coverage_report_model()
+        self.assertEqual(len(rpt.covergroups[0].coverpoints), 2)
+        self.assertEqual(len(rpt.covergroups[0].coverpoints[0].bins), 2)
+        self.assertEqual(len(rpt.covergroups[0].coverpoints[1].bins), 4)
+        
+        vsc.report_coverage(details=True)        
+
         

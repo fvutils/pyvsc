@@ -502,4 +502,28 @@ class TestRandomDist(VscTestCase):
                 zeros += 1
         self.assertEqual(zeros, 0)
         
+    def test_if_then_dist(self):
+        import vsc
+        
+        @vsc.randobj
+        class BranchInstr:
+            def __init__(self):
+                self.type = vsc.rand_bit_t(1)
+                self.disp = vsc.rand_bit_t(22)
+        
+            @vsc.constraint
+            def short_offset_cnstr(self):
+                with vsc.if_then(self.type == 0):
+                    self.disp <= 4096
+                with vsc.else_then:
+                    self.disp <= 4096
+        
+            def __str__(self):
+                return(f"type = {self.type}, displacement = {self.disp}")
+            
+        branchInstr = BranchInstr()
+        for i in range(32):
+            branchInstr.randomize()
+            print(branchInstr)        
+        
         

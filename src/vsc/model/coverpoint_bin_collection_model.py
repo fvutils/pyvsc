@@ -20,14 +20,12 @@
 #
 # @author: ballance
 
-
-from _functools import reduce
-
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 from vsc.model.rangelist_model import RangelistModel
 from vsc.model.coverpoint_bin_single_val_model import CoverpointBinSingleValModel
 from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
 from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
+from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 
 
 class CoverpointBinCollectionModel(CoverpointBinModelBase):
@@ -159,13 +157,12 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                 n_values += 1
             else:
                 n_values += (r[1]-r[0]+1)
-
+                
         idx = 0
         ret = CoverpointBinCollectionModel(name)
         if n_bins < n_values:
             # We need to partition the values into bins
             values_per_bin = int(n_values/n_bins)
-#            print("values_per_bin: " + str(values_per_bin))
             r = None
 
             rng_i = 0
@@ -232,7 +229,7 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                 if r[0] == r[1]:
                     ret.add_bin(CoverpointBinSingleValModel(name + "[" + str(idx) + "]", r[0]))
                 else:
-                    ret.add_bin(CoverpointBinSingleRangeModel(name + "[" + str(idx) + "]", r[0], r[1]))
+                    ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
                 idx += 1
                     
         return ret

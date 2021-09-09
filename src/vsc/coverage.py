@@ -66,48 +66,50 @@ def covergroup(T):
             cg_i = self._get_int()
             if len(args) == 1 and isinstance(args[0], dict):
                 params = args[0]
-                for pn,pt in params.items():
-                    if hasattr(pt, "_int_field_info"):
-                        pm = pt.build_field_model(pn)
-                        pt._int_field_info.name = pn
-                        # Note: this is only used if the field is a list
-                        pt._int_field_info.id = len(model.field_l)
-                        if hasattr(pt, "_id_fields"):
-                            # This field is a composite field, and we
-                            # must access its children via indexed references
-                            pt._id_fields(
-                                pt,
-                                self._int_field_info)
-                        else:
-                            # Scalar field
-                            pt._int_field_info.parent = self._int_field_info
-                        setattr(self, pn, pt)
-                        cg_i.sample_var_l.append(pn)
-                        cg_i.sample_obj_l.append(pt)
-                
-                        # Add a field to the covergroup model
-                        model.add_field(pm)
-                        
-                        pt._int_field_info.root_e = ExprFieldRefModel(model)
-                    else:
-                        raise Exception("Sample arguments must vsc objects, not " + str(pt))
             elif len(kwargs) > 0:
-                for pn,pt in kwargs.items():
-                    if hasattr(pt, "build_field_model"):
-                        setattr(self, pn, pt)
-                        pm = pt.build_field_model(pn)
-                        # Add a field to the covergroup model
-                        model.add_field(pm)
-                        cg_i.sample_var_l.append(pn)
-                        cg_i.sample_obj_l.append(pt)
-                    else:
-                        print("TODO: handle non-field-model")
-                        setattr(self, pn, lambda:getattr(self, "_" + pn))
-                        
-                        
-                
+                params = kwargs
             else:
-                raise Exception("incorrect call to with_sample")
+                raise Exception("incorrect call to with_sample. Expect single dict parameter or kwargs")
+                
+            for pn,pt in params.items():
+                if hasattr(pt, "_int_field_info"):
+                    pm = pt.build_field_model(pn)
+                    pt._int_field_info.name = pn
+                    # Note: this is only used if the field is a list
+                    pt._int_field_info.id = len(model.field_l)
+                    if hasattr(pt, "_id_fields"):
+                        # This field is a composite field, and we
+                        # must access its children via indexed references
+                        pt._id_fields(
+                            pt,
+                            self._int_field_info)
+                    else:
+                        # Scalar field
+                        pt._int_field_info.parent = self._int_field_info
+                    setattr(self, pn, pt)
+                    cg_i.sample_var_l.append(pn)
+                    cg_i.sample_obj_l.append(pt)
+            
+                    # Add a field to the covergroup model
+                    model.add_field(pm)
+                    
+                    pt._int_field_info.root_e = ExprFieldRefModel(model)
+                else:
+                    raise Exception("Sample arguments must vsc objects, not " + str(pt))
+#             elif len(kwargs) > 0:
+#                 for pn,pt in kwargs.items():
+#                     if hasattr(pt, "build_field_model"):
+#                         setattr(self, pn, pt)
+#                         pm = pt.build_field_model(pn)
+#                         # Add a field to the covergroup model
+#                         model.add_field(pm)
+#                         cg_i.sample_var_l.append(pn)
+#                         cg_i.sample_obj_l.append(pt)
+#                     else:
+#                         print("TODO: handle non-field-model")
+#                         setattr(self, pn, lambda:getattr(self, "_" + pn))
+#            else:
+#                raise Exception("incorrect call to with_sample")
                 
         def sample(self, *args, **kwargs):
             """Base sampling method that samples all coverpoints and crosses"""
@@ -414,13 +416,13 @@ class bin_array(object):
             # unlimited number of bins
             if len(self.range_l) == 1:
                 r = self.range_l[0]
-                ret = CoverpointBinArrayModel(name, 0, r[0], r[1])
+                ret = CoverpointBinArrayModel(name, r[0], r[1])
             else:
                 idx=0
                 ret = CoverpointBinCollectionModel(name)
                 for r in self.range_l:
                     if len(r) == 2:
-                        b = ret.add_bin(CoverpointBinArrayModel(name, idx, r[0], r[1]))
+                        b = ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
                         b.srcinfo_decl = self.srcinfo_decl
                         idx += ((r[1] - r[0]) + 1)
                     elif len(r) == 1:
@@ -546,14 +548,14 @@ class wildcard_bin_array(object):
             # unlimited number of bins
             if len(self.range_l) == 1:
                 r = self.range_l[0]
-                ret = CoverpointBinArrayModel(name, 0, r[0], r[1])
+                ret = CoverpointBinArrayModel(name, r[0], r[1])
             else:
                 idx=0
                 ret = CoverpointBinCollectionModel(name)
                 for r in self.range_l:
                     if len(r) == 2:
                         if r[0] != r[1]:
-                            b = ret.add_bin(CoverpointBinArrayModel(name, idx, r[0], r[1]))
+                            b = ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
                             b.srcinfo_decl = self.srcinfo_decl
                             idx += ((r[1] - r[0]) + 1)
                         else:

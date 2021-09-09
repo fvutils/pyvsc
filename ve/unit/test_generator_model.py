@@ -34,13 +34,13 @@ class TestGeneratorModel(TestCase):
         cp = CoverpointModel(ExprFieldRefModel(f), "cp1",
                              CoverageOptionsModel())
         cg.add_coverpoint(cp)
-        bn = CoverpointBinArrayModel("cp", 0, 1, 16)
+        bn = CoverpointBinArrayModel("cp", 1, 16)
         cp.add_bin_model(bn)
         
         cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2",
                               CoverageOptionsModel())
         cg.add_coverpoint(cp2)
-        bn = CoverpointBinArrayModel("cp", 0, 1, 16)
+        bn = CoverpointBinArrayModel("cp", 1, 16)
         cp2.add_bin_model(bn)
         
         gen = GeneratorModel("top")
@@ -77,16 +77,16 @@ class TestGeneratorModel(TestCase):
         cp = CoverpointModel(ExprFieldRefModel(f), "cp1",
                              CoverageOptionsModel())
         cg.add_coverpoint(cp)
-        cp.add_bin_model(CoverpointBinArrayModel("bn1", 0, 1, 16))
+        cp.add_bin_model(CoverpointBinArrayModel("bn1", 1, 16))
         cp.add_bin_model(CoverpointBinCollectionModel.mk_collection("bn2", RangelistModel([
             [17,65535-16-1]
             ]), 16))
-        cp.add_bin_model(CoverpointBinArrayModel("bn3", 0, 65535-16, 65535))
+        cp.add_bin_model(CoverpointBinArrayModel("bn3", 65535-16, 65535))
         
         cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2",
                               CoverageOptionsModel())
         cg.add_coverpoint(cp2)
-        bn = CoverpointBinArrayModel("cp", 0, 1, 16)
+        bn = CoverpointBinArrayModel("cp", 1, 16)
         cp2.add_bin_model(bn)
         
         gen = GeneratorModel("top")
@@ -123,13 +123,13 @@ class TestGeneratorModel(TestCase):
         cp = CoverpointModel(ExprFieldRefModel(f), "cp1",
                              CoverageOptionsModel())
         cg.add_coverpoint(cp)
-        bn = CoverpointBinArrayModel("cp", 0, 1, 16)
+        bn = CoverpointBinArrayModel("cp", 1, 16)
         cp.add_bin_model(bn)
         
         cp2 = CoverpointModel(ExprFieldRefModel(f2), "cp2",
                               CoverageOptionsModel())
         cg.add_coverpoint(cp2)
-        bn = CoverpointBinArrayModel("cp", 0, 1, 16)
+        bn = CoverpointBinArrayModel("cp", 1, 16)
         cp2.add_bin_model(bn)
         
         cr = CoverpointCrossModel("aXb",

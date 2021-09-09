@@ -1,6 +1,15 @@
 
+## 0.5.7
+- (#108) Correct an issue with specifying individual kwarg
+  sample arguments to with_sample instead of passing a dict()
+
+- (#nobug) Correct an issue with an auto-binned single-bit
+  variable that resulted in a single bin instead of two
+  array bins
+
 ## 0.5.6
 - (#nobug) Fix for random instability
+
 ## 0.5.5
 - (#nobug) Work on removing undesirable sources of randomness
   due to use of sets/maps. 
