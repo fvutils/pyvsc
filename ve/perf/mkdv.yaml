@@ -1,0 +1,25 @@
+
+jobs:
+    - riscv-dv-main:
+      path: riscv-dv-main
+      with:
+          - v0.5.7:
+            run-vars:
+              PYVSC_VERSION: v0.5.7
+          - v0.5.6:
+            run-vars:
+              PYVSC_VERSION: v0.5.6
+          - v0.5.2:
+            run-vars:
+              PYVSC_VERSION: v0.5.2
+          - v0.5.3:
+            run-vars:
+              PYVSC_VERSION: v0.5.3
+          - v0.5.4:
+            run-vars:
+              PYVSC_VERSION: v0.5.4
+          - v0.5.5:
+            run-vars:
+              PYVSC_VERSION: v0.5.5
+
+

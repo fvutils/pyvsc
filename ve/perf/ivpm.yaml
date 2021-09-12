@@ -1,0 +1,96 @@
+
+package:
+   name: pyvsc-perf
+   version: None
+   
+   dev-deps:
+      #**************************************************************
+      #* Core tools and dependencies
+      #**************************************************************
+      - name: pyboolector
+        src: pypi
+      - name: pyucis
+        src: pypi
+      - name: toposort
+        src: pypi
+      - name: mkdv
+        url: https://github.com/fvutils/mkdv.git
+
+
+
+      #**************************************************************
+      #* riscv-dv
+      #**************************************************************
+      - name: riscv-dv-main
+        type: raw
+        url: https://github.com/google/riscv-dv.git
+        deps: skip
+
+        #      - name: riscv-dv-seed
+        #type: raw
+        #url: https://github.com/google/riscv-dv.git
+        #commit: 34008f8
+        #deps: skip
+
+      #**************************************************************
+      #* riscv-dv dependencies
+      #* Note: we install these separately, since using the 
+      #* requirements.txt from riscv-dv would pull in mainline PyVSC
+      #**************************************************************
+      - name: pyyaml
+        src: pypi
+      - name: bitstring
+        src: pypi
+      - name: sphinx
+        src: pypi
+      - name: Pallets-Sphinx-Themes
+        src: pypi
+      - name: sphinxcontrib-log-cabinet
+        src: pypi
+      - name: sphinx-issues
+        src: pypi
+      - name: sphinx_rtd_theme
+        src: pypi
+      - name: rst2pdf
+        src: pypi
+      - name: flake8
+        src: pypi
+      - name: tabulate
+        src: pypi
+      - name: pandas
+        src: pypi
+
+      #**************************************************************
+      #* PyVSC
+      #**************************************************************
+      - name: pyvsc_0.5.7
+        type: raw
+        url: https://github.com/fvutils/pyvsc.git
+        branch: v0.5.7
+        deps: skip
+      - name: pyvsc_0.5.6
+        type: raw
+        url: https://github.com/fvutils/pyvsc.git
+        branch: v0.5.6
+        deps: skip
+      - name: pyvsc_0.5.5
+        type: raw
+        url: https://github.com/fvutils/pyvsc.git
+        branch: v0.5.5
+        deps: skip
+      - name: pyvsc_0.5.4
+        type: raw
+        url: https://github.com/fvutils/pyvsc.git
+        branch: v0.5.4
+        deps: skip
+      - name: pyvsc_0.5.3
+        type: raw
+        url: https://github.com/fvutils/pyvsc.git
+        branch: v0.5.3
+        deps: skip
+      - name: pyvsc_0.5.2
+        type: raw
+        url: https://github.com/fvutils/pyvsc.git
+        branch: v0.5.2
+        deps: skip
+        
