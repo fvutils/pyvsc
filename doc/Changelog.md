@@ -1,4 +1,8 @@
 
+## 0.5.8
+- (#110) Correct an issue with variable-bound calculation
+  in the presence of part selects.
+
 ## 0.5.7
 - (#108) Correct an issue with specifying individual kwarg
   sample arguments to with_sample instead of passing a dict()

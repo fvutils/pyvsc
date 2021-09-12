@@ -525,5 +525,81 @@ class TestRandomDist(VscTestCase):
         for i in range(32):
             branchInstr.randomize()
             print(branchInstr)        
+            
+    def test_partsel_dist_stuck_at(self):
+        import vsc
         
+        @vsc.randobj
+        class my_d:
+        
+            def __init__(self):
+                self.value = vsc.rand_bit_t(4)
+                self.a = vsc.rand_bit_t(1)
+                self.b = vsc.rand_bit_t(1)
+        
+            @vsc.constraint
+            def a_c1(self):
+                vsc.solve_order(self.a, self.value)
+                vsc.solve_order(self.b, self.value)
+        
+            @vsc.constraint
+            def a_c2(self):
+                self.value[3] == self.a
+                self.value[2] == self.b
+
+        hist = [0]*4
+        td = my_d()
+        for i in range(100):
+            with td.randomize_with() as it:
+                it.a == 1
+                it.b == 0
+
+            hist[td.value & 0x3] += 1        
+#            print("a = " + str(td.a) + "  b = " + str(td.b) + "  value = " + str(hex(td.value)))        
+        
+        print("hist: %s" % str(hist))
+        
+        for i,v in enumerate(hist):
+            self.assertNotEqual(v, 0)
+
+    def test_partsel_dist(self):
+        import vsc
+        
+        @vsc.randobj
+        class my_d:
+        
+            def __init__(self):
+                self.value = vsc.rand_bit_t(4)
+                self.a = vsc.rand_bit_t(1)
+                self.b = vsc.rand_bit_t(1)
+        
+            @vsc.constraint
+            def a_c1(self):
+                vsc.solve_order(self.a, self.value)
+                vsc.solve_order(self.b, self.value)
+        
+            @vsc.constraint
+            def a_c2(self):
+                self.value[3] == self.a
+                self.value[2] == self.b
+
+        hist_a = [0]*2
+        hist_b = [0]*2
+        hist = [0]*16
+        
+        td = my_d()
+        for i in range(480):
+            with td.randomize_with() as it:
+                pass
+
+            hist_a[td.a] += 1
+            hist_b[td.b] += 1
+            hist[td.value] += 1
+#            print("a = " + str(td.a) + "  b = " + str(td.b) + "  value = " + str(hex(td.value)))        
+        
+        print("hist: value=%s a=%s b=%s" % (str(hist), str(hist_a), str(hist_b)))
+        
+        for i,v in enumerate(hist):
+            self.assertNotEqual(v, 0)        
+
         

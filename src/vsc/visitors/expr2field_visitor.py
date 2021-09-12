@@ -41,3 +41,6 @@ class Expr2FieldVisitor(ModelVisitor):
     def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
         self.fm = s.subscript()
         
+    def visit_expr_partselect(self, e):
+        self.fm = None
+        
