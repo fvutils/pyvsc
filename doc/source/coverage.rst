@@ -303,8 +303,6 @@ A sampling condition can be specified on both coverpoints and coverpoint
 crosses using the `iff` keyword parameter to the `coverpoint` and `cross`
 methods. 
 
-.. note:: Sampling conditions are currently ignored 
-
 .. code-block:: python3
 
        @vsc.covergroup        
@@ -321,9 +319,45 @@ methods.
 Coverpoint Options
 ------------------
 Both type options and instance options can specified on both coverpoints
-and coverpoint crosses. 
+and coverpoint crosses. Only the following options are currently 
+respected:
 
-.. note:: Coverpoint options are accepted, but ignored
++---------------------+-------------+--------------------------------------------------------------+
+| Option name         | Default     | Description                                                  |
++=====================+=============+==============================================================+
+| weight=number       | 1           | Specifies the weight of this covergroup instances relative   |
+|                     |             | to other instances.                                          |
++---------------------+-------------+--------------------------------------------------------------+
+| goal=number         | 100         | Specifies the target goal for this covergroup instance       |
++---------------------+-------------+--------------------------------------------------------------+
+| at_least=number     | 1           | Minimum number of hits for each coverage bin                 |
++---------------------+-------------+--------------------------------------------------------------+
+| auto_bin_max=number | 64          | Maximum number of automatically-created bins when bins are   |
+|                     |             | not explicitly specified                                     |
++---------------------+-------------+--------------------------------------------------------------+
+
+Options are specified via a ``dict`` attached to the coverpoint 
+during construction. The example below shows overriding the 
+covergroup-level ``at_least`` option for one coverpoint.
+
+.. code-block:: python3
+
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+                
+                self.options.at_least = 2
+                
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8),
+                    }, options=dict(at_least=1))
+                self.cp2 = vsc.coverpoint(self.b, bins={
+                    "b" : vsc.bin_array([], 1, 2, 4, 8)
+                    })
 
 Providing Coverage Data to Sample
 =================================
