@@ -4,6 +4,7 @@ pyboolector
 pylint
 flake8
 pytest
+pytest-xdist
 pytest-cov
 toposort
 -e git+https://github.com/fvutils/pyucis.git#egg=pyucis
