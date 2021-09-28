@@ -11,7 +11,7 @@ from enum import Enum, auto
 
 class TestPreProstRandomize(VscTestCase):
     
-    def post_rand_list_mod(self):
+    def test_post_rand_list_mod(self):
         
         class my_e(Enum):
             A = 0
