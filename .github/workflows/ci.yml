@@ -23,7 +23,7 @@ jobs:
     - name: Run Tests
       run: |
         export PYTHONPATH=`pwd`/src
-        tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic`
+        tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
         for test in $tests; do 
             echo "Test file: $test"
             ./python/bin/python3 -m pytest --no-cov -v $test

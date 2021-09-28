@@ -9,7 +9,7 @@ from vsc_test_case import VscTestCase
 
 class TestRandMode(VscTestCase):
     
-    def smoke(self):
+    def test_smoke(self):
         
         @vsc.randobj
         class my_cls(object):
