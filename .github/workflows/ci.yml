@@ -24,15 +24,16 @@ jobs:
       run: |
         export PYTHONPATH=`pwd`/src
         tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
-        for test in $tests; do 
-            echo "Test file: $test"
-            ./python/bin/python3 -m pytest --no-cov -v $test
-            if test $? -eq 0; then
-               echo "Status 0"
-            else
-               echo "Status non-0"
-            fi
-        done
+        ./python/bin/python3 -m pytest --no-cov -v $tests
+        #        for test in $tests; do 
+        #    echo "Test file: $test"
+        #    ./python/bin/python3 -m pytest --no-cov -v $test
+        #    if test $? -eq 0; then
+        #       echo "Status 0"
+        #    else
+        #       echo "Status non-0"
+        #    fi
+        #done
         echo "Final status: $?"
     - name: Publish to PyPi
       if: startsWith(github.ref, 'refs/heads/master')
