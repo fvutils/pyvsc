@@ -16,14 +16,14 @@ jobs:
       run: |
         python3 -m venv python
         ./python/bin/python3 -m pip install wheel twine 
-        ./python/bin/python3 -m pip install setuptools --upgrade
+        ./python/bin/python3 -m pip install pip setuptools --upgrade
         ./python/bin/python3 -m pip install -r requirements_dev.txt
         export BUILD_NUM=$GITHUB_RUN_ID
         ./python/bin/python3 setup.py bdist_wheel --universal
     - name: Run Tests
       run: |
         export PYTHONPATH=`pwd`/src
-        ./python/bin/python3 -m pytest -v ve/unit 
+        ./python/bin/python3 -m pytest --no-cov -v ve/unit 
     - name: Publish to PyPi
       if: startsWith(github.ref, 'refs/heads/master')
       uses: pypa/gh-action-pypi-publish@release/v1
