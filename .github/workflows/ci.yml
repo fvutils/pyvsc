@@ -25,7 +25,7 @@ jobs:
         export PYTHONPATH=`pwd`/src
         tests=`ls ve/unit/* | grep -v test_random_dist`
         for test in $tests; do 
-            ./python/bin/python3 -m pytest --no-cov -n `nproc` -v $test
+            ./python/bin/python3 -m pytest --no-cov -v $test
         done
     - name: Publish to PyPi
       if: startsWith(github.ref, 'refs/heads/master')
