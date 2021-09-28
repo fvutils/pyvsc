@@ -15,9 +15,9 @@ jobs:
     - name: Configure Python
       run: |
         python3 -m venv python
-        ./python/bin/python3 -m pip install wheel twine pyyaml pytest
+        ./python/bin/python3 -m pip install wheel twine 
         ./python/bin/python3 -m pip install setuptools --upgrade
-        ./python/bin/python3 -m pip install -r requirements.txt
+        ./python/bin/python3 -m pip install -r requirements_dev.txt
         export BUILD_NUM=$GITHUB_RUN_ID
         ./python/bin/python3 setup.py bdist_wheel --universal
     - name: Run Tests
