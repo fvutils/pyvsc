@@ -1,0 +1,32 @@
+name: CI
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+
+jobs:
+  ci-linux:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.9'
+    - name: Configure Python
+      run: |
+        python3 -m venv python
+        ./python/bin/python3 -m pip install wheel twine pyyaml
+        ./python/bin/python3 -m pip install setuptools --upgrade
+        export BUILD_NUM=$GITHUB_RUN_ID
+        ./python/bin/python3 setup.py bdist_wheel --universal
+    - name: Run Tests
+      run: |
+        export PYTHONPATH=`pwd`/src
+        ./python/bin/python3 -m pytest ve/unit --cov=./src --cov-report=xml --cov-report=html --doctest-modules --junitxml=junit/test-results.xml
+    - name: Publish to PyPi
+      if: startsWith(github.ref, 'refs/heads/master')
+      uses: pypa/gh-action-pypi-publish@release/v1
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
+
