@@ -87,4 +87,35 @@ class TestCovergroupOptions(VscTestCase):
         report = vsc.get_coverage_report_model()
         self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[0].coverage, 100.0)
         self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[1].coverage, 50.0)
+
+    def test_coverpoint_weight(self):
+        
+        @vsc.covergroup
+        class cg(object):
+            
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+                
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8),
+                    }, options=dict(weight=1))
+                self.cp2 = vsc.coverpoint(self.b, bins={
+                    "b" : vsc.bin_array([], 1, 2, 4, 8)
+                    }, options=dict(weight=0))
+                
+        cg_i = cg()
+        
+        cg_i.sample(1, 1)
+        cg_i.sample(2, 2)
+        cg_i.sample(4, 1)
+        cg_i.sample(8, 2)
+        
+        vsc.report_coverage(details=True)
+        report = vsc.get_coverage_report_model()
+        self.assertEqual(report.covergroups[0].covergroups[0].coverage, 100.0)
+        self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[0].coverage, 100.0)
+        self.assertEqual(report.covergroups[0].covergroups[0].coverpoints[1].coverage, 50.0)
+
         

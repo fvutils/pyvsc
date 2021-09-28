@@ -58,6 +58,8 @@ from vsc.model.source_info import SourceInfo
 from vsc.profile.solve_info import SolveInfo
 from vsc.visitors.lint_visitor import LintVisitor
 from pip._internal.cli.cmdoptions import src
+from vsc.model.solvegroup_swizzler_range import SolveGroupSwizzlerRange
+from vsc.model.solvegroup_swizzler_partsel import SolveGroupSwizzlerPartsel
 
 
 class Randomizer(RandIF):
@@ -71,6 +73,8 @@ class Randomizer(RandIF):
         self.debug = debug
         self.lint = lint
         self.solve_fail_debug = solve_fail_debug
+#        self.swizzler = SolveGroupSwizzlerRange(solve_info)
+        self.swizzler = SolveGroupSwizzlerPartsel(solve_info)
     
     _state_p = [0,1]
     _rng = None
@@ -249,8 +253,14 @@ class Randomizer(RandIF):
                         btor.Assert(c[1])
                 
 #            btor.Sat()
-            self.swizzle_randvars(btor, ri, start_rs_i, rs_i, bound_m)
-
+            x = start_rs_i
+            while x < rs_i:
+                self.swizzler.swizzle(
+                    btor,
+                    ri.randsets()[x],
+                    bound_m)
+                x += 1
+                
             # Finalize the value of the field
             x = start_rs_i
             reset_v = DynamicExprResetVisitor()

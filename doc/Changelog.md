@@ -1,4 +1,8 @@
 
+## 0.5.9
+- (#107) Added a new randomization approach that deals better
+  with bit conflicts.
+
 ## 0.5.8
 - (#110) Correct an issue with variable-bound calculation
   in the presence of part selects.

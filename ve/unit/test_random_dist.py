@@ -520,11 +520,15 @@ class TestRandomDist(VscTestCase):
         
             def __str__(self):
                 return(f"type = {self.type}, displacement = {self.disp}")
-            
+        hist = [0]*65
         branchInstr = BranchInstr()
-        for i in range(32):
+        for i in range(1000):
             branchInstr.randomize()
-            print(branchInstr)        
+#            print("disp: %02x %s" % (branchInstr.disp, bin(branchInstr.disp)))
+            hist[int(branchInstr.disp/64)] += 1
+#            print(branchInstr)        
+
+        print("hist: %s" % str(hist))
             
     def test_partsel_dist_stuck_at(self):
         import vsc
@@ -554,6 +558,7 @@ class TestRandomDist(VscTestCase):
                 it.a == 1
                 it.b == 0
 
+#            print("td.value: %d" % ((td.value & 0x3),))
             hist[td.value & 0x3] += 1        
 #            print("a = " + str(td.a) + "  b = " + str(td.b) + "  value = " + str(hex(td.value)))        
         
@@ -601,5 +606,38 @@ class TestRandomDist(VscTestCase):
         
         for i,v in enumerate(hist):
             self.assertNotEqual(v, 0)        
+            
+    def test_multivar_rel(self):
+
+        @vsc.randobj
+        class it_c(object):
+
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def ab_c(self):
+                self.a < self.b
+
+        hist_a = [0]*256
+        hist_b = [0]*256
+
+        it = it_c()
+
+        for i in range(256*20):
+            it.randomize(debug=0)
+            hist_a[it.a] += 1
+            hist_b[it.b] += 1
+            
+        for i in range(len(hist_a)-1):
+            self.assertNotEqual(hist_a[i], 0);
+            
+        for i in range(1,len(hist_b)):
+            self.assertNotEqual(hist_b[i], 0);
+
+        print("hist_a: " + str(hist_a))
+        print("hist_b: " + str(hist_b))
+            
 
         
