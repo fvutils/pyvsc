@@ -23,7 +23,7 @@ jobs:
     - name: Run Tests
       run: |
         export PYTHONPATH=`pwd`/src
-        ./python/bin/python3 -m pytest ve/unit 
+        ./python/bin/python3 -m pytest -v ve/unit 
     - name: Publish to PyPi
       if: startsWith(github.ref, 'refs/heads/master')
       uses: pypa/gh-action-pypi-publish@release/v1
