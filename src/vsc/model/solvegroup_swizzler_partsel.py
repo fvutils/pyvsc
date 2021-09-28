@@ -177,7 +177,7 @@ class SolveGroupSwizzlerPartsel(object):
             # Otherwise, if our domain is a single range, select
             # an appropriate value and slice it into selections
             bit_pattern = self.randint(0, (1 << f.width)-1)
-            max_intervals = 8
+            max_intervals = 6
 
             if self.debug > 0:            
                 print("bit_pattern: %s" % bin(bit_pattern))
