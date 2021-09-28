@@ -23,7 +23,10 @@ jobs:
     - name: Run Tests
       run: |
         export PYTHONPATH=`pwd`/src
-        ./python/bin/python3 -m pytest --no-cov -n `nproc` -v ve/unit 
+        tests=`ls ve/unit/* | grep -v test_random_dist`
+        for test in $tests; do 
+            ./python/bin/python3 -m pytest --no-cov -n `nproc` -v $test
+        done
     - name: Publish to PyPi
       if: startsWith(github.ref, 'refs/heads/master')
       uses: pypa/gh-action-pypi-publish@release/v1
