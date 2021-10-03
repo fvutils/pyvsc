@@ -48,7 +48,7 @@ Model API
 Data and constraints
 --------------------
 
-.. automodule:: vsc.model.composite_field_model
+.. automodule:: vsc.model.field_composite_model
     :members:
     :member-order: bysource
     :undoc-members:

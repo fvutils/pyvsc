@@ -364,11 +364,11 @@ Providing Coverage Data to Sample
 PyVSC supports several methods for providing data for a covergroup 
 instance to sample.
 - Data in a `randobj`-decorated class object can be provided by
-  reference to the covergroup `__init__` method.
+reference to the covergroup `__init__` method.
 - Scalar data can be specified to the `__init__` method using
-  lambda expressions to obtain the data from the instantiating context
+lambda expressions to obtain the data from the instantiating context
 - Data can be provided via the `sample` methods, using a user-specified
-  sample-method signature.
+sample-method signature.
   
   
 Declaring a Custom Sample Method

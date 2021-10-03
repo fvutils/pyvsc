@@ -21,6 +21,7 @@ scalar and composite.
 
 
 .. code-block:: python3
+
         a = vsc.rand_uint8_t()
         b = vsc.rand_uint8_t()
 
@@ -46,6 +47,7 @@ The `distselect` method accepts a list of weights and returns the selected
 index. 
 
 .. code-block:: python3
+
         hist = [0]*4
         
         for i in range(100):

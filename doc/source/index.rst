@@ -13,6 +13,7 @@ Contents:
    coverage
    methods
    features
+   debug
    reference
    
    
