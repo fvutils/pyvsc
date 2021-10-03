@@ -43,7 +43,7 @@ from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_const_array_model import FieldConstArrayModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.unary_expr_type import UnaryExprType
-from vsc.model.value_scalar import ValueScalar
+from vsc.model.value_scalar import ValueScalar, ValueInt
 
 
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
@@ -295,8 +295,8 @@ def to_expr(t):
         # This expression is already on the stack
 #        push_expr(t.em)
         return t
-    elif type(t) == int:
-        return expr(ExprLiteralModel(t, True, 32))
+    elif type(t) == int or type(t) == ValueInt:
+        return expr(ExprLiteralModel(int(t), True, 32))
     elif isinstance(type(t), (EnumMeta,IntEnum)):
         return expr(EnumInfo.get(type(t)).e2e(t))
     elif hasattr(t, "to_expr"):
@@ -304,7 +304,7 @@ def to_expr(t):
     elif callable(t):
         raise Exception("TODO: support lambda references")
     else:
-        raise Exception("Element \"" + str(t) + "\" isn't recognized, and doesn't provide to_expr")
+        raise Exception("Element \"" + str(t) + "\" isn't recognized, and doesn't provide to_expr (type=%s)" % str(type(t)))
     
     
 class field_info(object):

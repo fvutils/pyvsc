@@ -1,4 +1,10 @@
 
+## 0.6.0
+- (#115) Correct an issue with Jupyter notebooks and inability
+  to obtain source information
+- (#59) Add environment-variable support for controlling 
+  enhanced diagnostic messages, and add documentation
+
 ## 0.5.9
 - (#107) Added a new randomization approach that deals better
   with bit conflicts.

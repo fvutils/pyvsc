@@ -42,6 +42,7 @@ from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
 from ucis.ucdb.ucdb_factory import UcdbFactory
 from ucis.ucdb.ucdb_ucis import UcdbUCIS
 from vsc import profile
+from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug
 
 
 def get_coverage_report(details=False)->str:
@@ -148,3 +149,12 @@ def vsc_static_init():
    
 #vsc_static_init()
 
+def vsc_debug(val):
+    global glbl_debug
+    glbl_debug = val
+    
+def vsc_solvefail_debug(val):
+    global glbl_solvefail_debug
+    glbl_solvefail_debug = val
+
+    

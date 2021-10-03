@@ -60,6 +60,7 @@ from vsc.visitors.lint_visitor import LintVisitor
 from pip._internal.cli.cmdoptions import src
 from vsc.model.solvegroup_swizzler_range import SolveGroupSwizzlerRange
 from vsc.model.solvegroup_swizzler_partsel import SolveGroupSwizzlerPartsel
+from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug
 
 
 class Randomizer(RandIF):
@@ -71,8 +72,14 @@ class Randomizer(RandIF):
         self.pretty_printer = ModelPrettyPrinter()
         self.solve_info = solve_info
         self.debug = debug
+        if glbl_debug > 0 and glbl_debug > debug:
+            self.debug = glbl_debug
+
         self.lint = lint
         self.solve_fail_debug = solve_fail_debug
+        if glbl_solvefail_debug > 0 and glbl_solvefail_debug > solve_fail_debug:
+            self.solve_fail_debug = glbl_solvefail_debug
+            
 #        self.swizzler = SolveGroupSwizzlerRange(solve_info)
         self.swizzler = SolveGroupSwizzlerPartsel(solve_info)
     

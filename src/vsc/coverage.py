@@ -269,8 +269,12 @@ def covergroup(T):
         raise Exception("Covergroup inheritance is not currently supported")
         
     # Store declaration information on the type
-    file = inspect.getsourcefile(T)
-    lineno = inspect.getsourcelines(T)[1]
+    if hasattr(T, "__file__"):
+        file = inspect.getsourcefile(T)
+        lineno = inspect.getsourcelines(T)[1]
+    else:
+        file = "<unknown>"
+        lineno = -1
     setattr(T, "_srcinfo_decl", SourceInfo(file, lineno))
 
     # This is the interposer class that wraps a user-defined

@@ -16,9 +16,10 @@ class TestConstraintExpr(VscTestCase):
                 self.b = vsc.rand_uint8_t()
                 
         my_i = my_c()
-        with my_i.randomize_with() as it:
-            it.a == it.b
-        self.assertEqual(my_i.a, my_i.b)
+        for i in range(2):
+            with my_i.randomize_with() as it:
+                it.a == it.b
+            self.assertEqual(my_i.a, my_i.b)
         
     def test_ne(self):
         @vsc.randobj

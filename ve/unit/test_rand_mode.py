@@ -30,8 +30,8 @@ class TestRandMode(VscTestCase):
                 
             self.assertNotEqual(it.a, init_a)
             self.assertNotEqual(it.b, init_b)
-            init_a = it.a 
-            init_b = it.b 
+            init_a = it.a
+            init_b = it.b
             
         # Now, disable rand_mode for a
         with vsc.raw_mode():

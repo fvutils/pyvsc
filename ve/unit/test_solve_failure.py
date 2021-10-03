@@ -18,7 +18,7 @@ class TestSolveFailure(VscTestCase):
             B = auto()
             C = auto()
             
-        @vsc.randobj
+        @vsc.randobj(srcinfo=True)
         class my_c(object):
             
             def __init__(self):

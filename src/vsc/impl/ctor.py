@@ -14,20 +14,53 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from vsc.impl.coverage_registry import CoverageRegistry
-
 '''
 Created on Jul 23, 2019
 
 @author: ballance
 '''
 
+import os
+
+from vsc.impl.coverage_registry import CoverageRegistry
 from vsc.model.constraint_expr_model import ConstraintExprModel
+
 
 rand_obj_type_m = {}
 constraint_scope_stack = []
 expr_l = []
 foreach_arr_s = []
+
+if "VSC_CAPTURE_SRCINFO" in os.environ.keys() and os.environ["VSC_CAPTURE_SRCINFO"] != "":
+    try:
+        glbl_capture_srcinfo = int(os.environ["VSC_CAPTURE_SRCINFO"])
+    except Exception:
+        print("Note: VSC_CAPTURE_SRCINFO must be numeric, not %s" %
+              os.environ["VSC_CAPTURE_SRCINFO"])
+        glbl_capture_srcinfo = 0
+else:
+    glbl_capture_srcinfo = 0
+    
+if "VSC_DEBUG" in os.environ.keys() and os.environ["VSC_DEBUG"] != "":
+    try:
+        glbl_debug = int(os.environ["VSC_DEBUG"])
+    except Exception:
+        print("Note: VSC_DEBUG must be numeric, not %s" %
+              os.environ["VSC_DEBUG"])
+        glbl_debug = 0
+else:
+    glbl_debug = 0
+    
+if "VSC_SOLVEFAIL_DEBUG" in os.environ.keys() and os.environ["VSC_SOLVEFAIL_DEBUG"] != "":
+    try:
+        glbl_solvefail_debug = int(os.environ["VSC_SOLVEFAIL_DEBUG"])
+    except Exception:
+        print("Note: VSC_SOLVEFAIL_DEBUG must be numeric, not %s" %
+              os.environ["VSC_SOLVEFAIL_DEBUG"])
+        glbl_solvefail_debug = 0
+else:
+    glbl_solvefail_debug = 0
+    
 
 # Tracks whether srcinfo should be collected for a type
 srcinfo_mode_s = []
@@ -62,7 +95,11 @@ def push_srcinfo_mode(m):
     srcinfo_mode_s.append(m)
     
 def in_srcinfo_mode():
-    return len(srcinfo_mode_s) > 0 and srcinfo_mode_s[-1]
+    global glbl_capture_srcinfo
+    if glbl_capture_srcinfo > 0:
+        return True
+    else:
+        return len(srcinfo_mode_s) > 0 and srcinfo_mode_s[-1]
 
 def pop_srcinfo_mode():
     if len(srcinfo_mode_s) > 0:

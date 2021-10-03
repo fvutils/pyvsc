@@ -638,6 +638,34 @@ class TestRandomDist(VscTestCase):
 
         print("hist_a: " + str(hist_a))
         print("hist_b: " + str(hist_b))
-            
+
+    def test_first_example(self):
+        
+        @vsc.randobj
+        class my_s(object):
+        
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def ab_c(self):
+        
+                self.a in vsc.rangelist(1, 2, 4, 8)
+        
+                self.c != 0
+                self.d != 0
+        
+                self.c < self.d
+                self.b in vsc.rangelist(vsc.rng(self.c,self.d))        
+                
+        i = my_s()
+        
+        for _ in range(10):
+            i.randomize()
+            print("a=%d b=%d c=%d d=%d" % (i.a, i.b, i.c, i.d))
+
 
         

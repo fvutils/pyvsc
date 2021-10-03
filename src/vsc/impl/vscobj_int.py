@@ -8,4 +8,5 @@ class VscObjInt(object):
     
     def __init__(self):
         self.ctor_level = 0
+        self.srcinfo = False
         

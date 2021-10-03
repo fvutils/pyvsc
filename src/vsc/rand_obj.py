@@ -59,6 +59,7 @@ class _randobj:
             
             def __init__(self, *args, **kwargs):
                 ro_i = self._get_ro_int()
+                ro_i.srcinfo = srcinfo
                 
                 # Capture the instantiation location
                 frame = inspect.stack()[1]
@@ -230,8 +231,10 @@ class _randobj:
                 return self._ro_int
             
             def __enter__(self):
+                ro_i = self._get_ro_int()
                 enter_expr_mode()
                 self.get_model() # Ensure model is constructed
+                push_srcinfo_mode(ro_i.srcinfo)
                 push_constraint_scope(ConstraintBlockModel("inline"))
                 return self
             
@@ -239,6 +242,7 @@ class _randobj:
                 frame = inspect.stack()[1]
                 c = pop_constraint_scope()
                 leave_expr_mode()
+                pop_srcinfo_mode()
                 model = self.get_model() # Ensure model is constructed
                 try:
                     Randomizer.do_randomize(
