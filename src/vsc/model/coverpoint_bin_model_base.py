@@ -20,7 +20,10 @@
 # @author: ballance
 
 
+from enum import Enum, auto
+
 from vsc.model.coverpoint_model import CoverpointModel
+from vsc.model.coverpoint_bin_type import CoverpointBinType
 
 
 class CoverpointBinModelBase(object):
@@ -32,6 +35,7 @@ class CoverpointBinModelBase(object):
         self.bin_idx_base = -1
         self.hit_bin_idx = -1
         self.n_bins = -1
+        self.bin_type = CoverpointBinType.Bins
         
         self.srcinfo_decl = None
 
@@ -60,7 +64,9 @@ class CoverpointBinModelBase(object):
     
     def hit_idx(self):
         return self.hit_bin_idx
-    
+
+    def set_bin_type(self, bin_type):
+        self.bin_type = bin_type
     
     def equals(self, oth):
         eq = isinstance(oth, CoverpointBinModelBase)

@@ -25,6 +25,7 @@ import random
 from _random import Random
 from vsc.model.coverage_options_model import CoverageOptionsModel
 from vsc.model.rangelist_model import RangelistModel
+from vsc.model.coverpoint_bin_type import CoverpointBinType
 
 
 # Created on Aug 3, 2019
@@ -51,9 +52,15 @@ class CoverpointModel(CoverItemBase):
 
         self.name = name
         self.n_bins = 0
+        self.n_ignore_bins = 0
+        self.n_illegal_bins = 0
         self.unhit_s : Set[int] = set()
         self.hit_l : List[int] = []
+        self.hit_ignore_l : List[int] = []
+        self.hit_illegal_l : List[int] = []
         self.bin_model_l = []
+        self.ignore_bin_model_l = []
+        self.illegal_bin_model_l = []
         
         self.srcinfo_decl = None
         self.bin_expr = None
@@ -71,16 +78,36 @@ class CoverpointModel(CoverItemBase):
         bin_m.parent = self
         self.bin_model_l.append(bin_m)
         return bin_m
+    
+    def add_ignore_bin_model(self, bin_m):
+        bin_m.parent = self
+        bin_m.set_bin_type(CoverpointBinType.Ignore)
+        self.ignore_bin_model_l.append(bin_m)
+        return bin_m
+    
+    def add_illegal_bin_model(self, bin_m):
+        bin_m.parent = self
+        bin_m.set_bin_type(CoverpointBinType.Illegal)
+        self.illegal_bin_model_l.append(bin_m)
+        return bin_m
         
     def finalize(self):
         self.n_bins = 0
+        self.n_ignore_bins = 0
+        self.n_illegal_bins = 0
         
         for b in self.bin_model_l:
             self.n_bins += b.finalize(self.n_bins)
+        for b in self.ignore_bin_model_l:
+            self.n_ignore_bins += b.finalize(self.n_ignore_bins)
+        for b in self.illegal_bin_model_l:
+            self.n_illegal_bins += b.finalize(self.n_illegal_bins)
             
         # Track unhit bins within this coverpoint
         self.unhit_s.update(range(self.n_bins))
         self.hit_l = [0]*self.n_bins
+        self.hit_ignore_l = [0]*self.n_ignore_bins
+        self.hit_illegal_l = [0]*self.n_illegal_bins
             
     def get_bin_expr(self, bin_idx):
         b = None
@@ -107,6 +134,30 @@ class CoverpointModel(CoverItemBase):
         
         return (b,bin_idx)        
     
+    def _get_target_ignore_bin(self, bin_idx)->Tuple['CoverpointBinModelBase',int]:
+        b = None
+        
+        # First, find the bin this index applies to
+        for i in range(len(self.ignore_bin_model_l)):
+            b = self.ignore_bin_model_l[i]
+            if b.get_n_bins() > bin_idx:
+                break
+            bin_idx -= b.get_n_bins()
+        
+        return (b,bin_idx)        
+    
+    def _get_target_illegal_bin(self, bin_idx)->Tuple['CoverpointBinModelBase',int]:
+        b = None
+        
+        # First, find the bin this index applies to
+        for i in range(len(self.illegal_bin_model_l)):
+            b = self.illegal_bin_model_l[i]
+            if b.get_n_bins() > bin_idx:
+                break
+            bin_idx -= b.get_n_bins()
+        
+        return (b,bin_idx)
+    
     def get_coverage(self)->float:
         if not self.coverage_calc_valid:
             self.coverage = (len(self.hit_l)-len(self.unhit_s))/len(self.hit_l) * 100.0
@@ -125,6 +176,10 @@ class CoverpointModel(CoverItemBase):
         if self.iff_val_cache:            
             for b in self.bin_model_l:
                 b.sample()
+            for b in self.ignore_bin_model_l:
+                b.sample()
+            for b in self.illegal_bin_model_l:
+                b.sample()
             
     def select_unhit_bin(self, r:RandIF)->int:
         if len(self.unhit_s) > 0:
@@ -139,14 +194,19 @@ class CoverpointModel(CoverItemBase):
         return b.get_bin_range(off)
         pass
             
-    def coverage_ev(self, bin_idx):
+    def coverage_ev(self, bin_idx, bin_type):
         """Called by a bin to signal that an uncovered bin has been covered"""
         self.coverage_calc_valid = False
-        if bin_idx in self.unhit_s:
-            self.parent.coverage_ev(self, bin_idx)
-            self.unhit_s.remove(bin_idx)
-        self.hit_l[bin_idx] += 1
-        self.coverage_calc_valid = False
+        if bin_type == CoverpointBinType.Bins:
+            if bin_idx in self.unhit_s:
+                self.parent.coverage_ev(self, bin_idx)
+                self.unhit_s.remove(bin_idx)
+            self.hit_l[bin_idx] += 1
+            self.coverage_calc_valid = False
+        elif bin_type == CoverpointBinType.Ignore:
+            self.hit_ignore_l[bin_idx] += 1
+        elif bin_type == CoverpointBinType.Illegal:
+            self.hit_illegal_l[bin_idx] += 1
             
     def get_val(self):
         if self.target is not None:
@@ -164,25 +224,35 @@ class CoverpointModel(CoverItemBase):
     def get_n_bins(self):
         return self.n_bins
     
+    def get_n_ignore_bins(self):
+        return self.n_ignore_bins
+    
+    def get_n_illegal_bins(self):
+        return self.n_illegal_bins
+    
     def get_n_hit_bins(self):
         return len(self.hit_l)-len(self.unhit_s)
         
     def get_bin_hits(self, bin_idx):
         return self.hit_l[bin_idx]
-#         b = None
-#         for i in range(len(self.bin_model_l)):
-#             b = self.bin_model_l[i]
-#             if b.get_n_bins() > bin_idx:
-#                 break
-#             bin_idx -= b.get_n_bins()
-#             
-#         return b.get_hits(bin_idx)
+    
+    def get_ignore_bin_hits(self, bin_idx):
+        return self.hit_ignore_l[bin_idx]
+    
+    def get_illegal_bin_hits(self, bin_idx):
+        return self.hit_illegal_l[bin_idx]
 
     def get_bin_name(self, bin_idx)->str:
         b,idx = self._get_target_bin(bin_idx)
-        
         return b.get_bin_name(idx)
         
+    def get_ignore_bin_name(self, bin_idx)->str:
+        b,idx = self._get_target_ignore_bin(bin_idx)
+        return b.get_bin_name(idx)
+    
+    def get_illegal_bin_name(self, bin_idx)->str:
+        b,idx = self._get_target_illegal_bin(bin_idx)
+        return b.get_bin_name(idx)
     
     def get_hit_bins(self, bin_l):
         bin_idx = 0
@@ -202,6 +272,18 @@ class CoverpointModel(CoverItemBase):
         else:
             eq= False
             
+        if len(self.ignore_bin_model_l) == len(oth.ignore_bin_model_l):
+            for s,o in zip(self.ignore_bin_model_l, oth.ignore_bin_model_l):
+                eq &= s.equals(o)
+        else:
+            eq= False
+            
+        if len(self.illegal_bin_model_l) == len(oth.illegal_bin_model_l):
+            for s,o in zip(self.illegal_bin_model_l, oth.illegal_bin_model_l):
+                eq &= s.equals(o)
+        else:
+            eq= False
+            
         return eq
     
     def clone(self)->'CoverpointModel':
@@ -210,8 +292,12 @@ class CoverpointModel(CoverItemBase):
         
         for bn in self.bin_model_l:
             ret.add_bin_model(bn.clone())
+            
+        for bn in self.ignore_bin_model_l:
+            ret.add_ignore_bin_model(bn.clone())
+            
+        for bn in self.illegal_bin_model_l:
+            ret.add_illegal_bin_model(bn.clone())
 
-        # TODO: must be more complete        
-        
         return ret
         

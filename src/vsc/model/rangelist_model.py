@@ -41,10 +41,73 @@ class RangelistModel(object):
    
                     
     def add_value(self, v):
-        self.range_l.append([v, v])
+        self.range_l.append([v,v])
 
     def add_range(self, low, high):
         self.range_l.append([low, high])
+
+    # Merge any overlapping ranges        
+    def compact(self):
+        self.range_l.sort(key=lambda e : e[0])
+        
+        i=0
+        while i < len(self.range_l)-1:
+            if self.range_l[i][0] >= self.range_l[i+1][0]:
+                # Entire range subsumed
+                self.range_l.pop(i)
+            elif self.range_l[i][1] >= self.range_l[i+1][1]:
+                # Upper just overlaps
+                self.range_l[i][1] = self.range_l[i+1][0]
+                self.range_l.pop(i+1)
+            else:
+                i += 1
+        pass
+    
+    def intersect(self, other):
+        """
+        Intersects another list or ranges with this one,
+        trimming values that overlap
+        """
+
+        if len(self.range_l) == 0 or len(other.range_l) == 0:
+            return
+        
+        rng_i=0
+        while rng_i < len(self.range_l):
+            for r in other.range_l:
+                rng_i = self._intersect(
+                    self.range_l,
+                    rng_i,
+                    self.range_l[rng_i],
+                    r)
+            rng_i += 1
+    
+    def _intersect(self,
+                   ranges,
+                   rng_i,
+                   target_rng,
+                   trim_rng) -> int:
+        
+        if target_rng[0] >= trim_rng[0] and target_rng[1] <= trim_rng[1]:
+            # The target range is entirely inside the trim range
+            ranges.pop(rng_i)
+            rng_i -= 1
+        elif trim_rng[0] > target_rng[0] and trim_rng[1] < target_rng[1]:
+            # Trim range is entirely inside the target range
+            # Need to split the range into two
+            new_rng = [trim_rng[1]+1, target_rng[1]]
+            target_rng[1] = trim_rng[0]-1
+            ranges.insert(rng_i+1, new_rng)
+        elif trim_rng[0] > target_rng[0] and trim_rng[0] <= target_rng[1]:
+            # Lower edge of the trim bin inside the target range, but
+            # doesn't eclipse the entire range
+            target_rng[1] = trim_rng[0]-1
+        elif trim_rng[1] >= target_rng[0] and trim_rng[1] < target_rng[1]:
+            # Upper edge of the trim bin is inside the target range, but
+            # doesn't eclipse it
+            target_rng[0] = trim_rng[1]+1
+            
+        return rng_i
         
     def __contains__(self, val):
         for r in self.range_l:

@@ -42,8 +42,8 @@ class TestCoverageBinModel(TestCase):
         bins.finalize(0)
         self.assertEqual(4, len(bins.bin_l))
         self.assertEqual(4, bins.get_n_bins())        
-        self.assertTrue(isinstance(bins.bin_l[3], CoverpointBinSingleRangeModel))
-        self.assertEqual(18, bins.bin_l[3].target_val_high)
+        self.assertTrue(isinstance(bins.bin_l[3], CoverpointBinSingleBagModel))
+        self.assertEqual(18, bins.bin_l[3].binspec.range_l[-1][1])
         
     def test_partition_individual_consecutive_values(self):
         

@@ -1,4 +1,7 @@
 
+## 0.6.1
+- (#111) Add support for illegal and ignore bins
+
 ## 0.6.0
 - (#115) Correct an issue with Jupyter notebooks and inability
   to obtain source information

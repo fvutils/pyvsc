@@ -271,6 +271,41 @@ The example below creates 16 bins for the values 0x80..0x8F:
                     a=vsc.wildcard_bin_array([], "0x8x")
                     ))
 
+Ignore and Illegal Bins
+^^^^^^^^^^^^^^^^^^^^^^^
+`Ignore` and `illegal` bins may be specified on coverpoints in
+addition to the other bins described above. An ignore or illegal
+bin trims values from other bins if it intersects values within
+those bins. Please note that, as in SystemVerilog, bins are 
+partitioned *after* ignore and illegal bin values are removed 
+from regular bins. 
+
+.. code-block:: python3
+
+     @vsc.covergroup
+        class val_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.uint8_t()
+                    ))
+                self.cp_val = vsc.coverpoint(self.a, bins=dict(
+                                    rng_1=vsc.bin_array([4], [1,3], [4,6], [7,9], [10,12])
+                                ),
+                                ignore_bins=dict(
+                                    invalid_value=vsc.bin(4)
+                                ))
+
+In the example above, the user specifies an array of four 
+auto-partitioned bins and an ignored value of `4`. In the 
+absence of ignore bins, the 12 values to be paritionted 
+would be divided into bins of three (1..3, 4..6, 7..9, 10..12).
+Because bins are partitioned after excluded bins have been
+applied, the bins in the example above are:
+- 1..2
+- 3,5
+- 6,7
+- 8..12
+  
 Coverpoint Crosses
 ------------------
 

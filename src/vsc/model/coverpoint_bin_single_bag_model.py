@@ -77,7 +77,9 @@ class CoverpointBinSingleBagModel(CoverpointBinModelBase):
         val = int(self.cp.get_val())
         if val in self.binspec:
             self.hit_bin_idx = 0
-            self.cp.coverage_ev(self.bin_idx_base)
+            self.cp.coverage_ev(
+                self.bin_idx_base, 
+                self.bin_type)
         else:
             self.hit_bin_idx = -1
             
@@ -85,7 +87,7 @@ class CoverpointBinSingleBagModel(CoverpointBinModelBase):
         print(ind + "Bin " + self.name)
             
     def accept(self, v):
-        v.visit_coverpoint_bin(self)
+        v.visit_coverpoint_bin_single_bag(self)
 
     def equals(self, oth)->bool:
         eq = isinstance(oth, CoverpointBinSingleBagModel)

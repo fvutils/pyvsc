@@ -57,7 +57,9 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         val = int(self.cp.get_val())
         if val >= self.low and val <= self.high:
             # Notify that coverage has changed
-            self.cp.coverage_ev(self.bin_idx_base+(val-self.low))
+            self.cp.coverage_ev(
+                self.bin_idx_base+(val-self.low), 
+                self.bin_type)
             self.hit_bin_idx = val-self.low
         else:
             self.hit_bin_idx = -1

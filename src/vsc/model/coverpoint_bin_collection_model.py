@@ -30,6 +30,8 @@ from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 
 class CoverpointBinCollectionModel(CoverpointBinModelBase):
     
+    DEBUG_EN = False
+    
     def __init__(self, name):
         super().__init__(name)
         self.bin_l = []
@@ -124,6 +126,11 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
     def hit_idx(self):
         return self.hit_bin_idx
     
+    def set_bin_type(self, bin_type):
+        self.bin_type = bin_type
+        for b in self.bin_l:
+            b.set_bin_type(bin_type)
+    
     def accept(self, v):
         v.visit_coverpoint_bin_collection(self)
 
@@ -159,11 +166,19 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                 n_values += (r[1]-r[0]+1)
                 
         idx = 0
+        
+        if CoverpointBinCollectionModel.DEBUG_EN:
+            print("--> mk_collection: %d bins ; %d values" % (n_bins, n_values))
+            
         ret = CoverpointBinCollectionModel(name)
         if n_bins < n_values:
             # We need to partition the values into bins
             values_per_bin = int(n_values/n_bins)
+            have_leftover  = ((n_values%n_bins) != 0)
             r = None
+            
+            if CoverpointBinCollectionModel.DEBUG_EN:
+                print("  Must partition into %d values per bin" % values_per_bin)
 
             rng_i = 0
             for bin_i in range(n_bins):
@@ -175,13 +190,27 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                 # If the bin fits within this interval, then just 
                 # create a range bin
                 if (r[1]-r[0]+1) >= values_per_bin:
-                    ret.add_bin(CoverpointBinSingleRangeModel(
-                        name + "[" + str(idx) + "]", 
-                        r[0], r[0]+values_per_bin-1))
+                    if CoverpointBinCollectionModel.DEBUG_EN:
+                        print("Bin %d..%d is >= values_per_bin ; create bin %d..%d" % (
+                            r[0], r[1], r[0], r[0]+values_per_bin-1))
+
+                    if bin_i+1 < n_bins or not have_leftover:                        
+                        ret.add_bin(CoverpointBinSingleRangeModel(
+                            name + "[" + str(idx) + "]", 
+                            r[0], r[0]+values_per_bin-1))
+                    else:
+                        # When we have leftovers, ensure that the last
+                        # bin is a collection
+                        b = ret.add_bin(CoverpointBinSingleBagModel(
+                            name + "[" + str(idx) + "]"))
+                        b.binspec.add_range(r[0], r[1])
                     idx += 1
 
-                    if (r[1]-r[0] > values_per_bin):
+                    if ((r[1]-r[0]+1) > values_per_bin):
                         # We need to continue working on this range
+                        if CoverpointBinCollectionModel.DEBUG_EN:
+                            print("Still space in interval. Adjust to %d..%d" % (
+                                r[0]+values_per_bin, r[1]))
                         r = r.copy()
                         r[0] += values_per_bin
                     else:
@@ -192,26 +221,30 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
                     # The number of values here is smaller than the bin size
                     # We need to start a bin and move forward until we've
                     # collected enough values
+                        
                     b = ret.add_bin(CoverpointBinSingleBagModel(name + "[" + str(idx) + "]"))
                     idx += 1
                     
                     b.binspec.add_range(r[0], r[1])
                     n_remaining = values_per_bin - (r[1]-r[0]+1)
+                    if CoverpointBinCollectionModel.DEBUG_EN:
+                        print("Too few values leftover to fill a bin: (%d..%d) remaining=%d" % (
+                            r[0], r[1], n_remaining))
                     r = None
                     rng_i += 1
                     
 #                    print("n_remaining=" + str(n_remaining) + " values_per_bin=" + str(values_per_bin))
                     
-                    while n_remaining >= values_per_bin:
+                    while n_remaining > 0:
                         if r is None:
                             r = rangelist.range_l[rng_i]
                             
                         if (r[1]-r[0]) < n_remaining:
                             # This range is smaller than the remaining bin space
                             b.binspec.add_range(r[0], r[1])
+                            n_remaining -= (r[1]-r[0]+1)
                             r = None
                             rng_i += 1
-                            n_remaining -= (r[1]-r[0])
                         else:
                             # This range is larger than the remaining bin space
                             b.binspec.add_range(r[0], r[0]+n_remaining-1)
@@ -221,8 +254,25 @@ class CoverpointBinCollectionModel(CoverpointBinModelBase):
 
             if r is not None:
                 # Extend the last bin range
-                ret.bin_l[-1].target_val_high = r[1]
-
+                 
+                if CoverpointBinCollectionModel.DEBUG_EN:
+                    print("[1] Add leftover range %d..%d" % (r[0], r[1]))
+                    
+                if r[0] == r[1]:
+                    ret.bin_l[-1].binspec.add_value(r[0])
+                else:
+                    ret.bin_l[-1].binspec.add_range(r[0], r[1])
+                rng_i += 1
+                
+            while rng_i < len(rangelist.range_l):
+                r = rangelist.range_l[rng_i]
+                if CoverpointBinCollectionModel.DEBUG_EN:
+                    print("[2] Add leftover range %d..%d" % (r[0], r[1]))
+                if r[0] == r[1]:
+                    ret.bin_l[-1].binspec.add_value(r[0])
+                else:
+                    ret.bin_l[-1].binspec.add_range(r[0], r[1])
+                rng_i += 1
         else:
             # We don't actually need to partition
             for r in rangelist.range_l:

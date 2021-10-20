@@ -46,6 +46,7 @@ from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.expr_dynamic_model import ExprDynamicModel
 from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.coverpoint_bin_single_wildcard_model import CoverpointBinSingleWildcardModel
+from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
 
 
 
@@ -247,6 +248,9 @@ class ModelVisitor(object):
         for sb in bn.bin_l:
             sb.accept(self)
             
+    def visit_coverpoint_bin_single_bag(self, bn : CoverpointBinSingleBagModel):
+        pass
+    
     def visit_coverpoint_bin_single_range(self, bn : CoverpointBinSingleRangeModel):
         pass
     

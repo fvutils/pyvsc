@@ -32,7 +32,9 @@ class CoverpointBinSingleWildcardModel(CoverpointBinModelBase):
         for s in self.wildcard_binspec.specs:
             if (val & s[1]) == s[0]:
                 self.hit_bin_idx = 0
-                self.cp.coverage_ev(self.bin_idx_base)
+                self.cp.coverage_ev(
+                    self.bin_idx_base,
+                    self.bin_type)
                 break
         
         

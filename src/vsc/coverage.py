@@ -50,6 +50,7 @@ from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum, \
 from vsc.impl.wildcard_bin_factory import WildcardBinFactory
 from vsc.model.coverpoint_bin_single_wildcard_model import CoverpointBinSingleWildcardModel
 from vsc.model.wildcard_binspec import WildcardBinspec
+from attr.filters import exclude
 
 
 def covergroup(T):
@@ -331,9 +332,15 @@ class bin(object):
         frame = inspect.stack()[1]
         self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
         
-    def build_cov_model(self, parent, name):
+    def build_cov_model(self, parent, name, exclude_bins : RangelistModel):
         # Construct a range model
         range_l = RangelistModel(self.range_l)
+        range_l.compact()
+        
+        if exclude_bins is not None and len(exclude_bins.range_l) > 0:
+            # Apply exclusions
+            range_l.intersect(exclude_bins)
+            
         ret = CoverpointBinSingleBagModel(name, range_l)
         ret.srcinfo_decl = self.srcinfo_decl
         
@@ -350,7 +357,7 @@ class bin_array(object):
         - Arguments comprising values and ranges (eg 1, [2,4], 8)
         """
         self.nbins = nbins
-        self.range_l = []
+        self.ranges = RangelistModel()
         
         # Convert the specification into canonical form: list of tuples
         if len(args) == 1:
@@ -364,9 +371,9 @@ class bin_array(object):
                         if isinstance(r, (list,tuple)):
                             if len(r) not in [1,2]:
                                 raise Exception("Programmatic bin specification elements require 1 or 2 elements: " + str(r))
-                            self.range_l.append(r)
+                            self.ranges.add_range(r[0], r[1])
                         elif isinstance(r, int):
-                            self.range_l.append((r,))
+                            self.ranges.add_value(r)
                         else:
                             raise Exception("Unknown bin specification " + str(r))
                 else:
@@ -377,10 +384,10 @@ class bin_array(object):
                         raise Exception("Bin value " + str(args[0][0]) + " is not integral")
                     if not isinstance(args[0][1], int):
                         raise Exception("Bin value " + str(args[0][1]) + " is not integral")
-                    self.range_l.append(args[0])
+                    self.ranges.add_range(args[0][0], args[0][1])
             elif isinstance(args[0],int):
                 # user-specified single-value bin
-                self.range_l.append((args[0],))
+                self.ranges.add_value(args[0])
             else:
                 raise Exception("Bin specification " + str(args[0]) + " is neither value nor range")
             pass
@@ -391,9 +398,9 @@ class bin_array(object):
                     if len(a) != 2:
                         raise Exception("Bin range " + str(a) + " must have two elements")
                     else:
-                        self.range_l.append(a)
+                        self.ranges.add_range(a[0], a[1])
                 elif isinstance(a,int):
-                    self.range_l.append((a,))
+                    self.ranges.add_value(a)
                 else:
                     raise Exception("Bin specification " + str(a) + " is neither value nor range")
 
@@ -407,29 +414,36 @@ class bin_array(object):
         if len(args) == 0:
             raise Exception("No bins range specified")
         
+        self.ranges.compact()
+        
         # Capture the declaration location of this bin
         frame = inspect.stack()[1]
         self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
     
-    def build_cov_model(self, parent, name):
+    def build_cov_model(self, parent, name, exclude_bins : RangelistModel):
         ret = None
+
+        print("pre-exclude: %s" % str(self.ranges.range_l))
+        if len(exclude_bins.range_l) > 0:
+            self.ranges.intersect(exclude_bins)
+        print("post-exclude: %s" % str(self.ranges.range_l))
         
         # First, need to determine how many total bins
         # Construct a range model
         if self.nbins == -1:
             # unlimited number of bins
-            if len(self.range_l) == 1:
-                r = self.range_l[0]
+            if len(self.ranges.range_l) == 1:
+                r = self.ranges.range_l[0]
                 ret = CoverpointBinArrayModel(name, r[0], r[1])
             else:
                 idx=0
                 ret = CoverpointBinCollectionModel(name)
-                for r in self.range_l:
-                    if len(r) == 2:
+                for r in self.ranges.range_l:
+                    if r[0] != r[1]:
                         b = ret.add_bin(CoverpointBinArrayModel(name, r[0], r[1]))
                         b.srcinfo_decl = self.srcinfo_decl
                         idx += ((r[1] - r[0]) + 1)
-                    elif len(r) == 1:
+                    elif r[0] == r[1]:
                         b = ret.add_bin(CoverpointBinSingleValModel(name + "[" + str(idx) + "]", r[0]))
                         b.srcinfo_decl = self.srcinfo_decl
                         idx += 1
@@ -440,7 +454,7 @@ class bin_array(object):
                                         str(self.srcinfo_decl.lineno) + ")")
         else:
             ret = CoverpointBinCollectionModel.mk_collection(name, 
-                    RangelistModel(self.range_l), self.nbins)
+                    self.ranges, self.nbins)
         
         ret.srcinfo_decl = self.srcinfo_decl
 
@@ -452,7 +466,7 @@ class wildcard_bin(object):
         # Capture the declaration location of this bin
         self.srcinfo_decl = SourceInfo.mk()
 
-        self.range_l = []        
+        self.range_l = []
         for a in args:
             if isinstance(a, tuple):
                 # Expressed in mask form
@@ -467,7 +481,7 @@ class wildcard_bin(object):
                 raise Exception("Unknown argument %s to wildcard bin. Expect tuple or string" % (
                     str(a)))
         
-    def build_cov_model(self, parent, name):
+    def build_cov_model(self, parent, name, excluded_bins):
         ret = CoverpointBinSingleWildcardModel(
             name, 
             WildcardBinspec(self.range_l))
@@ -543,7 +557,7 @@ class wildcard_bin_array(object):
         frame = inspect.stack()[1]
         self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
     
-    def build_cov_model(self, parent, name):
+    def build_cov_model(self, parent, name, excluded_bins):
         ret = None
         
         # First, need to determine how many total bins
@@ -609,6 +623,8 @@ class coverpoint(object):
             cp_t=None,  # Type of the coverpoint, when it needs to be specified
             iff=None, 
             bins=None, 
+            ignore_bins=None,
+            illegal_bins=None,
             options=None, 
             type_options=None,
             name=None):
@@ -687,6 +703,8 @@ class coverpoint(object):
                     raise Exception("Unknown iff type " + str(iff))
             
         self.bins = bins
+        self.ignore_bins = ignore_bins
+        self.illegal_bins = illegal_bins
         
         ctor.clear_exprs()
         
@@ -734,11 +752,60 @@ class coverpoint(object):
             self.model.srcinfo_decl = self.srcinfo_decl
 
             with expr_mode():
+                exclude_bins = RangelistModel()
+                
+                if self.ignore_bins is not None:
+                    if not isinstance(self.ignore_bins, dict):
+                        raise Exception("ignore_bins must be a 'dict'")
+                    
+                    for ib_name in self.ignore_bins.keys():
+                        ib = self.ignore_bins[ib_name]
+                        if isinstance(ib, bin):
+                            for r in ib.range_l:
+                                if isinstance(r, (dict,tuple)):
+                                    exclude_bins.add_range(r[0], r[1])
+                                else:
+                                    exclude_bins.add_value(r)
+                        else:
+                            raise Exception("ignore_bins only supports 'bin' elements")
+                        
+                if self.illegal_bins is not None:
+                    if not isinstance(self.illegal_bins, dict):
+                        raise Exception("illegal_bins must be a 'dict'")
+                    
+                    for ib_name in self.illegal_bins.keys():
+                        ib = self.illegal_bins[ib_name]
+                        if isinstance(ib, bin):
+                            for r in ib.range_l:
+                                if isinstance(r, (dict,tuple)):
+                                    exclude_bins.add_range(r[0], r[1])
+                                else:
+                                    exclude_bins.add_value(r)
+                        else:
+                            raise Exception("ignore_bins only supports 'bin' elements")
+                        
+                if len(exclude_bins.range_l) > 0:
+                    exclude_bins.compact()
+                
+                # TODO: handle illegal_bins in the future
+                
                 if self.bins is None or len(self.bins) == 0:
                     if isinstance(self.cp_t, type_enum):
                         ei = self.cp_t.enum_i
+                        enum_bins = RangelistModel()
                         for e,v in ei.e2v_m.items():
-                            self.model.add_bin_model(CoverpointBinEnumModel(str(e), v))
+                            enum_bins.add_value(v)
+
+                        # Ensure that they're ordered
+                        enum_bins.compact()
+                        
+                        if len(exclude_bins.range_l) > 0:
+                            enum_bins.intersect(exclude_bins)
+
+                        for v in enum_bins.range_l:                        
+                            e = ei.v2e_m[v[0]]
+                            self.model.add_bin_model(CoverpointBinEnumModel(str(e), v[0]))
+                            
                     elif isinstance(self.cp_t, type_base):
                         binspec = RangelistModel()
                         if not self.cp_t.is_signed:
@@ -747,17 +814,38 @@ class coverpoint(object):
                             low = (1 << self.cp_t.width-1)
                             high = (1 << self.cp_t.width-1)-1
                             binspec.add_range(-low, high)
+                            
+                        if len(exclude_bins.range_l) > 0:
+                            # Need to trim bins
+                            exclude_bins.compact()
+                            binspec.intersect(exclude_bins)
 
                         self.model.add_bin_model(CoverpointBinCollectionModel.mk_collection(
                             name, binspec, options.auto_bin_max))
                     else:
                         raise Exception("attempting to create auto-bins from unknown type " + str(self.cp_t))
                 else:
+                    # TODO: need a pre-step where we build the ranges, then trim
                     for bin_name,bin_spec in self.bins.items():
                         if not hasattr(bin_spec, "build_cov_model"):
                             raise Exception("Bin specification doesn't have a build_cov_model method")
-                        bin_m = bin_spec.build_cov_model(self.model, bin_name)
+                        bin_m = bin_spec.build_cov_model(self.model, bin_name, exclude_bins)
                         self.model.add_bin_model(bin_m)
+                        
+                if self.ignore_bins is not None and len(self.ignore_bins) != 0:
+                    # Build dedicated ignore_bins
+                    for bin_name,bin_spec in self.ignore_bins.items():
+                        if not hasattr(bin_spec, "build_cov_model"):
+                            raise Exception("Bin specification doesn't have a build_cov_model method")
+                        bin_m = bin_spec.build_cov_model(self.model, bin_name, None)
+                        self.model.add_ignore_bin_model(bin_m)
+                if self.illegal_bins is not None and len(self.illegal_bins) != 0:
+                    # Build dedicated ignore_bins
+                    for bin_name,bin_spec in self.illegal_bins.items():
+                        if not hasattr(bin_spec, "build_cov_model"):
+                            raise Exception("Bin specification doesn't have a build_cov_model method")
+                        bin_m = bin_spec.build_cov_model(self.model, bin_name, None)
+                        self.model.add_illegal_bin_model(bin_m)
 
         return self.model
     

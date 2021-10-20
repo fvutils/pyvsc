@@ -8,7 +8,7 @@ from enum import Enum, auto
 from ucis import UCIS_HISTORYNODE_TEST, UCIS_OTHER, UCIS_DU_MODULE, \
     UCIS_ENABLED_STMT, UCIS_ENABLED_BRANCH, UCIS_ENABLED_COND, UCIS_ENABLED_EXPR, \
     UCIS_ENABLED_FSM, UCIS_ENABLED_TOGGLE, UCIS_INST_ONCE, UCIS_SCOPE_UNDER_DU, \
-    UCIS_INSTANCE
+    UCIS_INSTANCE, UCIS_IGNOREBIN, UCIS_CVGBIN, UCIS_ILLEGALBIN
 from ucis.file_handle import FileHandle
 from ucis.scope import Scope
 from ucis.test_data import TestData
@@ -154,7 +154,31 @@ class CoverageSaveVisitor(ModelVisitor):
                 decl_location,
                 at_least, # at_least
                 cp.get_bin_hits(bi),
-                bn_name)
+                bn_name,
+                UCIS_CVGBIN)
+            
+        for bi in range(cp.get_n_ignore_bins()):
+            decl_location = None
+            bn_name = cp.get_ignore_bin_name(bi)
+            cp_bin = cp_scope.createBin(
+                bn_name,
+                decl_location,
+                at_least, # at_least
+                cp.get_ignore_bin_hits(bi),
+                bn_name,
+                UCIS_IGNOREBIN)
+            
+        for bi in range(cp.get_n_illegal_bins()):
+            decl_location = None
+            bn_name = cp.get_illegal_bin_name(bi)
+            cp_bin = cp_scope.createBin(
+                bn_name,
+                decl_location,
+                at_least, # at_least
+                cp.get_illegal_bin_hits(bi),
+                bn_name,
+                UCIS_ILLEGALBIN)
+            
         
     def visit_coverpoint_bin_collection(self, bn:CoverpointBinCollectionModel):
         self.in_bin_collection = True

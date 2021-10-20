@@ -46,7 +46,9 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
         val = int(self.cp.get_val())
         if val >= self.target_val_low and val <= self.target_val_high:
             self.hit_bin_idx = 0
-            self.cp.coverage_ev(self.bin_idx_base)
+            self.cp.coverage_ev(
+                self.bin_idx_base,
+                self.bin_type)
         else:
             self.hit_bin_idx = -1
             
