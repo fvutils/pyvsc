@@ -50,7 +50,6 @@ from vsc.types import rangelist, bit_t, to_expr, type_base, enum_t, type_enum, \
 from vsc.impl.wildcard_bin_factory import WildcardBinFactory
 from vsc.model.coverpoint_bin_single_wildcard_model import CoverpointBinSingleWildcardModel
 from vsc.model.wildcard_binspec import WildcardBinspec
-from attr.filters import exclude
 
 
 def covergroup(T):
@@ -423,10 +422,8 @@ class bin_array(object):
     def build_cov_model(self, parent, name, exclude_bins : RangelistModel):
         ret = None
 
-        print("pre-exclude: %s" % str(self.ranges.range_l))
         if len(exclude_bins.range_l) > 0:
             self.ranges.intersect(exclude_bins)
-        print("post-exclude: %s" % str(self.ranges.range_l))
         
         # First, need to determine how many total bins
         # Construct a range model

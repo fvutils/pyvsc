@@ -1,4 +1,7 @@
 
+## 0.6.2
+- (#119) Correct accidental import of attr.exclude
+
 ## 0.6.1
 - (#111) Add support for illegal and ignore bins
 
