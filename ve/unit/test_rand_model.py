@@ -17,6 +17,7 @@ from vsc.model.source_info import SourceInfo
 from vsc.model.value_scalar import ValueScalar
 
 from vsc_test_case import VscTestCase
+from vsc.model.rand_state import RandState
 
 
 class TestRandModel(VscTestCase):
@@ -33,9 +34,10 @@ class TestRandModel(VscTestCase):
                     b.expr()))
             ]))
         
-        rand = Randomizer()
+        rand = Randomizer(RandState(0))
+        randstate = RandState(0)
         
-        rand.do_randomize(SourceInfo("",-1), [obj])
+        rand.do_randomize(randstate, SourceInfo("",-1), [obj])
 
         self.assertLess(a.val, b.val)
 
@@ -51,10 +53,11 @@ class TestRandModel(VscTestCase):
                     )
                 )
             ]))
+
+        randstate = RandState(0)
+        rand = Randomizer(randstate)
         
-        rand = Randomizer()
-        
-        rand.do_randomize(SourceInfo("",-1), [obj])
+        rand.do_randomize(randstate, SourceInfo("",-1), [obj])
 
         print("a=" + hex(int(a.val)))
         self.assertGreater(a.val, ValueScalar(0x80000000000000000))

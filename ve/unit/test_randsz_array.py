@@ -31,7 +31,8 @@ class TestRandszArray(VscTestCase):
         with c.randomize_with() as it:
             it.l.size > 0
         self.assertIn(c.l.size, [1,2,4,8,16])
-        
+
+        print("size: %d" % c.l.size)        
         for i in range(c.l.size):
             self.assertEqual(c.l[i], i)
 

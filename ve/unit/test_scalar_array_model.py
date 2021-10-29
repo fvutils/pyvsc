@@ -21,6 +21,7 @@ from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.source_info import SourceInfo
+from vsc.model.rand_state import RandState
 
 class TestScalarArrayModel(VscTestCase):
     
@@ -71,8 +72,8 @@ class TestScalarArrayModel(VscTestCase):
 #         
 #         ConstraintOverrideRollbackVisitor.rollback(obj)
 #         print("Object(2): " + ModelPrettyPrinter.print(obj))
-        
-        Randomizer.do_randomize(SourceInfo("", -1), [obj])
+        randstate = RandState(0)        
+        Randomizer.do_randomize(randstate, SourceInfo("", -1), [obj])
         
         for f in arr.field_l:
             print("" + f.name + ": " + str(int(f.get_val())))
@@ -138,8 +139,8 @@ class TestScalarArrayModel(VscTestCase):
 #         
 #         ConstraintOverrideRollbackVisitor.rollback(obj)
 #         print("Object(2): " + ModelPrettyPrinter.print(obj))
-        
-        Randomizer.do_randomize(SourceInfo("",-1), [obj])
+        randstate = RandState(0) 
+        Randomizer.do_randomize(randstate, SourceInfo("",-1), [obj])
         
         for f in arr.field_l:
             print("" + f.name + ": " + str(int(f.get_val())))            

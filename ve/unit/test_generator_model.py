@@ -18,6 +18,7 @@ from vsc.model.generator_model import GeneratorModel
 from vsc.model.randomizer import Randomizer
 from vsc.model.rangelist_model import RangelistModel
 from vsc.model.source_info import SourceInfo
+from vsc.model.rand_state import RandState
 
 
 class TestGeneratorModel(TestCase):
@@ -50,11 +51,12 @@ class TestGeneratorModel(TestCase):
         gen.finalize()
 
         # Need a special randomizer to deal with generators        
-        r = Randomizer()
+        r = Randomizer(RandState(0))
+        randstate = RandState(0)
 
         count = 0        
         for i in range(1000):
-            r.do_randomize(SourceInfo("",-1), [gen])
+            r.do_randomize(randstate, SourceInfo("",-1), [gen])
             cg.sample()
             count += 1
             cov = cg.get_coverage()
@@ -96,11 +98,13 @@ class TestGeneratorModel(TestCase):
     #     gen.finalize()
     #
     #     # Need a special randomizer to deal with generators        
-    #     r = Randomizer()
+    #     r = Randomizer(RandState(0))
+    #
+    #     randstate = RandState(0)
     #
     #     count = 0        
     #     for i in range(1000):
-    #         r.do_randomize(SourceInfo("",-1), [gen])
+    #         r.do_randomize(randstate, SourceInfo("",-1), [gen])
     #         cg.sample()
     #         count += 1
     #         cov = cg.get_coverage()
@@ -145,11 +149,12 @@ class TestGeneratorModel(TestCase):
         gen.finalize()
 
         # Need a special randomizer to deal with generators        
-        r = Randomizer()
+        r = Randomizer(RandState(0))
+        randstate = RandState(0)
 
         count = 0        
         for i in range(1000):
-            r.do_randomize(SourceInfo("",-1), [gen])
+            r.do_randomize(randstate, SourceInfo("",-1), [gen])
             cg.sample()
             count += 1
             cov = cg.get_coverage()

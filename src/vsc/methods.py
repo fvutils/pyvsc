@@ -34,6 +34,7 @@ from vsc.model.randomizer import Randomizer
 from vsc.model.solve_failure import SolveFailure
 from vsc.model.source_info import SourceInfo
 from vsc.types import field_info, type_base
+from vsc.model.rand_state import RandState
 
 
 _solve_fail_debug = False
@@ -46,18 +47,27 @@ def randomize_with(*args, **kwargs):
             raise Exception("Parameter \"" + str(v) + " to randomize is not a vsc object")
         field_l.append(v.get_model())
 
-    debug=0        
+    debug=0
     if "debug" in kwargs.keys():
         debug = kwargs["debug"]
         
     solve_fail_debug = False
-    
     if "solve_fail_debug" in kwargs:
         solve_fail_debug = kwargs["solve_fail_debug"]
+        
+    randstate = None
+    if "randstate" in kwargs:
+        randstate = kwargs["randstate"]
+    else:
+        randstate = RandState(random.randint(0,0xFFFFFFFF))
     
     class inline_constraint_collector(object):
         
-        def __init__(self, field_l, solve_fail_debug):
+        def __init__(self, 
+                     randstate,
+                     field_l, 
+                     solve_fail_debug):
+            self.randstate = randstate
             self.field_l = field_l
             self.solve_fail_debug = solve_fail_debug
         
@@ -74,6 +84,7 @@ def randomize_with(*args, **kwargs):
           
             try:
                 Randomizer.do_randomize(
+                    self.randstate,
                     SourceInfo(frame.filename, frame.lineno),
                     self.field_l, 
                     [c], 
@@ -84,7 +95,7 @@ def randomize_with(*args, **kwargs):
                 raise e
     
     return inline_constraint_collector(
-        field_l, solve_fail_debug)
+        randstate, field_l, solve_fail_debug)
 
 def randomize(*args,**kwargs):
     """Randomize a list of variables"""
@@ -100,9 +111,21 @@ def randomize(*args,**kwargs):
     if "debug" in kwargs.keys():
         debug=kwargs["debug"]
         
+    solve_fail_debug = False
+    if "solve_fail_debug" in kwargs:
+        solve_fail_debug = kwargs["solve_fail_debug"]
+        
+    randstate = None
+    if "randstate" in kwargs:
+        randstate = kwargs["randstate"]
+    else:
+        randstate = RandState(random.randint(0,0xFFFFFFFF))
+        
     Randomizer.do_randomize(
+        randstate,
         SourceInfo(frame.filename, frame.lineno),
         fields, 
+        solve_fail_debug=solve_fail_debug,
         debug=debug)
 
 class raw_mode(object):
