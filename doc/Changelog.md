@@ -1,4 +1,7 @@
 
+## 0.6.3
+- (#117) Add support for explicitly managing random stability
+
 ## 0.6.2
 - (#119) Correct accidental import of attr.exclude
 
