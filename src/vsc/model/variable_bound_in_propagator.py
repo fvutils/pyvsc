@@ -46,7 +46,7 @@ class VariableBoundInPropagator(VariableBoundPropagator):
                 print("  dom_r=" + str(dom_r[0]) + ".." + str(dom_r[1]))
             
             # Check to see if the range starts above the domain element
-            if in_r_v[0] > dom_r[1]:
+            if int(in_r_v[0]) > int(dom_r[1]):
                 # Check whether the last element preserved
                 if prev_in_r_v is not None and int(prev_in_r_v[1]) >= dom_r[0] and int(prev_in_r_v[1]) <= dom_r[1]:
                     # The previous inside element was inside this domain element
@@ -92,7 +92,7 @@ class VariableBoundInPropagator(VariableBoundPropagator):
                 if VariableBoundInPropagator.DEBUG_EN:
                     print("Advancing domain")
                 dom_i += 1
-            elif in_i+1 < len(in_r_l) and in_r_l[in_i+1][0] < dom_r[1]:
+            elif in_i+1 < len(in_r_l) and in_r_l[in_i+1][0] <= dom_r[1]:
                 # We still have elements that are less than the current limit.
                 # Keep moving...
                 if VariableBoundInPropagator.DEBUG_EN:
@@ -104,6 +104,9 @@ class VariableBoundInPropagator(VariableBoundPropagator):
                 prev_in_r_v = in_r_v
                 in_i += 1
                 dom_i += 1
+                
+        if VariableBoundInPropagator.DEBUG_EN:
+            print("in_i=%d dom_i=%d" % (in_i, dom_i))
 
         if dom_r[1] > int(in_r_v[1]):
             if VariableBoundInPropagator.DEBUG_EN:

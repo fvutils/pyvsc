@@ -68,7 +68,8 @@ class Randomizer(RandIF):
     
     EN_DEBUG = False
     
-    def __init__(self, debug=0, lint=0, solve_fail_debug=0, solve_info=None):
+    def __init__(self, randstate, debug=0, lint=0, solve_fail_debug=0, solve_info=None):
+        self.randstate = randstate
         self.pretty_printer = ModelPrettyPrinter()
         self.solve_info = solve_info
         self.debug = debug
@@ -81,7 +82,7 @@ class Randomizer(RandIF):
             self.solve_fail_debug = glbl_solvefail_debug
             
 #        self.swizzler = SolveGroupSwizzlerRange(solve_info)
-        self.swizzler = SolveGroupSwizzlerPartsel(solve_info)
+        self.swizzler = SolveGroupSwizzlerPartsel(randstate, solve_info)
     
     _state_p = [0,1]
     _rng = None
@@ -545,12 +546,13 @@ class Randomizer(RandIF):
         return e
     
     def randint(self, low, high):
-        if low > high:
-            tmp = low
-            low = high
-            high = tmp
-
-        return random.randint(low,high)
+        return self.randstate.randint(low, high)
+#        if low > high:
+#            tmp = low
+#            low = high
+#            high = tmp
+#
+#        return random.randint(low,high)
 
     def randbits(self, nbits):
 #        if Randomizer._rng is None:
@@ -781,6 +783,7 @@ class Randomizer(RandIF):
     
     @staticmethod
     def do_randomize(
+            randstate,
             srcinfo : SourceInfo,
             field_model_l : List[FieldModel],
             constraint_l : List[ConstraintModel] = None,
@@ -860,6 +863,7 @@ class Randomizer(RandIF):
             
 
         r = Randomizer(
+            randstate,
             solve_info=solve_info,
             debug=debug, 
             lint=lint, 

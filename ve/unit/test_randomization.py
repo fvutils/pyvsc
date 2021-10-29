@@ -48,6 +48,7 @@ class TestRandomization(VscTestCase):
         for i in range(100):
             my_i.randomize()
             print("a=" + str(my_i.a) + " (" + bin(my_i.a) + ") b=" + str(my_i.b))
+            self.assertLess(my_i.a, my_i.b)
                         
     def test_simple(self):
 

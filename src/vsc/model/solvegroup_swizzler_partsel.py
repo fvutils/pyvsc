@@ -17,8 +17,9 @@ from vsc.model.variable_bound_model import VariableBoundModel
 
 class SolveGroupSwizzlerPartsel(object):
     
-    def __init__(self, solve_info):
+    def __init__(self, randstate, solve_info):
         self.debug = 0
+        self.randstate = randstate
         self.solve_info = solve_info
         pass
     
@@ -66,7 +67,7 @@ class SolveGroupSwizzlerPartsel(object):
             # Select up to `max_swizzle` fields to swizzle            
             for i in range(max_swizzle):
                 if len(field_l) > 0:
-                    field_idx = self.randint(0, len(field_l)-1)
+                    field_idx = self.randstate.randint(0, len(field_l)-1)
                     f = field_l.pop(field_idx)
                     e_l = self.swizzle_field(f, rs, bound_m)
                     if e_l is not None:
@@ -122,7 +123,7 @@ class SolveGroupSwizzlerPartsel(object):
                 for d in rs.dist_field_m[f]:
                     print("  Target interval %d" % d.target_range)
             if len(rs.dist_field_m[f]) > 1:
-                target_d = self.randint(0, len(rs.dist_field_m[f])-1)
+                target_d = self.randstate.randint(0, len(rs.dist_field_m[f])-1)
                 dist_scope_c = rs.dist_field_m[f][target_d]
             else:
                 dist_scope_c = rs.dist_field_m[f][0]
@@ -132,7 +133,7 @@ class SolveGroupSwizzlerPartsel(object):
                 # Dual-bound range
                 val_l = target_w.rng_lhs.val()
                 val_r = target_w.rng_rhs.val()
-                val = self.randint(val_l, val_r)
+                val = self.randstate.randint(val_l, val_r)
                 if self.debug > 0:
                     print("Select dist-weight range: %d..%d ; specific value %d" % (
                         int(val_l), int(val_r), int(val)))
@@ -163,10 +164,10 @@ class SolveGroupSwizzlerPartsel(object):
         if len(range_l) > 1:
             # If we have a multi-part domain, select from one 
             # of the slices
-            range_idx = self.randint(0, len(range_l)-1)
+            range_idx = self.randstate.randint(0, len(range_l)-1)
             t_range = range_l[range_idx]
             
-            val = self.randint(t_range[0], t_range[1])
+            val = self.randstate.randint(t_range[0], t_range[1])
             if self.debug > 0:
                 print("rand_domain on small domain [%d..%d] => %d" % (t_range[0], t_range[1], val))
             e.append(ExprBinModel(
@@ -176,7 +177,7 @@ class SolveGroupSwizzlerPartsel(object):
         else:
             # Otherwise, if our domain is a single range, select
             # an appropriate value and slice it into selections
-            bit_pattern = self.randint(0, (1 << f.width)-1)
+            bit_pattern = self.randstate.randint(0, (1 << f.width)-1)
             max_intervals = 6
 
             if self.debug > 0:            
@@ -219,10 +220,3 @@ class SolveGroupSwizzlerPartsel(object):
                 
         return e
     
-    def randint(self, low, high):
-        if low > high:
-            tmp = low
-            low = high
-            high = tmp
-
-        return random.randint(low,high)
