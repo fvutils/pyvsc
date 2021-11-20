@@ -1,4 +1,7 @@
 
+## 0.6.4
+- (#128) Add support for modifying the defintion of rangelists
+
 ## 0.6.3
 - (#117) Add support for explicitly managing random stability
 
