@@ -283,6 +283,35 @@ class rangelist(object):
 
                 # This needs to be convertioble to a
                 
+    def clear(self):
+        self.range_l.rl.clear()
+                
+    def extend(self, ranges):
+        for a in ranges:
+            self.append(a)
+
+    def append(self, a):
+        if isinstance(a, tuple):
+            # This needs to be a two-element array
+            if len(a) != 2:
+                raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
+            to_expr(a[0])
+            e0 = pop_expr()
+            to_expr(a[1])
+            e1 = pop_expr()
+            self.range_l.add_range(ExprRangeModel(e0, e1))
+        elif isinstance(a, rng):
+            self.range_l.add_range(ExprRangeModel(a.low, a.high))
+        elif isinstance(a, list):
+            for ai in a:
+                to_expr(ai)
+                eai = pop_expr()
+                self.range_l.add_range(eai)
+        else:
+            to_expr(a)
+            e = pop_expr()
+            self.range_l.add_range(e)        
+                
     def __contains__(self, lhs):
         to_expr(lhs)
         return expr(ExprInModel(pop_expr(), self.range_l))

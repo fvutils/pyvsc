@@ -173,6 +173,60 @@ set membership.
 In the example above, the `b` variable will be inside the range (1,2,4,8). 
 The `c` variable will be outside (ie not equal to) (1,2,4,8)
 
+Mutable Rangelists
+------------------
+
+It is sometimes useful to change the value/range list used in an 
+`in` constraint between randomizations. The `rangelist` class can be
+constructed as a class member, referenced in constraints, and modified
+between calls to `randomize`. 
+
+The `rangelist` class provides three methods to modify the values in 
+a rangelist after it has been created:
+
+- append() -- Add a new value or range tuple
+- clear() -- Remove all previously-added ranges
+- extend() -- Add a list of values and/or range tuples to the rangelist
+
+
+.. code-block:: python3
+
+        @vsc.randobj
+        class Selector():
+            def __init__(self):
+                self.availableList = vsc.rangelist((0,900))
+                self.selectedList = vsc.rand_list_t(vsc.uint32_t(), 15)
+        
+            @vsc.constraint
+            def available_c(self):
+                with vsc.foreach(self.selectedList) as sel:
+                    sel.inside(self.availableList)
+        
+            def getSelected(self):
+                '''Returns a sorted list of selected integers.'''
+                selected = []
+                for resource in self.selectedList:
+                    selected.append(int(resource))
+                selected.sort()
+                return selected
+                
+        selector = Selector()
+        
+        selector.randomize()
+        
+        selector.availableList.clear()
+        selector.availableList.extend([(1000, 2000)])
+        
+        selector.randomize()
+        
+        
+In the example above, the rangelist is initially created to contain
+a value range of 0..900. All values in the `selectedList` produced
+by the first randomization will fall in this range. 
+
+The rangelist is subsequently cleared, and a new range 1000..2000
+added. The second randomization will produce values in the 1000..2000 
+range.
 
 part select
 -----------
