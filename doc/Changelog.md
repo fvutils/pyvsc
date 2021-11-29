@@ -1,4 +1,7 @@
 
+## 0.6.5
+- (#133) Use built-in Random package in RandState [Michael McGrath]
+
 ## 0.6.4
 - (#128) Add support for modifying the defintion of rangelists
 
