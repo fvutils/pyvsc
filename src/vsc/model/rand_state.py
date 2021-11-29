@@ -6,22 +6,18 @@ Created on Oct 12, 2021
 import random
 
 class RandState(object):
-    
+        
     def __init__(self, seed):
-        # Ensure no zero seeds
-        self.state = abs(seed)+1
-        pass
+        self.rng = random.Random()
+        self.rng.seed(f"{seed}")
     
     def clone(self) -> 'RandState':
-        return RandState(self.state)
+        randState = RandState("")
+        randState.rng.setstate(self.rng.getstate())
+        return randState 
     
     def rand_u(self):
-        val = self.state
-        val ^= val << 13
-        val ^= val >> 7
-        val ^= val << 17
-        val &= 0xFFFFFFFFFFFFFFFF
-        self.state = val
+        val = self.rng.randint(0, 0xFFFFFFFFFFFFFFFF)
         return val
     
     def rand_s(self):
@@ -42,30 +38,18 @@ class RandState(object):
             low = high
             high = tmp
         
-        if low == high:
-            return low
-        elif low >= 0 and high >= 0:
-            val = self.rand_u()
-            val = int(val % ((high-low)+1))
-            val += low
-            return val
-        else:
-            # One is less than zero
-            val = self.rand_s()
-            val = int(val % ((high-low)+1))
-            val += low
-            return val
+        val = self.rng.randint(low, high)
+        return val
     
     @classmethod
     def mk(cls):
         """Creates a random-state object using the Python random state"""
         seed = random.randint(0, 0xFFFFFFFF)
-        return RandState(seed)
+        return RandState(f"{seed}")
    
     @classmethod
     def mkFromSeed(cls, seed, strval=None):
         """Creates a random-state object from a numeric seed and optional string"""
         if strval is not None:
-            seed = (seed + abs(hash(strval))) & 0xFFFFFFFF
-        return RandState(seed)
-        
+            seed = f"{seed} : {strval}"
+        return RandState(seed)    
