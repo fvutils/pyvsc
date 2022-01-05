@@ -109,7 +109,7 @@ class SolveGroupSwizzlerRange(object):
         if self.debug > 0:
             print("Swizzling field %s" % f.name)
              
-        if f in rs.dist_field_m.keys():
+        if f in rs.dist_field_l:
             if self.debug > 0:
                 print("Note: field %s is in dist map" % f.name)
                 for d in rs.dist_field_m[f]:

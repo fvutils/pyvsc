@@ -637,4 +637,70 @@ class TestConstraintDist(VscTestCase):
         print(inst.c1[0].a[0].value)
         print(inst.c2[0].x[0].value)
         
+    def test_random_stability(self):
+        import vsc
+        
+        class Base():
+            def __init__(self):
+                super().__init__()
+                # Not used in a constraint
+                self.nc_one = vsc.rand_uint16_t()
+                self.nc_two = vsc.rand_uint16_t()
+        
+                # Used in a constraint
+                self.con_one = vsc.rand_uint16_t()
+                self.con_two = vsc.rand_uint16_t()
+        
+            def __repr__(self):
+                return f'NC: {self.nc_one}, {self.nc_two}    Con: {self.con_one}, {self.con_two}'
+        
+        @vsc.randobj
+        class Without_Dist(Base):
+            @vsc.constraint
+            def sample_c(self):
+                self.con_one < self.con_two
+        
+        @vsc.randobj
+        class With_Dist(Base):
+            @vsc.constraint
+            def sample_c(self):
+                self.con_one < self.con_two
+                vsc.dist(self.con_one, [
+                    vsc.weight(0, 33),
+                    vsc.weight((1, 8192), 60),
+                    vsc.weight((8193, (2**16)-1), 7)])
+        
+        def show_it(obj, rs):
+            obj.set_randstate(rs)
+            obj.randomize()
+            nc_one_1 = obj.nc_one
+            nc_two_1 = obj.nc_two
+            con_one_1 = obj.con_one
+            con_two_1 = obj.con_two
+            print(f'Try 1: {obj}')
+            obj.set_randstate(rs)
+            obj.randomize()
+            nc_one_2 = obj.nc_one
+            nc_two_2 = obj.nc_two
+            con_one_2 = obj.con_one
+            con_two_2 = obj.con_two
+            print(f'Try 2: {obj}')
+            if nc_one_1 != nc_one_2 or nc_two_1 != nc_two_2 or con_one_1 != con_one_2 or con_two_1 != con_two_2:
+                self.fail("Error: Mismatch")
+            print()
+        
+        def run_obj(obj):
+            cnt = 6
+        
+            print(f'Using {type(obj).__name__}')
+            print('------------------')
+            for n in range(cnt):
+                rs = vsc.RandState.mkFromSeed(n)
+                show_it(obj, rs)
+        
+        obj = Without_Dist()
+        run_obj(obj)
+        obj = With_Dist()
+        run_obj(obj)        
+        
         

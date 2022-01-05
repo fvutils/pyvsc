@@ -24,14 +24,13 @@ from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 
 class DistConstraintBuilder(ConstraintOverrideVisitor):
     
-    def __init__(self, seed):
+    def __init__(self, randstate):
         super().__init__()
-        self.seed = seed
-        self.rng = random.Random(self.seed)
+        self.rng = randstate
 
     @staticmethod        
-    def build(seed, fm):
-        builder = DistConstraintBuilder(seed)
+    def build(randstate, fm):
+        builder = DistConstraintBuilder(randstate)
         fm.accept(builder)
         
     def visit_constraint_dist(self, c):

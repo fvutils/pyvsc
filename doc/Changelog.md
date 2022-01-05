@@ -1,4 +1,7 @@
 
+## 0.6.6
+- #(142) Resolve random instability due to use of 'dist' constraints
+
 ## 0.6.5
 - (#133) Use built-in Random package in RandState [Michael McGrath]
 

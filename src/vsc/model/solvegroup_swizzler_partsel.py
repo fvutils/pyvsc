@@ -3,7 +3,6 @@ Created on Sep 18, 2021
 
 @author: mballance
 '''
-import random
 
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.expr_bin_model import ExprBinModel
