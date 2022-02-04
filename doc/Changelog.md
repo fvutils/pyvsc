@@ -1,4 +1,7 @@
 
+## 0.6.7
+- (#143) Correct a failure when no source information is available
+
 ## 0.6.6
 - #(142) Resolve random instability due to use of 'dist' constraints
 

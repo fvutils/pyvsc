@@ -270,8 +270,18 @@ def covergroup(T):
         
     # Store declaration information on the type
     if hasattr(T, "__file__"):
-        file = inspect.getsourcefile(T)
-        lineno = inspect.getsourcelines(T)[1]
+        try:
+            file = inspect.getsourcefile(T)
+            if file is not None:
+                lineno = inspect.getsourcelines(T)[1]
+            else:
+                file = "<unknown>"
+                lineno = -1
+        except Exception:
+            # In case an exception is encountered -- perhaps due to
+            # the code being Cython compiled
+            file = "<unknown>"
+            lineno = -1
     else:
         file = "<unknown>"
         lineno = -1
