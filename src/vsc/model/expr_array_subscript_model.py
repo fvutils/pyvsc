@@ -9,6 +9,7 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 class ExprArraySubscriptModel(ExprModel):
     
     def __init__(self, lhs : 'FieldArrayModel', rhs : ExprModel):
+        super().__init__()
         self.lhs = lhs
         self.rhs = rhs
         

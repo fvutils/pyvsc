@@ -6,26 +6,27 @@ Created on May 18, 2020
 
 from typing import Dict, Set
 import typing
-
 from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
+from vsc.model.constraint_if_else_model import ConstraintIfElseModel
+from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
-from vsc.model.field_model import FieldModel
 from vsc.model.field_array_model import FieldArrayModel
+from vsc.model.field_model import FieldModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.visitors.constraint_copy_builder import ConstraintCopyBuilder, \
     ConstraintCollector
 from vsc.visitors.constraint_override_visitor import ConstraintOverrideVisitor
-from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
-from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
-from vsc.visitors.has_indexvar_visitor import HasIndexVarVisitor
-from vsc.visitors.foreach_ref_expander import ForeachRefExpander
 from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
+from vsc.visitors.foreach_ref_expander import ForeachRefExpander
+from vsc.visitors.has_indexvar_visitor import HasIndexVarVisitor
+from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.visitors.x_expr_evaluator import XExprEvaluator
 
 
 class ArrayConstraintBuilder(ConstraintOverrideVisitor):
@@ -84,6 +85,20 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
 
         self.index_set.remove(f.index)
         self.foreach_scope_s.pop()
+        
+    def visit_constraint_if_else(self, c:ConstraintIfElseModel):
+        is_x, val = XExprEvaluator().eval(c.cond)
+        
+        if not is_x:
+            # Condition is a constant
+            if val:
+                # Process 'true' condition
+                c.true_c.accept(self)
+            elif c.false_c is not None:
+                # Process 'false' condition
+                c.false_c.accept(self)
+        else:
+            super().visit_constraint_if_else(c)
 
     def visit_expr_array_sum(self, s):
         # Don't recurse into this
