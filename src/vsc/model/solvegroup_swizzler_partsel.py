@@ -20,7 +20,6 @@ class SolveGroupSwizzlerPartsel(object):
         self.debug = 0
         self.randstate = randstate
         self.solve_info = solve_info
-        pass
     
     def swizzle(self, 
                 btor, 
@@ -160,41 +159,58 @@ class SolveGroupSwizzlerPartsel(object):
                 bound_m : VariableBoundModel)->ExprModel:
         e = []
         range_l = bound_m.domain.range_l
+        
+        if self.debug:
+            print("range_l: %d (%s)" % (len(range_l), str(range_l)))
         if len(range_l) > 1:
             # If we have a multi-part domain, select from one 
             # of the slices
             range_idx = self.randstate.randint(0, len(range_l)-1)
             t_range = range_l[range_idx]
-            
-            val = self.randstate.randint(t_range[0], t_range[1])
-            if self.debug > 0:
-                print("rand_domain on small domain [%d..%d] => %d" % (t_range[0], t_range[1], val))
-            e.append(ExprBinModel(
-                ExprFieldRefModel(f),
-                BinExprType.Eq,
-                ExprLiteralModel(val, f.is_signed, f.width)))
         else:
             # Otherwise, if our domain is a single range, select
             # an appropriate value and slice it into selections
-            bit_pattern = self.randstate.randint(0, (1 << f.width)-1)
+            t_range = range_l[0]
+            
+        if self.debug > 0:
+            print("Domain: %d..%d" % (t_range[0], t_range[1]))
+        if t_range[0] == t_range[1]:
+            # Single value
+            e.append(ExprBinModel(
+                        ExprFieldRefModel(f),
+                        BinExprType.Eq,
+                        ExprLiteralModel(t_range[0], False, 32)))
+        else: # Multi-value range
+            d_width = 0
+            maxval = t_range[1]
+            
+            while maxval > 0:
+                d_width += 1
+                maxval >>= 1
+    
+            if self.debug > 0:
+                print("d_width: %d" % d_width)                
+                
+    #            bit_pattern = self.randstate.randint(0, (1 << width)-1)
+            bit_pattern = self.randstate.randint(t_range[0], t_range[1])
             max_intervals = 6
-
+    
             if self.debug > 0:            
                 print("bit_pattern: %s" % bin(bit_pattern))
             
-            if f.width > max_intervals:
-                interval_w = int(f.width/max_intervals)
+            if d_width > max_intervals:
+                interval_w = int(d_width/max_intervals)
                 
                 for i in range(max_intervals):
                     low = i*interval_w
                     
                     if i+1 == max_intervals:
-                        high = f.width-1
-                        width = f.width-low
+                        high = d_width-1
+                        width = d_width-low
                     else:
                         high = (i+1)*interval_w-1
                         width = interval_w
-
+    
                     if self.debug > 0:
                         print("%d..%d 0x%08x" % (
                             low, high, ((bit_pattern >> low) & ((1 << width)-1))))
@@ -208,7 +224,7 @@ class SolveGroupSwizzlerPartsel(object):
                         ))
             else:
                 # Create a per-bit constraint            
-                for i in range(f.width):
+                for i in range(d_width):
                     e.append(ExprBinModel(
                         ExprPartselectModel(
                             ExprFieldRefModel(f),
@@ -216,6 +232,6 @@ class SolveGroupSwizzlerPartsel(object):
                         BinExprType.Eq,
                         ExprLiteralModel((bit_pattern >> i) & 1, False, 1)
                         ))
-                
+                    
         return e
     

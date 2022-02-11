@@ -666,6 +666,96 @@ class TestRandomDist(VscTestCase):
         for _ in range(10):
             i.randomize()
             print("a=%d b=%d c=%d d=%d" % (i.a, i.b, i.c, i.d))
+            
+    def test_widevar_small_range(self):
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.a = vsc.rand_uint64_t()
+                self.b = vsc.rand_uint64_t()
+                self.c = vsc.rand_uint64_t()
+        
+            @vsc.constraint
+            def ab_c(self):
+                self.a.inside(vsc.rangelist(vsc.rng(0, 19)))
+        
+        selector = Selector()
+        a_hist = [0]*20
+        for i in range(20*20):
+            selector.randomize()
+            a_hist[selector.a] += 1
+        
+        print("a_hist: %s" % str(a_hist))
+        for e in a_hist:
+            self.assertNotEqual(e, 0)
 
+    def test_widevar_small_range_2(self):
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.b = vsc.rand_uint64_t()
+        
+            @vsc.constraint
+            def ab_c(self):
+                self.b.inside(vsc.rangelist(0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19))
+        
+        selector = Selector()
+        b_hist = [0]*20
+        for i in range(20*20):
+            selector.randomize()
+            b_hist[selector.b] += 1
+        
+        print("b_hist: %s" % str(b_hist))
+        for e in b_hist:
+            self.assertNotEqual(e, 0)
+        
+    def test_widevar_small_range_3(self):
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.c = vsc.rand_uint64_t()
+        
+            @vsc.constraint
+            def ab_c(self):
+                self.c.inside(vsc.rangelist(vsc.rng(0,1999)))
+        
+        selector = Selector()
+        c_hist = [0]*20
+        for i in range(20*20):
+            selector.randomize()
+            c_hist[int(selector.c%20)] += 1
+        
+        print("c_hist: %s" % str(c_hist))
+        for e in c_hist:
+            self.assertNotEqual(e, 0)
+            
+    def test_8bit_all_values(self):
+        
+        @vsc.randobj
+        class constraints(object):
+            def __init__(self):
+                self.key = vsc.rand_bit_t(8)
+        
+            @vsc.constraint
+            def c(self):
+                self.key in vsc.rangelist(0, 255)
+        cr = constraints()
+
+        zero_cnt = 0
+        max_cnt = 0        
+        for i in range(20):
+            # Get now random stimuli
+            cr.randomize()
+            if cr.key == 0:
+                zero_cnt += 1
+            if cr.key == 255:
+                max_cnt += 1
+                
+        self.assertGreater(zero_cnt, 0)
+        self.assertGreater(max_cnt, 0)
+        
 
         
