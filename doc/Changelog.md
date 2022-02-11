@@ -1,4 +1,7 @@
 
+## 0.6.8
+- (#127) Change randomization scheme to make better use of domain info
+
 ## 0.6.7
 - (#143) Correct a failure when no source information is available
 
