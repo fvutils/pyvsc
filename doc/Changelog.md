@@ -1,4 +1,9 @@
 
+## 0.6.9
+- (#132) Evaluate constant 'if' conditions in foreach
+
+- (#145) Correct 'unique' constraint to handle single-element lists
+
 ## 0.6.8
 - (#127) Change randomization scheme to make better use of domain info
 
