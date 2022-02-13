@@ -45,16 +45,20 @@ class ConstraintUniqueModel(ConstraintModel):
                 self._add_list_elems(unique_l, i.fm)
             else:
                 unique_l.append(i)
-            
-        for i in range(len(unique_l)):
-            for j in range(i+1, len(unique_l)):
-                t = ExprBinModel(unique_l[i], BinExprType.Ne, unique_l[j])
-                from vsc.visitors import ModelPrettyPrinter
-                    
-                if ret is None:
-                    ret = t.build(btor)
-                else:
-                    ret = btor.And(t.build(btor), ret)
+                
+        if len(unique_l) > 1:
+            for i in range(len(unique_l)):
+                for j in range(i+1, len(unique_l)):
+                    t = ExprBinModel(unique_l[i], BinExprType.Ne, unique_l[j])
+                    from vsc.visitors import ModelPrettyPrinter
+                        
+                    if ret is None:
+                        ret = t.build(btor)
+                    else:
+                        ret = btor.And(t.build(btor), ret)
+        else:
+            # Size 0,1: Always true
+            ret = btor.Const(1, 1)
                     
         return ret
     

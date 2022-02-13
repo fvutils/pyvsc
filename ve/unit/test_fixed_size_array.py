@@ -226,7 +226,7 @@ class TestFixedSizeArray(VscTestCase):
                         self.temp_list[i] == 1
 
         my = my_s()
-        my.randomize()        
+        my.randomize(debug=0)
         
         for v in my.a_list:
             self.assertIn(v, [10,11,12,13])
@@ -257,6 +257,32 @@ class TestFixedSizeArray(VscTestCase):
 
         my = my_s()
         my.randomize()
+        
+    def test_unique_unit_size_array(self):
+        import vsc
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.selectedList = vsc.rand_list_t(vsc.uint16_t(), 3)
+        
+            @vsc.constraint
+            def list_c(self):
+                vsc.unique(self.selectedList)
+        
+        selector = Selector()
+        selector.selectedList.clear()
+        selector.selectedList.extend([0, 0, 0])
+        selector.randomize()         # 3-item list passes randomization.
+        print(f"Selected List:  {selector.selectedList}")
+        selector.selectedList.clear()
+        selector.selectedList.extend([0, 0])
+        selector.randomize()         # 2-item list passes randomization.
+        print(f"Selected List:  {selector.selectedList}")
+        selector.selectedList.clear()
+        selector.selectedList.extend([0])
+        selector.randomize()         # 1-item list throws BoolectorException.
+        print(f"Selected List:  {selector.selectedList}")        
         
         
         

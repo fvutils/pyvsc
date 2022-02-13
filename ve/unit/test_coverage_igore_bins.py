@@ -5,7 +5,7 @@ Created on Oct 10, 2021
 '''
 from vsc_test_case import VscTestCase
 from enum import IntEnum, auto
-from coverage import coverage
+#from coverage import covergroup
 
 class TestCoverageIgnoreBins(VscTestCase):
     

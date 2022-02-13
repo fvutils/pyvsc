@@ -7,10 +7,12 @@ from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.bin_expr_type import BinExprType
-from vsc.model.value import Value
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.value_scalar import ValueScalar
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.field_array_model import FieldArrayModel
 
 
 class XExprEvaluator(ModelVisitor):
@@ -36,8 +38,27 @@ class XExprEvaluator(ModelVisitor):
         rhs_is_x = self.is_x
         rhs_val = self.val
 
-        if e.op == BinExprType.Or:
-            pass
+        if e.op == BinExprType.Add:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val + rhs_val)
+        elif e.op == BinExprType.And:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val & rhs_val)
+        elif e.op == BinExprType.Or:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val | rhs_val)
         elif e.op == BinExprType.Le:
             if lhs_is_x or rhs_is_x:
                 self.is_x = True
@@ -110,6 +131,62 @@ class XExprEvaluator(ModelVisitor):
                     self.val = ValueScalar(1)
                 else:
                     self.val = ValueScalar(0)
+        elif e.op == BinExprType.Sub:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val - rhs_val)
+        elif e.op == BinExprType.Div:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val / rhs_val)
+        elif e.op == BinExprType.Mul:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val * rhs_val)
+        elif e.op == BinExprType.Mod:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val % rhs_val)
+        elif e.op == BinExprType.Sll:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val << rhs_val)
+        elif e.op == BinExprType.Srl:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val >> rhs_val)
+        elif e.op == BinExprType.Xor:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = (lhs_val ^ rhs_val)
+        elif e.op == BinExprType.Not:
+            if lhs_is_x or rhs_is_x:
+                self.is_x = True
+                self.val = None
+            else:
+                self.is_x = False
+                self.val = ~lhs_val
         else:
             print("Unhandled op %s" % str(e.op))
 
@@ -118,6 +195,25 @@ class XExprEvaluator(ModelVisitor):
                     
     def visit_expr_fieldref(self, e : ExprFieldRefModel):
         e.fm.accept(self)
+        
+    def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
+        # Need to get field
+        field : FieldArrayModel = Expr2FieldVisitor().field(s.lhs)
+        if field.is_used_rand:
+            self.is_x = True
+            self.val = None
+        else:
+            self.is_x = False
+            field.accept(self)
+            
+    def visit_expr_in(self, e):
+        e.lhs.accept(self)
+        
+        if self.is_x:
+            self.val = None
+        else:
+            # TODO: for now, consider 'in' to be an x-producing expression
+            self.is_x = True
         
     def visit_expr_literal(self, e : ExprLiteralModel):
         self.is_x = False
