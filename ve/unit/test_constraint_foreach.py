@@ -246,4 +246,29 @@ class TestConstraintForeach(VscTestCase):
             #print(inst.val)
 #            print()
         
+
+    def test_foreach_access_bound_1(self):
+        import vsc
+        
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.available = vsc.rangelist((0,19), (30,49))
+                self.selectedList = vsc.rand_list_t(vsc.rand_uint16_t(), 5)
+        
+            @vsc.constraint
+            def select_c(self):
+                with vsc.foreach(self.selectedList, idx=True) as i:
+                    self.selectedList[i].inside(self.available)
+                    with vsc.if_then(i < 4):
+                        self.selectedList[i] + 1 == self.selectedList[i+1]
+        
+        selector = Selector()
+        selector.randomize()
+        outStr = "selector.selectedList:"
+        for sel in selector.selectedList:
+            outStr += "\t" + str(int(sel))
+        print(outStr)
+
+
         
