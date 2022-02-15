@@ -24,4 +24,5 @@ package:
           src: pypi
         - name: pyucis
           url: https://github.com/fvutils/pyucis.git
-          type: python
+        - name: libvsc
+          url: https://github.com/fvutils/libvsc.git
