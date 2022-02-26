@@ -3,16 +3,17 @@ Created on Feb 5, 2022
 
 @author: mballance
 '''
+from vsc.model.bin_expr_type import BinExprType
+from vsc.model.enum_field_model import EnumFieldModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
-from vsc.model.bin_expr_type import BinExprType
-from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.value_scalar import ValueScalar
-from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
-from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
-from vsc.model.field_array_model import FieldArrayModel
 
 
 class XExprEvaluator(ModelVisitor):
@@ -220,6 +221,14 @@ class XExprEvaluator(ModelVisitor):
         self.val = e.val()
     
     def visit_scalar_field(self, f:FieldScalarModel):
+        if f.is_used_rand:
+            self.is_x = True
+            self.val = None
+        else:
+            self.is_x = False
+            self.val = f.get_val()
+            
+    def visit_enum_field(self, f:EnumFieldModel):
         if f.is_used_rand:
             self.is_x = True
             self.val = None

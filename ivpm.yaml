@@ -10,18 +10,18 @@ package:
         - name: pyucis
           src: pypi
     dev-deps:
+        - name: mkdv
+          url: https://github.com/fvutils/mkdv.git
         - name: pyboolector
-          type: python
           src: pypi
         - name: pytest
-          type: python
           src: pypi
         - name: pytest-cov
-          type: python
           src: pypi
         - name: toposort
-          type: python
           src: pypi
         - name: pyucis
           url: https://github.com/fvutils/pyucis.git
-          type: python
+        - name: riscv-dv
+          url: https://github.com/google/riscv-dv.git
+

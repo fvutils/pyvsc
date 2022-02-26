@@ -184,3 +184,30 @@ class TestIfElse(VscTestCase):
         v = my_s()
         vsc.randomize(v)        
         
+    def test_enum_if_else(self):
+        import vsc
+        from enum import IntEnum
+        
+        
+        class CmdTypes(IntEnum):
+            TYPE_A = 0
+            TYPE_B = 1
+        
+        
+        @vsc.randobj
+        class Cmd():
+            def __init__(self):
+                self.cmd_type = vsc.rand_enum_t(CmdTypes)
+                self.cmd_op = vsc.rand_bit_t(1)
+        
+            @vsc.constraint
+            def op_type_combination_c(self):
+                with vsc.if_then(self.cmd_type == CmdTypes.TYPE_B):  # This if_then is needed to hit the bug.
+                   self.cmd_op == 1
+        
+        
+        cmd = Cmd()
+        cmd.randomize()    # This randomize() causes a TypeError in VSC.
+        print(f"Cmd type:  {cmd.cmd_type}, Cmd op:  {cmd.cmd_op}")
+        
+        

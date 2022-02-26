@@ -1,3 +1,5 @@
+## 0.7.0
+- (#146) Correct an issue with enums and the new constant-expression eval from #132
 
 ## 0.6.9
 - (#132) Evaluate constant 'if' conditions in foreach
