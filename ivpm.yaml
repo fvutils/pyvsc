@@ -10,6 +10,8 @@ package:
         - name: pyucis
           src: pypi
     dev-deps:
+        - name: dataclasses
+          src: pypi
         - name: mkdv
           url: https://github.com/fvutils/mkdv.git
         - name: pyboolector
