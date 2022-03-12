@@ -5,24 +5,44 @@ Created on Mar 26, 2020
 '''
 from vsc_test_case2 import VscTestCase2
 import vsc2 as vsc
+from vsc2.impl.ctor import Ctor
 
 class TestConstraintExpr2(VscTestCase2):
-    
+
     def test_eq(self):
-        @vsc.randobj
+        @vsc.randclass
         class my_c(object):
             a : vsc.rand[vsc.bit_t[8]]
             b : vsc.rand_uint8_t
             c : vsc.int_t
             
+            @vsc.constraint
+            def abc_c(self):
+                self.a < self.b
+                pass
+            
         print("test_eq")
 #        vsc.int_t[4]()
             
         my_i = my_c()
-        for i in range(2):
-            with my_i.randomize_with() as it:
-                it.a == it.b
-            self.assertEqual(my_i.a, my_i.b)
+        print("--> Ctor.inst()")
+        ctxt = Ctor.inst().ctxt()
+        print("<-- Ctor.inst()")
+        
+        field = ctxt.mkModelFieldRoot(
+            ctxt.mkDataTypeInt(False, 32),
+            "abc")
+        print("field.name=%s" % field.name())
+        print("field.val=%d" % field.val().val_u())
+        field.val().set_val_u(10)
+        print("field.val=%d" % field.val().val_u())
+        
+        
+        # for i in range(2):
+        #     with my_i.randomize_with() as it:
+        #         print("it=%s" % str(it))
+        #         it.a == it.b
+        #     self.assertEqual(my_i.a, my_i.b)
         
     # def test_ne(self):
     #     @vsc.randobj

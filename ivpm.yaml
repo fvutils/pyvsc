@@ -26,4 +26,7 @@ package:
           url: https://github.com/fvutils/pyucis.git
         - name: riscv-dv
           url: https://github.com/google/riscv-dv.git
+        - name: libvsc
+          url: https://github.com/fvutils/libvsc.git
+
 
