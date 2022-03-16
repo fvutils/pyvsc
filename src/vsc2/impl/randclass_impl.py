@@ -19,7 +19,8 @@ class RandClassImpl(object):
     
     def __call__(self, T):
         Tp = dataclasses.dataclass(T, init=False)
-        
+
+        Tp._is_randclass = True        
         Tp._field_ctor_m = {}
 
         # Process dataclass fields to determine which 
@@ -41,16 +42,21 @@ class RandClassImpl(object):
                 print("   Is a scalar: %d,%d" % (t.W, t.S))
 
                 if f.name not in Tp._field_ctor_m.keys():
-                    if f.default is not _MISSING_TYPE:
+                    if not isinstance(f.default, dataclasses._MISSING_TYPE):
                         iv = f.default
+                        if type(iv) != int:
+                            raise Exception("Initial value for field %s (%s) is not integral" % (f.name, str(iv)))
                     else:
                         iv = 0
+                        
+                        
 #                    setattr(Tp, f.name, property(FieldScalarImpl.__get__, FieldScalarImpl.__set__))
 #                    setattr(Tp, f.name, FieldScalarDesc())
                     print("Register with is_rand=%d" % is_rand)
-                    Tp._field_ctor_m[f.name] = lambda t=t,r=is_rand,i=iv: RandClassImpl.__create(t, r, i)
+                    Tp._field_ctor_m[f.name] = lambda t=t,n=f.name,r=is_rand,i=iv: RandClassImpl.__createPrimField(t, n, r, i)
                 # TODO: fill in factory
             else:
+                raise Exception("Non-scalar fields are not yet supported")
 #                print("   Is a scalar: %d,%d" % (f.type.W, f.type.S))
                 pass
             
@@ -66,9 +72,8 @@ class RandClassImpl(object):
         return Tp
 
     @staticmethod    
-    def __create(t, is_rand, iv):
-        ret = t.create(iv)
-        ret.is_rand = is_rand
+    def __createPrimField(t, name, is_rand, iv):
+        ret = t.createField(name, is_rand, iv)
         print("__create: %d" % is_rand)
         return ret
     
@@ -78,21 +83,53 @@ class RandClassImpl(object):
     
     def __init(self, base, *args, **kwargs):
         # TODO: Push a context into which to add fields
+        ctor = Ctor.inst()
+        s = ctor.scope()
         
-        Ctor.inst()
+        if s is not None:
+            if s.obj is None:
+                # The field-based caller has setup a frame for us. 
+                # Add the object reference
+                s.obj = self
+            elif s.obj() == self:
+                s.inc_inh_depth()
+            else:
+                # Need a new scope
+                s = ctor.push_scope(self, ctor.ctxt().mkModelFieldRoot(None, "<>"))
+        else:
+            # Push a new scope
+            s = ctor.push_scope(self, ctor.ctxt().mkModelFieldRoot(None, "<>"))
         
         base(self, *args, *kwargs)
         print("_randclass __init__")
 
         print("_field_ctor_m: %s" % str(self._field_ctor_m))
-        for name,ctor in self._field_ctor_m.items():
-            f = ctor()
+        for name,ctor_f in self._field_ctor_m.items():
+            f = ctor_f()
             setattr(self, name, f)
+            
+            s.field().addField(f.model())
 
-        # TODO: determine if we're at leaf level (?)        
+        # TODO: determine if we're at leaf level (?)
+        if s.dec_inh_depth() == 0:
+            # Time to pop this level
+            ctor.pop_scope()
+        
         pass
     
     def __randomize(self):
+        ctxt = Ctor.inst().ctxt()
+
+        randstate = ctxt.mkRandState(0)
+        randomizer = ctxt.mkRandomizer(None, randstate)
+
+        print("--> randomize", flush=True)        
+        randomizer.randomize(
+            [],
+            [],
+            False)
+        print("<-- randomize", flush=True)        
+        
         pass
     
     def __setattr(self, name, v):

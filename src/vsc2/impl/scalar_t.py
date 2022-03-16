@@ -5,18 +5,16 @@ Created on Feb 26, 2022
 '''
 from vsc2.impl.field_scalar_impl import FieldScalarImpl
 
-class ScalarT(object):
+class ScalarT(FieldScalarImpl):
     W = 0
     S = False
     
-    def __init__(self):
-        raise Exception("Standalone creation of fields is not supported")
-    
-    
-    
+    def __init__(self, name="", iv=0):
+        super().__init__(name, type(self).W, type(self).S, False, iv)
+
     @classmethod
-    def create(cls, iv):
-        print("ScalarT::create %d %d" % (cls.W, cls.S))
-        ret = FieldScalarImpl(cls.W, cls.S, iv)
+    def createField(cls, name, is_rand, iv):
+        print("ScalarT::create %d %d iv=%s" % (cls.W, cls.S, str(iv)))
+        ret = FieldScalarImpl(name, cls.W, cls.S, is_rand, iv)
         return ret
     
