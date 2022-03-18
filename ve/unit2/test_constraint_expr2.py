@@ -33,6 +33,8 @@ class TestConstraintExpr2(VscTestCase2):
         
         my_i.randomize()
         
+        print("a=%d b=%d c=%d" % (my_i.a, my_i.b, my_i.c))
+        
         # for i in range(2):
         #     with my_i.randomize_with() as it:
         #         print("it=%s" % str(it))

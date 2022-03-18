@@ -95,10 +95,12 @@ class RandClassImpl(object):
                 s.inc_inh_depth()
             else:
                 # Need a new scope
-                s = ctor.push_scope(self, ctor.ctxt().mkModelFieldRoot(None, "<>"))
+                self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
+                s = ctor.push_scope(self, self._model)
         else:
             # Push a new scope
-            s = ctor.push_scope(self, ctor.ctxt().mkModelFieldRoot(None, "<>"))
+            self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
+            s = ctor.push_scope(self, self._model)
         
         base(self, *args, *kwargs)
         print("_randclass __init__")
@@ -125,7 +127,7 @@ class RandClassImpl(object):
 
         print("--> randomize", flush=True)        
         randomizer.randomize(
-            [],
+            [self._model],
             [],
             False)
         print("<-- randomize", flush=True)        
@@ -144,6 +146,9 @@ class RandClassImpl(object):
         ret = object.__getattribute__(self, name)
         
         # TODO: Check whether this is a 'special' field
+        if hasattr(ret, "get_val"):
+            ret = ret.get_val()
+        
         
         return ret
     
