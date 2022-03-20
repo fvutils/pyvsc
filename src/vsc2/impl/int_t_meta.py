@@ -7,6 +7,7 @@ from vsc2.impl.scalar_t import ScalarT
 
 
 class IntTMeta(type):
+    """Meta-class for int_t types. Generates a unique int_t for each unique width"""
     
     def __init__(self, name, bases, dct):
         self.type_m = {}

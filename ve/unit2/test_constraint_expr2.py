@@ -10,6 +10,7 @@ from vsc2.impl.ctor import Ctor
 class TestConstraintExpr2(VscTestCase2):
 
     def test_eq(self):
+
         @vsc.randclass
         class my_c(object):
             a : vsc.rand[vsc.bit_t[8]]
@@ -19,8 +20,19 @@ class TestConstraintExpr2(VscTestCase2):
             @vsc.constraint
             def abc_c(self):
                 self.a < self.b
-                pass
+                
+            @vsc.constraint
+            def def_c(self):
+                self.b < 20
+                self.a == 2
+                
+        @vsc.randclass
+        class my_c2(my_c):
             
+            @vsc.constraint
+            def abc_c(self):
+                self.a > self.b
+
         print("test_eq")
         
         field = vsc.int_t[4]("abc", 5)

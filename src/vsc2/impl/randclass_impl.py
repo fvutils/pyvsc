@@ -11,6 +11,8 @@ from vsc2.impl.scalar_t import ScalarT
 from vsc2.types import rand
 import libvsc
 from vsc2.impl.ctor import Ctor
+from vsc2.impl.randclass_typeinfo import RandClassTypeInfo
+from vsc2.impl import ctor
 
 class RandClassImpl(object):
     
@@ -20,9 +22,22 @@ class RandClassImpl(object):
     def __call__(self, T):
         Tp = dataclasses.dataclass(T, init=False)
 
-        Tp._is_randclass = True        
-        Tp._field_ctor_m = {}
-
+        print("RandClass %s" % str(T))
+        Tp._is_randclass = True
+        Tp._typeinfo = RandClassTypeInfo()
+        
+        print("  Bases: %s" % str(T.__bases__))
+        
+        constraints = Ctor.inst().pop_constraint_decl()
+        Tp._typeinfo._constraint_l.extend(constraints)
+        
+        for c in constraints:
+            Tp._typeinfo._constraint_m[c._name] = c
+            
+        for b in T.__bases__:
+            if hasattr(b, "_typeinfo"):
+                self.__collectConstraints(Tp._typeinfo, b)
+            
         # Process dataclass fields to determine which 
         # require special treatment because they are 
         # PyVSC fields        
@@ -41,7 +56,7 @@ class RandClassImpl(object):
             if issubclass(t, ScalarT):
                 print("   Is a scalar: %d,%d" % (t.W, t.S))
 
-                if f.name not in Tp._field_ctor_m.keys():
+                if f.name not in Tp._typeinfo._field_ctor_m.keys():
                     if not isinstance(f.default, dataclasses._MISSING_TYPE):
                         iv = f.default
                         if type(iv) != int:
@@ -53,7 +68,7 @@ class RandClassImpl(object):
 #                    setattr(Tp, f.name, property(FieldScalarImpl.__get__, FieldScalarImpl.__set__))
 #                    setattr(Tp, f.name, FieldScalarDesc())
                     print("Register with is_rand=%d" % is_rand)
-                    Tp._field_ctor_m[f.name] = lambda t=t,n=f.name,r=is_rand,i=iv: RandClassImpl.__createPrimField(t, n, r, i)
+                    Tp._typeinfo._field_ctor_m[f.name] = lambda t=t,n=f.name,r=is_rand,i=iv: RandClassImpl.__createPrimField(t, n, r, i)
                 # TODO: fill in factory
             else:
                 raise Exception("Non-scalar fields are not yet supported")
@@ -70,6 +85,24 @@ class RandClassImpl(object):
         Tp.__setattr__ = lambda self, name, val: RandClassImpl.__setattr(self, name, val)
         Tp.__getattribute__ = lambda self, name: RandClassImpl.__getattr(self, name)
         return Tp
+    
+    def __collectConstraints(self, typeinfo, clsT):
+        """Connect constraints from base classes"""
+        # First, connect any additional constraints registered in the base class
+        for cn,cd in clsT._typeinfo._constraint_m.items():
+            if cn not in typeinfo._constraint_m.keys():
+                print("Adding base-class %s" % cn)
+                typeinfo._constraint_l.append(cd)
+                typeinfo._constraint_m[cn] = cd
+            else:
+                print("Skipping overridden %s" % cn)
+                pass
+                
+        # Now, keep digging
+        for b in clsT.__bases__:
+            if hasattr(b, "_typeinfo"):
+                self.__collectConstraints(typeinfo, b)
+
 
     @staticmethod    
     def __createPrimField(t, name, is_rand, iv):
@@ -83,6 +116,7 @@ class RandClassImpl(object):
     
     def __init(self, base, *args, **kwargs):
         # TODO: Push a context into which to add fields
+        typeinfo = type(self)._typeinfo
         ctor = Ctor.inst()
         s = ctor.scope()
         
@@ -105,8 +139,8 @@ class RandClassImpl(object):
         base(self, *args, *kwargs)
         print("_randclass __init__")
 
-        print("_field_ctor_m: %s" % str(self._field_ctor_m))
-        for name,ctor_f in self._field_ctor_m.items():
+        print("_field_ctor_m: %s" % str(self._typeinfo._field_ctor_m))
+        for name,ctor_f in self._typeinfo._field_ctor_m.items():
             f = ctor_f()
             setattr(self, name, f)
             
@@ -114,7 +148,22 @@ class RandClassImpl(object):
 
         # TODO: determine if we're at leaf level (?)
         if s.dec_inh_depth() == 0:
-            # Time to pop this level
+            # Time to pop this level. But before we do so, build
+            # out the relevant constraints
+            print("TODO: build out constraints: %s" % str(typeinfo._constraint_m))
+
+            ctor.push_expr_mode()
+            for c in self._typeinfo._constraint_l:
+                cb = ctor.ctxt().mkModelConstraintBlock(c._name)
+                ctor.push_constraint_scope(cb)
+                print("--> Invoke constraint")
+                c._method_t(self)
+                print("<-- Invoke constraint")
+                ctor.pop_constraint_scope()
+                
+                self._model.addConstraint(cb)
+            ctor.pop_expr_mode()
+            
             ctor.pop_scope()
         
         pass
@@ -143,12 +192,13 @@ class RandClassImpl(object):
             object.__setattr__(self, name, v)
         
     def __getattr(self, name):
+        ctor = Ctor.inst()
         ret = object.__getattribute__(self, name)
-        
-        # TODO: Check whether this is a 'special' field
-        if hasattr(ret, "get_val"):
-            ret = ret.get_val()
-        
+
+        if not Ctor.inst().expr_mode():
+            # TODO: Check whether this is a 'special' field
+            if hasattr(ret, "get_val"):
+                ret = ret.get_val()
         
         return ret
     

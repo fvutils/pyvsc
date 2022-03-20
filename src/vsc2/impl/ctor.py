@@ -13,6 +13,10 @@ class Ctor():
     def __init__(self):
         self._ctxt = core.Context.inst()
         self._scope_s = []
+        self._constraint_l = []
+        self._constraint_s = []
+        self._expr_s = []
+        self._expr_mode_s = []
         pass
     
     def ctxt(self):
@@ -31,6 +35,54 @@ class Ctor():
         
     def pop_scope(self):
         self._scope_s.pop()
+        
+    def push_expr(self, e):
+        self._expr_s.append(e)
+        
+    def pop_expr(self):
+        self._expr_s.pop()
+        
+    def expr(self):
+        if len(self._expr_s) > 0:
+            return self._expr_s[-1]
+        else:
+            return None
+        
+    def push_expr_mode(self, m=True):
+        self._expr_mode_s.append(m)
+        
+    def expr_mode(self):
+        return len(self._expr_mode_s) > 0 and self._expr_mode_s[-1]
+        
+    def pop_expr_mode(self):
+        return self._expr_mode_s.pop()
+        
+    def push_constraint_decl(self, c):
+        self._constraint_l.append(c)
+        
+    def pop_constraint_decl(self):
+        ret = self._constraint_l.copy()
+        self._constraint_l.clear()
+        return ret
+    
+    def push_constraint_scope(self, c):
+        self._constraint_s.append(c)
+        
+    def constraint_scope(self):
+        return self._constraint_s[-1]
+    
+    def pop_constraint_scope(self):
+        # Collect remaining expressions and convert to expr_statements
+        cb = self._constraint_s.pop()
+        
+        print("expr_s: %d" % len(self._expr_s))
+        
+        for e in self._expr_s:
+            c = self.ctxt().mkModelConstraintExpr(e._model)
+            cb.addConstraint(c)
+        self._expr_s.clear()
+            
+        return cb
     
     @classmethod
     def inst(cls):
