@@ -28,13 +28,16 @@ class Ctor():
         else:
             return None
         
-    def push_scope(self, obj, field):
-        s = CtorScope(obj, field)
+    def push_scope(self, facade_obj, lib_scope, type_mode):
+        s = CtorScope(facade_obj, lib_scope, type_mode)
         self._scope_s.append(s)
         return s
         
     def pop_scope(self):
         self._scope_s.pop()
+        
+    def is_type_mode(self):
+        return len(self._scope_s) > 0 and self._scope_s[-1]._type_mode
         
     def push_expr(self, e):
         self._expr_s.append(e)
@@ -74,8 +77,6 @@ class Ctor():
     def pop_constraint_scope(self):
         # Collect remaining expressions and convert to expr_statements
         cb = self._constraint_s.pop()
-        
-        print("expr_s: %d" % len(self._expr_s))
         
         for e in self._expr_s:
             c = self.ctxt().mkModelConstraintExpr(e._model)

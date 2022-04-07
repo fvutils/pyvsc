@@ -1,150 +1,72 @@
-#****************************************************************************
-#* Created on Feb 26, 2022
-#*
-#* @author: mballance
-#****************************************************************************
-from dataclasses import _MISSING_TYPE
-import dataclasses
+'''
+Created on Apr 6, 2022
 
-from vsc2.impl.field_scalar_impl import FieldScalarImpl
-from vsc2.impl.scalar_t import ScalarT
-from vsc2.types import rand
-import libvsc
+@author: mballance
+'''
 from vsc2.impl.ctor import Ctor
-from vsc2.impl.randclass_typeinfo import RandClassTypeInfo
-from vsc2.impl import ctor
+from libvsc import core
+from vsc2.impl import field_scalar_impl
+from vsc2.impl.field_scalar_impl import FieldScalarImpl
+from vsc2.impl.field_modelinfo import FieldModelInfo
+
 
 class RandClassImpl(object):
-    
-    def __init__(self, kwargs):
-        pass
-    
-    def __call__(self, T):
-        Tp = dataclasses.dataclass(T, init=False)
+    """Implementation methods for @randclass-decorated classes"""
 
-        print("RandClass %s" % str(T))
-        Tp._is_randclass = True
-        Tp._typeinfo = RandClassTypeInfo()
-        
-        print("  Bases: %s" % str(T.__bases__))
-        
-        constraints = Ctor.inst().pop_constraint_decl()
-        Tp._typeinfo._constraint_l.extend(constraints)
-        
-        for c in constraints:
-            Tp._typeinfo._constraint_m[c._name] = c
-            
-        for b in T.__bases__:
-            if hasattr(b, "_typeinfo"):
-                self.__collectConstraints(Tp._typeinfo, b)
-            
-        # Process dataclass fields to determine which 
-        # require special treatment because they are 
-        # PyVSC fields        
-        for f in dataclasses.fields(Tp):
-            print("==> Field: %s" % str(f)) 
-
-            is_rand = False
-            if issubclass(f.type, rand):
-                print("isrand")
-                t = f.type.__args__[0]
-                print(f.type.__args__)
-                is_rand = True
-            else:
-                t = f.type
-            
-            if issubclass(t, ScalarT):
-                print("   Is a scalar: %d,%d" % (t.W, t.S))
-
-                if f.name not in Tp._typeinfo._field_ctor_m.keys():
-                    if not isinstance(f.default, dataclasses._MISSING_TYPE):
-                        iv = f.default
-                        if type(iv) != int:
-                            raise Exception("Initial value for field %s (%s) is not integral" % (f.name, str(iv)))
-                    else:
-                        iv = 0
-                        
-                        
-#                    setattr(Tp, f.name, property(FieldScalarImpl.__get__, FieldScalarImpl.__set__))
-#                    setattr(Tp, f.name, FieldScalarDesc())
-                    print("Register with is_rand=%d" % is_rand)
-                    Tp._typeinfo._field_ctor_m[f.name] = lambda t=t,n=f.name,r=is_rand,i=iv: RandClassImpl.__createPrimField(t, n, r, i)
-                # TODO: fill in factory
-            else:
-                raise Exception("Non-scalar fields are not yet supported")
-#                print("   Is a scalar: %d,%d" % (f.type.W, f.type.S))
-                pass
-            
-            print("<== Field: %s" % str(f)) 
-            
-        base_init = Tp.__init__
-        Tp.__init__ = lambda self, *args, **kwargs: RandClassImpl.__init(
-            self, base_init, *args, *kwargs)
-        Tp.randomize = lambda self: RandClassImpl.__randomize(self)
-        Tp.randomize_with = lambda self: RandClassImpl.__randomize_with(self)
-        Tp.__setattr__ = lambda self, name, val: RandClassImpl.__setattr(self, name, val)
-        Tp.__getattribute__ = lambda self, name: RandClassImpl.__getattr(self, name)
-        return Tp
-    
-    def __collectConstraints(self, typeinfo, clsT):
-        """Connect constraints from base classes"""
-        # First, connect any additional constraints registered in the base class
-        for cn,cd in clsT._typeinfo._constraint_m.items():
-            if cn not in typeinfo._constraint_m.keys():
-                print("Adding base-class %s" % cn)
-                typeinfo._constraint_l.append(cd)
-                typeinfo._constraint_m[cn] = cd
-            else:
-                print("Skipping overridden %s" % cn)
-                pass
-                
-        # Now, keep digging
-        for b in clsT.__bases__:
-            if hasattr(b, "_typeinfo"):
-                self.__collectConstraints(typeinfo, b)
-
-
-    @staticmethod    
-    def __createPrimField(t, name, is_rand, iv):
-        ret = t.createField(name, is_rand, iv)
-        print("__create: %d" % is_rand)
-        return ret
-    
-    #****************************************************************
-    #* Implementation methods for user objects
-    #****************************************************************
-    
-    def __init(self, base, *args, **kwargs):
+    @staticmethod
+    def init(self, base, *args, **kwargs):
         # TODO: Push a context into which to add fields
-        typeinfo = type(self)._typeinfo
         ctor = Ctor.inst()
+        typeinfo = type(self)._typeinfo
+
         s = ctor.scope()
-        
+
         if s is not None:
-            if s.obj is None:
+            if s.facade_obj is None:
                 # The field-based caller has setup a frame for us. 
                 # Add the object reference
-                s.obj = self
-            elif s.obj() == self:
+                s.facade_obj = self
+            elif s.facade_obj is self:
                 s.inc_inh_depth()
             else:
                 # Need a new scope
+                if s._type_mode:
+                    raise Exception("Shouldn't hit this in type mode")
                 self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
-                s = ctor.push_scope(self, self._model)
+                self._randstate = ctor.ctxt().mkRandState(0)
+                s = ctor.push_scope(self, self._model, False)
         else:
             # Push a new scope
+            if s._type_mode:
+                raise Exception("Shouldn't hit this in type mode")
+            
             self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
-            s = ctor.push_scope(self, self._model)
+            self._randstate = ctor.ctxt().mkRandState(0)
+            s = ctor.push_scope(self, self._model, False)
+            
+        self._modelinfo = FieldModelInfo(self, "<>")
+        self._modelinfo._lib_obj = s._lib_scope
         
         base(self, *args, *kwargs)
         print("_randclass __init__")
 
-        print("_field_ctor_m: %s" % str(self._typeinfo._field_ctor_m))
-        for name,ctor_f in self._typeinfo._field_ctor_m.items():
-            f = ctor_f()
-            setattr(self, name, f)
+        print("_field_ctor_m: %s" % str(self._typeinfo._field_typeinfo))
+        for field_ti in self._typeinfo._field_typeinfo:
+            print("name: %s" % field_ti._name)
+
+            # What to pass here?
             
-            s.field().addField(f.model())
+                    # Grab the appropriate field from the scope
+            field = s.lib_scope.getField(field_ti._idx)
+            
+            f = field_ti._ctor(
+                field,
+                field_ti._name,
+                field_ti._idx)
+            f._modelinfo.parent = self._modelinfo
+            setattr(self, field_ti._name, f)
+            
+#            s.lib_scope.addField(f.model())
 
         # TODO: determine if we're at leaf level (?)
         if s.dec_inh_depth() == 0:
@@ -165,43 +87,49 @@ class RandClassImpl(object):
             ctor.pop_expr_mode()
             
             ctor.pop_scope()
-        
         pass
     
-    def __randomize(self):
-        ctxt = Ctor.inst().ctxt()
-
-        randstate = ctxt.mkRandState(0)
-        randomizer = ctxt.mkRandomizer(None, randstate)
-
-        print("--> randomize", flush=True)        
-        randomizer.randomize(
-            [self._model],
-            [],
-            False)
-        print("<-- randomize", flush=True)        
-        
-        pass
-    
-    def __setattr(self, name, v):
+    @staticmethod
+    def setattr(self, name, v):
         try:
             fo = object.__getattribute__(self, name)
         except:
             object.__setattr__(self, name, v)
         else:
             object.__setattr__(self, name, v)
-        
-    def __getattr(self, name):
+            
+    @staticmethod
+    def getattr(self, name):
         ctor = Ctor.inst()
         ret = object.__getattribute__(self, name)
 
-        if not Ctor.inst().expr_mode():
+        if not ctor.expr_mode():
             # TODO: Check whether this is a 'special' field
             if hasattr(ret, "get_val"):
                 ret = ret.get_val()
         
         return ret
-    
+
+    @staticmethod
+    def randomize(self, debug=0, lint=0, solve_fail_debug=0):
+        ctxt = Ctor.inst().ctxt()
+
+        solver = ctxt.mkCompoundSolver()
+        
+        if debug > 0:
+            pass
+            
+        
+        solver.solve(
+            self._randstate,
+            [self._model],
+            [],
+            core.SolveFlags.Randomize+core.SolveFlags.RandomizeDeclRand+core.SolveFlags.RandomizeTopFields
+            )
+        
+        if debug > 0:
+            pass
+
     class RandomizeWithClosure(object):
         
         def __init__(self, obj):
@@ -212,7 +140,26 @@ class RandClassImpl(object):
         
         def __exit__(self, exc_type, exc_val, exc_tb):
             pass
-    
-    def __randomize_with(self):
-        return RandClassImpl.RandomizeWithClosure(self)
 
+    @classmethod                
+    def randomize_with(cls, self):
+        return cls.RandomizeWithClosure(self)
+        pass
+    
+    @staticmethod    
+    def createPrimField(lib_field, name, idx):
+        ctor = Ctor.inst()
+        print("__createPrimField %s" % name)
+
+        field = FieldScalarImpl(name, lib_field)
+        field._modelinfo._idx = idx
+        
+        
+        print("  field=%s" % str(lib_field))
+        
+#        ret = field_scalar_impl()
+#        ret = t.createField(name, is_rand, iv)
+#        print("__create: %d" % is_rand)
+        return field
+
+        

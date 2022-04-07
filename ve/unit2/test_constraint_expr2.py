@@ -15,7 +15,7 @@ class TestConstraintExpr2(VscTestCase2):
         class my_c(object):
             a : vsc.rand[vsc.bit_t[8]]
             b : vsc.rand_uint8_t
-            c : vsc.int_t
+            c : vsc.bit_t[32]
 
             @vsc.constraint
             def abc_c(self):
@@ -24,10 +24,10 @@ class TestConstraintExpr2(VscTestCase2):
             @vsc.constraint
             def def_c(self):
                 self.b < 20
-                self.a == 2
                 
         @vsc.randclass
         class my_c2(my_c):
+            d : vsc.rand_uint8_t
             
             @vsc.constraint
             def abc_c(self):
@@ -40,12 +40,22 @@ class TestConstraintExpr2(VscTestCase2):
         field.val = 20
         print("field: %s %d" % (str(field), field.val))
 #        vsc.int_t[4]()
-            
+
         my_i = my_c()
+
+        print("--> my_c2", flush=True)
+        my_i2 = my_c2()
+        print("<-- my_c2", flush=True)
         
-        my_i.randomize()
-        
-        print("a=%d b=%d c=%d" % (my_i.a, my_i.b, my_i.c))
+        return
+
+        print("--> loop")        
+        for i in range(1000):
+            print("--> randomize")
+            my_i2.randomize()
+            print("<-- randomize")
+            print("a=%d b=%d c=%d" % (my_i2.a, my_i2.b, my_i2.c))
+        print("<-- loop")        
         
         # for i in range(2):
         #     with my_i.randomize_with() as it:

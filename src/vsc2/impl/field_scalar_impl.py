@@ -7,33 +7,34 @@ from vsc2.impl.ctor import Ctor
 from libvsc import core
 from libvsc.core import Context
 from vsc2.impl.expr import Expr
+from vsc2.impl.field_modelinfo import FieldModelInfo
 
 class FieldScalarImpl(object):
     
-    def __init__(self, name, width, is_signed, is_rand, iv=0):
+    def __init__(self, name, lib_field, iv=0):
         ctxt : Context = Ctor.inst().ctxt()
-        self._is_signed = is_signed
-        self._model = ctxt.mkModelFieldRoot(
-            ctxt.mkDataTypeInt(is_signed, width),
-            name)
+        self._modelinfo = FieldModelInfo(self, name)
         
-        if width <= 64:
-            if is_signed:
-                self._model.val().set_val_i(iv)
-            else:
-                self._model.val().set_val_u(iv)
-        else:
-            raise Exception("Field >64 not supported")
+        self._modelinfo._lib_obj = lib_field
         
-        if is_rand:
-            print("Set DeclRand")
-            self._model.setFlag(core.ModelFieldFlag.DeclRand)
-            self._model.setFlag(core.ModelFieldFlag.UsedRand)
+        # if width <= 64:
+        #     if is_signed:
+        #         self._model.val().set_val_i(iv)
+        #     else:
+        #         self._model.val().set_val_u(iv)
+        # else:
+        #     raise Exception("Field >64 not supported")
+        #
+        # if is_rand:
+        #     print("Set DeclRand")
+        #     self._model.setFlag(core.ModelFieldFlag.DeclRand)
+        #     self._model.setFlag(core.ModelFieldFlag.UsedRand)
         
     def model(self):
-        return self._model
+        return self._modelinfo._lib_obj
     
     def get_val(self):
+        print("get_val: %d" % self._model.val().val_u())
         if self._is_signed:
             return self._model.val().val_i()
         else:
@@ -54,7 +55,21 @@ class FieldScalarImpl(object):
         self._model.val().set_val_i(v)
         
     def _to_expr(self):
-        return Expr(Ctor.inst().ctxt().mkModelExprFieldRef(self._model))
+        ctor = Ctor.inst()
+
+        if ctor.is_type_mode():
+            ref = ctor.ctxt().mkTypeExprFieldRef()
+            print("TODO: typemode")
+            mi = self._modelinfo
+            while mi._parent is not None:
+                print("mi: %s" % str(mi))
+                ref.addIdxRef(mi._idx)
+                mi = mi._parent
+            ref.addRootRef()
+        else:        
+            ref = ctor.ctxt().mkModelExprFieldRef(self.model())
+        
+        return Expr(ref)
     
     def _bin_expr(self, op, rhs):
         ctor = Ctor.inst()
@@ -71,11 +86,18 @@ class FieldScalarImpl(object):
         # Push a reference to this field
         lhs_e = Expr.toExpr(self)
         ctor.pop_expr()
-        
-        model = ctor.ctxt().mkModelExprBin(
-            lhs_e._model, 
-            op, 
-            rhs_e._model)
+
+        if ctor.is_type_mode():
+            model = ctor.ctxt().mkTypeExprBin(
+                lhs_e._model, 
+                op, 
+                rhs_e._model)
+        else:        
+            model = ctor.ctxt().mkModelExprBin(
+                lhs_e._model, 
+                op, 
+                rhs_e._model)
+            
 #        if in_srcinfo_mode():
 #            e.srcinfo = SourceInfo.mk(2)
         

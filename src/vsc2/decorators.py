@@ -5,7 +5,7 @@ Created on Feb 26, 2022
 '''
 
 from vsc2.impl.constraint_decorator_impl import ConstraintDecoratorImpl
-from vsc2.impl.randclass_impl import RandClassImpl
+from vsc2.impl.randclass_decorator_impl import RandClassDecoratorImpl
 
 def constraint(*args, **kwargs):
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
@@ -17,7 +17,7 @@ def constraint(*args, **kwargs):
 def randclass(*args, **kwargs):
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         # No-argument form
-        return RandClassImpl({})(args[0])
+        return RandClassDecoratorImpl({})(args[0])
     else:
-        return RandClassImpl(kwargs)
+        return RandClassDecoratorImpl(kwargs)
     
