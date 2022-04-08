@@ -79,7 +79,10 @@ class Ctor():
         cb = self._constraint_s.pop()
         
         for e in self._expr_s:
-            c = self.ctxt().mkModelConstraintExpr(e._model)
+            if self.is_type_mode():
+                c = self.ctxt().mkTypeConstraintExpr(e._model)
+            else:
+                c = self.ctxt().mkModelConstraintExpr(e._model)
             cb.addConstraint(c)
         self._expr_s.clear()
             

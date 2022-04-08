@@ -76,14 +76,17 @@ class RandClassImpl(object):
 
             ctor.push_expr_mode()
             for c in self._typeinfo._constraint_l:
-                cb = ctor.ctxt().mkModelConstraintBlock(c._name)
+                if ctor.is_type_mode():
+                    cb = ctor.ctxt().mkTypeConstraintBlock(c._name)
+                else:
+                    cb = ctor.ctxt().mkModelConstraintBlock(c._name)
                 ctor.push_constraint_scope(cb)
                 print("--> Invoke constraint")
                 c._method_t(self)
                 print("<-- Invoke constraint")
                 ctor.pop_constraint_scope()
                 
-                self._model.addConstraint(cb)
+                self._modelinfo._lib_obj.addConstraint(cb)
             ctor.pop_expr_mode()
             
             ctor.pop_scope()
