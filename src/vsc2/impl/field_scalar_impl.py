@@ -11,11 +11,12 @@ from vsc2.impl.field_modelinfo import FieldModelInfo
 
 class FieldScalarImpl(object):
     
-    def __init__(self, name, lib_field, iv=0):
+    def __init__(self, name, lib_field, is_signed):
         ctxt : Context = Ctor.inst().ctxt()
         self._modelinfo = FieldModelInfo(self, name)
         
         self._modelinfo._lib_obj = lib_field
+        self._is_signed = is_signed
         
         # if width <= 64:
         #     if is_signed:
@@ -34,25 +35,25 @@ class FieldScalarImpl(object):
         return self._modelinfo._lib_obj
     
     def get_val(self):
-        print("get_val: %d" % self._model.val().val_u())
+        print("get_val: %d" % self._modelinfo._lib_obj.val().val_u())
         if self._is_signed:
-            return self._model.val().val_i()
+            return self._modelinfo._lib_obj.val().val_i()
         else:
-            return self._model.val().val_u()
+            return self._modelinfo._lib_obj.val().val_u()
     
     def set_val(self, v):
         if self._is_signed:
-            self._model.val().set_val_i(v)
+            self._modelinfo._lib_obj.val().set_val_i(v)
         else:
-            self._model.val().set_val_u(v)
+            self._modelinfo._lib_obj.val().set_val_u(v)
 
     @property        
     def val(self):
-        return self._model.val().val_i()
+        return self._modelinfo._lib_obj.val().val_i()
 
     @val.setter
     def val(self, v):
-        self._model.val().set_val_i(v)
+        self._modelinfo._lib_obj.val().set_val_i(v)
         
     def _to_expr(self):
         ctor = Ctor.inst()
@@ -67,6 +68,7 @@ class FieldScalarImpl(object):
                 mi = mi._parent
             ref.addRootRef()
         else:        
+            print("Model mode: %s" % str(self.model()))
             ref = ctor.ctxt().mkModelExprFieldRef(self.model())
         
         return Expr(ref)

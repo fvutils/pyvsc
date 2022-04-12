@@ -32,15 +32,14 @@ class RandClassImpl(object):
                 # Need a new scope
                 if s._type_mode:
                     raise Exception("Shouldn't hit this in type mode")
-                self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
+                print("TODO: Create root field for %s" % type(self)._typeinfo._lib_typeobj.name())
+                self._model = ctor.ctxt().buildModelField(typeinfo._lib_typeobj, "<>")
                 self._randstate = ctor.ctxt().mkRandState(0)
                 s = ctor.push_scope(self, self._model, False)
         else:
-            # Push a new scope
-            if s._type_mode:
-                raise Exception("Shouldn't hit this in type mode")
-            
-            self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
+            # Push a new scope. Know we're in non-type mode
+            print("TODO: Create root field for %s" % type(self)._typeinfo._lib_typeobj.name())
+            self._model = ctor.ctxt().buildModelField(typeinfo._lib_typeobj, "<>")
             self._randstate = ctor.ctxt().mkRandState(0)
             s = ctor.push_scope(self, self._model, False)
             
@@ -69,17 +68,14 @@ class RandClassImpl(object):
 #            s.lib_scope.addField(f.model())
 
         # TODO: determine if we're at leaf level (?)
-        if s.dec_inh_depth() == 0:
+        if s.dec_inh_depth() == 0 and ctor.is_type_mode():
             # Time to pop this level. But before we do so, build
             # out the relevant constraints
             print("TODO: build out constraints: %s" % str(typeinfo._constraint_m))
 
             ctor.push_expr_mode()
             for c in self._typeinfo._constraint_l:
-                if ctor.is_type_mode():
-                    cb = ctor.ctxt().mkTypeConstraintBlock(c._name)
-                else:
-                    cb = ctor.ctxt().mkModelConstraintBlock(c._name)
+                cb = ctor.ctxt().mkTypeConstraintBlock(c._name)
                 ctor.push_constraint_scope(cb)
                 print("--> Invoke constraint")
                 c._method_t(self)
@@ -150,11 +146,11 @@ class RandClassImpl(object):
         pass
     
     @staticmethod    
-    def createPrimField(lib_field, name, idx):
+    def createPrimField(lib_field, name, idx, is_signed):
         ctor = Ctor.inst()
         print("__createPrimField %s" % name)
 
-        field = FieldScalarImpl(name, lib_field)
+        field = FieldScalarImpl(name, lib_field, is_signed)
         field._modelinfo._idx = idx
         
         

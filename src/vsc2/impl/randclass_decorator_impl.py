@@ -102,7 +102,7 @@ class RandClassDecoratorImpl(object):
                             it,
                             attr,
                             None),
-                            RandClassImpl.createPrimField)
+                            lambda self, name, lib_field, s=t.S: RandClassImpl.createPrimField(self, name, lib_field, s))
                     idx += 1
                     
                     Tp._typeinfo.addField(field_ti)

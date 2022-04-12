@@ -47,7 +47,7 @@ class TestConstraintExpr2(VscTestCase2):
         my_i2 = my_c2()
         print("<-- my_c2", flush=True)
         
-        return
+#        return
 
         print("--> loop")        
         for i in range(1000):

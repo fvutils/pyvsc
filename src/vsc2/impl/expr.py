@@ -19,8 +19,12 @@ class Expr(object):
         elif hasattr(rhs, "_to_expr"):
             return rhs._to_expr()
         elif type(rhs) == int:
-            print("Int")
-            ev = Ctor.inst().ctxt().mkModelExprVal(None)
+            ctor = Ctor.inst()
+           
+            if ctor.is_type_mode():
+                ev = Ctor.inst().ctxt().mkTypeExprVal(None)
+            else:
+                ev = Ctor.inst().ctxt().mkModelExprVal(None)
             ev.val().setBits(64)
             ev.val().set_val_i(rhs)
             return Expr(ev)
