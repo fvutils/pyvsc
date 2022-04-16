@@ -11,4 +11,11 @@ class ConstraintDecl(object):
         self._name = name
         self._method_t = method_t
         
+    @property
+    def name(self):
+        return self._name
+    
+    def __call__(self, obj):
+        self._method_t(obj)
+        
     pass

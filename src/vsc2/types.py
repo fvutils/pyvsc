@@ -4,18 +4,16 @@ Created on Feb 26, 2022
 @author: mballance
 '''
 
-from typing import Generic, TypeVar
-
 from vsc2.impl.bit_t_meta import BitTMeta
 from vsc2.impl.int_t_meta import IntTMeta
 from vsc2.impl.scalar_t import ScalarT
 from vsc2.impl.enum_t import EnumT
 from vsc2.impl.enum_t_meta import EnumTMeta
+from vsc2.impl.rand_t import RandT
+from vsc2.impl.rand_t_meta import RandTMeta
 
 
-T = TypeVar('T')
-
-class rand(Generic[T]):
+class rand(RandT, metaclass=RandTMeta):
     pass
 
 class enum_t(EnumT, metaclass=EnumTMeta):

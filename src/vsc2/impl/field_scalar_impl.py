@@ -60,15 +60,12 @@ class FieldScalarImpl(object):
 
         if ctor.is_type_mode():
             ref = ctor.ctxt().mkTypeExprFieldRef()
-            print("TODO: typemode")
             mi = self._modelinfo
             while mi._parent is not None:
-                print("mi: %s" % str(mi))
                 ref.addIdxRef(mi._idx)
                 mi = mi._parent
             ref.addRootRef()
         else:        
-            print("Model mode: %s" % str(self.model()))
             ref = ctor.ctxt().mkModelExprFieldRef(self.model())
         
         return Expr(ref)

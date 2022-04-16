@@ -17,6 +17,7 @@ from vsc2.impl.randclass_impl import RandClassImpl
 from vsc2.impl.typeinfo import TypeInfo
 from vsc2.impl.type_kind_e import TypeKindE
 from vsc2.impl.field_typeinfo import FieldTypeInfo
+from vsc2.impl.rand_t import RandT
 
 class RandClassDecoratorImpl(object):
     """Decorator implementation for @randclass and type-model building code"""
@@ -57,17 +58,20 @@ class RandClassDecoratorImpl(object):
         # PyVSC fields        
         idx = 0
         for f in dataclasses.fields(Tp):
-            print("==> Field: %s" % str(f)) 
+            print("==> Field: %s type=%s" % (str(f), str(f.type))) 
 
             is_rand = False
-            if issubclass(f.type, rand):
+            
+            print("type(f.type)=%s" % str(type(f.type)))
+
+            if issubclass(f.type, RandT):
                 print("isrand")
-                t = f.type.__args__[0]
-                print(f.type.__args__)
+                t = f.type.T
+                print(f.type.T)
                 is_rand = True
             else:
                 t = f.type
-            
+
             if issubclass(t, ScalarT):
                 print("   Is a scalar: %d,%d" % (t.W, t.S))
 
@@ -125,12 +129,24 @@ class RandClassDecoratorImpl(object):
         
         # Now, we need to build out the constraints
         # We first must create a temp object that can be used by the constraint builder
-        #
+
         # Push a frame for the object to find
         ctor.push_scope(None, ds_t, True)
         
-        # Now, go create the object itself
+        # Now, go create the object itself. Note that we're in
+        # type mode, so type fields are built out
         obj = Tp()
+
+        ctor.push_scope(obj, ds_t, True)
+        ctor.push_expr_mode()        
+        for c in Tp._typeinfo._constraint_l:
+            cs = ctor.ctxt().mkTypeConstraintBlock(c.name)
+            ctor.push_constraint_scope(cs)
+            c(obj)
+            ctor.pop_constraint_scope()
+            Tp._typeinfo._lib_typeobj.addConstraint(cs)
+        ctor.pop_expr_mode()
+        ctor.pop_scope()
         
         return Tp
     

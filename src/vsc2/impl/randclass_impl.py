@@ -117,14 +117,15 @@ class RandClassImpl(object):
         
         if debug > 0:
             pass
-            
-        
+
+        print("--> solver.solve", flush=True)        
         solver.solve(
             self._randstate,
             [self._model],
             [],
             core.SolveFlags.Randomize+core.SolveFlags.RandomizeDeclRand+core.SolveFlags.RandomizeTopFields
             )
+        print("<-- solver.solve", flush=True)        
         
         if debug > 0:
             pass
