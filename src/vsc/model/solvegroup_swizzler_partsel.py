@@ -17,7 +17,7 @@ from vsc.model.variable_bound_model import VariableBoundModel
 class SolveGroupSwizzlerPartsel(object):
     
     def __init__(self, randstate, solve_info):
-        self.debug = 0
+        self.debug = 1
         self.randstate = randstate
         self.solve_info = solve_info
     
@@ -180,9 +180,13 @@ class SolveGroupSwizzlerPartsel(object):
                         ExprFieldRefModel(f),
                         BinExprType.Eq,
                         ExprLiteralModel(t_range[0], False, 32)))
-        else: # Multi-value range
+        else:
+            # Determine the max width to use for swizzling. 
+            # max value of abs bounds
+
+            maxval = int(max(abs(t_range[0]), abs(t_range[1])))
+
             d_width = 0
-            maxval = t_range[1]
             
             while maxval > 0:
                 d_width += 1
@@ -191,47 +195,51 @@ class SolveGroupSwizzlerPartsel(object):
             if self.debug > 0:
                 print("d_width: %d" % d_width)                
                 
-    #            bit_pattern = self.randstate.randint(0, (1 << width)-1)
             bit_pattern = self.randstate.randint(t_range[0], t_range[1])
-            max_intervals = 6
-    
-            if self.debug > 0:            
-                print("bit_pattern: %s" % bin(bit_pattern))
-            
-            if d_width > max_intervals:
-                interval_w = int(d_width/max_intervals)
-                
-                for i in range(max_intervals):
-                    low = i*interval_w
-                    
-                    if i+1 == max_intervals:
-                        high = d_width-1
-                        width = d_width-low
-                    else:
-                        high = (i+1)*interval_w-1
-                        width = interval_w
-    
-                    if self.debug > 0:
-                        print("%d..%d 0x%08x" % (
-                            low, high, ((bit_pattern >> low) & ((1 << width)-1))))
-                    e.append(ExprBinModel(
-                        ExprPartselectModel(
-                            ExprFieldRefModel(f),
-                            ExprLiteralModel(high, False, 32),
-                            ExprLiteralModel(low, False, 32)),
-                        BinExprType.Eq,
-                        ExprLiteralModel((bit_pattern >> low) & ((1 << width)-1), False, width)
-                        ))
-            else:
-                # Create a per-bit constraint            
-                for i in range(d_width):
-                    e.append(ExprBinModel(
-                        ExprPartselectModel(
-                            ExprFieldRefModel(f),
-                            ExprLiteralModel(i, False, 32)),
-                        BinExprType.Eq,
-                        ExprLiteralModel((bit_pattern >> i) & 1, False, 1)
-                        ))
-                    
+            e = self._build_swizzle_constraints(f, bit_pattern, d_width)
+
         return e
     
+    def _build_swizzle_constraints(self, f, bit_pattern, d_width):
+        e = []
+        max_intervals = 6
+
+        if self.debug > 0:            
+            print("bit_pattern: %s" % bin(bit_pattern))
+        
+        if d_width > max_intervals:
+            interval_w = int(d_width/max_intervals)
+            
+            for i in range(max_intervals):
+                low = i*interval_w
+                
+                if i+1 == max_intervals:
+                    high = d_width-1
+                    width = d_width-low
+                else:
+                    high = (i+1)*interval_w-1
+                    width = interval_w
+
+                if self.debug > 0:
+                    print("%d..%d 0x%08x" % (
+                        low, high, ((bit_pattern >> low) & ((1 << width)-1))))
+                e.append(ExprBinModel(
+                    ExprPartselectModel(
+                        ExprFieldRefModel(f),
+                        ExprLiteralModel(high, False, 32),
+                        ExprLiteralModel(low, False, 32)),
+                    BinExprType.Eq,
+                    ExprLiteralModel((bit_pattern >> low) & ((1 << width)-1), False, width)
+                    ))
+        else:
+            # Create a per-bit constraint            
+            for i in range(d_width):
+                e.append(ExprBinModel(
+                    ExprPartselectModel(
+                        ExprFieldRefModel(f),
+                        ExprLiteralModel(i, False, 32)),
+                    BinExprType.Eq,
+                    ExprLiteralModel((bit_pattern >> i) & 1, False, 1)
+                    ))        
+        return e
+

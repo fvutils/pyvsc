@@ -1,3 +1,7 @@
+
+## 0.7.1
+- (#156) Correct random distribution for signed variables constrained to negaitve value ranges
+
 ## 0.7.0
 - (#146) Correct an issue with enums and the new constant-expression eval from #132
 
