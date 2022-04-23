@@ -25,17 +25,25 @@ class RandClassDecoratorImpl(object):
     def __init__(self, kwargs):
         pass
     
-    def __call__(self, T):
-        ctor = Ctor.inst()
-        Tp = dataclasses.dataclass(T, init=False)
-        
-        ds_t = ctor.ctxt().findDataTypeStruct(T.__qualname__)
+    def _getLibDataType(self, name):
+        ds_t = ctor.ctxt().findDataTypeStruct(name)
         
         if ds_t is not None:
             raise Exception("Type already registered")
         else:
             ds_t = ctor.ctxt().mkDataTypeStruct(T.__qualname__)
             ctor.ctxt().addDataTypeStruct(ds_t)
+        
+        return ds_t
+    
+    def _createTypeInfo(self, ds_t):
+        return RandClassTypeInfo(ds_t)
+    
+    def __call__(self, T):
+        ctor = Ctor.inst()
+        Tp = dataclasses.dataclass(T, init=False)
+        
+        ds_t = self._getLibDataType(T.__qualname__)
 
         print("RandClass %s" % T.__qualname__)
         Tp._is_randclass = True
