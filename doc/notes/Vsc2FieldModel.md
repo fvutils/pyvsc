@@ -17,5 +17,5 @@ module loading. The decorator does the following:
     do not specify how the field is implemented. PyVSC must create 
     field-type information for each field, as well as back-patch
     implementations for rand and non-rand fields.
-    - Each recognized field type k
+    - Each recognized field type 
 
