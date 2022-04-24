@@ -9,6 +9,8 @@ package:
           src: pypi
         - name: pyucis
           src: pypi
+        - name: libvsc
+          src: pypi
     dev-deps:
         - name: dataclasses
           src: pypi
