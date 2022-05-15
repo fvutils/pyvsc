@@ -1,4 +1,7 @@
 
+## 0.7.2
+- Disable some internal debug output that was inadvertently left on
+
 ## 0.7.1
 - (#156) Correct random distribution for signed variables constrained to negaitve value ranges
 

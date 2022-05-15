@@ -17,7 +17,7 @@ from vsc.model.variable_bound_model import VariableBoundModel
 class SolveGroupSwizzlerPartsel(object):
     
     def __init__(self, randstate, solve_info):
-        self.debug = 1
+        self.debug = 0
         self.randstate = randstate
         self.solve_info = solve_info
     
