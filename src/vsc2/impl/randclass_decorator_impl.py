@@ -101,7 +101,7 @@ class RandClassDecoratorImpl(object):
                     field_ti = FieldTypeInfo(
                         f.name, 
                         idx,
-                        ctor.ctxt().mkTypeField(
+                        ctor.ctxt().mkTypeFieldPhy(
                             f.name,
                             it,
                             attr,

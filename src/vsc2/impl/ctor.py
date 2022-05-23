@@ -12,6 +12,8 @@ class Ctor():
     
     def __init__(self):
         self._ctxt = core.Context.inst()
+        
+        print("Ctor: ctxt=%s" % str(self._ctxt))
         self._scope_s = []
         self._constraint_l = []
         self._constraint_s = []

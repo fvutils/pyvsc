@@ -8,8 +8,22 @@ import vsc2 as vsc
 from vsc2.impl.ctor import Ctor
 
 class TestConstraintExpr2(VscTestCase2):
+    
+    def test_eq_1(self):
+        @vsc.randobj
+        class my_c(object):
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+                
+        my_i = my_c()
+        for i in range(2):
+            with my_i.randomize_with() as it:
+                it.a == it.b
+            self.assertEqual(my_i.a, my_i.b)    
 
-    def test_eq(self):
+    def test_eq_2(self):
+        print("test_eq.pre", flush=True)
 
         @vsc.randclass
         class my_c(object):
