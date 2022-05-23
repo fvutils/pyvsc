@@ -6,8 +6,7 @@ Created on Aug 20, 2020
 from enum import IntEnum, auto
 
 import vsc
-from vsc.model.rand_info_builder import RandInfoBuilder
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc1.model.rand_info_builder import RandInfoBuilder
 from vsc_test_case import VscTestCase
 
 

@@ -10,8 +10,8 @@ from ucis.report.coverage_report_builder import CoverageReportBuilder
 from ucis.test_data import TestData
 
 import vsc
-from vsc.impl.coverage_registry import CoverageRegistry
-from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
+from vsc1.impl.coverage_registry import CoverageRegistry
+from vsc1.visitors.coverage_save_visitor import CoverageSaveVisitor
 from vsc_test_case import VscTestCase
 
 

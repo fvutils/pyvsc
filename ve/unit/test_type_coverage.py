@@ -4,10 +4,9 @@ Created on Mar 15, 2020
 @author: ballance
 '''
 from unittest.case import TestCase
-from vsc.impl import ctor
+from vsc1.impl import ctor
 import vsc
-from vsc.impl.coverage_registry import CoverageRegistry
-from vsc.model.covergroup_registry import CovergroupRegistry
+from vsc1.impl.coverage_registry import CoverageRegistry
 
 class TestTypeCoverage(TestCase):
     

@@ -5,20 +5,20 @@ Created on Mar 17, 2020
 '''
 from unittest.case import TestCase
 
-from vsc.model.coverage_options_model import CoverageOptionsModel
-from vsc.model.covergroup_model import CovergroupModel
-from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
-from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
-from vsc.model.coverpoint_cross_model import CoverpointCrossModel
-from vsc.model.coverpoint_model import CoverpointModel
-from vsc.model.expr_fieldref_model import ExprFieldRefModel
-from vsc.model.field_composite_model import FieldCompositeModel
-from vsc.model.field_scalar_model import FieldScalarModel
-from vsc.model.generator_model import GeneratorModel
-from vsc.model.randomizer import Randomizer
-from vsc.model.rangelist_model import RangelistModel
-from vsc.model.source_info import SourceInfo
-from vsc.model.rand_state import RandState
+from vsc1.model.coverage_options_model import CoverageOptionsModel
+from vsc1.model.covergroup_model import CovergroupModel
+from vsc1.model.coverpoint_bin_array_model import CoverpointBinArrayModel
+from vsc1.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
+from vsc1.model.coverpoint_cross_model import CoverpointCrossModel
+from vsc1.model.coverpoint_model import CoverpointModel
+from vsc1.model.expr_fieldref_model import ExprFieldRefModel
+from vsc1.model.field_composite_model import FieldCompositeModel
+from vsc1.model.field_scalar_model import FieldScalarModel
+from vsc1.model.generator_model import GeneratorModel
+from vsc1.model.randomizer import Randomizer
+from vsc1.model.rangelist_model import RangelistModel
+from vsc1.model.source_info import SourceInfo
+from vsc1.model.rand_state import RandState
 
 
 class TestGeneratorModel(TestCase):

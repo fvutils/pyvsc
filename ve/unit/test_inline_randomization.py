@@ -3,11 +3,10 @@ Created on Sep 16, 2020
 
 @author: ballance
 '''
-from enum import Enum, IntEnum, auto
 import vsc
 
 from vsc_test_case import VscTestCase
-from vsc.model.solve_failure import SolveFailure
+from enum import Enum, IntEnum, auto
 
 
 class TestInlineRandomization(VscTestCase):
@@ -43,7 +42,7 @@ class TestInlineRandomization(VscTestCase):
                                 offset_.inside(vsc.rangelist(vsc.rng(-1024,1024)))
                             addr_ == self.num + offset_
                             addr_.inside(vsc.rangelist(vsc.rng(0,32)))
-                    except SolveFailure as e:
+                    except vsc.SolveFailure as e:
                         print("Cannot Randomize offset: " + e.diagnostics)
 
                     self.offset[i] = offset_

@@ -4,24 +4,24 @@ Created on May 17, 2020
 @author: ballance
 '''
 from vsc_test_case import VscTestCase
-from vsc.model.field_composite_model import FieldCompositeModel
-from vsc.model.field_array_model import FieldArrayModel
-from vsc.model.constraint_foreach_model import ConstraintForeachModel
-from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.model.expr_bin_model import ExprBinModel
-from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
-from vsc.model.expr_fieldref_model import ExprFieldRefModel
-from vsc.model.bin_expr_type import BinExprType
-from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.randomizer import Randomizer
-from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
-from vsc.model.constraint_expr_model import ConstraintExprModel
-from vsc.model.field_scalar_model import FieldScalarModel
-from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
-from vsc.model.constraint_implies_model import ConstraintImpliesModel
-from vsc.model.source_info import SourceInfo
-from vsc.model.rand_state import RandState
+from vsc1.model.field_composite_model import FieldCompositeModel
+from vsc1.model.field_array_model import FieldArrayModel
+from vsc1.model.constraint_foreach_model import ConstraintForeachModel
+from vsc1.model.constraint_block_model import ConstraintBlockModel
+from vsc1.model.expr_bin_model import ExprBinModel
+from vsc1.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc1.model.expr_fieldref_model import ExprFieldRefModel
+from vsc1.model.bin_expr_type import BinExprType
+from vsc1.model.expr_literal_model import ExprLiteralModel
+from vsc1.model.randomizer import Randomizer
+from vsc1.visitors.array_constraint_builder import ArrayConstraintBuilder
+from vsc1.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc1.model.constraint_expr_model import ConstraintExprModel
+from vsc1.model.field_scalar_model import FieldScalarModel
+from vsc1.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
+from vsc1.model.constraint_implies_model import ConstraintImpliesModel
+from vsc1.model.source_info import SourceInfo
+from vsc1.model.rand_state import RandState
 
 class TestScalarArrayModel(VscTestCase):
     

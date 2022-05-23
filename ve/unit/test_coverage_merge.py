@@ -5,7 +5,7 @@ Created on Jan 5, 2021
 '''
 import vsc
 from vsc_test_case import VscTestCase
-from vsc.impl.coverage_registry import CoverageRegistry
+from vsc1.impl.coverage_registry import CoverageRegistry
 #from ucis.merge.db_merger import DbMerger
 from ucis.mem.mem_factory import MemFactory
 

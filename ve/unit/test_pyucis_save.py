@@ -16,9 +16,9 @@ from ucis.xml.xml_writer import XmlWriter
 from unittest import TestCase
 
 import vsc
-from vsc.impl import ctor
-from vsc.impl.coverage_registry import CoverageRegistry
-from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
+from vsc1.impl import ctor
+from vsc1.impl.coverage_registry import CoverageRegistry
+from vsc1.visitors.coverage_save_visitor import CoverageSaveVisitor
 from ucis.xml.xml_factory import XmlFactory
 from ucis.report.coverage_report_builder import CoverageReportBuilder
 from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter

@@ -4,10 +4,10 @@ Created on May 6, 2021
 @author: mballance
 '''
 import vsc
-from vsc.model.rand_if import RandIF
+from vsc1.model.rand_if import RandIF
 from vsc_test_case import VscTestCase
 import random
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc1.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 class TestCoverageDrivenConstraints(VscTestCase):

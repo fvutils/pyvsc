@@ -14,17 +14,15 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from vsc.model.coverpoint_model import CoverpointModel
 '''
 Created on Jul 29, 2019
 
 @author: ballance
 '''
 
-from unittest.case import TestCase
-
 import vsc
 from vsc_test_case import VscTestCase
+from vsc1.model.coverpoint_model import CoverpointModel
 
 
 class TestRandomization(VscTestCase):

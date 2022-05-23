@@ -11,7 +11,7 @@ from ucis.report.coverage_report_builder import CoverageReportBuilder
 from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
 from ucis.xml.xml_factory import XmlFactory
 import vsc
-from vsc.coverage import bin_array
+from vsc import bin_array
 from vsc_test_case import VscTestCase
 
 

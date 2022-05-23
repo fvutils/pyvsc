@@ -4,10 +4,10 @@ Created on Mar 20, 2020
 @author: ballance
 '''
 from unittest.case import TestCase
-from vsc.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
-from vsc.model.rangelist_model import RangelistModel
-from vsc.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
-from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
+from vsc1.model.coverpoint_bin_collection_model import CoverpointBinCollectionModel
+from vsc1.model.rangelist_model import RangelistModel
+from vsc1.model.coverpoint_bin_single_range_model import CoverpointBinSingleRangeModel
+from vsc1.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagModel
 
 class TestCoverageBinModel(TestCase):
     

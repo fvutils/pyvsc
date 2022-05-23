@@ -7,7 +7,6 @@ from enum import Enum
 import vsc
 
 from vsc_test_case import VscTestCase
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
 class TestConstraintIfElse(VscTestCase):
@@ -86,5 +85,4 @@ class TestConstraintIfElse(VscTestCase):
                         self.arr[i] == 1
 
         it = my_s()
-        print("Model: " + ModelPrettyPrinter().print(it.get_model()))
         it.randomize()

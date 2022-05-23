@@ -5,7 +5,7 @@ Created on Jul 10, 2020
 '''
 import vsc
 from vsc_test_case import VscTestCase
-from vsc.model.field_scalar_model import FieldScalarModel
+from vsc1.model.field_scalar_model import FieldScalarModel
 
 class TestPerf(VscTestCase):
     

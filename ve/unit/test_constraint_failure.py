@@ -6,7 +6,6 @@ Created on Sep 10, 2020
 
 import vsc
 from vsc_test_case import VscTestCase
-from vsc.model.solve_failure import SolveFailure
 
 class TestConstraintFailure(VscTestCase):
     
@@ -30,6 +29,6 @@ class TestConstraintFailure(VscTestCase):
         try:        
             it.randomize()
             self.fail("no exception thrown")
-        except SolveFailure as e:
+        except vsc.SolveFailure as e:
             pass
         

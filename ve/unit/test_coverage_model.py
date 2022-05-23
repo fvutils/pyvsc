@@ -4,11 +4,11 @@ Created on Mar 7, 2020
 @author: ballance
 '''
 from vsc_test_case import VscTestCase
-from vsc.model.covergroup_model import CovergroupModel
-from vsc.model.coverpoint_model import CoverpointModel
-from vsc.model.expr_ref_model import ExprRefModel
-from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
-from vsc.model.coverage_options_model import CoverageOptionsModel
+from vsc1.model.covergroup_model import CovergroupModel
+from vsc1.model.coverpoint_model import CoverpointModel
+from vsc1.model.expr_ref_model import ExprRefModel
+from vsc1.model.coverpoint_bin_array_model import CoverpointBinArrayModel
+from vsc1.model.coverage_options_model import CoverageOptionsModel
 
 class TestCoverageModel(VscTestCase):
     

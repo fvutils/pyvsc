@@ -36,6 +36,7 @@ from vsc1.attrs import *
 from vsc1.constraints import *
 from vsc1.coverage import *
 from vsc1.methods import *
+from vsc1.model.solve_failure import SolveFailure
 from vsc1.rand_obj import *
 from vsc1.types import *
 from vsc1.visitors.coverage_save_visitor import CoverageSaveVisitor

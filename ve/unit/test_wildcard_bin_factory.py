@@ -4,7 +4,7 @@ Created on Jul 23, 2021
 @author: mballance
 '''
 from vsc_test_case import VscTestCase
-from vsc.impl.wildcard_bin_factory import WildcardBinFactory
+from vsc1.impl.wildcard_bin_factory import WildcardBinFactory
 
 class TestWildcardBinFactory(VscTestCase):
     

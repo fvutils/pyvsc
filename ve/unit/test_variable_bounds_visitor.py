@@ -5,7 +5,7 @@ Created on May 24, 2020
 '''
 from enum import IntEnum, auto
 import vsc
-from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
+from vsc1.visitors.variable_bound_visitor import VariableBoundVisitor
 
 from vsc_test_case import VscTestCase
 

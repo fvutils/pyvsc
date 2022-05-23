@@ -17,11 +17,9 @@
 # under the License.
 
 from unittest.case import TestCase
-from vsc.types import rand_uint16_t
-from vsc.attrs import rand_attr, attr
 import vsc
+from vsc import rand_uint16_t, rand_attr, attr
 from vsc_test_case import VscTestCase
-from vsc.methods import raw_mode
 
 
 class TestCompoundObj(VscTestCase):

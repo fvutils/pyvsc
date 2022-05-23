@@ -7,9 +7,7 @@ from enum import auto, Enum, IntEnum
 import time
 
 import vsc
-from vsc.types import uint8_t
 from vsc_test_case import VscTestCase
-from vsc.methods import raw_mode
 
 
 class TestScalarArray(VscTestCase):
@@ -20,7 +18,7 @@ class TestScalarArray(VscTestCase):
         class my_item_c(object):
             
             def __init__(self):
-                self.my_l = vsc.rand_list_t(uint8_t(), 10)
+                self.my_l = vsc.rand_list_t(vsc.uint8_t(), 10)
                 
             @vsc.constraint
             def my_l_c(self):
@@ -51,7 +49,7 @@ class TestScalarArray(VscTestCase):
         class my_item_c(object):
             
             def __init__(self):
-                self.my_l = vsc.randsz_list_t(uint8_t())
+                self.my_l = vsc.randsz_list_t(vsc.uint8_t())
                 
             @vsc.constraint
             def my_l_c(self):
@@ -85,7 +83,7 @@ class TestScalarArray(VscTestCase):
         class my_item_c(object):
             
             def __init__(self):
-                self.my_l = vsc.randsz_list_t(uint8_t())
+                self.my_l = vsc.randsz_list_t(vsc.uint8_t())
                 
             @vsc.constraint
             def my_l_c(self):
@@ -124,8 +122,8 @@ class TestScalarArray(VscTestCase):
         class my_item_c(object):
             
             def __init__(self):
-                self.my_l_1 = vsc.rand_list_t(uint8_t(), 1000)
-                self.my_l_2 = vsc.rand_list_t(uint8_t(), 1000)
+                self.my_l_1 = vsc.rand_list_t(vsc.uint8_t(), 1000)
+                self.my_l_2 = vsc.rand_list_t(vsc.uint8_t(), 1000)
                 
             @vsc.constraint
             def my_l_c(self):

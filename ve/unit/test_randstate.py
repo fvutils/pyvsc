@@ -4,7 +4,7 @@ Created on Oct 12, 2021
 @author: mballance
 '''
 import vsc
-from vsc.model.rand_state import RandState
+from vsc1.model.rand_state import RandState
 from vsc_test_case import VscTestCase
 
 

@@ -20,10 +20,7 @@ Created on Dec 23, 2019
 @author: ballance
 '''
 
-from unittest.case import TestCase
-
 import vsc
-from vsc.types import rand_bit_t
 from vsc_test_case import VscTestCase
 
 
@@ -36,10 +33,10 @@ class TestRandomizeWith(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(16)
-                self.c = rand_bit_t(16)
-                self.d = rand_bit_t(16)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(16)
+                self.c = vsc.rand_bit_t(16)
+                self.d = vsc.rand_bit_t(16)
 #                 self.e = rand_bit_t(16)
 #                 self.f = rand_bit_t(16)
 #                 self.g = rand_bit_t(16)

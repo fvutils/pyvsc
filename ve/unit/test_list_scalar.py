@@ -6,7 +6,7 @@ Created on Jun 21, 2020
 from enum import Enum, auto, IntEnum
 
 import vsc
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc1.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc_test_case import VscTestCase
 
 

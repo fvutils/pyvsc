@@ -20,11 +20,8 @@ Created on Jan 22, 2020
 @author: ballance
 '''
 
-from unittest.case import TestCase
-
 import vsc
-from vsc.model.rand_info_builder import RandInfoBuilder
-from vsc.types import rand_bit_t
+from vsc1.model.rand_info_builder import RandInfoBuilder
 from vsc_test_case import VscTestCase
 
 
@@ -36,8 +33,8 @@ class TestRandInfoBuilder(VscTestCase):
         class my_cls(object):
             
             def __init__(self):
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
                 
         my_cls_i = my_cls()
 
@@ -55,8 +52,8 @@ class TestRandInfoBuilder(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def a_c(self):
@@ -79,8 +76,8 @@ class TestRandInfoBuilder(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def a_c(self):
@@ -106,8 +103,8 @@ class TestRandInfoBuilder(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def a_c(self):
@@ -130,10 +127,10 @@ class TestRandInfoBuilder(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
-                self.c = rand_bit_t(8)
-                self.d = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def a_c(self):
@@ -159,10 +156,10 @@ class TestRandInfoBuilder(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
-                self.c = rand_bit_t(8)
-                self.d = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def a_c(self):
@@ -187,10 +184,10 @@ class TestRandInfoBuilder(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
-                self.c = rand_bit_t(8)
-                self.d = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def a_c(self):
@@ -216,10 +213,10 @@ class TestRandInfoBuilder(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_bit_t(8)
-                self.b = rand_bit_t(8)
-                self.c = rand_bit_t(8)
-                self.d = rand_bit_t(8)
+                self.a = vsc.rand_bit_t(8)
+                self.b = vsc.rand_bit_t(8)
+                self.c = vsc.rand_bit_t(8)
+                self.d = vsc.rand_bit_t(8)
                 
             @vsc.constraint
             def a_c(self):

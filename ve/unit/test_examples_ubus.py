@@ -25,7 +25,7 @@ Created on Jan 23, 2020
 from unittest.case import TestCase
 
 import vsc
-from vsc.types import rand_enum_t, rand_bit_t, rangelist
+from vsc import rand_enum_t, rand_bit_t, rangelist
 from enum import Enum, auto, IntEnum
 
 

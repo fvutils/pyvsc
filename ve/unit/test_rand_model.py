@@ -3,21 +3,20 @@ Created on Feb 29, 2020
 
 @author: ballance
 '''
-from unittest.case import TestCase
-
-from vsc.model.bin_expr_type import BinExprType
-from vsc.model.constraint_block_model import ConstraintBlockModel
-from vsc.model.constraint_expr_model import ConstraintExprModel
-from vsc.model.expr_bin_model import ExprBinModel
-from vsc.model.expr_literal_model import ExprLiteralModel
-from vsc.model.field_composite_model import FieldCompositeModel
-from vsc.model.field_scalar_model import FieldScalarModel
-from vsc.model.randomizer import Randomizer
-from vsc.model.source_info import SourceInfo
-from vsc.model.value_scalar import ValueScalar
 
 from vsc_test_case import VscTestCase
-from vsc.model.rand_state import RandState
+
+from vsc1.model.bin_expr_type import BinExprType
+from vsc1.model.constraint_block_model import ConstraintBlockModel
+from vsc1.model.constraint_expr_model import ConstraintExprModel
+from vsc1.model.expr_bin_model import ExprBinModel
+from vsc1.model.expr_literal_model import ExprLiteralModel
+from vsc1.model.field_composite_model import FieldCompositeModel
+from vsc1.model.field_scalar_model import FieldScalarModel
+from vsc1.model.randomizer import Randomizer
+from vsc1.model.source_info import SourceInfo
+from vsc1.model.value_scalar import ValueScalar
+from vsc1.model.rand_state import RandState
 
 
 class TestRandModel(VscTestCase):

@@ -16,8 +16,6 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from vsc.types import rangelist
-from vsc_test_case import VscTestCase
 
 
 '''
@@ -26,9 +24,8 @@ Created on Jul 28, 2019
 @author: ballance
 '''
 
-import unittest
-from unittest.case import TestCase
 import vsc
+from vsc_test_case import VscTestCase
 
 class TestIfElse(VscTestCase):
 
@@ -72,18 +69,18 @@ class TestIfElse(VscTestCase):
             @vsc.constraint
             def ab_c(self):
                 
-                self.a in rangelist(1,5)
+                self.a in vsc.rangelist(1,5)
                 
                 with vsc.if_then(self.a == 1):
-                    self.b in rangelist(0,10)
+                    self.b in vsc.rangelist(0,10)
                 with vsc.else_if(self.a == 2):
-                    self.b in rangelist(11,20)
+                    self.b in vsc.rangelist(11,20)
                 with vsc.else_if(self.a == 3):
-                    self.b in rangelist(21,30)
+                    self.b in vsc.rangelist(21,30)
                 with vsc.else_if(self.a == 4):
-                    self.b in rangelist(31,40)
+                    self.b in vsc.rangelist(31,40)
                 with vsc.else_if(self.a == 5):
-                    self.b in rangelist(41,50)
+                    self.b in vsc.rangelist(41,50)
 
         v = my_s()
         for i in range(8):

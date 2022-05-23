@@ -5,7 +5,7 @@ Created on Apr 10, 2020
 '''
 from vsc_test_case import VscTestCase
 import vsc
-from vsc.coverage import bin_array
+from vsc import bin_array
 
 class TestCovergroupParameterized(VscTestCase):
     

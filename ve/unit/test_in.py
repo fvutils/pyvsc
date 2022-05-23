@@ -14,19 +14,16 @@
 # KIND, either express or implied.  See the License for the
 # specific language governing permissions and limitations
 # under the License.
-from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
-from enum import Enum, auto
 '''
 Created on Jul 28, 2019
 
 @author: ballance
 '''
 
-import unittest
-from unittest.case import TestCase
 
 import vsc
 from vsc_test_case import VscTestCase
+from enum import Enum, auto
 
 
 class TestIn(VscTestCase):
