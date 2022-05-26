@@ -1,3 +1,4 @@
 
 from .decorators import *
-from .types import rand, int_t, bit_t, rand_uint8_t
+from .impl.test_methods import *
+from .types import *

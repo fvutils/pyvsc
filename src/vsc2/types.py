@@ -30,7 +30,7 @@ class bit_t(ScalarT, metaclass=BitTMeta):
     pass
 
 #********************************************************************
-#* Compat types with vsc1
+#* Compat types that match with vsc1
 #********************************************************************
 rand_uint8_t = rand[bit_t[8]]
 rand_uint16_t = rand[bit_t[16]]
@@ -42,4 +42,17 @@ rand_int16_t = rand[int_t[16]]
 rand_int32_t = rand[int_t[32]]
 rand_int64_t = rand[int_t[64]]
 
+uint8_t = bit_t[8]
+uint16_t = bit_t[16]
+uint32_t = bit_t[32]
+uint64_t = bit_t[64]
+
+int8_t = int_t[8]
+int16_t = int_t[16]
+int32_t = int_t[32]
+int64_t = int_t[64]
+
+def rand_attr(f):
+    f._modelinfo.set_rand()
+    return f
 

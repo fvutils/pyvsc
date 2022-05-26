@@ -44,8 +44,16 @@ class Ctor():
     def push_expr(self, e):
         self._expr_s.append(e)
         
-    def pop_expr(self):
-        self._expr_s.pop()
+    def pop_expr(self, e=None):
+        if e is not None:
+            if self._expr_s[-1] is e:
+                return self._expr_s.pop()
+            elif len(self._expr_s) > 1 and self._expr_s[-2] is e:
+                return self.expr_e.pop(-2)
+            else:
+                raise Exception("Failed to find target")
+        else:
+            return self._expr_s.pop()
         
     def expr(self):
         if len(self._expr_s) > 0:

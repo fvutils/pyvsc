@@ -3,19 +3,20 @@ Created on Mar 11, 2022
 
 @author: mballance
 '''
-from vsc2.impl.ctor import Ctor
 from libvsc import core
 from libvsc.core import Context
+
+from vsc2.impl.ctor import Ctor
 from vsc2.impl.expr import Expr
+from vsc2.impl.field_base_impl import FieldBaseImpl
 from vsc2.impl.field_modelinfo import FieldModelInfo
 
-class FieldScalarImpl(object):
+
+class FieldScalarImpl(FieldBaseImpl):
     
     def __init__(self, name, lib_field, is_signed):
-        ctxt : Context = Ctor.inst().ctxt()
-        self._modelinfo = FieldModelInfo(self, name)
+        super().__init__(name, lib_field)
         
-        self._modelinfo._lib_obj = lib_field
         self._is_signed = is_signed
         
         # if width <= 64:
@@ -31,11 +32,8 @@ class FieldScalarImpl(object):
         #     self._model.setFlag(core.ModelFieldFlag.DeclRand)
         #     self._model.setFlag(core.ModelFieldFlag.UsedRand)
         
-    def model(self):
-        return self._modelinfo._lib_obj
     
     def get_val(self):
-        print("get_val: %d" % self._modelinfo._lib_obj.val().val_u())
         if self._is_signed:
             return self._modelinfo._lib_obj.val().val_i()
         else:
@@ -55,36 +53,26 @@ class FieldScalarImpl(object):
     def val(self, v):
         self._modelinfo._lib_obj.val().set_val_i(v)
         
-    def _to_expr(self):
-        ctor = Ctor.inst()
 
-        if ctor.is_type_mode():
-            ref = ctor.ctxt().mkTypeExprFieldRef()
-            mi = self._modelinfo
-            while mi._parent is not None:
-                ref.addIdxRef(mi._idx)
-                mi = mi._parent
-            ref.addRootRef()
-        else:        
-            ref = ctor.ctxt().mkModelExprFieldRef(self.model())
-        
-        return Expr(ref)
     
     def _bin_expr(self, op, rhs):
         ctor = Ctor.inst()
         
-        print("_bin_expr")
+        print("_bin_expr: op=%s" % op, flush=True)
 
-        if isinstance(rhs, Expr):        
+        if isinstance(rhs, Expr):
             rhs_e = rhs
         else:
             rhs_e = Expr.toExpr(rhs)
-            ctor.pop_expr()
+            
+        ctor.pop_expr(rhs_e)
 
 #        push_expr(ExprFieldRefModel(self._int_field_info.model))
         # Push a reference to this field
         lhs_e = Expr.toExpr(self)
-        ctor.pop_expr()
+        ctor.pop_expr(lhs_e)
+        
+        print("lhs_e=%s rhs_e=%s" % (str(lhs_e), str(rhs_e)), flush=True)
 
         if ctor.is_type_mode():
             model = ctor.ctxt().mkTypeExprBin(
@@ -139,10 +127,10 @@ class FieldScalarImpl(object):
         return self._bin_expr(core.BinOp.Mod, rhs)
     
     def __and__(self, rhs):
-        return self._bin_expr(core.BinOp.And, rhs)
+        return self._bin_expr(core.BinOp.BinAnd, rhs)
     
     def __or__(self, rhs):
-        return self._bin_expr(core.BinOp.Or, rhs)
+        return self._bin_expr(core.BinOp.BinOr, rhs)
     
     def __xor__(self, rhs):
         return self._bin_expr(core.BinOp.Xor, rhs)
@@ -157,6 +145,7 @@ class FieldScalarImpl(object):
         return self._bin_expr(core.BinOp.Not, rhs)
    
     def __invert__(self): 
+        ctor = Ctor.inst()
         self.to_expr()
         lhs = pop_expr()
         return expr(ExprUnaryModel(UnaryExprType.Not, lhs))
@@ -202,21 +191,25 @@ class FieldScalarImpl(object):
     
         
     def __getitem__(self, rng):
-        if is_expr_mode():
+        ctor = Ctor.inst()
+        
+        if ctor.expr_mode():
             if isinstance(rng, slice):
                 # slice
-                to_expr(rng.start)
-                upper = pop_expr()
-                to_expr(rng.stop)
-                lower = pop_expr()
-                return expr(ExprPartselectModel(
-                    ExprFieldRefModel(self._int_field_info.model), upper, lower))
+                upper = Expr.toExpr(rng.start)
+                upper = ctor.pop_expr(upper)
+                Expr.toExpr(rng.stop)
+                lower = ctor.pop_expr()
+                return Expr(ctor.ctxt().mkModelExprPartSelect(
+                    ctor.ctxt().mkModelExprFieldRefModel(self._int_field_info.model), 
+                    upper, 
+                    lower))
             else:
                 # single value
-                to_expr(rng)
-                e = pop_expr()
-                return expr(ExprPartselectModel(
-                    ExprFieldRefModel(self._int_field_info.model), e))
+                Expr.toExpr(rng)
+                e = ctor.pop_expr()
+                return Expr(ctor.ctxt().mkModelExprPartSelect(
+                    ctor.ctxt().mkModelExprFieldRef(self._int_field_info.model), e))
         else:
             curr = int(self.get_model().get_val())
             if isinstance(rng, slice):
@@ -227,7 +220,8 @@ class FieldScalarImpl(object):
             return curr
             
     def __setitem__(self, rng, val):
-        if not is_expr_mode():
+        ctor = Ctor.inst()
+        if not ctor.expr_mode():
             curr = int(self.get_model().get_val())
             if isinstance(rng, slice):
                 msk = ((1 << (rng.start-rng.stop))-1) << rng.stop

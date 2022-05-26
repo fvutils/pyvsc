@@ -38,7 +38,7 @@ class Expr(object):
         rhs_e = Expr.toExpr(rhs)
         lhs_e = self._model
 
-        ctor.pop_expr()
+        ctor.pop_expr(rhs)
         ctor.pop_expr()
        
         model = ctxt.mkModelExprBin(

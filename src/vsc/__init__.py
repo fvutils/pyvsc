@@ -1,2 +1,3 @@
 
-from vsc1 import *
+
+from vsc2 import *

@@ -19,5 +19,6 @@ class IntTMeta(type):
             t = type("int_t[%d]" % item, (ScalarT,), {})
             t.W = item
             t.S = True
+            self.type_m[item] = t
             return t
         

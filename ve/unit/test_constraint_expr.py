@@ -14,6 +14,8 @@ class TestConstraintExpr(VscTestCase):
             def __init__(self):
                 self.a = vsc.rand_uint8_t()
                 self.b = vsc.rand_uint8_t()
+                self.b = vsc.uint8_t()
+                print("__init__ a=%s" %str(self.a))
                 
         my_i = my_c()
         for i in range(2):
@@ -98,7 +100,9 @@ class TestConstraintExpr(VscTestCase):
                 
         my_i = my_c()
         with my_i.randomize_with(debug=1) as it:
+#            it.c == (it.a + it.b)
             it.c == (it.a + it.b)
+            pass
         self.assertEqual(my_i.c, (my_i.a+my_i.b))
 
     def test_sub(self):
@@ -181,6 +185,7 @@ class TestConstraintExpr(VscTestCase):
         my_i = my_c()
         with my_i.randomize_with() as it:
             it.c == (it.a % it.b)
+        self.assertNotEqual(my_i.b, 0)
         self.assertEqual(my_i.c, (my_i.a%my_i.b))
 
     def test_and(self):

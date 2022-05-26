@@ -16,5 +16,6 @@ class RandTMeta(type):
         else:
             t = type('rand_t[%s]' % str(item), (RandT,), {})
             t.T = item
+            self.type_m[item] = t
             return t
         
