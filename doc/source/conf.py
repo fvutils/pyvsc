@@ -10,7 +10,6 @@
 
 import datetime
 import os
-import subprocess
 import sys
 
 # If extensions (or modules to document with autodoc) are in another directory,
@@ -18,10 +17,6 @@ import sys
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 sys.path.insert(0, os.path.abspath('../..'))
 
-# Add in-tree extensions to path
-sys.path.insert(0, os.path.abspath('../sphinxext'))
-
-#import cocotb
 from distutils.version import LooseVersion
 
 os.environ["SPHINX_BUILD"] = "1"
@@ -66,7 +61,7 @@ issues_github_path = "fvutils/pyvsc"
 templates_path = ['_templates']
 
 # The suffix of source filenames.
-source_suffix = '.rst'
+#source_suffix = '.rst'
 
 # The encoding of source files.
 #source_encoding = 'utf-8-sig'
@@ -143,15 +138,7 @@ pygments_style = 'sphinx'
 # or
 # - apt-get install python-sphinx-rtd-theme
 
-try:
-    import sphinx_rtd_theme
-    html_theme = 'sphinx_rtd_theme'
-except ImportError:
-    sys.stderr.write('Warning: The Sphinx \'sphinx_rtd_theme\' HTML theme was '+
-        'not found. Make sure you have the theme installed to produce pretty '+
-        'HTML output. Falling back to the default theme.\n')
-
-    html_theme = 'default'
+html_theme = 'sphinx_rtd_theme'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -182,11 +169,11 @@ except ImportError:
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-html_context = {
-    'css_files': [
-        '_static/custom.css',  # overrides for wide tables in RTD theme
-        ],
-    }
+#html_context = {
+#    'css_files': [
+#        '_static/custom.css',  # overrides for wide tables in RTD theme
+#        ],
+#    }
 
 # If not '', a 'Last updated on:' timestamp is inserted at every page bottom,
 # using the given strftime format.
@@ -318,8 +305,6 @@ todo_include_todos = True
 
 env = os.environ.copy()
 env['PATH'] += ':.venv.bld/bin'
-#subprocess.call('doxygen', cwd='..')
-#subprocess.call(['breathe-apidoc', '-o', 'source/generated', 'source/doxygen/_xml', '-f'], env=env, cwd='..')
 
 
 #breathe_projects = { "pyvsc": "doxygen/_xml" }

@@ -522,13 +522,143 @@ Coverage Reports
 ================
 
 PyVSC provides three methods for obtaining a coverage report. 
+
 - `get_coverage_report_model` -- Returns a coverage-report object with information about each type and instance of coverage
 - `get_coverage_report` -- Returns a string with a textual coverage report
 - `report_coverage` -- Prints a coverage report to a stream (defaults to stdout)
 
+Saving Coverage Data
+====================
+
+PyVSC uses the `PyUCIS <https://github.com/fvutils/pyucis>`_ library to export
+coverage data using the API or XML interchange format defined by the
+`Accellera UCIS <https://accellera.org/downloads/standards/ucis>` standard.
+
+Using the PyUCIS library, PyVSC can write coverage data to an XML-format
+coverage interchange file. Or, can write coverage data directly to a
+coverage database using a shared library that implements the UCIS C API.
+
+PyVSC provides the `write_coverage_db` method for saving coverage data.
+
+Saving to XML
+-------------
+
+By default, the `write_coverage_db` method saves coverage data to an
+XML file formatted according to the UCIS interchange-format schema.
+
+.. code-block:: python3
+
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin(1, 2, 4),
+                    "b" : vsc.bin(8, [12,15])
+                    })
+                    
+       my_cg_1 = my_covergroup()
+       my_cg_1.sample(1)
+       my_cg_1.sample(2)
+       my_cg_1.sample(8)
+       
+       vsc.write_coverage_db('cov.xml')
+       
+Saving via a UCIS API Implementation
+------------------------------------
+
+When an implementation of the UCIS C API is available, PyVSC
+can write coverage data using that API implementation. In this
+case, the `fmt` parameter of the `write_coverage_db` method 
+must be specified as `libucis`. The `libucis` parameter of 
+the method must specify the name of the shared library that
+implements the UCIS API.
+
+In the example below, the tool-provided shared library that
+implements the UCIS API is named `libucis.so`. 
+
+.. code-block:: python3
+
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin(1, 2, 4),
+                    "b" : vsc.bin(8, [12,15])
+                    })
+                    
+       my_cg_1 = my_covergroup()
+       my_cg_1.sample(1)
+       my_cg_1.sample(2)
+       my_cg_1.sample(8)
+       
+       vsc.write_coverage_db('cov.db', fmt='libucis', libucis='libucis.so')
+
+Calling `write_coverage_db` in this way causes the PyUCIS library
+to load the specified shared library and call UCIS C API functions
+to record the coverage data collected by the PyVSC library.
+
+Using Coverage Data
+===================
+
+Coverage data saved from PyVSC can be used in several open-source and
+closed-source commercial tool flows. The sections below describe 
+flows that PyVSC data is known to have been used in.
+
+.. note::
+
+  The information below with respect to closed-source/commercial tool 
+  flows represents data collected from users of those flows and tools. 
+  You are well-advised to confirm the accuracy of the information 
+  with the relevant vendor's documentation and/or Application Engineers.
+
+Please report other tool flows that accept coverage data from PyVSC
+via the project's `Issues <https://github.com/fvutils/pyvsc/issues>` or 
+`Discussion <https://github.com/fvutils/pyvsc/discussions>` areas.
+
+Viewing Coverage with PyUCIS-Viewer
+-----------------------------------
+
+`PyUCIS-Viewer <https://github.com/fvutils/pyucis-viewer>`_ is a very
+simple graphical viewer for functional coverage data. It currently 
+supports reading coverage data from UCIS XML-interchange-formatted
+files.
+
+Siemens Questa: Writing Coverage Data
+-------------------------------------
+
+Siemens Questa [#]_ is reported to provide a library that implements the 
+UCIS C API. Using this library, coverage data can be written
+directly to a Questa coverage database. See the information above about
+writing coverage data to a UCIS API implementation for more information
+on how to utilize this flow.
+
+ 
+Synopsys VCS: Importing Coverage Data
+-------------------------------------
+
+Bringing coverage in UCIS XML-interchange format into the Synopsys VCS [#]_ 
+metric analysis flow has been described using an import command. To follow
+this flow, write coverage data out from PyVSC in UCIS XML-interchange format.
+
+Use the following VCS import command to read the data from the XML coverage
+file into a VCS coverage database:
+
+.. code:: shell
+
+  % covimport -readucis <cov.xml> -dbname <cov.vdb>
 
 
 
+.. [#] Questa is a trademark of Siemens Industry Software Inc.
+.. [#] VCS is a trademark of Synopsys Inc.
 
 
 
