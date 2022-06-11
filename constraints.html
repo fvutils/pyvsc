@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PyVSC Constraints &mdash; pyvsc 0.0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="PyVSC Coverage" href="coverage.html" />
+    <link rel="prev" title="PyVSC Data Types" href="data_types.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> pyvsc
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_types.html">PyVSC Data Types</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">PyVSC Constraints</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#constraint-blocks">Constraint Blocks</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#expressions">Expressions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dynamic-constraint-reference">Dynamic-constraint Reference</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#in">in</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#mutable-rangelists">Mutable Rangelists</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#part-select">part select</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#statements">Statements</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#dist">dist</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#foreach">foreach</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#if-else">if/else</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#implies">implies</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#soft">soft</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#solve-order">solve_order</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#unique">unique</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#customizing-constraint-behavior">Customizing Constraint Behavior</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#randomize-with">Randomize-With</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#constraint-mode">Constraint Mode</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#rand-mode">Rand Mode</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="coverage.html">PyVSC Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods.html">PyVSC Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">PyVSC Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyvsc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>PyVSC Constraints</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/constraints.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="pyvsc-constraints">
+<h1>PyVSC Constraints<a class="headerlink" href="#pyvsc-constraints" title="Permalink to this heading"></a></h1>
+<section id="constraint-blocks">
+<h2>Constraint Blocks<a class="headerlink" href="#constraint-blocks" title="Permalink to this heading"></a></h2>
+<p>Constraint blocks are class methods decorated with the <a class="reference internal" href="reference.html#vsc.constraints.constraint" title="vsc.constraints.constraint"><code class="xref any py py-func docutils literal notranslate"><span class="pre">constraint</span></code></a>
+decorator. Dynamic constraint blocks are decorated with the
+<a class="reference internal" href="reference.html#vsc.constraints.dynamic_constraint" title="vsc.constraints.dynamic_constraint"><code class="xref any py py-func docutils literal notranslate"><span class="pre">dynamic_constraint</span></code></a> decorator.</p>
+<p>Constraint blocks are ‘virtual’, in that constraints can be overridden
+by inheritance.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_base_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+
+<span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_ext_s</span><span class="p">(</span><span class="n">my_base_s</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&gt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+</pre></div>
+</div>
+<p>Instances of <code class="docutils literal notranslate"><span class="pre">my_base_s</span></code> will ensure that <code class="docutils literal notranslate"><span class="pre">a</span></code> is less than <code class="docutils literal notranslate"><span class="pre">b</span></code>. Instances
+of <code class="docutils literal notranslate"><span class="pre">my_ext_s</span></code> will ensure that <code class="docutils literal notranslate"><span class="pre">a</span></code> is greater than <code class="docutils literal notranslate"><span class="pre">b</span></code>.</p>
+</section>
+<section id="expressions">
+<h2>Expressions<a class="headerlink" href="#expressions" title="Permalink to this heading"></a></h2>
+<section id="dynamic-constraint-reference">
+<h3>Dynamic-constraint Reference<a class="headerlink" href="#dynamic-constraint-reference" title="Permalink to this heading"></a></h3>
+<p>Constraint blocks decorated with <a class="reference internal" href="reference.html#vsc.constraints.constraint" title="vsc.constraints.constraint"><code class="xref any py py-func docutils literal notranslate"><span class="pre">constraint</span></code></a> always apply.
+Dynamic-constraint blocks, decorated with <a class="reference internal" href="reference.html#vsc.constraints.dynamic_constraint" title="vsc.constraints.dynamic_constraint"><code class="xref any py py-func docutils literal notranslate"><span class="pre">dynamic_constraint</span></code></a> only
+apply when referenced. A dynamic constraint is referenced using syntax
+similar to a method call.</p>
+<p>Dynamic constraints provide an abstraction mechanism for applying a
+condition without knowing the details of what that condition is.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_cls</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">a_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;=</span> <span class="mi">100</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">dynamic_constraint</span>
+    <span class="k">def</span> <span class="nf">a_small</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="ow">in</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">rng</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">dynamic_constraint</span>
+    <span class="k">def</span> <span class="nf">a_large</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="ow">in</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">rng</span><span class="p">(</span><span class="mi">90</span><span class="p">,</span><span class="mi">100</span><span class="p">))</span>
+
+<span class="n">my_i</span> <span class="o">=</span> <span class="n">my_cls</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">my_i</span><span class="o">.</span><span class="n">randomize</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">my_i</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">()</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+    <span class="n">it</span><span class="o">.</span><span class="n">a_small</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">my_i</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">()</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+    <span class="n">it</span><span class="o">.</span><span class="n">a_large</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">my_i</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">()</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+    <span class="n">it</span><span class="o">.</span><span class="n">a_small</span><span class="p">()</span> <span class="o">|</span> <span class="n">it</span><span class="o">.</span><span class="n">a_large</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>The example above defines two dynamic constraints. One ensures that the
+range of <code class="docutils literal notranslate"><span class="pre">a</span></code> is inside 1..10, while the other ensures that the range of
+<code class="docutils literal notranslate"><span class="pre">a</span></code> is inside 90..100.</p>
+<p>The first randomization call results in a value of a across the full
+value of <code class="docutils literal notranslate"><span class="pre">a</span></code> (0..100).</p>
+<p>The second randomization call results in the value of <code class="docutils literal notranslate"><span class="pre">a</span></code> being 1..10.</p>
+<p>The third randomization call results in the value of <code class="docutils literal notranslate"><span class="pre">a</span></code> being 90..100.</p>
+<p>The final randomization call results in the value of <code class="docutils literal notranslate"><span class="pre">a</span></code> being either
+1..10 or 90..100.</p>
+</section>
+<section id="in">
+<h3>in<a class="headerlink" href="#in" title="Permalink to this heading"></a></h3>
+<p>PyVSC provides two ways of expressing set-membership constraints. Python’s
+<code class="docutils literal notranslate"><span class="pre">in</span></code> operator may be used directly to express simple cases. More complex
+cases, including negation of set-membership, may be captured using the
+<a class="reference internal" href="reference.html#vsc.types.expr.inside" title="vsc.types.expr.inside"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">inside</span></code></a> and <a class="reference internal" href="reference.html#vsc.types.expr.not_inside" title="vsc.types.expr.not_inside"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">not_inside</span></code></a> methods on PyVSC scalar data types.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">in</span></code> constraint ensures that the value of the specified variable
+stays inside the specified ranges. Both individual values and
+ranges may be specified. In the example below, the value of <code class="docutils literal notranslate"><span class="pre">a</span></code> will be
+1, 2, or 4..8. The value of <code class="docutils literal notranslate"><span class="pre">b</span></code> will be between <code class="docutils literal notranslate"><span class="pre">c</span></code> and <code class="docutils literal notranslate"><span class="pre">d</span></code> (inclusive).</p>
+<p>The right-hand side of an ‘in’ constraint must be a <code class="docutils literal notranslate"><span class="pre">rangelist</span></code> expression.
+Elements in a <code class="docutils literal notranslate"><span class="pre">rangelist</span></code> may be:
+- individual expressions
+- ranges of expressions, using <code class="docutils literal notranslate"><span class="pre">rng</span></code> or a tuple of two expressions
+- a list of expressions or ranges</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+       <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="ow">in</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rng</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">!=</span> <span class="mi">0</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span>
+
+       <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="ow">in</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">rng</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>PyVSC scalar data types provide <a class="reference internal" href="reference.html#vsc.types.expr.inside" title="vsc.types.expr.inside"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">inside</span></code></a> and <a class="reference internal" href="reference.html#vsc.types.expr.not_inside" title="vsc.types.expr.not_inside"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">not_inside</span></code></a> methods that to express
+set membership.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+       <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="ow">in</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rng</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span><span class="mi">8</span><span class="p">))</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">!=</span> <span class="mi">0</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span>
+
+       <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="o">.</span><span class="n">inside</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+       <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="o">.</span><span class="n">not_inside</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>In the example above, the <code class="xref any docutils literal notranslate"><span class="pre">b</span></code> variable will be inside the range (1,2,4,8).
+The <code class="xref any docutils literal notranslate"><span class="pre">c</span></code> variable will be outside (ie not equal to) (1,2,4,8)</p>
+</section>
+<section id="mutable-rangelists">
+<h3>Mutable Rangelists<a class="headerlink" href="#mutable-rangelists" title="Permalink to this heading"></a></h3>
+<p>It is sometimes useful to change the value/range list used in an
+<a class="reference external" href="https://docs.python.org/3/reference/expressions.html#in" title="(in Python v3.10)"><code class="docutils literal notranslate"><span class="pre">Membership</span> <span class="pre">test</span> <span class="pre">operations</span></code></a> constraint between randomizations. The <a class="reference internal" href="reference.html#vsc.types.rangelist" title="vsc.types.rangelist"><code class="xref any py py-class docutils literal notranslate"><span class="pre">rangelist</span></code></a> class can be
+constructed as a class member, referenced in constraints, and modified
+between calls to <code class="xref any docutils literal notranslate"><span class="pre">randomize</span></code>.</p>
+<p>The <a class="reference internal" href="reference.html#vsc.types.rangelist" title="vsc.types.rangelist"><code class="xref any py py-class docutils literal notranslate"><span class="pre">rangelist</span></code></a> class provides three methods to modify the values in
+a rangelist after it has been created:</p>
+<ul class="simple">
+<li><p>append() – Add a new value or range tuple</p></li>
+<li><p>clear() – Remove all previously-added ranges</p></li>
+<li><p>extend() – Add a list of values and/or range tuples to the rangelist</p></li>
+</ul>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">Selector</span><span class="p">():</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">availableList</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">((</span><span class="mi">0</span><span class="p">,</span><span class="mi">900</span><span class="p">))</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">selectedList</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_list_t</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint32_t</span><span class="p">(),</span> <span class="mi">15</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">available_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">foreach</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">selectedList</span><span class="p">)</span> <span class="k">as</span> <span class="n">sel</span><span class="p">:</span>
+            <span class="n">sel</span><span class="o">.</span><span class="n">inside</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">availableList</span><span class="p">)</span>
+
+    <span class="k">def</span> <span class="nf">getSelected</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&#39;&#39;&#39;Returns a sorted list of selected integers.&#39;&#39;&#39;</span>
+        <span class="n">selected</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">resource</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">selectedList</span><span class="p">:</span>
+            <span class="n">selected</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">resource</span><span class="p">))</span>
+        <span class="n">selected</span><span class="o">.</span><span class="n">sort</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">selected</span>
+
+<span class="n">selector</span> <span class="o">=</span> <span class="n">Selector</span><span class="p">()</span>
+
+<span class="n">selector</span><span class="o">.</span><span class="n">randomize</span><span class="p">()</span>
+
+<span class="n">selector</span><span class="o">.</span><span class="n">availableList</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+<span class="n">selector</span><span class="o">.</span><span class="n">availableList</span><span class="o">.</span><span class="n">extend</span><span class="p">([(</span><span class="mi">1000</span><span class="p">,</span> <span class="mi">2000</span><span class="p">)])</span>
+
+<span class="n">selector</span><span class="o">.</span><span class="n">randomize</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>In the example above, the rangelist is initially created to contain
+a value range of 0..900. All values in the <code class="xref any docutils literal notranslate"><span class="pre">selectedList</span></code> produced
+by the first randomization will fall in this range.</p>
+<p>The rangelist is subsequently cleared, and a new range 1000..2000
+added. The second randomization will produce values in the 1000..2000
+range.</p>
+</section>
+<section id="part-select">
+<h3>part select<a class="headerlink" href="#part-select" title="Permalink to this heading"></a></h3>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">7</span><span class="p">:</span><span class="mi">3</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">[</span><span class="mi">4</span><span class="p">]</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="statements">
+<h2>Statements<a class="headerlink" href="#statements" title="Permalink to this heading"></a></h2>
+<section id="dist">
+<h3>dist<a class="headerlink" href="#dist" title="Permalink to this heading"></a></h3>
+<p>Distribution constraints associate weights with values or value ranges
+of the specified variable.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">dist_a</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">vsc</span><span class="o">.</span><span class="n">dist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">10</span><span class="p">),</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">20</span><span class="p">),</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">40</span><span class="p">),</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">80</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Any otherwise-legal values for the variable that does not have a non-zero
+weight associated will be excluded from the legal value set. The example
+above associates non-zero weights with 1, 2, 4, 8. So, a value such as ‘3’
+will not be produced.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">dist_a</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">vsc</span><span class="o">.</span><span class="n">dist</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="p">[</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">((</span><span class="mi">10</span><span class="p">,</span><span class="mi">15</span><span class="p">),</span>  <span class="mi">80</span><span class="p">),</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">((</span><span class="mi">20</span><span class="p">,</span><span class="mi">30</span><span class="p">),</span>  <span class="mi">40</span><span class="p">),</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">((</span><span class="mi">40</span><span class="p">,</span><span class="mi">70</span><span class="p">),</span>  <span class="mi">20</span><span class="p">),</span>
+            <span class="n">vsc</span><span class="o">.</span><span class="n">weight</span><span class="p">((</span><span class="mi">80</span><span class="p">,</span><span class="mi">100</span><span class="p">),</span> <span class="mi">10</span><span class="p">)])</span>
+</pre></div>
+</div>
+<p>Ranges for weights are specified as a tuple, as shown above.</p>
+</section>
+<section id="foreach">
+<h3>foreach<a class="headerlink" href="#foreach" title="Permalink to this heading"></a></h3>
+<p>foreach constraints are modeled with the <a class="reference internal" href="reference.html#vsc.constraints.foreach" title="vsc.constraints.foreach"><code class="xref any py py-class docutils literal notranslate"><span class="pre">foreach</span></code></a> class. By default,
+the foreach iterator is a reference to the current element of the array.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">);</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">my_l</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_list_t</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">my_l_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">foreach</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">my_l</span><span class="p">)</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+            <span class="n">it</span> <span class="o">&lt;</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="reference.html#vsc.constraints.foreach" title="vsc.constraints.foreach"><code class="xref any py py-class docutils literal notranslate"><span class="pre">foreach</span></code></a> class supports control over whether the item, index,
+or both is provided for use in constraints.</p>
+<p>Here is an example of requesting the index instead of the iterator.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">);</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">my_l</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_list_t</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">my_l_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">foreach</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">my_l</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">i</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">my_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<p>Here is an example of explicitly requesting the iterator.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">);</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">my_l</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_list_t</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">my_l_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">foreach</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">my_l</span><span class="p">,</span> <span class="n">it</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+            <span class="n">it</span> <span class="o">&lt;</span> <span class="mi">10</span>
+</pre></div>
+</div>
+<p>Now, finally, here is an example of having both an iterator and
+index.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">);</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">my_l</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_list_t</span><span class="p">(</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span> <span class="mi">4</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">my_l_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">foreach</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">my_l</span><span class="p">,</span> <span class="n">it</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span> <span class="k">as</span> <span class="p">(</span><span class="n">i</span><span class="p">,</span><span class="n">it</span><span class="p">):</span>
+            <span class="n">it</span> <span class="o">==</span> <span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="if-else">
+<h3>if/else<a class="headerlink" href="#if-else" title="Permalink to this heading"></a></h3>
+<p>if/else constraints are modeled using three statements:</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="reference.html#vsc.constraints.if_then" title="vsc.constraints.if_then"><code class="xref any py py-class docutils literal notranslate"><span class="pre">if_then</span></code></a>   – simple if block</p></li>
+<li><p><a class="reference internal" href="reference.html#vsc.constraints.else_if" title="vsc.constraints.else_if"><code class="xref any py py-class docutils literal notranslate"><span class="pre">else_if</span></code></a>   – else if clause</p></li>
+<li><p><code class="xref any docutils literal notranslate"><span class="pre">else_then</span></code> – terminating else clause</p></li>
+</ul>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">5</span>
+
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">if_then</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">else_if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">2</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">else_if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">4</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">else_if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">4</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">8</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">else_if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">16</span>
+</pre></div>
+</div>
+</section>
+<section id="implies">
+<h3>implies<a class="headerlink" href="#implies" title="Permalink to this heading"></a></h3>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">5</span>
+
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">implies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">1</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">1</span>
+
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">implies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">2</span>
+
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">implies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">3</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">4</span>
+
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">implies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">4</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">8</span>
+
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">implies</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">5</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">16</span>
+</pre></div>
+</div>
+</section>
+<section id="soft">
+<h3>soft<a class="headerlink" href="#soft" title="Permalink to this heading"></a></h3>
+<p>Soft constraints are enforced, except in cases where they violate
+a hard constraint. Soft constraints are often used to set default
+values and relationships, which are then overridden by another
+constraint.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+ <span class="k">class</span> <span class="nc">my_item</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+     <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+        <span class="n">vsc</span><span class="o">.</span><span class="n">soft</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">5</span><span class="p">)</span>
+
+<span class="n">item</span> <span class="o">=</span> <span class="n">my_item</span><span class="p">()</span>
+<span class="n">item</span><span class="o">.</span><span class="n">randomize</span><span class="p">()</span> <span class="c1"># a==5</span>
+<span class="k">with</span> <span class="n">item</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">()</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+  <span class="n">it</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">6</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="reference.html#vsc.constraints.soft" title="vsc.constraints.soft"><code class="xref any py py-func docutils literal notranslate"><span class="pre">soft</span></code></a> constraint applies to a single expression, as shown above.
+Soft constraints are disabled if they conflict with another hard
+constraint declared in the class or introduced as an inline constraint.</p>
+</section>
+<section id="solve-order">
+<h3>solve_order<a class="headerlink" href="#solve-order" title="Permalink to this heading"></a></h3>
+<p>Solve-order constraints are used to provide the user control over
+value distributions by ordering solve operations. The PyVSC <a class="reference internal" href="reference.html#vsc.constraints.solve_order" title="vsc.constraints.solve_order"><code class="xref any py py-func docutils literal notranslate"><span class="pre">solve_order</span></code></a>
+statement corresponds to the SystemVerilog <code class="xref any docutils literal notranslate"><span class="pre">solve</span> <span class="pre">a</span> <span class="pre">before</span> <span class="pre">b</span></code> statement.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">vsc</span><span class="o">.</span><span class="n">solve_order</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">if_then</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">==</span> <span class="mi">4</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">else_then</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">!=</span> <span class="mi">4</span>
+</pre></div>
+</div>
+<p>In the example above, te <a class="reference internal" href="reference.html#vsc.constraints.solve_order" title="vsc.constraints.solve_order"><code class="xref any py py-func docutils literal notranslate"><span class="pre">solve_order</span></code></a> statement causes <code class="xref any docutils literal notranslate"><span class="pre">b</span></code> to
+have values evenly distributed between the value sets [4] and
+[0..3,5..255].</p>
+</section>
+<section id="unique">
+<h3>unique<a class="headerlink" href="#unique" title="Permalink to this heading"></a></h3>
+<p>The <a class="reference internal" href="reference.html#vsc.constraints.unique" title="vsc.constraints.unique"><code class="xref any py py-func docutils literal notranslate"><span class="pre">unique</span></code></a> constraint ensures that all variables in the specified list have
+a unique value.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">rand_obj</span>
+<span class="k">class</span> <span class="nc">my_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">32</span><span class="p">)</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">!=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">d</span> <span class="o">!=</span> <span class="mi">0</span>
+
+        <span class="n">vsc</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="customizing-constraint-behavior">
+<h2>Customizing Constraint Behavior<a class="headerlink" href="#customizing-constraint-behavior" title="Permalink to this heading"></a></h2>
+<p>In general, the bulk of constraints should be declared inside a class and
+should always be enabled. However, there are often cases where these base
+constraints need to be customized slightly when the class is used in
+a test. PyVSC provides several mechanisms for customizing constraints.</p>
+<section id="randomize-with">
+<h3>Randomize-With<a class="headerlink" href="#randomize-with" title="Permalink to this heading"></a></h3>
+<p>Classes decorated with the <a class="reference internal" href="reference.html#vsc.rand_obj.randobj" title="vsc.rand_obj.randobj"><code class="xref any py py-func docutils literal notranslate"><span class="pre">randobj</span></code></a> decorator are randomized by calling
+the <code class="xref any docutils literal notranslate"><span class="pre">randomize</span></code> method, as shown in the example below.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+ <span class="k">class</span> <span class="nc">my_base_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+     <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+
+<span class="n">item</span> <span class="o">=</span> <span class="n">my_base_s</span><span class="p">()</span>
+<span class="n">item</span><span class="o">.</span><span class="n">randomize</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>PyVSC also provides a <code class="xref any docutils literal notranslate"><span class="pre">randomize_with</span></code> method that allows additional
+constraints to be added in-line. The example below shows using this
+to constraint <code class="xref any docutils literal notranslate"><span class="pre">a</span></code> to explicit values.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+ <span class="k">class</span> <span class="nc">my_base_s</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+     <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+
+<span class="n">item</span> <span class="o">=</span> <span class="n">my_base_s</span><span class="p">()</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+   <span class="k">with</span> <span class="n">item</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">()</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+     <span class="n">it</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="n">i</span>
+</pre></div>
+</div>
+</section>
+<section id="constraint-mode">
+<h3>Constraint Mode<a class="headerlink" href="#constraint-mode" title="Permalink to this heading"></a></h3>
+<p>All constraints decorated with the <a class="reference internal" href="reference.html#vsc.constraints.constraint" title="vsc.constraints.constraint"><code class="xref any py py-func docutils literal notranslate"><span class="pre">constraint</span></code></a> decorator can be enabled
+and disabled using the <a class="reference internal" href="reference.html#vsc.constraints.constraint_t.constraint_mode" title="vsc.constraints.constraint_t.constraint_mode"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">constraint_mode</span></code></a> method. This allows constraints
+to be temporarily turned off. For example, a constraint that enforces
+valid ranges for certain variables might be disabled to allow testing
+design response to illegal values.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+ <span class="k">class</span> <span class="nc">my_item</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+     <span class="k">def</span> <span class="nf">valid_ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+
+<span class="n">item</span> <span class="o">=</span> <span class="n">my_item</span><span class="p">()</span>
+<span class="c1"># Always generate valid values</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+   <span class="k">with</span> <span class="n">item</span><span class="o">.</span><span class="n">randomize</span><span class="p">():</span>
+
+<span class="n">item</span><span class="o">.</span><span class="n">valid_ab_c</span><span class="o">.</span><span class="n">constraint_mode</span><span class="p">(</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Allow invalid values</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+   <span class="k">with</span> <span class="n">item</span><span class="o">.</span><span class="n">randomize</span><span class="p">():</span>
+</pre></div>
+</div>
+</section>
+<section id="rand-mode">
+<h3>Rand Mode<a class="headerlink" href="#rand-mode" title="Permalink to this heading"></a></h3>
+<p>The random mode of rand-qualified fields can be changed using the <a class="reference internal" href="reference.html#vsc.types.type_base.rand_mode" title="vsc.types.type_base.rand_mode"><code class="xref any py py-attr docutils literal notranslate"><span class="pre">rand_mode</span></code></a>
+method. This allows randomization of rand-qualified fields to be programmatically
+disabled.</p>
+<p>Due to the operator overloading that PyVSC uses to enable direct access to
+the value of class attributes, a special mode must be entered in order to
+access or modify rand_mode.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+ <span class="k">class</span> <span class="nc">my_item</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+     <span class="k">def</span> <span class="nf">valid_ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+
+<span class="n">item</span> <span class="o">=</span> <span class="n">my_item</span><span class="p">()</span>
+<span class="c1"># Randomize both &#39;a&#39; and &#39;b&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+   <span class="k">with</span> <span class="n">item</span><span class="o">.</span><span class="n">randomize</span><span class="p">():</span>
+
+<span class="c1"># Disable randomization of &#39;a&#39;</span>
+<span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">raw_mode</span><span class="p">():</span>
+    <span class="n">item</span><span class="o">.</span><span class="n">a</span><span class="o">.</span><span class="n">rand_mode</span> <span class="o">=</span> <span class="kc">False</span>
+
+<span class="c1"># Randomize only &#39;b&#39;</span>
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+   <span class="k">with</span> <span class="n">item</span><span class="o">.</span><span class="n">randomize</span><span class="p">():</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="data_types.html" class="btn btn-neutral float-left" title="PyVSC Data Types" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="coverage.html" class="btn btn-neutral float-right" title="PyVSC Coverage" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

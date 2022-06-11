@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vsc.model.coverpoint_bin_collection_model &mdash; pyvsc 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
+        <script src="../../../_static/jquery.js"></script>
+        <script src="../../../_static/underscore.js"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../../_static/doctools.js"></script>
+    <script src="../../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../../genindex.html" />
+    <link rel="search" title="Search" href="../../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../../index.html" class="icon icon-home"> pyvsc
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../data_types.html">PyVSC Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../constraints.html">PyVSC Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../coverage.html">PyVSC Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../methods.html">PyVSC Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../features.html">PyVSC Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../../reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../../index.html">pyvsc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../../index.html">Module code</a> &raquo;</li>
+      <li>vsc.model.coverpoint_bin_collection_model</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for vsc.model.coverpoint_bin_collection_model</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed to the Apache Software Foundation (ASF) under one</span>
+<span class="c1"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="c1"># distributed with this work for additional information</span>
+<span class="c1"># regarding copyright ownership.  The ASF licenses this file</span>
+<span class="c1"># to you under the Apache License, Version 2.0 (the</span>
+<span class="c1"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="c1"># with the License.  You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#  http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing,</span>
+<span class="c1"># software distributed under the License is distributed on an</span>
+<span class="c1"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="c1"># KIND, either express or implied.  See the License for the</span>
+<span class="c1"># specific language governing permissions and limitations</span>
+<span class="c1"># under the License.</span>
+
+
+<span class="c1"># Created on Aug 6, 2019</span>
+<span class="c1">#</span>
+<span class="c1"># @author: ballance</span>
+
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_model_base</span> <span class="kn">import</span> <span class="n">CoverpointBinModelBase</span>
+<span class="kn">from</span> <span class="nn">vsc.model.rangelist_model</span> <span class="kn">import</span> <span class="n">RangelistModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_val_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleValModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_range_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleRangeModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_bag_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleBagModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_array_model</span> <span class="kn">import</span> <span class="n">CoverpointBinArrayModel</span>
+
+
+<div class="viewcode-block" id="CoverpointBinCollectionModel"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel">[docs]</a><span class="k">class</span> <span class="nc">CoverpointBinCollectionModel</span><span class="p">(</span><span class="n">CoverpointBinModelBase</span><span class="p">):</span>
+    
+    <span class="n">DEBUG_EN</span> <span class="o">=</span> <span class="kc">False</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hit_bin_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">=</span> <span class="mi">0</span>
+        
+<div class="viewcode-block" id="CoverpointBinCollectionModel.finalize"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx_base</span><span class="p">:</span><span class="nb">int</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">int</span><span class="p">:</span>
+        <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="n">bin_idx_base</span><span class="p">)</span>
+<span class="c1">#        self.n_bins = reduce(lambda x,y: x+y, map(lambda b: b.get_n_bins(), self.bin_l))</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">+=</span> <span class="n">b</span><span class="o">.</span><span class="n">finalize</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_idx_base</span><span class="o">+</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">)</span>
+        
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span></div>
+            
+<div class="viewcode-block" id="CoverpointBinCollectionModel.get_bin_expr"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.get_bin_expr">[docs]</a>    <span class="k">def</span> <span class="nf">get_bin_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;Builds expressions to represent the values in this bin&quot;&quot;&quot;</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">)):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="n">idx</span> <span class="o">-=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span>
+            
+        <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">get_bin_expr</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="CoverpointBinCollectionModel.get_bin_name"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.get_bin_name">[docs]</a>    <span class="k">def</span> <span class="nf">get_bin_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">)):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="n">idx</span> <span class="o">-=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span>
+            
+        <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">get_bin_name</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>        </div>
+    
+<div class="viewcode-block" id="CoverpointBinCollectionModel.add_bin"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.add_bin">[docs]</a>    <span class="k">def</span> <span class="nf">add_bin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_m</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">CoverpointBinModelBase</span><span class="p">:</span>
+        <span class="n">bin_m</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">bin_m</span></div>
+        
+<div class="viewcode-block" id="CoverpointBinCollectionModel.get_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.get_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="n">coverage</span> <span class="o">=</span> <span class="mf">0.0</span>
+        
+        <span class="k">for</span> <span class="nb">bin</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">:</span>
+            <span class="n">coverage</span> <span class="o">+=</span> <span class="nb">bin</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span>
+            
+<span class="c1">#        coverage /= len(self.bin_l)</span>
+        
+        <span class="k">return</span> <span class="n">coverage</span></div>
+        
+<div class="viewcode-block" id="CoverpointBinCollectionModel.sample"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.sample">[docs]</a>    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">hit_bin_idx</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+
+        <span class="n">bin_offset</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">:</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">hit_bin_idx</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">hit_bin_idx</span> <span class="o">=</span> <span class="n">bin_offset</span> <span class="o">+</span> <span class="n">b</span><span class="o">.</span><span class="n">hit_bin_idx</span>
+            <span class="n">bin_offset</span> <span class="o">+=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span>
+                
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_bin_idx</span></div>
+            
+<div class="viewcode-block" id="CoverpointBinCollectionModel.get_bin_range"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.get_bin_range">[docs]</a>    <span class="k">def</span> <span class="nf">get_bin_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;get_bin_range: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">)):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="n">idx</span> <span class="o">-=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span>
+            
+        <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">get_bin_range</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CoverpointBinCollectionModel.dump"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="n">ind</span> <span class="o">+</span> <span class="s2">&quot;Bins &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">:</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ind</span> <span class="o">+</span> <span class="s2">&quot;    &quot;</span><span class="p">)</span></div>
+            
+<div class="viewcode-block" id="CoverpointBinCollectionModel.get_hits"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.get_hits">[docs]</a>    <span class="k">def</span> <span class="nf">get_hits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+        <span class="n">b</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">)):</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+            <span class="k">if</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span> <span class="o">&gt;</span> <span class="n">idx</span><span class="p">:</span>
+                <span class="k">break</span><span class="p">;</span>
+            <span class="n">idx</span> <span class="o">-=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()</span>
+            
+        <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">get_hits</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></div>
+        
+<div class="viewcode-block" id="CoverpointBinCollectionModel.get_n_bins"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.get_n_bins">[docs]</a>    <span class="k">def</span> <span class="nf">get_n_bins</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span></div>
+    
+<div class="viewcode-block" id="CoverpointBinCollectionModel.hit_idx"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.hit_idx">[docs]</a>    <span class="k">def</span> <span class="nf">hit_idx</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_bin_idx</span></div>
+    
+<div class="viewcode-block" id="CoverpointBinCollectionModel.set_bin_type"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.set_bin_type">[docs]</a>    <span class="k">def</span> <span class="nf">set_bin_type</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_type</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bin_type</span> <span class="o">=</span> <span class="n">bin_type</span>
+        <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">:</span>
+            <span class="n">b</span><span class="o">.</span><span class="n">set_bin_type</span><span class="p">(</span><span class="n">bin_type</span><span class="p">)</span></div>
+    
+<div class="viewcode-block" id="CoverpointBinCollectionModel.accept"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.accept">[docs]</a>    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="n">v</span><span class="o">.</span><span class="n">visit_coverpoint_bin_collection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="CoverpointBinCollectionModel.equals"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.equals">[docs]</a>    <span class="k">def</span> <span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oth</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">bool</span><span class="p">:</span>
+        <span class="n">eq</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">oth</span><span class="p">,</span> <span class="n">CoverpointBinCollectionModel</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="n">eq</span><span class="p">:</span>
+            <span class="n">eq</span> <span class="o">&amp;=</span> <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">oth</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">oth</span><span class="o">.</span><span class="n">bin_l</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">)):</span>
+                    <span class="n">eq</span> <span class="o">&amp;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">equals</span><span class="p">(</span><span class="n">oth</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+            
+        <span class="k">return</span> <span class="n">eq</span></div>
+    
+<div class="viewcode-block" id="CoverpointBinCollectionModel.clone"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="s1">&#39;CoverpointBinCollectionModel&#39;</span><span class="p">:</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinCollectionModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+        
+        <span class="k">for</span> <span class="n">bn</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_l</span><span class="p">:</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">bn</span><span class="o">.</span><span class="n">clone</span><span class="p">())</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div>
+
+<div class="viewcode-block" id="CoverpointBinCollectionModel.mk_collection"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel.mk_collection">[docs]</a>    <span class="nd">@staticmethod</span>    
+    <span class="k">def</span> <span class="nf">mk_collection</span><span class="p">(</span><span class="n">name</span> <span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">rangelist</span> <span class="p">:</span> <span class="n">RangelistModel</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">)</span><span class="o">-&gt;</span><span class="s1">&#39;CoverpointBinCollectionModel&#39;</span><span class="p">:</span>
+        <span class="sd">&quot;&quot;&quot;Creates a bin collection by partitioning a rangelist&quot;&quot;&quot;</span>
+        <span class="n">n_values</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rangelist</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                <span class="n">n_values</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_values</span> <span class="o">+=</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                
+        <span class="n">idx</span> <span class="o">=</span> <span class="mi">0</span>
+        
+        <span class="k">if</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">DEBUG_EN</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;--&gt; mk_collection: </span><span class="si">%d</span><span class="s2"> bins ; </span><span class="si">%d</span><span class="s2"> values&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">n_bins</span><span class="p">,</span> <span class="n">n_values</span><span class="p">))</span>
+            
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinCollectionModel</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">n_bins</span> <span class="o">&lt;</span> <span class="n">n_values</span><span class="p">:</span>
+            <span class="c1"># We need to partition the values into bins</span>
+            <span class="n">values_per_bin</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_values</span><span class="o">/</span><span class="n">n_bins</span><span class="p">)</span>
+            <span class="n">have_leftover</span>  <span class="o">=</span> <span class="p">((</span><span class="n">n_values</span><span class="o">%</span><span class="n">n_bins</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">)</span>
+            <span class="n">r</span> <span class="o">=</span> <span class="kc">None</span>
+            
+            <span class="k">if</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">DEBUG_EN</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;  Must partition into </span><span class="si">%d</span><span class="s2"> values per bin&quot;</span> <span class="o">%</span> <span class="n">values_per_bin</span><span class="p">)</span>
+
+            <span class="n">rng_i</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="k">for</span> <span class="n">bin_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_bins</span><span class="p">):</span>
+<span class="c1">#                print(&quot;bin_i: &quot; + str(bin_i))</span>
+                <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="n">rangelist</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">rng_i</span><span class="p">]</span>
+<span class="c1">#                print(&quot;r=&quot; + str(r[0]) + &quot;..&quot; + str(r[1]))</span>
+                    
+                <span class="c1"># If the bin fits within this interval, then just </span>
+                <span class="c1"># create a range bin</span>
+                <span class="k">if</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;=</span> <span class="n">values_per_bin</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">DEBUG_EN</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Bin </span><span class="si">%d</span><span class="s2">..</span><span class="si">%d</span><span class="s2"> is &gt;= values_per_bin ; create bin </span><span class="si">%d</span><span class="s2">..</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">values_per_bin</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+
+                    <span class="k">if</span> <span class="n">bin_i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&lt;</span> <span class="n">n_bins</span> <span class="ow">or</span> <span class="ow">not</span> <span class="n">have_leftover</span><span class="p">:</span>                        
+                        <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinSingleRangeModel</span><span class="p">(</span>
+                            <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> 
+                            <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">values_per_bin</span><span class="o">-</span><span class="mi">1</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># When we have leftovers, ensure that the last</span>
+                        <span class="c1"># bin is a collection</span>
+                        <span class="n">b</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinSingleBagModel</span><span class="p">(</span>
+                            <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">))</span>
+                        <span class="n">b</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+
+                    <span class="k">if</span> <span class="p">((</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span> <span class="o">&gt;</span> <span class="n">values_per_bin</span><span class="p">):</span>
+                        <span class="c1"># We need to continue working on this range</span>
+                        <span class="k">if</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">DEBUG_EN</span><span class="p">:</span>
+                            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Still space in interval. Adjust to </span><span class="si">%d</span><span class="s2">..</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                                <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">values_per_bin</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                        <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">values_per_bin</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># We need to move to the next range</span>
+                        <span class="n">r</span> <span class="o">=</span> <span class="kc">None</span>
+                        <span class="n">rng_i</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># The number of values here is smaller than the bin size</span>
+                    <span class="c1"># We need to start a bin and move forward until we&#39;ve</span>
+                    <span class="c1"># collected enough values</span>
+                        
+                    <span class="n">b</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinSingleBagModel</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">))</span>
+                    <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                    
+                    <span class="n">b</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">n_remaining</span> <span class="o">=</span> <span class="n">values_per_bin</span> <span class="o">-</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">DEBUG_EN</span><span class="p">:</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Too few values leftover to fill a bin: (</span><span class="si">%d</span><span class="s2">..</span><span class="si">%d</span><span class="s2">) remaining=</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                            <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">],</span> <span class="n">n_remaining</span><span class="p">))</span>
+                    <span class="n">r</span> <span class="o">=</span> <span class="kc">None</span>
+                    <span class="n">rng_i</span> <span class="o">+=</span> <span class="mi">1</span>
+                    
+<span class="c1">#                    print(&quot;n_remaining=&quot; + str(n_remaining) + &quot; values_per_bin=&quot; + str(values_per_bin))</span>
+                    
+                    <span class="k">while</span> <span class="n">n_remaining</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="n">r</span> <span class="o">=</span> <span class="n">rangelist</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">rng_i</span><span class="p">]</span>
+                            
+                        <span class="k">if</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">&lt;</span> <span class="n">n_remaining</span><span class="p">:</span>
+                            <span class="c1"># This range is smaller than the remaining bin space</span>
+                            <span class="n">b</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                            <span class="n">n_remaining</span> <span class="o">-=</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+                            <span class="n">r</span> <span class="o">=</span> <span class="kc">None</span>
+                            <span class="n">rng_i</span> <span class="o">+=</span> <span class="mi">1</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="c1"># This range is larger than the remaining bin space</span>
+                            <span class="n">b</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="n">n_remaining</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                            <span class="n">r</span> <span class="o">=</span> <span class="n">r</span><span class="o">.</span><span class="n">copy</span><span class="p">()</span>
+                            <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">+=</span> <span class="n">n_remaining</span>
+                            <span class="n">n_remaining</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">if</span> <span class="n">r</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="c1"># Extend the last bin range</span>
+                 
+                <span class="k">if</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">DEBUG_EN</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[1] Add leftover range </span><span class="si">%d</span><span class="s2">..</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                    
+                <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">ret</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ret</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">rng_i</span> <span class="o">+=</span> <span class="mi">1</span>
+                
+            <span class="k">while</span> <span class="n">rng_i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">rangelist</span><span class="o">.</span><span class="n">range_l</span><span class="p">):</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="n">rangelist</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">rng_i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">DEBUG_EN</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;[2] Add leftover range </span><span class="si">%d</span><span class="s2">..</span><span class="si">%d</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">ret</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ret</span><span class="o">.</span><span class="n">bin_l</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="n">rng_i</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># We don&#39;t actually need to partition</span>
+            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">rangelist</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                    <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinSingleValModel</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinArrayModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                    
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Introduction &mdash; pyvsc 0.0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Quickstart Guide" href="quickstart.html" />
+    <link rel="prev" title="PyVSC Documentation" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> pyvsc
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Introduction</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#what-is-pyvsc">What is PyVSC?</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#blog-posts">Blog Posts</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#papers">Papers</a></li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="#contributors">Contributors</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_types.html">PyVSC Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="constraints.html">PyVSC Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coverage.html">PyVSC Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods.html">PyVSC Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">PyVSC Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyvsc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Introduction</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/introduction.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="introduction">
+<h1>Introduction<a class="headerlink" href="#introduction" title="Permalink to this heading"></a></h1>
+<section id="what-is-pyvsc">
+<h2>What is PyVSC?<a class="headerlink" href="#what-is-pyvsc" title="Permalink to this heading"></a></h2>
+<p>PyVSC is a Python library that implements random verification-stimulus
+generation and coverage collection. PyVSC provides this capability
+in two forms: an object-oriented Model API, and a Python-embedded
+domain-specific language built on top of the Model API. This allows
+coverage and randomization features to be programmatically built,
+defined with user-friendly constructs, or defined using a mix of the two.</p>
+<section id="blog-posts">
+<h3>Blog Posts<a class="headerlink" href="#blog-posts" title="Permalink to this heading"></a></h3>
+<p>One great way to get an overview of PyVSC is to read a series of
+blog posts about PyVSC. Links are below:</p>
+<ul class="simple">
+<li><p><a class="reference external" href="http://bitsbytesgates.blogspot.com/2020/03/modeling-random-stimulus-and-functional.html">The fundamentals of modeling stimulus and functional coverage in Python</a>.</p></li>
+<li><p><a class="reference external" href="http://bitsbytesgates.blogspot.com/2020/04/python-verification-stimulus-and.html">Modeling verification data types in Python</a>.</p></li>
+<li><p><a class="reference external" href="http://bitsbytesgates.blogspot.com/2020/04/python-verification-and-stimulus.html">Modeling and capturing functional coverage in Python</a>.</p></li>
+<li><p><a class="reference external" href="http://bitsbytesgates.blogspot.com/2020/04/python-verification-working-with.html">Making use of captured coverage data</a>.</p></li>
+<li><p><a class="reference external" href="https://bitsbytesgates.blogspot.com/2020/05/python-verification-stimulus-and.html">Python Verification Stimulus and Coverage: Constraints</a>.</p></li>
+</ul>
+</section>
+<section id="papers">
+<h3>Papers<a class="headerlink" href="#papers" title="Permalink to this heading"></a></h3>
+<ul class="simple">
+<li><p><a class="reference external" href="https://raw.github.com/fvutils/pyvsc/master/doc/papers/PyVSC_Randomization_Constraints_Coverage_in_Python_final.pdf">PyVSC: SystemVerilog-Style Constraints and Coverage in Python</a>.</p></li>
+</ul>
+<p>Currently, the Python-embedded domain-specific language supports
+similar features to those supported by SystemVerilog. Not all SystemVerilog
+features are supported, but in some cases features not supported by
+SystemVerilog are also supported. Please see the following section
+<a class="reference internal" href="features.html#pyvsc-features"><span class="std std-ref">PyVSC Features</span></a> for a comparison of the user-level coverage
+and randomization features supported by PyVSC compared to SystemVerilog.</p>
+<p>Here is a quick example showing capturing random data fields, constraints,
+coverage, and inline randomization.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_item_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span>
+
+     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+     <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">!=</span> <span class="mi">0</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
+         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="ow">in</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">8</span><span class="p">)</span>
+
+  <span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
+  <span class="k">class</span> <span class="nc">my_cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+      <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+          <span class="c1"># Define the parameters accepted by the sample function</span>
+          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+              <span class="n">it</span><span class="o">=</span><span class="n">my_item_c</span><span class="p">()</span>
+           <span class="p">))</span>
+
+           <span class="bp">self</span><span class="o">.</span><span class="n">a_cp</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span> <span class="bp">self</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+              <span class="c1"># Create 4 bins across the space 0..255</span>
+              <span class="n">a_bins</span> <span class="o">=</span> <span class="n">bin_array</span><span class="p">([</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">255</span><span class="p">])</span>
+           <span class="p">)</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">b_cp</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">it</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="nb">dict</span><span class="p">(</span>
+              <span class="c1"># Create one bin for each value (1,2,4,8)</span>
+              <span class="n">b_bins</span> <span class="o">=</span> <span class="n">bin_array</span><span class="p">([],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+           <span class="p">)</span>
+           <span class="bp">self</span><span class="o">.</span><span class="n">ab_cross</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">a_cp</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b_cp</span><span class="p">])</span>
+
+  <span class="c1"># Create an instance of the covergroup</span>
+  <span class="n">my_cg_i</span> <span class="o">=</span> <span class="n">my_cg</span><span class="p">()</span>
+
+  <span class="c1"># Create an instance of the item class</span>
+  <span class="n">my_item_i</span> <span class="o">=</span> <span class="n">my_item_c</span><span class="p">()</span>
+
+  <span class="c1"># Randomize and sample coverage</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">):</span>
+      <span class="n">my_item_i</span><span class="o">.</span><span class="n">randomize</span><span class="p">()</span>
+      <span class="n">my_cg_i</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">my_item_i</span><span class="p">)</span>
+
+  <span class="c1"># Now, randomize keeping b in the range [1,2]</span>
+  <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">16</span><span class="p">):</span>
+      <span class="k">with</span> <span class="n">my_item_i</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">()</span> <span class="k">as</span> <span class="n">it</span><span class="p">:</span>
+          <span class="n">it</span><span class="o">.</span><span class="n">b</span> <span class="ow">in</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rangelist</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">)</span>
+      <span class="n">my_cg_i</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="n">my_item_i</span><span class="p">)</span>
+
+  <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Coverage: </span><span class="si">%f</span><span class="s2"> \%&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">my_cg_i</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()))</span>
+</pre></div>
+</div>
+</section>
+</section>
+<section id="contributors">
+<h2>Contributors<a class="headerlink" href="#contributors" title="Permalink to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="index.html" class="btn btn-neutral float-left" title="PyVSC Documentation" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="quickstart.html" class="btn btn-neutral float-right" title="Quickstart Guide" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Debug &mdash; pyvsc 0.0.1 documentation</title>
+      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="_static/doctools.js"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="API Reference" href="reference.html" />
+    <link rel="prev" title="PyVSC Features" href="features.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="index.html" class="icon icon-home"> pyvsc
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="data_types.html">PyVSC Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="constraints.html">PyVSC Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="coverage.html">PyVSC Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="methods.html">PyVSC Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="features.html">PyVSC Features</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Debug</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#enabling-solve-fail-debug">Enabling Solve-Fail Debug</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#capturing-source-information">Capturing Source Information</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">pyvsc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+      <li>Debug</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/debug.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="debug">
+<h1>Debug<a class="headerlink" href="#debug" title="Permalink to this heading"></a></h1>
+<p>There are several situations in which you may need to enable or
+configure debug with PyVSC. The most common is when a set of
+constraints fails to solve, and diagnostics must be enabled
+to help understand the reason for the failure. PyVSC targets
+execution speed over verbosity, so default behavior is to
+create no diagnostics when a solve failure occurs.</p>
+<section id="enabling-solve-fail-debug">
+<h2>Enabling Solve-Fail Debug<a class="headerlink" href="#enabling-solve-fail-debug" title="Permalink to this heading"></a></h2>
+<p>PyVSC provides an optional argument to the <code class="xref any docutils literal notranslate"><span class="pre">randomize</span></code> and
+<code class="xref any docutils literal notranslate"><span class="pre">randomize_with</span></code> method to enable solve-fail debug on a
+per-call basis.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">my_e</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+
+<span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
+<span class="k">class</span> <span class="nc">my_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_enum_t</span><span class="p">(</span><span class="n">my_e</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">a_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">if_then</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">e</span> <span class="o">==</span> <span class="n">my_e</span><span class="o">.</span><span class="n">A</span>
+
+<span class="n">it</span> <span class="o">=</span> <span class="n">my_c</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">it</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">(</span><span class="n">solve_fail_debug</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">it</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<p>In the example above, the class-level constraint set
+forces a==1, while the user’s inline constraints forces
+a==2. The <code class="xref any docutils literal notranslate"><span class="pre">randomize_with</span></code> call sets solve_fail_debug=1,
+which triggers creation of diagnostic information when
+a solve failure occurs.</p>
+<p>In this case, the output is of the following form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Problem</span> <span class="n">Set</span><span class="p">:</span> <span class="mi">2</span> <span class="n">constraints</span>
+  <span class="o">&lt;</span><span class="n">unknown</span><span class="o">&gt;</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="o">&lt;</span><span class="n">unknown</span><span class="o">&gt;</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Enabling solve-fail debug can also be enabled globally
+by calling <code class="xref any docutils literal notranslate"><span class="pre">vsc.vsc_solvefail_debug(1)</span></code> from Python code.
+The environment variable VSC_SOLVEFAIL_DEBUG can also
+be set to 1.</p>
+</section>
+<section id="capturing-source-information">
+<h2>Capturing Source Information<a class="headerlink" href="#capturing-source-information" title="Permalink to this heading"></a></h2>
+<p>Note that no source information is available for the constraints.
+This is because querying source information in Python is quite
+time-consuming.</p>
+<p>Enabling the capture of source information for constraints can be
+done in two ways: via the <a class="reference internal" href="reference.html#vsc.rand_obj.randobj" title="vsc.rand_obj.randobj"><code class="xref any py py-func docutils literal notranslate"><span class="pre">randobj</span></code></a> decorator, and via an
+environment variable.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">my_e</span><span class="p">(</span><span class="n">IntEnum</span><span class="p">):</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">B</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+    <span class="n">C</span> <span class="o">=</span> <span class="n">auto</span><span class="p">()</span>
+
+<span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span><span class="p">(</span><span class="n">srcinfo</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">class</span> <span class="nc">my_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">e</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_enum_t</span><span class="p">(</span><span class="n">my_e</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+
+    <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+    <span class="k">def</span> <span class="nf">a_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">1</span>
+        <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">if_then</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">e</span> <span class="o">==</span> <span class="n">my_e</span><span class="o">.</span><span class="n">A</span>
+
+<span class="n">it</span> <span class="o">=</span> <span class="n">my_c</span><span class="p">()</span>
+
+<span class="k">with</span> <span class="n">it</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">(</span><span class="n">solve_fail_debug</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">it</span><span class="o">.</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span>
+</pre></div>
+</div>
+<p>In the code-block above, the <code class="xref any docutils literal notranslate"><span class="pre">srcinfo</span></code> parameter to the
+<a class="reference internal" href="reference.html#vsc.rand_obj.randobj" title="vsc.rand_obj.randobj"><code class="xref any py py-func docutils literal notranslate"><span class="pre">randobj</span></code></a> decorator causes source information to be
+collected for constraints in the class. The solve-fail
+diagnostics will now be of the following form:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Problem</span> <span class="n">Set</span><span class="p">:</span> <span class="mi">2</span> <span class="n">constraints</span>
+  <span class="o">/</span><span class="n">project</span><span class="o">/</span><span class="n">fun</span><span class="o">/</span><span class="n">pyvsc</span><span class="o">/</span><span class="n">pyvsc</span><span class="o">-</span><span class="n">partsel</span><span class="o">-</span><span class="n">rand</span><span class="o">/</span><span class="n">ve</span><span class="o">/</span><span class="n">unit</span><span class="o">/</span><span class="n">test_solve_failure</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">30</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="mi">1</span><span class="p">);</span>
+  <span class="o">/</span><span class="n">project</span><span class="o">/</span><span class="n">fun</span><span class="o">/</span><span class="n">pyvsc</span><span class="o">/</span><span class="n">pyvsc</span><span class="o">-</span><span class="n">partsel</span><span class="o">-</span><span class="n">rand</span><span class="o">/</span><span class="n">ve</span><span class="o">/</span><span class="n">unit</span><span class="o">/</span><span class="n">test_solve_failure</span><span class="o">.</span><span class="n">py</span><span class="p">:</span><span class="mi">38</span><span class="p">:</span>
+    <span class="p">(</span><span class="n">a</span> <span class="o">==</span> <span class="mi">2</span><span class="p">);</span>
+</pre></div>
+</div>
+<p>Source-information capture may also be enabled globally
+via an environment variable. Set VSC_CAPTURE_SRCINFO=1 to cause
+all source information for all random classes to be captured.</p>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="features.html" class="btn btn-neutral float-left" title="PyVSC Features" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+        <a href="reference.html" class="btn btn-neutral float-right" title="API Reference" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+    </div>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

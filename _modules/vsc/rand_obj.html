@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vsc.rand_obj &mdash; pyvsc 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> pyvsc
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_types.html">PyVSC Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../constraints.html">PyVSC Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../coverage.html">PyVSC Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods.html">PyVSC Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">PyVSC Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pyvsc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>vsc.rand_obj</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for vsc.rand_obj</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed to the Apache Software Foundation (ASF) under one</span>
+<span class="c1"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="c1"># distributed with this work for additional information</span>
+<span class="c1"># regarding copyright ownership.  The ASF licenses this file</span>
+<span class="c1"># to you under the Apache License, Version 2.0 (the</span>
+<span class="c1"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="c1"># with the License.  You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#  http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing,</span>
+<span class="c1"># software distributed under the License is distributed on an</span>
+<span class="c1"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="c1"># KIND, either express or implied.  See the License for the</span>
+<span class="c1"># specific language governing permissions and limitations</span>
+<span class="c1"># under the License.</span>
+
+<span class="c1"># Created on Jul 23, 2019</span>
+<span class="c1">#</span>
+<span class="c1"># @author: ballance</span>
+
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<span class="kn">from</span> <span class="nn">vsc.impl.randobj_int</span> <span class="kn">import</span> <span class="n">RandObjInt</span>
+<span class="kn">from</span> <span class="nn">vsc.constraints</span> <span class="kn">import</span> <span class="n">constraint_t</span><span class="p">,</span> <span class="n">dynamic_constraint_t</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.ctor</span> <span class="kn">import</span> <span class="n">push_constraint_scope</span><span class="p">,</span> <span class="n">pop_constraint_scope</span><span class="p">,</span> \
+    <span class="n">clear_exprs</span><span class="p">,</span> <span class="n">push_srcinfo_mode</span><span class="p">,</span> <span class="n">pop_srcinfo_mode</span><span class="p">,</span> <span class="n">in_srcinfo_mode</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.generator_int</span> <span class="kn">import</span> <span class="n">GeneratorInt</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.expr_mode</span> <span class="kn">import</span> <span class="n">_expr_mode</span><span class="p">,</span> <span class="n">get_expr_mode</span><span class="p">,</span> <span class="n">expr_mode</span><span class="p">,</span> <span class="n">get_expr_mode_depth</span><span class="p">,</span> \
+    <span class="n">enter_expr_mode</span><span class="p">,</span> <span class="n">leave_expr_mode</span><span class="p">,</span> <span class="n">is_raw_mode</span><span class="p">,</span> <span class="n">is_expr_mode</span>
+<span class="kn">from</span> <span class="nn">vsc.model.field_composite_model</span> <span class="kn">import</span> <span class="n">FieldCompositeModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.constraint_block_model</span> <span class="kn">import</span> <span class="n">ConstraintBlockModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.randomizer</span> <span class="kn">import</span> <span class="n">Randomizer</span>
+<span class="kn">from</span> <span class="nn">vsc.model.field_scalar_model</span> <span class="kn">import</span> <span class="n">FieldScalarModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.source_info</span> <span class="kn">import</span> <span class="n">SourceInfo</span>
+<span class="kn">from</span> <span class="nn">vsc.types</span> <span class="kn">import</span> <span class="n">type_base</span><span class="p">,</span> <span class="n">field_info</span><span class="p">,</span> <span class="n">list_t</span>
+<span class="kn">from</span> <span class="nn">vsc.model.solve_failure</span> <span class="kn">import</span> <span class="n">SolveFailure</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.constraint_proxy</span> <span class="kn">import</span> <span class="n">ConstraintProxy</span>
+
+
+<span class="k">class</span> <span class="nc">_randobj</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;Mark a class as randomizable&quot;&quot;&quot;</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="kc">False</span>
+        
+        <span class="k">for</span> <span class="n">kw</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">if</span> <span class="n">kw</span> <span class="o">==</span> <span class="s2">&quot;srcinfo&quot;</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">kwargs</span><span class="p">[</span><span class="n">kw</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown randobj kwarg: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">kw</span><span class="p">)</span>
+
+    
+    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+        
+        <span class="n">srcinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo</span>
+    
+        <span class="k">class</span> <span class="nc">randobj_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+            
+            <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+                <span class="n">ro_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
+                <span class="n">ro_i</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">srcinfo</span>
+                
+                <span class="c1"># Capture the instantiation location</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">ro_i</span><span class="o">.</span><span class="n">srcinfo_inst</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+    
+                <span class="c1"># Initialize the field_info member before going deeper            </span>
+                <span class="k">if</span> <span class="n">ro_i</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">tname</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__qualname__</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span> <span class="o">=</span> <span class="n">field_info</span><span class="p">()</span>
+                    
+                    <span class="c1"># Decide whether to record sourceinfo for this class</span>
+                    <span class="n">push_srcinfo_mode</span><span class="p">(</span><span class="n">srcinfo</span><span class="p">)</span>
+                    
+                <span class="c1"># Call the user&#39;s constructor</span>
+                <span class="n">ro_i</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+                <span class="n">ro_i</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">-=</span> <span class="mi">1</span>
+                
+                <span class="k">if</span> <span class="n">ro_i</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+                    <span class="n">pop_srcinfo_mode</span><span class="p">()</span>
+            
+        <span class="c1"># Add the interposer class</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="p">(</span><span class="n">randobj_interposer</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">())</span>
+        
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_ro_init&quot;</span><span class="p">):</span>
+            <span class="k">def</span> <span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+            
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">type_base</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_raw_mode</span><span class="p">():</span>
+                    <span class="c1"># We&#39;re not in an expression, so the user</span>
+                    <span class="c1"># wants the value of this field</span>
+                    <span class="n">ret</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">get_val</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">a</span> <span class="o">==</span> <span class="s2">&quot;rand_mode&quot;</span><span class="p">:</span>
+                    <span class="n">ret</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_rand_info</span><span class="o">.</span><span class="n">rand_mode</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="p">(</span><span class="n">constraint_t</span><span class="p">,</span><span class="n">dynamic_constraint_t</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_expr_mode</span><span class="p">():</span>
+                        <span class="c1"># The constraint_t wrapper is per-type. In regular</span>
+                        <span class="c1"># procedural code we need to return a reference </span>
+                        <span class="c1"># to the instance object. The proxy provides a </span>
+                        <span class="c1"># way to do so.</span>
+                        <span class="n">model</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;get_model&quot;</span><span class="p">)()</span>
+                        <span class="n">cm</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_constraint</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                        <span class="n">ret</span> <span class="o">=</span> <span class="n">ConstraintProxy</span><span class="p">(</span><span class="n">cm</span><span class="p">)</span>
+                
+                <span class="k">return</span> <span class="n">ret</span>
+        
+            <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="c1"># Retrieve the field object so we can check if it&#39;s </span>
+                    <span class="c1"># a type_base object. This will throw an exception</span>
+                    <span class="c1"># if the field doesn&#39;t exist</span>
+                    <span class="n">fo</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+                <span class="k">except</span><span class="p">:</span>
+                    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">type_base</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">is_raw_mode</span><span class="p">():</span>
+                            <span class="c1"># We&#39;re not in an expression context, so the </span>
+                            <span class="c1"># user really wants us to set the actual value</span>
+                            <span class="c1"># of the field</span>
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="n">type_base</span><span class="p">):</span>
+                                <span class="c1"># Looks like we&#39;re re-assigning it. </span>
+                                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                                    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cannot re-construct field&quot;</span><span class="p">)</span>
+                            <span class="k">else</span><span class="p">:</span>
+                                <span class="n">fo</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Attempting to use &#39;=&#39; in a constraint&quot;</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">list_t</span><span class="p">):</span>
+                        <span class="n">fo</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+                        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                            <span class="n">fo</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">field</span> <span class="o">==</span> <span class="s2">&quot;rand_mode&quot;</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_int_rand_info</span><span class="o">.</span><span class="n">rand_mode</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">get_randstate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="n">ro_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
+
+                <span class="c1"># Return a copy to the user                </span>
+                <span class="k">return</span> <span class="n">ro_int</span><span class="o">.</span><span class="n">get_randstate</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
+            
+            <span class="k">def</span> <span class="nf">set_randstate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rs</span><span class="p">):</span>
+                <span class="n">ro_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
+                <span class="n">ro_int</span><span class="o">.</span><span class="n">set_randstate</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span>
+
+            <span class="k">def</span> <span class="nf">randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                          <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                          <span class="n">lint</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                          <span class="n">solve_fail_debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+                <span class="n">ro_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+                
+                <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">Randomizer</span><span class="o">.</span><span class="n">do_randomize</span><span class="p">(</span>
+                        <span class="n">ro_int</span><span class="o">.</span><span class="n">get_randstate</span><span class="p">(),</span>
+                        <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">),</span>
+                        <span class="p">[</span><span class="n">model</span><span class="p">],</span> 
+                        <span class="n">debug</span><span class="o">=</span><span class="n">debug</span><span class="p">,</span>
+                        <span class="n">lint</span><span class="o">=</span><span class="n">lint</span><span class="p">,</span>
+                        <span class="n">solve_fail_debug</span><span class="o">=</span><span class="n">solve_fail_debug</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">SolveFailure</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">diagnostics</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+                
+            <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="n">model</span> <span class="o">=</span> <span class="n">FieldCompositeModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">typename</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__qualname__</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+                
+                    <span class="c1"># Iterate through the fields and constraints</span>
+                    <span class="c1"># First, assign IDs to each of the randomized fields</span>
+                    <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
+                        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_int&quot;</span><span class="p">):</span>
+                                <span class="n">fo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                            
+                                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="s2">&quot;_int_field_info&quot;</span><span class="p">):</span>
+                                    <span class="k">if</span> <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                        <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                                    <span class="k">else</span><span class="p">:</span>
+                                        <span class="c1"># Some fields may already be created, and will</span>
+                                        <span class="c1"># have been given a placeholder name. Back-annotate</span>
+                                        <span class="c1"># the proper name now</span>
+                                        <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">f</span>
+                                    <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span>
+    
+                                    <span class="n">model</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                    
+                                <span class="c1"># Now, elaborate the constraints</span>
+                        <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                            <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_int&quot;</span><span class="p">):</span>
+                                <span class="n">fo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">constraint_t</span><span class="p">):</span>
+                                    <span class="n">clear_exprs</span><span class="p">()</span>
+                                    <span class="n">block</span> <span class="o">=</span> <span class="n">ConstraintBlockModel</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                                    <span class="n">block</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">srcinfo</span>
+                                    <span class="n">push_constraint_scope</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+                                    <span class="k">try</span><span class="p">:</span>
+                                        <span class="n">fo</span><span class="o">.</span><span class="n">c</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exception while processing constraint: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                                        <span class="k">raise</span> <span class="n">e</span>
+                                    <span class="n">fo</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">pop_constraint_scope</span><span class="p">())</span>
+                                    <span class="n">model</span><span class="o">.</span><span class="n">add_constraint</span><span class="p">(</span><span class="n">fo</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                                    <span class="n">clear_exprs</span><span class="p">()</span>
+                                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">dynamic_constraint_t</span><span class="p">):</span>
+                                    <span class="n">clear_exprs</span><span class="p">()</span>
+                                    <span class="n">block</span> <span class="o">=</span> <span class="n">ConstraintBlockModel</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                                    <span class="n">block</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">srcinfo</span>
+                                    <span class="n">push_constraint_scope</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+                                    <span class="k">try</span><span class="p">:</span>
+                                        <span class="n">fo</span><span class="o">.</span><span class="n">c</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                                    <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                                        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exception while processing constraint: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                                        <span class="k">raise</span> <span class="n">e</span>
+                                    <span class="n">fo</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">pop_constraint_scope</span><span class="p">())</span>
+                                    <span class="n">fo</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">is_dynamic</span> <span class="o">=</span> <span class="kc">True</span>
+                                    <span class="n">model</span><span class="o">.</span><span class="n">add_dynamic_constraint</span><span class="p">(</span><span class="n">fo</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                                    <span class="n">clear_exprs</span><span class="p">()</span>
+    
+                <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
+            
+            <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
+                    <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+                    
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
+            
+            <span class="k">def</span> <span class="nf">_get_ro_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_ro_int&quot;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_ro_int</span> <span class="o">=</span> <span class="n">RandObjInt</span><span class="p">()</span>
+                <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ro_int</span>
+            
+            <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="n">ro_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
+                <span class="n">enter_expr_mode</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span> <span class="c1"># Ensure model is constructed</span>
+                <span class="n">push_srcinfo_mode</span><span class="p">(</span><span class="n">ro_i</span><span class="o">.</span><span class="n">srcinfo</span><span class="p">)</span>
+                <span class="n">push_constraint_scope</span><span class="p">(</span><span class="n">ConstraintBlockModel</span><span class="p">(</span><span class="s2">&quot;inline&quot;</span><span class="p">))</span>
+                <span class="k">return</span> <span class="bp">self</span>
+            
+            <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+                <span class="n">ro_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
+                <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+                <span class="n">c</span> <span class="o">=</span> <span class="n">pop_constraint_scope</span><span class="p">()</span>
+                <span class="n">leave_expr_mode</span><span class="p">()</span>
+                <span class="n">pop_srcinfo_mode</span><span class="p">()</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span> <span class="c1"># Ensure model is constructed</span>
+                <span class="k">try</span><span class="p">:</span>
+                    <span class="n">Randomizer</span><span class="o">.</span><span class="n">do_randomize</span><span class="p">(</span>
+                        <span class="n">ro_i</span><span class="o">.</span><span class="n">get_randstate</span><span class="p">(),</span>
+                        <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">),</span>
+                        <span class="p">[</span><span class="n">model</span><span class="p">],</span> 
+                        <span class="p">[</span><span class="n">c</span><span class="p">],</span> 
+                        <span class="n">debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">debug</span><span class="p">,</span>
+                        <span class="n">lint</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">lint</span><span class="p">,</span>
+                        <span class="n">solve_fail_debug</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">solve_fail_debug</span><span class="p">)</span>
+                <span class="k">except</span> <span class="n">SolveFailure</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">diagnostics</span><span class="p">)</span>
+                    <span class="k">raise</span> <span class="n">e</span>
+            
+            <span class="k">def</span> <span class="nf">randomize_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                               <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
+                               <span class="n">lint</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+                               <span class="n">solve_fail_debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+                <span class="c1"># Ensure the &#39;model&#39; data structures have been built</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">debug</span> <span class="o">=</span> <span class="n">debug</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">lint</span> <span class="o">=</span> <span class="n">lint</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">solve_fail_debug</span> <span class="o">=</span> <span class="n">solve_fail_debug</span>
+        
+                <span class="k">return</span> <span class="bp">self</span>
+            
+            <span class="k">def</span> <span class="nf">do_pre_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> 
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;pre_randomize&quot;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">pre_randomize</span><span class="p">()</span>
+            
+            <span class="k">def</span> <span class="nf">do_post_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;post_randomize&quot;</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">post_randomize</span><span class="p">()</span>
+            
+            <span class="k">def</span> <span class="nf">_id_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+                <span class="sd">&quot;&quot;&quot;Apply an ID to all fields so they can be </span>
+<span class="sd">                referenced using indexed expressions</span>
+<span class="sd">                &quot;&quot;&quot;</span>
+                <span class="n">it</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">parent</span>
+    
+                <span class="n">fid</span> <span class="o">=</span> <span class="mi">0</span>        
+                <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">it</span><span class="p">):</span>
+                    <span class="n">fo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="s2">&quot;_int_field_info&quot;</span><span class="p">):</span>
+                        <span class="n">fi</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span>
+                        <span class="n">fi</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">fid</span>
+                        <span class="n">fi</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">it</span><span class="o">.</span><span class="n">_int_field_info</span>
+                        <span class="n">fid</span> <span class="o">+=</span> <span class="mi">1</span>
+                    
+                        <span class="k">if</span> <span class="n">fi</span><span class="o">.</span><span class="n">is_composite</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_id_fields</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">fi</span><span class="p">)</span>
+    
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__getattribute__&quot;</span><span class="p">,</span> <span class="fm">__getattribute__</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__setattr__&quot;</span><span class="p">,</span> <span class="fm">__setattr__</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;randomize&quot;</span><span class="p">,</span> <span class="n">randomize</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;randomize_with&quot;</span><span class="p">,</span> <span class="n">randomize_with</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;build_field_model&quot;</span><span class="p">,</span> <span class="n">build_field_model</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;get_model&quot;</span><span class="p">,</span> <span class="n">get_model</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;set_randstate&quot;</span><span class="p">,</span> <span class="n">set_randstate</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;get_randstate&quot;</span><span class="p">,</span> <span class="n">get_randstate</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_get_ro_int&quot;</span><span class="p">,</span> <span class="n">_get_ro_int</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__enter__&quot;</span><span class="p">,</span> <span class="fm">__enter__</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__exit__&quot;</span><span class="p">,</span> <span class="fm">__exit__</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;do_pre_randomize&quot;</span><span class="p">,</span> <span class="n">do_pre_randomize</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;do_post_randomize&quot;</span><span class="p">,</span> <span class="n">do_post_randomize</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_id_fields&quot;</span><span class="p">,</span> <span class="n">_id_fields</span><span class="p">)</span>
+            <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_ro_init&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+            
+        <span class="k">return</span> <span class="n">ret</span>
+
+<div class="viewcode-block" id="randobj"><a class="viewcode-back" href="../../reference.html#vsc.rand_obj.randobj">[docs]</a><span class="k">def</span> <span class="nf">randobj</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">callable</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
+        <span class="c1"># Called without arguments</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">_randobj</span><span class="p">({})</span>
+        <span class="k">return</span> <span class="n">obj</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">obj</span> <span class="o">=</span> <span class="n">_randobj</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">obj</span></div>
+
+<div class="viewcode-block" id="generator"><a class="viewcode-back" href="../../reference.html#vsc.rand_obj.generator">[docs]</a><span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Mark a class as a generator&quot;&quot;&quot;</span>
+    
+    <span class="k">class</span> <span class="nc">generator_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">gen_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+            
+            <span class="c1"># Capture the instantiation location</span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">gen_i</span><span class="o">.</span><span class="n">srcinfo_inst</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+
+            <span class="c1"># Call the user&#39;s constructor            </span>
+            <span class="k">with</span> <span class="n">gen_i</span><span class="p">:</span>
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span> <span class="o">=</span> <span class="n">field_info</span><span class="p">()</span>                
+            <span class="k">if</span> <span class="n">gen_i</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">build_model</span><span class="p">()</span>
+            
+            <span class="k">pass</span>
+
+    <span class="c1"># Add the interposer class    </span>
+    <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="p">(</span><span class="n">generator_interposer</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">())</span>
+
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_gen_init&quot;</span><span class="p">):</span>
+        <span class="k">def</span> <span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
+        
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">type_base</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_raw_mode</span><span class="p">():</span>
+                <span class="c1"># We&#39;re not in an expression, so the user</span>
+                <span class="c1"># wants the value of this field</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">get_val</span><span class="p">()</span>
+            
+            <span class="k">return</span> <span class="n">ret</span>
+    
+        <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Retrieve the field object so we can check if it&#39;s </span>
+                <span class="c1"># a type_base object. This will throw an exception</span>
+                <span class="c1"># if the field doesn&#39;t exist</span>
+                <span class="n">fo</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">)</span>
+            <span class="k">except</span><span class="p">:</span>
+                <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">type_base</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="n">is_raw_mode</span><span class="p">():</span>
+                        <span class="c1"># We&#39;re not in an expression context, so the </span>
+                        <span class="c1"># user really wants us to set the actual value</span>
+                        <span class="c1"># of the field</span>
+                        <span class="n">fo</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Attempting to use &#39;=&#39; in a constraint&quot;</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>                
+                    
+        <span class="k">def</span> <span class="nf">randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+            <span class="n">Randomizer</span><span class="o">.</span><span class="n">do_randomize</span><span class="p">([</span><span class="n">model</span><span class="p">])</span>
+            
+        <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">model</span> <span class="o">=</span> <span class="n">FieldCompositeModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
+                <span class="n">model</span><span class="o">.</span><span class="n">typename</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__name__</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+            
+                <span class="c1"># Iterate through the fields and constraints</span>
+                <span class="c1"># First, assign IDs to each of the randomized fields</span>
+                <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
+                    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_int&quot;</span><span class="p">):</span>
+                            <span class="n">fo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                        
+                            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="s2">&quot;_int_field_info&quot;</span><span class="p">):</span>
+                                <span class="k">if</span> <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                                    <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+                                <span class="n">model</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                
+                            <span class="c1"># Now, elaborate the constraints</span>
+                    <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">f</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;_int&quot;</span><span class="p">):</span>
+                            <span class="n">fo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span>
+                            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">constraint_t</span><span class="p">):</span>
+                                <span class="n">clear_exprs</span><span class="p">()</span>
+                                <span class="n">block</span> <span class="o">=</span> <span class="n">ConstraintBlockModel</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+                                <span class="n">block</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">srcinfo</span>
+                                <span class="n">push_constraint_scope</span><span class="p">(</span><span class="n">block</span><span class="p">)</span>
+                                <span class="k">try</span><span class="p">:</span>
+                                    <span class="n">fo</span><span class="o">.</span><span class="n">c</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+                                <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Exception while processing constraint: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">))</span>
+                                    <span class="k">raise</span> <span class="n">e</span>
+                                <span class="n">fo</span><span class="o">.</span><span class="n">set_model</span><span class="p">(</span><span class="n">pop_constraint_scope</span><span class="p">())</span>
+                                <span class="n">model</span><span class="o">.</span><span class="n">add_constraint</span><span class="p">(</span><span class="n">fo</span><span class="o">.</span><span class="n">model</span><span class="p">)</span>
+                                <span class="n">clear_exprs</span><span class="p">()</span>
+                                    
+            <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
+        
+        <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+                
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
+        
+        <span class="k">def</span> <span class="nf">_get_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_gen_int&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_gen_int</span> <span class="o">=</span> <span class="n">GeneratorInt</span><span class="p">()</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gen_int</span>
+        
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__getattribute__&quot;</span><span class="p">,</span> <span class="fm">__getattribute__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__setattr__&quot;</span><span class="p">,</span> <span class="fm">__setattr__</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;randomize&quot;</span><span class="p">,</span> <span class="n">randomize</span><span class="p">)</span>
+<span class="c1">#        setattr(T, &quot;randomize_with&quot;, randomize_with)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;build_field_model&quot;</span><span class="p">,</span> <span class="n">build_field_model</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;get_model&quot;</span><span class="p">,</span> <span class="n">get_model</span><span class="p">)</span>
+<span class="c1">#        setattr(T, &quot;__enter__&quot;, __enter__)</span>
+<span class="c1">#        setattr(T, &quot;__exit__&quot;, __exit__)</span>
+<span class="c1">#        setattr(T, &quot;do_pre_randomize&quot;, do_pre_randomize)</span>
+<span class="c1">#        setattr(T, &quot;do_post_randomize&quot;, do_post_randomize)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_int_field_info&quot;</span><span class="p">,</span> <span class="n">field_info</span><span class="p">(</span><span class="kc">True</span><span class="p">))</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_get_int&quot;</span><span class="p">,</span> <span class="n">_get_int</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_ro_init&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+    
+        
+        
+    
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

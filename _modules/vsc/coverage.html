@@ -1,0 +1,1057 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vsc.coverage &mdash; pyvsc 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+        <script src="../../_static/jquery.js"></script>
+        <script src="../../_static/underscore.js"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../../_static/doctools.js"></script>
+    <script src="../../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../../index.html" class="icon icon-home"> pyvsc
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../data_types.html">PyVSC Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../constraints.html">PyVSC Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../coverage.html">PyVSC Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../methods.html">PyVSC Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../features.html">PyVSC Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../../reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../../index.html">pyvsc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="../index.html">Module code</a> &raquo;</li>
+      <li>vsc.coverage</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for vsc.coverage</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed to the Apache Software Foundation (ASF) under one</span>
+<span class="c1"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="c1"># distributed with this work for additional information</span>
+<span class="c1"># regarding copyright ownership.  The ASF licenses this file</span>
+<span class="c1"># to you under the Apache License, Version 2.0 (the</span>
+<span class="c1"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="c1"># with the License.  You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#  http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing,</span>
+<span class="c1"># software distributed under the License is distributed on an</span>
+<span class="c1"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="c1"># KIND, either express or implied.  See the License for the</span>
+<span class="c1"># specific language governing permissions and limitations</span>
+<span class="c1"># under the License.</span>
+
+<span class="c1"># Created on Aug 3, 2019</span>
+<span class="c1">#</span>
+<span class="c1"># @author: ballance</span>
+
+<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
+<span class="kn">import</span> <span class="nn">enum</span>
+<span class="kn">import</span> <span class="nn">inspect</span>
+
+<span class="kn">from</span> <span class="nn">vsc.impl</span> <span class="kn">import</span> <span class="n">ctor</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.coverage_registry</span> <span class="kn">import</span> <span class="n">CoverageRegistry</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.covergroup_int</span> <span class="kn">import</span> <span class="n">CovergroupInt</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.ctor</span> <span class="kn">import</span> <span class="n">pop_expr</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.expr_mode</span> <span class="kn">import</span> <span class="n">expr_mode</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.options</span> <span class="kn">import</span> <span class="n">Options</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.type_options</span> <span class="kn">import</span> <span class="n">TypeOptions</span>
+<span class="kn">from</span> <span class="nn">vsc.model.covergroup_model</span> <span class="kn">import</span> <span class="n">CovergroupModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_array_model</span> <span class="kn">import</span> <span class="n">CoverpointBinArrayModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_collection_model</span> <span class="kn">import</span> <span class="n">CoverpointBinCollectionModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_enum_model</span> <span class="kn">import</span> <span class="n">CoverpointBinEnumModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_bag_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleBagModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_val_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleValModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_cross_model</span> <span class="kn">import</span> <span class="n">CoverpointCrossModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_model</span> <span class="kn">import</span> <span class="n">CoverpointModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.enum_field_model</span> <span class="kn">import</span> <span class="n">EnumFieldModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.expr_fieldref_model</span> <span class="kn">import</span> <span class="n">ExprFieldRefModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.expr_ref_model</span> <span class="kn">import</span> <span class="n">ExprRefModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.field_composite_model</span> <span class="kn">import</span> <span class="n">FieldCompositeModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.field_scalar_model</span> <span class="kn">import</span> <span class="n">FieldScalarModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.rangelist_model</span> <span class="kn">import</span> <span class="n">RangelistModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.source_info</span> <span class="kn">import</span> <span class="n">SourceInfo</span>
+<span class="kn">from</span> <span class="nn">vsc.types</span> <span class="kn">import</span> <span class="n">rangelist</span><span class="p">,</span> <span class="n">bit_t</span><span class="p">,</span> <span class="n">to_expr</span><span class="p">,</span> <span class="n">type_base</span><span class="p">,</span> <span class="n">enum_t</span><span class="p">,</span> <span class="n">type_enum</span><span class="p">,</span> \
+    <span class="n">expr</span><span class="p">,</span> <span class="n">field_info</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.wildcard_bin_factory</span> <span class="kn">import</span> <span class="n">WildcardBinFactory</span>
+<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_wildcard_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleWildcardModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.wildcard_binspec</span> <span class="kn">import</span> <span class="n">WildcardBinspec</span>
+
+
+<div class="viewcode-block" id="covergroup"><a class="viewcode-back" href="../../reference.html#vsc.coverage.covergroup">[docs]</a><span class="k">def</span> <span class="nf">covergroup</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Covergroup decorator marks as class as being a covergroup&quot;&quot;&quot;</span>
+    
+    <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_cg_init&quot;</span><span class="p">):</span>
+        <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+            <span class="n">model</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
+            
+        <span class="c1"># TODO: Make adding sample parameters additive?</span>
+        <span class="k">def</span> <span class="nf">with_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+            <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="n">params</span> <span class="o">=</span> <span class="n">kwargs</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;incorrect call to with_sample. Expect single dict parameter or kwargs&quot;</span><span class="p">)</span>
+                
+            <span class="k">for</span> <span class="n">pn</span><span class="p">,</span><span class="n">pt</span> <span class="ow">in</span> <span class="n">params</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="s2">&quot;_int_field_info&quot;</span><span class="p">):</span>
+                    <span class="n">pm</span> <span class="o">=</span> <span class="n">pt</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="n">pn</span><span class="p">)</span>
+                    <span class="n">pt</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">pn</span>
+                    <span class="c1"># Note: this is only used if the field is a list</span>
+                    <span class="n">pt</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">model</span><span class="o">.</span><span class="n">field_l</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">pt</span><span class="p">,</span> <span class="s2">&quot;_id_fields&quot;</span><span class="p">):</span>
+                        <span class="c1"># This field is a composite field, and we</span>
+                        <span class="c1"># must access its children via indexed references</span>
+                        <span class="n">pt</span><span class="o">.</span><span class="n">_id_fields</span><span class="p">(</span>
+                            <span class="n">pt</span><span class="p">,</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Scalar field</span>
+                        <span class="n">pt</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span>
+                    <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">pn</span><span class="p">,</span> <span class="n">pt</span><span class="p">)</span>
+                    <span class="n">cg_i</span><span class="o">.</span><span class="n">sample_var_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pn</span><span class="p">)</span>
+                    <span class="n">cg_i</span><span class="o">.</span><span class="n">sample_obj_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">pt</span><span class="p">)</span>
+            
+                    <span class="c1"># Add a field to the covergroup model</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">add_field</span><span class="p">(</span><span class="n">pm</span><span class="p">)</span>
+                    
+                    <span class="n">pt</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">root_e</span> <span class="o">=</span> <span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Sample arguments must vsc objects, not &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">pt</span><span class="p">))</span>
+<span class="c1">#             elif len(kwargs) &gt; 0:</span>
+<span class="c1">#                 for pn,pt in kwargs.items():</span>
+<span class="c1">#                     if hasattr(pt, &quot;build_field_model&quot;):</span>
+<span class="c1">#                         setattr(self, pn, pt)</span>
+<span class="c1">#                         pm = pt.build_field_model(pn)</span>
+<span class="c1">#                         # Add a field to the covergroup model</span>
+<span class="c1">#                         model.add_field(pm)</span>
+<span class="c1">#                         cg_i.sample_var_l.append(pn)</span>
+<span class="c1">#                         cg_i.sample_obj_l.append(pt)</span>
+<span class="c1">#                     else:</span>
+<span class="c1">#                         print(&quot;TODO: handle non-field-model&quot;)</span>
+<span class="c1">#                         setattr(self, pn, lambda:getattr(self, &quot;_&quot; + pn))</span>
+<span class="c1">#            else:</span>
+<span class="c1">#                raise Exception(&quot;incorrect call to with_sample&quot;)</span>
+                
+        <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;Base sampling method that samples all coverpoints and crosses&quot;&quot;&quot;</span>
+            <span class="c1"># Build the model if we haven&#39;t yet</span>
+            <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+            
+            <span class="c1"># TODO: Need to propagate values to base classes</span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+            
+            <span class="n">sample_var_len</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">cg_i</span><span class="o">.</span><span class="n">sample_var_l</span><span class="p">)</span>
+            
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">!=</span> <span class="n">sample_var_len</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wrong number of parameters: expect &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">sample_var_len</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; receive &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)))</span>
+
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>        
+            <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)):</span>
+                <span class="c1"># TODO: need to account for inheritance</span>
+                <span class="n">ex_f</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">get_field</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+                <span class="n">us_f</span> <span class="o">=</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">sample_obj_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ex_f</span><span class="p">,</span> <span class="n">FieldCompositeModel</span><span class="p">):</span>
+                    <span class="c1"># TODO: probably need to do something a bit more than this?</span>
+                    <span class="n">model</span><span class="o">.</span><span class="n">set_field</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_model</span><span class="p">())</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ex_f</span><span class="p">,</span> <span class="n">EnumFieldModel</span><span class="p">):</span>
+                    <span class="n">ei</span> <span class="o">=</span> <span class="n">us_f</span><span class="o">.</span><span class="n">enum_i</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">type_enum</span><span class="p">):</span>
+                        <span class="n">ex_f</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_val</span><span class="p">())</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="c1"># Use the enum map to convert to an int</span>
+                        <span class="n">ex_f</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">ei</span><span class="o">.</span><span class="n">e2v</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ex_f</span><span class="p">,</span> <span class="n">FieldScalarModel</span><span class="p">):</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">type_base</span><span class="p">):</span>
+                        <span class="n">ex_f</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_val</span><span class="p">())</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="n">ex_f</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;unhandled sample case&quot;</span><span class="p">)</span>
+                        
+                    
+                <span class="nb">setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">sample_var_l</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+<span class="c1">#                getattr(self, cg_i.sample_var_l[i]).set_val(args[i])</span>
+
+            <span class="n">model</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+
+        <span class="k">pass</span>
+        
+        <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span>
+        
+        <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span>
+        
+        <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+            
+            <span class="k">if</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">CovergroupModel</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="vm">__name__</span><span class="p">)</span>
+                <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="bp">self</span><span class="p">),</span> <span class="s2">&quot;_srcinfo_decl&quot;</span><span class="p">)</span>
+                <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">srcinfo_inst</span> <span class="o">=</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">srcinfo_inst</span>
+            
+            <span class="k">return</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span>
+        
+        <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+
+            <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+            
+            <span class="c1"># Configure the covergroup name</span>
+            <span class="c1"># - name specified via &#39;set_name&#39; takes precedence</span>
+            <span class="c1"># - name specified via option has second level</span>
+            
+            <span class="n">name</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__name__</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;name&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">name</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">name</span>
+                
+            <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+            
+            <span class="n">obj_name_m</span> <span class="o">=</span> <span class="p">{}</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+                <span class="n">obj</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">n</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">obj</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
+                    <span class="n">obj_name_m</span><span class="p">[</span><span class="n">obj</span><span class="p">]</span> <span class="o">=</span> <span class="n">n</span>
+                    
+            <span class="k">for</span> <span class="n">b</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">buildable_l</span><span class="p">:</span>
+                <span class="n">cp_m</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">build_cov_model</span><span class="p">(</span><span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">obj_name_m</span><span class="p">[</span><span class="n">b</span><span class="p">])</span>
+                <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_coverpoint</span><span class="p">(</span><span class="n">cp_m</span><span class="p">)</span>
+                
+            <span class="c1"># Register the covergroup in the registry. This will ensure that</span>
+            <span class="c1"># this coverage instance is properly connected to the type coverage</span>
+            <span class="c1"># If the instance covergroup happens to be parameterized,</span>
+            <span class="c1"># then the type covergroup must have the same parameterization</span>
+            <span class="n">CoverageRegistry</span><span class="o">.</span><span class="n">inst</span><span class="p">()</span><span class="o">.</span><span class="n">register_cg</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">())</span>
+            
+                
+            <span class="c1"># We&#39;re done, so lock the covergroup</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+
+            <span class="c1"># Finalize the contents of the covergroup                </span>
+            <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
+        
+        <span class="k">def</span> <span class="nf">_get_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_cg_int&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_cg_int</span> <span class="o">=</span> <span class="n">CovergroupInt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cg_int</span>
+        
+        <span class="k">def</span> <span class="nf">lock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+            <span class="n">cg_i</span><span class="o">.</span><span class="n">locked</span> <span class="o">=</span> <span class="kc">True</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_options</span><span class="o">.</span><span class="n">_lock</span><span class="p">()</span>
+        
+        <span class="k">def</span> <span class="nf">_setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;buildable_l&quot;</span><span class="p">):</span>
+                    <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;buildable_l&quot;</span><span class="p">,</span> <span class="p">[])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">buildable_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
+            <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
+            
+        <span class="k">def</span> <span class="nf">set_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+           
+            <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+            <span class="k">if</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+                
+        <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
+            
+        <span class="k">def</span> <span class="nf">configure_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
+                <span class="n">opts</span><span class="o">=</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">opts</span> <span class="o">=</span> <span class="n">kwargs</span>
+
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TODO: reconfigure options&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TODO: detect wether options are locked&quot;</span><span class="p">)</span>
+            
+            <span class="k">return</span> <span class="bp">self</span>
+        
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;dump&quot;</span><span class="p">,</span> <span class="n">dump</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;with_sample&quot;</span><span class="p">,</span> <span class="n">with_sample</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;sample&quot;</span><span class="p">,</span> <span class="n">sample</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;get_coverage&quot;</span><span class="p">,</span> <span class="n">get_coverage</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;get_inst_coverage&quot;</span><span class="p">,</span> <span class="n">get_inst_coverage</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;get_model&quot;</span><span class="p">,</span> <span class="n">get_model</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;build_model&quot;</span><span class="p">,</span> <span class="n">build_model</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_get_int&quot;</span><span class="p">,</span> <span class="n">_get_int</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;lock&quot;</span><span class="p">,</span> <span class="n">lock</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__setattr__&quot;</span><span class="p">,</span> <span class="n">_setattr</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;set_name&quot;</span><span class="p">,</span> <span class="n">set_name</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;get_name&quot;</span><span class="p">,</span> <span class="n">get_name</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_cg_init&quot;</span><span class="p">,</span> <span class="kc">True</span><span class="p">)</span>
+        <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;configure_options&quot;</span><span class="p">,</span> <span class="n">configure_options</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Covergroup inheritance is not currently supported&quot;</span><span class="p">)</span>
+        
+    <span class="c1"># Store declaration information on the type</span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__file__&quot;</span><span class="p">):</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcefile</span><span class="p">(</span><span class="n">T</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">file</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">lineno</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">getsourcelines</span><span class="p">(</span><span class="n">T</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">file</span> <span class="o">=</span> <span class="s2">&quot;&lt;unknown&gt;&quot;</span>
+                <span class="n">lineno</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+        <span class="k">except</span> <span class="ne">Exception</span><span class="p">:</span>
+            <span class="c1"># In case an exception is encountered -- perhaps due to</span>
+            <span class="c1"># the code being Cython compiled</span>
+            <span class="n">file</span> <span class="o">=</span> <span class="s2">&quot;&lt;unknown&gt;&quot;</span>
+            <span class="n">lineno</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">file</span> <span class="o">=</span> <span class="s2">&quot;&lt;unknown&gt;&quot;</span>
+        <span class="n">lineno</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span>
+    <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_srcinfo_decl&quot;</span><span class="p">,</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">file</span><span class="p">,</span> <span class="n">lineno</span><span class="p">))</span>
+
+    <span class="c1"># This is the interposer class that wraps a user-defined</span>
+    <span class="c1"># covergroup class. It ensures that the coverage model is</span>
+    <span class="c1"># created while field refs are treated as expressions</span>
+    <span class="k">class</span> <span class="nc">covergroup_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        
+        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
+
+            <span class="c1"># Capture the instantiation location of this covergroup            </span>
+            <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+            <span class="n">cg_i</span><span class="o">.</span><span class="n">srcinfo_inst</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">buildable_l</span> <span class="o">=</span> <span class="p">[]</span>
+            
+            <span class="c1"># Construct the model            </span>
+            <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+            
+            <span class="c1"># Ensure options/type_options created before </span>
+            <span class="c1"># calling (user) base-class __init__</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;options&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">Options</span><span class="p">()</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;type_options&quot;</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">type_options</span> <span class="o">=</span> <span class="n">TypeOptions</span><span class="p">()</span>
+                
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="s2">&quot;_ro_init&quot;</span><span class="p">):</span>
+                    <span class="c1"># Ensure the model is constructed</span>
+                    <span class="n">a</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+                    
+            <span class="k">if</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span> <span class="o">=</span> <span class="n">field_info</span><span class="p">()</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">root_e</span> <span class="o">=</span> <span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="n">model</span><span class="p">)</span>
+
+            <span class="k">with</span> <span class="n">cg_i</span><span class="p">:</span>                
+                <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">ctor_level</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                <span class="c1"># TODO: need to actually elaborate the model</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">build_model</span><span class="p">()</span>
+                
+    <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="p">(</span><span class="n">covergroup_interposer</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">())</span>
+    
+    <span class="k">return</span> <span class="n">ret</span></div>
+
+        
+<div class="viewcode-block" id="bin"><a class="viewcode-back" href="../../reference.html#vsc.coverage.bin">[docs]</a><span class="k">class</span> <span class="nc">bin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Specifies a single coverage bin&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span> <span class="o">=</span> <span class="n">args</span>
+        
+        <span class="c1"># Capture the declaration location of this bin</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+        
+<div class="viewcode-block" id="bin.build_cov_model"><a class="viewcode-back" href="../../reference.html#vsc.coverage.bin.build_cov_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exclude_bins</span> <span class="p">:</span> <span class="n">RangelistModel</span><span class="p">):</span>
+        <span class="c1"># Construct a range model</span>
+        <span class="n">range_l</span> <span class="o">=</span> <span class="n">RangelistModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span>
+        <span class="n">range_l</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">exclude_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="c1"># Apply exclusions</span>
+            <span class="n">range_l</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">exclude_bins</span><span class="p">)</span>
+            
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinSingleBagModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">range_l</span><span class="p">)</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+        
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+        
+
+<div class="viewcode-block" id="bin_array"><a class="viewcode-back" href="../../reference.html#vsc.coverage.bin_array">[docs]</a><span class="k">class</span> <span class="nc">bin_array</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Specifies an array of bins&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        args may be one of two formats</span>
+<span class="sd">        - Single list of tuples or lists of values or ranges (eg [[1], [2,4], [8]])</span>
+<span class="sd">        - Arguments comprising values and ranges (eg 1, [2,4], 8)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span> <span class="o">=</span> <span class="n">RangelistModel</span><span class="p">()</span>
+        
+        <span class="c1"># Convert the specification into canonical form: list of tuples</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># Argument must be a value, a single-level list, or </span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                <span class="c1"># Must determine whether this is a programmatic description</span>
+                <span class="c1"># or a single user-specified range</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                    <span class="c1"># Programmatic description</span>
+                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">]:</span>
+                                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Programmatic bin specification elements require 1 or 2 elements: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">))</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                        <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="nb">int</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown bin specification &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">r</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># User-specified range</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Expect two elements in a user-specified range&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin value &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; is not integral&quot;</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">],</span> <span class="nb">int</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin value &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; is not integral&quot;</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="nb">int</span><span class="p">):</span>
+                <span class="c1"># user-specified single-value bin</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; is neither value nor range&quot;</span><span class="p">)</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Multiple arguments. Expect each to be a single-level tuple or list</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin range &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; must have two elements&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="nb">int</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; is neither value nor range&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nbins</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Only 0 or 1 argument can be specified to the nbins argument&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">nbins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No bins range specified&quot;</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+        
+        <span class="c1"># Capture the declaration location of this bin</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="bin_array.build_cov_model"><a class="viewcode-back" href="../../reference.html#vsc.coverage.bin_array.build_cov_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exclude_bins</span> <span class="p">:</span> <span class="n">RangelistModel</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">exclude_bins</span><span class="p">)</span>
+        
+        <span class="c1"># First, need to determine how many total bins</span>
+        <span class="c1"># Construct a range model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># unlimited number of bins</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinArrayModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">idx</span><span class="o">=</span><span class="mi">0</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinCollectionModel</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                        <span class="n">b</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinArrayModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                        <span class="n">b</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+                        <span class="n">idx</span> <span class="o">+=</span> <span class="p">((</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                    <span class="k">elif</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">==</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                        <span class="n">b</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinSingleValModel</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                        <span class="n">b</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+                        <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Internal error: expect bin to have 1 or 2 elements not &quot;</span> <span class="o">+</span> 
+                                        <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; (&quot;</span> <span class="o">+</span>
+                                        <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span><span class="o">.</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span>
+                                        <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">mk_collection</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> 
+                    <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
+        
+        <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+    
+<div class="viewcode-block" id="wildcard_bin"><a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin">[docs]</a><span class="k">class</span> <span class="nc">wildcard_bin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Specifies a single wildcard coverage bin&quot;&quot;&quot;</span>
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="c1"># Capture the declaration location of this bin</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
+                <span class="c1"># Expressed in mask form</span>
+                <span class="c1"># (value, mask) where 1-bits in mask are compared and 0-bits are ignored</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="c1"># Expressed in string form in either oct, hex, or bin format</span>
+                <span class="c1"># </span>
+                <span class="n">value</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">WildcardBinFactory</span><span class="o">.</span><span class="n">str2bin</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">append</span><span class="p">((</span><span class="n">value</span><span class="p">,</span><span class="n">mask</span><span class="p">))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown argument </span><span class="si">%s</span><span class="s2"> to wildcard bin. Expect tuple or string&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)))</span>
+        
+<div class="viewcode-block" id="wildcard_bin.build_cov_model"><a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin.build_cov_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">excluded_bins</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinSingleWildcardModel</span><span class="p">(</span>
+            <span class="n">name</span><span class="p">,</span> 
+            <span class="n">WildcardBinspec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">))</span>
+        <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+        
+        <span class="k">return</span> <span class="n">ret</span>    </div></div>
+
+<div class="viewcode-block" id="wildcard_bin_array"><a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin_array">[docs]</a><span class="k">class</span> <span class="nc">wildcard_bin_array</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;Specifies an array of bins using wildcard specifications&quot;&quot;&quot;</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        args may be one of two formats</span>
+<span class="sd">        - Single list of wildcard strings (eg &quot;0x82x&quot;)</span>
+<span class="sd">        - Single list of value/mask tuples (eg [(0x820,0xFF0)])</span>
+<span class="sd">        - Single string</span>
+<span class="sd">        - Single tuple</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="n">nbins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="c1"># Convert the specification into canonical form: list of tuples</span>
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">str</span><span class="p">):</span>
+                <span class="n">value</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">WildcardBinFactory</span><span class="o">.</span><span class="n">str2bin</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">WildcardBinFactory</span><span class="o">.</span><span class="n">valmask2binlist</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">mask</span><span class="p">))</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="p">(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                <span class="c1"># value/mask</span>
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wildcard bin specification requires two elements (value,mask)&quot;</span><span class="p">)</span>
+                
+                <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">WildcardBinFactory</span><span class="o">.</span><span class="n">valmask2binlist</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="s2">&quot; is neither string nor value/mask&quot;</span><span class="p">)</span>
+            <span class="k">pass</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="c1"># Multiple arguments. Expect each to be a single-level string or tuple</span>
+            <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">args</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,(</span><span class="nb">list</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wildcard bin range &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; must have two elements&quot;</span><span class="p">)</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">WildcardBinFactory</span><span class="o">.</span><span class="n">valmask2binlist</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span><span class="nb">str</span><span class="p">):</span>
+                    <span class="n">value</span><span class="p">,</span> <span class="n">mask</span> <span class="o">=</span> <span class="n">WildcardBinFactory</span><span class="o">.</span><span class="n">str2bin</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">WildcardBinFactory</span><span class="o">.</span><span class="n">valmask2binlist</span><span class="p">(</span><span class="n">value</span><span class="p">,</span> <span class="n">mask</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Wildcard bin specification &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; is neither value nor range&quot;</span><span class="p">)</span>
+                
+        <span class="c1"># TODO: handle overlap</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span><span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        
+        <span class="c1"># Now, collapse overlaps</span>
+        <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
+        <span class="k">while</span> <span class="n">i</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">):</span>
+            <span class="k">if</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&lt;</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span> <span class="o">&gt;=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">][</span><span class="mi">0</span><span class="p">]:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="mi">0</span><span class="p">],</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">])</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
+
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">nbins</span><span class="p">,</span><span class="nb">list</span><span class="p">):</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Only 0 or 1 argument can be specified to the nbins argument&quot;</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="o">-</span><span class="mi">1</span> <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="k">else</span> <span class="n">nbins</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">nbins</span><span class="p">)</span>
+        
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No bins range specified&quot;</span><span class="p">)</span>
+        
+        <span class="c1"># Capture the declaration location of this bin</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="wildcard_bin_array.build_cov_model"><a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin_array.build_cov_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">excluded_bins</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># First, need to determine how many total bins</span>
+        <span class="c1"># Construct a range model</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+            <span class="c1"># unlimited number of bins</span>
+            <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                <span class="n">r</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinArrayModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">idx</span><span class="o">=</span><span class="mi">0</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinCollectionModel</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="mi">2</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="o">!=</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]:</span>
+                            <span class="n">b</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinArrayModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]))</span>
+                            <span class="n">b</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+                            <span class="n">idx</span> <span class="o">+=</span> <span class="p">((</span><span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="o">-</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">b</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinSingleValModel</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                            <span class="n">b</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+                            <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">elif</span> <span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span><span class="p">:</span>
+                        <span class="n">b</span> <span class="o">=</span> <span class="n">ret</span><span class="o">.</span><span class="n">add_bin</span><span class="p">(</span><span class="n">CoverpointBinSingleValModel</span><span class="p">(</span><span class="n">name</span> <span class="o">+</span> <span class="s2">&quot;[&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;]&quot;</span><span class="p">,</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                        <span class="n">b</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+                        <span class="n">idx</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Internal error: expect bin to have 1 or 2 elements not &quot;</span> <span class="o">+</span> 
+                                        <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">r</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; (&quot;</span> <span class="o">+</span>
+                                        <span class="n">name</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span><span class="o">.</span><span class="n">filename</span> <span class="o">+</span> <span class="s2">&quot;:&quot;</span> <span class="o">+</span>
+                                        <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;)&quot;</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">mk_collection</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> 
+                    <span class="n">RangelistModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">),</span> <span class="bp">self</span><span class="o">.</span><span class="n">nbins</span><span class="p">)</span>
+        
+        <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+
+        <span class="k">return</span> <span class="n">ret</span></div></div>
+        
+<div class="viewcode-block" id="binsof"><a class="viewcode-back" href="../../reference.html#vsc.coverage.binsof">[docs]</a><span class="k">class</span> <span class="nc">binsof</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="c1"># TODO: future implementation of the &#39;binsof&#39; operator</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+
+<div class="viewcode-block" id="binsof.intersect"><a class="viewcode-back" href="../../reference.html#vsc.coverage.binsof.intersect">[docs]</a>    <span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+
+    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+    <span class="k">def</span> <span class="nf">__not__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">pass</span>
+    
+    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">pass</span></div>
+    
+<div class="viewcode-block" id="coverpoint"><a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint">[docs]</a><span class="k">class</span> <span class="nc">coverpoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+   
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+            <span class="n">target</span><span class="p">,</span> 
+            <span class="n">cp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Type of the coverpoint, when it needs to be specified</span>
+            <span class="n">iff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+            <span class="n">bins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+            <span class="n">ignore_bins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">illegal_bins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+            <span class="n">type_options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+            <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">have_var</span> <span class="o">=</span> <span class="kc">False</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span> <span class="o">=</span> <span class="n">cp_t</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_kind</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_type</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">Options</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_options</span> <span class="o">=</span> <span class="n">TypeOptions</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span> <span class="o">=</span> <span class="kc">None</span>
+        
+        <span class="c1"># Capture the declaration location of this coverpoint</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+        
+        <span class="n">ctor</span><span class="o">.</span><span class="n">clear_exprs</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+            
+        <span class="k">if</span> <span class="n">type_options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_options</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">type_options</span><span class="p">)</span>
+
+        <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
+            <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">type_enum</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">have_var</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span><span class="o">.</span><span class="n">em</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span> <span class="o">=</span> <span class="n">target</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">type_base</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">have_var</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span><span class="o">.</span><span class="n">em</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span> <span class="o">=</span> <span class="n">target</span>
+            <span class="k">elif</span> <span class="n">callable</span><span class="p">(</span><span class="n">target</span><span class="p">):</span>
+                <span class="k">if</span> <span class="n">cp_t</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">bins</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Auto-binned coverpoint with a callable target must specify type using &#39;cp_t&#39;&quot;</span><span class="p">)</span>
+
+                <span class="c1"># Accept the user-specified type</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span> <span class="o">=</span> <span class="n">cp_t</span>
+            
+                <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span> <span class="o">=</span> <span class="n">target</span>
+            <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">target</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">have_var</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">target</span><span class="o">.</span><span class="n">em</span>
+                <span class="k">if</span> <span class="n">cp_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span> <span class="o">=</span> <span class="n">cp_t</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># Get the express width for the implied type</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span> <span class="o">=</span> <span class="n">bit_t</span><span class="p">(</span><span class="n">target</span><span class="o">.</span><span class="n">em</span><span class="o">.</span><span class="n">width</span><span class="p">())</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="c1"># should be an actual variable (?)</span>
+                <span class="c1"># TODO: or, could be an expression</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;TODO: handle actual variables&quot;</span><span class="p">)</span>
+                <span class="n">to_expr</span><span class="p">(</span><span class="n">target</span><span class="p">)</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">target</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;target=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">))</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">val</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;self.get_val_f=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span><span class="p">))</span>
+
+            <span class="k">if</span> <span class="n">iff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iff</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="n">iff</span><span class="o">.</span><span class="n">em</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iff</span><span class="p">,</span> <span class="p">(</span><span class="n">type_enum</span><span class="p">,</span><span class="n">type_base</span><span class="p">)):</span>
+                    <span class="n">iff</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">callable</span><span class="p">(</span><span class="n">iff</span><span class="p">):</span>
+                    <span class="c1"># The user has provided a function to</span>
+                    <span class="c1"># gate when sampling occurs</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span> <span class="o">=</span> <span class="n">iff</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown iff type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">iff</span><span class="p">))</span>
+            
+        <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="n">bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span> <span class="o">=</span> <span class="n">ignore_bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span> <span class="o">=</span> <span class="n">illegal_bins</span>
+        
+        <span class="n">ctor</span><span class="o">.</span><span class="n">clear_exprs</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="coverpoint.get_coverage"><a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="coverpoint.get_inst_coverage"><a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_inst_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="coverpoint.build_cov_model"><a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.build_cov_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="p">,</span> <span class="n">type_base</span><span class="p">):</span>
+                    <span class="n">width</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="o">.</span><span class="n">width</span>
+                    <span class="n">is_signed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="o">.</span><span class="n">is_signed</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="n">width</span> <span class="o">=</span> <span class="mi">32</span>
+                    <span class="n">is_signed</span> <span class="o">=</span> <span class="kc">True</span>
+                    
+                <span class="n">sample_expr</span> <span class="o">=</span> <span class="n">ExprRefModel</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span><span class="p">,</span> 
+                    <span class="n">width</span><span class="p">,</span>
+                    <span class="n">is_signed</span><span class="p">)</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">sample_expr</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">target</span>
+                
+            <span class="n">iff_e</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">iff_e</span> <span class="o">=</span> <span class="n">ExprRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="n">iff_e</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff</span>
+            
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">CoverpointModel</span><span class="p">(</span>
+                <span class="n">sample_expr</span><span class="p">,</span>
+                <span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">options</span><span class="p">,</span>
+                <span class="n">iff_e</span><span class="p">)</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+
+            <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
+                <span class="n">exclude_bins</span> <span class="o">=</span> <span class="n">RangelistModel</span><span class="p">()</span>
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;ignore_bins must be a &#39;dict&#39;&quot;</span><span class="p">)</span>
+                    
+                    <span class="k">for</span> <span class="n">ib_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">ib</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span><span class="p">[</span><span class="n">ib_name</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="nb">bin</span><span class="p">):</span>
+                            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ib</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                                    <span class="n">exclude_bins</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">exclude_bins</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;ignore_bins only supports &#39;bin&#39; elements&quot;</span><span class="p">)</span>
+                        
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span><span class="p">,</span> <span class="nb">dict</span><span class="p">):</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;illegal_bins must be a &#39;dict&#39;&quot;</span><span class="p">)</span>
+                    
+                    <span class="k">for</span> <span class="n">ib_name</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                        <span class="n">ib</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span><span class="p">[</span><span class="n">ib_name</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ib</span><span class="p">,</span> <span class="nb">bin</span><span class="p">):</span>
+                            <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="n">ib</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>
+                                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">r</span><span class="p">,</span> <span class="p">(</span><span class="nb">dict</span><span class="p">,</span><span class="nb">tuple</span><span class="p">)):</span>
+                                    <span class="n">exclude_bins</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+                                <span class="k">else</span><span class="p">:</span>
+                                    <span class="n">exclude_bins</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;ignore_bins only supports &#39;bin&#39; elements&quot;</span><span class="p">)</span>
+                        
+                <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="n">exclude_bins</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+                
+                <span class="c1"># TODO: handle illegal_bins in the future</span>
+                
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="ow">is</span> <span class="kc">None</span> <span class="ow">or</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">bins</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="p">,</span> <span class="n">type_enum</span><span class="p">):</span>
+                        <span class="n">ei</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="o">.</span><span class="n">enum_i</span>
+                        <span class="n">enum_bins</span> <span class="o">=</span> <span class="n">RangelistModel</span><span class="p">()</span>
+                        <span class="k">for</span> <span class="n">e</span><span class="p">,</span><span class="n">v</span> <span class="ow">in</span> <span class="n">ei</span><span class="o">.</span><span class="n">e2v_m</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                            <span class="n">enum_bins</span><span class="o">.</span><span class="n">add_value</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+
+                        <span class="c1"># Ensure that they&#39;re ordered</span>
+                        <span class="n">enum_bins</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+                        
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="n">enum_bins</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">exclude_bins</span><span class="p">)</span>
+
+                        <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">enum_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>                        
+                            <span class="n">e</span> <span class="o">=</span> <span class="n">ei</span><span class="o">.</span><span class="n">v2e_m</span><span class="p">[</span><span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]]</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_bin_model</span><span class="p">(</span><span class="n">CoverpointBinEnumModel</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">),</span> <span class="n">v</span><span class="p">[</span><span class="mi">0</span><span class="p">]))</span>
+                            
+                    <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="p">,</span> <span class="n">type_base</span><span class="p">):</span>
+                        <span class="n">binspec</span> <span class="o">=</span> <span class="n">RangelistModel</span><span class="p">()</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="o">.</span><span class="n">is_signed</span><span class="p">:</span>
+                            <span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="o">.</span><span class="n">width</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="n">low</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="o">.</span><span class="n">width</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+                            <span class="n">high</span> <span class="o">=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="o">.</span><span class="n">width</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+                            <span class="n">binspec</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="o">-</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">)</span>
+                            
+                        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+                            <span class="c1"># Need to trim bins</span>
+                            <span class="n">exclude_bins</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+                            <span class="n">binspec</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">exclude_bins</span><span class="p">)</span>
+
+                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_bin_model</span><span class="p">(</span><span class="n">CoverpointBinCollectionModel</span><span class="o">.</span><span class="n">mk_collection</span><span class="p">(</span>
+                            <span class="n">name</span><span class="p">,</span> <span class="n">binspec</span><span class="p">,</span> <span class="n">options</span><span class="o">.</span><span class="n">auto_bin_max</span><span class="p">))</span>
+                    <span class="k">else</span><span class="p">:</span>
+                        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;attempting to create auto-bins from unknown type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_t</span><span class="p">))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># TODO: need a pre-step where we build the ranges, then trim</span>
+                    <span class="k">for</span> <span class="n">bin_name</span><span class="p">,</span><span class="n">bin_spec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">bins</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bin_spec</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification doesn&#39;t have a build_cov_model method&quot;</span><span class="p">)</span>
+                        <span class="n">bin_m</span> <span class="o">=</span> <span class="n">bin_spec</span><span class="o">.</span><span class="n">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">bin_name</span><span class="p">,</span> <span class="n">exclude_bins</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
+                        
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Build dedicated ignore_bins</span>
+                    <span class="k">for</span> <span class="n">bin_name</span><span class="p">,</span><span class="n">bin_spec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bin_spec</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification doesn&#39;t have a build_cov_model method&quot;</span><span class="p">)</span>
+                        <span class="n">bin_m</span> <span class="o">=</span> <span class="n">bin_spec</span><span class="o">.</span><span class="n">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">bin_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_ignore_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
+                    <span class="c1"># Build dedicated ignore_bins</span>
+                    <span class="k">for</span> <span class="n">bin_name</span><span class="p">,</span><span class="n">bin_spec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bin_spec</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
+                            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification doesn&#39;t have a build_cov_model method&quot;</span><span class="p">)</span>
+                        <span class="n">bin_m</span> <span class="o">=</span> <span class="n">bin_spec</span><span class="o">.</span><span class="n">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">bin_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_illegal_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
+
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span></div>
+    
+<div class="viewcode-block" id="coverpoint.get_model"><a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span></div>
+    
+<div class="viewcode-block" id="coverpoint.get_val"><a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_val">[docs]</a>    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp_m</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span><span class="p">())</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
+    
+<div class="viewcode-block" id="coverpoint.set_val"><a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.set_val">[docs]</a>    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
+    
+    <span class="k">def</span> <span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">have_var</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">(</span><span class="n">rhs</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Attempting to set value of non-variable coverpoint&quot;</span><span class="p">)</span>
+        
+    <span class="k">def</span> <span class="nf">_lock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">type_options</span><span class="o">.</span><span class="n">_lock</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="cross"><a class="viewcode-back" href="../../reference.html#vsc.coverage.cross">[docs]</a><span class="k">class</span> <span class="nc">cross</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+                 <span class="n">target_l</span><span class="p">,</span> 
+                 <span class="n">bins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
+                 <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
+                 <span class="n">iff</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target_l</span><span class="p">:</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">coverpoint</span><span class="p">):</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cross target </span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> is not a coverpoint&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_l</span> <span class="o">=</span> <span class="n">target_l</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="n">bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">Options</span><span class="p">()</span>
+        
+        <span class="k">if</span> <span class="n">options</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">options</span><span class="p">)</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="kc">None</span>
+
+        <span class="k">if</span> <span class="n">iff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>        
+            <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iff</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="n">iff</span><span class="o">.</span><span class="n">em</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">iff</span><span class="p">,</span> <span class="p">(</span><span class="n">type_enum</span><span class="p">,</span><span class="n">type_base</span><span class="p">)):</span>
+                    <span class="n">iff</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+                <span class="k">elif</span> <span class="n">callable</span><span class="p">(</span><span class="n">iff</span><span class="p">):</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span> <span class="o">=</span> <span class="n">iff</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown iff type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">iff</span><span class="p">))</span>
+        
+        <span class="c1"># Capture the declaration location of this cross</span>
+        <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="p">(</span><span class="n">frame</span><span class="o">.</span><span class="n">filename</span><span class="p">,</span> <span class="n">frame</span><span class="o">.</span><span class="n">lineno</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
+        
+<div class="viewcode-block" id="cross.build_cov_model"><a class="viewcode-back" href="../../reference.html#vsc.coverage.cross.build_cov_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="c1"># Let the user-specified name take precedence</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">iff</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span><span class="p">:</span>
+                <span class="n">iff</span> <span class="o">=</span> <span class="n">ExprRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iff_f</span><span class="p">,</span> <span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
+            <span class="k">elif</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff</span><span class="p">:</span>
+                <span class="n">iff</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff</span>
+            
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointCrossModel</span><span class="p">(</span>
+                <span class="n">name</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">,</span>
+                <span class="n">options</span><span class="p">,</span>
+                <span class="n">iff</span><span class="p">)</span>
+        
+            <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+        
+            <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">target_l</span><span class="p">:</span>
+                <span class="n">m</span> <span class="o">=</span> <span class="n">cp</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
+                <span class="n">ret</span><span class="o">.</span><span class="n">add_coverpoint</span><span class="p">(</span><span class="n">m</span><span class="p">)</span>
+                
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">ret</span>
+            
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span></div>
+    
+<div class="viewcode-block" id="cross.get_coverage"><a class="viewcode-back" href="../../reference.html#vsc.coverage.cross.get_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="mf">0.0</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span>        </div></div>
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>
