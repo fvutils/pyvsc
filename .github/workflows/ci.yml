@@ -35,6 +35,17 @@ jobs:
         #    fi
         #done
         echo "Final status: $?"
+    - name: Build Docs
+      run: |
+        cd doc
+        make html
+        touch build/html/.nojekyll
+        cp -r build/html ../
+    - name: Deploy
+      uses: JamesIves/github-pages-deploy-action@4.1.7
+      with:
+        branch: gh-pages
+        folder: html
     - name: Publish to PyPi
       if: startsWith(github.ref, 'refs/heads/master')
       uses: pypa/gh-action-pypi-publish@release/v1
