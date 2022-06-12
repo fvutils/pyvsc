@@ -72,4 +72,28 @@ class TestCoverageMethods(VscTestCase):
           cg1.get_coverage(),
           cg1.get_inst_coverage(),
           cg2.get_inst_coverage()))
- 
+
+    def test_example_1(self):
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=vsc.bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8)
+                    })
+
+        cg1 = my_covergroup()
+        cg2 = my_covergroup()
+       
+        cg1.sample(1)
+        cg2.sample(2)
+        
+        print("==== Without Details ===")
+        vsc.report_coverage()
+        print()
+        print("==== With Details ===")
+        vsc.report_coverage(details=True)
+

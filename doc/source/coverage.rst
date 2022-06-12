@@ -578,8 +578,75 @@ PyVSC provides three methods for obtaining a coverage report.
 
 .. automodule:: vsc
   :members: report_coverage
-  
-  
+ 
+Let's using a derivative of the example show above to see the differences 
+between a coverage report with and without details.
+
+.. code-block:: python3
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=vsc.bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8)
+                    })
+
+        cg1 = my_covergroup()
+        cg2 = my_covergroup()
+       
+        cg1.sample(1)
+        cg2.sample(2)
+        
+        print("==== Without Details ===")
+        vsc.report_coverage()
+        print()
+        print("==== With Details ===")
+        vsc.report_coverage(details=True)
+
+The output from this code is shown below:
+
+.. code-block::
+
+    TYPE my_covergroup : 50.000000%
+      CVP cp1 : 50.000000%
+      INST my_covergroup : 25.000000%
+          CVP cp1 : 25.000000%
+      INST my_covergroup_1 : 25.000000%
+          CVP cp1 : 25.000000%
+
+    ==== With Details ===
+    TYPE my_covergroup : 50.000000%
+      CVP cp1 : 50.000000%
+      Bins:
+          a[0] : 1
+          a[1] : 1
+          a[2] : 0
+          a[3] : 0
+      INST my_covergroup : 25.000000%
+          CVP cp1 : 25.000000%
+          Bins:
+              a[0] : 1
+              a[1] : 0
+              a[2] : 0
+              a[3] : 0
+      INST my_covergroup_1 : 25.000000%
+          CVP cp1 : 25.000000%
+          Bins:
+              a[0] : 0
+              a[1] : 1
+              a[2] : 0
+              a[3] : 0
+ 
+
+The coverage report without details shows the coverage achieved for the
+covergroup and coverpoints without showing which bins were hit or how
+many times. The coverage report with details shows hit counts for each
+bin in addition to the coverage percentage achieved for the covergroups
+and coverpoints.
+ 
 Saving Coverage Data
 ====================
 
