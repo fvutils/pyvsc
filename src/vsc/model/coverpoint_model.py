@@ -159,14 +159,17 @@ class CoverpointModel(CoverItemBase):
         return (b,bin_idx)
     
     def get_coverage(self)->float:
+        if self.parent.type_cg is None:
+            return self.get_inst_coverage()
+        else:
+            return self.get_inst_coverage()
+    
+    def get_inst_coverage(self):
         if not self.coverage_calc_valid:
             self.coverage = (len(self.hit_l)-len(self.unhit_s))/len(self.hit_l) * 100.0
             self.coverage_calc_valid = True
         
         return self.coverage
-    
-    def get_inst_coverage(self):
-        raise Exception("get_inst_coverage unimplemented")
         
     def sample(self):
 

@@ -156,9 +156,18 @@ def covergroup(T):
         pass
         
         def get_coverage(self):
+            """
+            Queries coverage achieved by all instances of this covergroup type
+            :return: coverage achieved as percentage (0..100)
+            """
+            
             return self.get_model().get_coverage()
         
         def get_inst_coverage(self):
+            """
+            Queries coverage achieved by this instances of this covergroup type
+            :return: coverage achieved as percentage (0..100)
+            """
             return self.get_model().get_inst_coverage()
         
         def get_model(self):

@@ -1,4 +1,7 @@
 
+## 0.7.3
+- Correct an issue with the covergroup 'get_coverage' method
+
 ## 0.7.2
 - Disable some internal debug output that was inadvertently left on
 

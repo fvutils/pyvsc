@@ -517,28 +517,84 @@ sampling.
 In the example above, calling the `sample` method will sample the current value
 of `a` and `b` in the context and sample the coverpoints with those values.
 
+Coverage API
+============
+PyVSC covergroup classes implement methods for querying achieved coverage.
+
+- `get_coverage` - Reports coverage achieved by all covergroup instances (0..100)
+- `get_inst_coverage` - Reports coverage by this instance (0..100)
+
+.. code-block:: python3
+
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=vsc.bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], [1, 2, 4, 8])
+                    })
+
+        cg1 = my_covergroup()
+        cg2 = my_covergroup()
+        
+        cg1.sample(1)
+        print("Type=%f cg1=%f cg2=%f" % (
+          cg1.get_coverage(),
+          cg1.get_inst_coverage(),
+          cg2.get_inst_coverage()))
+          
+        cg2.sample(2)
+        print("Type=%f cg1=%f cg2=%f" % (
+          cg1.get_coverage(),
+          cg1.get_inst_coverage(),
+          cg2.get_inst_coverage()))
+
+Running this example produces:
+
+.. code-block::
+
+  Type=25.000000 cg1=25.000000 cg2=0.000000
+  Type=50.000000 cg1=25.000000 cg2=25.000000
+
+Sampling the first covergroup instance results in its instance coverage 
+being increased to 25% (1/4 bins have been hit) and the combined type
+coverage incrasing to 25%. Sampling the second covergroup instance raises
+its instance coverage to 25% as well, while increasing the total type
+coverage achieved to 50%.
 
 Coverage Reports
 ================
 
 PyVSC provides three methods for obtaining a coverage report. 
 
-- `get_coverage_report_model` -- Returns a coverage-report object with information about each type and instance of coverage
-- `get_coverage_report` -- Returns a string with a textual coverage report
-- `report_coverage` -- Prints a coverage report to a stream (defaults to stdout)
+.. automodule:: vsc
+  :members: get_coverage_report
 
+.. automodule:: vsc
+  :members: get_coverage_report_model
+
+.. automodule:: vsc
+  :members: report_coverage
+  
+  
 Saving Coverage Data
 ====================
 
 PyVSC uses the `PyUCIS <https://github.com/fvutils/pyucis>`_ library to export
 coverage data using the API or XML interchange format defined by the
-`Accellera UCIS <https://accellera.org/downloads/standards/ucis>` standard.
+`Accellera UCIS <https://accellera.org/downloads/standards/ucis>`_ standard.
 
 Using the PyUCIS library, PyVSC can write coverage data to an XML-format
 coverage interchange file. Or, can write coverage data directly to a
 coverage database using a shared library that implements the UCIS C API.
 
 PyVSC provides the `write_coverage_db` method for saving coverage data.
+
+.. automodule:: vsc
+  :members: write_coverage_db
 
 Saving to XML
 -------------

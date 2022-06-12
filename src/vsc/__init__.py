@@ -46,7 +46,12 @@ from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug
 
 
 def get_coverage_report(details=False)->str:
-    """Returns a textual coverage report of all covergroups"""
+    """
+    Returns a textual coverage report of all covergroups
+    
+    :param bool details: Write details, such as the hits in each bin (False)
+    :return: String containin coverage report text
+    """
     model = get_coverage_report_model()
 
     out = StringIO()    
@@ -57,7 +62,11 @@ def get_coverage_report(details=False)->str:
     return out.getvalue()
 
 def get_coverage_report_model()->CoverageReport:
-    """Returns a coverage report model of all covergroups"""
+    """
+    Returns a coverage report model of all covergroups
+    
+    :return: Object describing collected coverage
+    """
     covergroups = CoverageRegistry.inst().covergroup_types()
 
     db = MemFactory.create()        
@@ -71,7 +80,12 @@ def get_coverage_report_model()->CoverageReport:
     return CoverageReportBuilder.build(db)    
 
 def report_coverage(fp=None, details=False):
-    """Writes a coverage report to the console"""
+    """
+    Writes a coverage report to a stream (stdout by default)
+    
+    :param fp: Stream to which to write the report
+    :param bool details: Write details, such as the hits in each bin (False)
+    """
     if fp is None:
         fp = sys.stdout
     fp.write(get_coverage_report(details))
@@ -80,6 +94,14 @@ def write_coverage_db(
         filename, 
         fmt="xml",
         libucis=None):
+    """
+    Writes coverage data to persistent storage using the PyUCIS library.
+    
+    :param str filename: Destination for coverage data
+    :param str fmt: Format of the coverage data. 'xml' and 'libucis' supported
+    :param str libucis: Path to a library implementing the UCIS C API (default=None)
+    """
+    
     formats = ["xml", "libucis"]
     covergroups = CoverageRegistry.inst().covergroup_types()
     db : UCIS
