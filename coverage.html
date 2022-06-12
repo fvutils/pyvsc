@@ -714,6 +714,45 @@ coverage achieved to 50%.</p>
 </dl>
 </dd></dl>
 
+<p>Let’s using a derivative of the example show above to see the differences
+between a coverage report with and without details.</p>
+<p>The output from this code is shown below:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TYPE</span> <span class="n">my_covergroup</span> <span class="p">:</span> <span class="mf">50.000000</span><span class="o">%</span>
+  <span class="n">CVP</span> <span class="n">cp1</span> <span class="p">:</span> <span class="mf">50.000000</span><span class="o">%</span>
+  <span class="n">INST</span> <span class="n">my_covergroup</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+      <span class="n">CVP</span> <span class="n">cp1</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+  <span class="n">INST</span> <span class="n">my_covergroup_1</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+      <span class="n">CVP</span> <span class="n">cp1</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+
+<span class="o">====</span> <span class="n">With</span> <span class="n">Details</span> <span class="o">===</span>
+<span class="n">TYPE</span> <span class="n">my_covergroup</span> <span class="p">:</span> <span class="mf">50.000000</span><span class="o">%</span>
+  <span class="n">CVP</span> <span class="n">cp1</span> <span class="p">:</span> <span class="mf">50.000000</span><span class="o">%</span>
+  <span class="n">Bins</span><span class="p">:</span>
+      <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:</span> <span class="mi">1</span>
+      <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+      <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+  <span class="n">INST</span> <span class="n">my_covergroup</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+      <span class="n">CVP</span> <span class="n">cp1</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+      <span class="n">Bins</span><span class="p">:</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="mi">1</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+  <span class="n">INST</span> <span class="n">my_covergroup_1</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+      <span class="n">CVP</span> <span class="n">cp1</span> <span class="p">:</span> <span class="mf">25.000000</span><span class="o">%</span>
+      <span class="n">Bins</span><span class="p">:</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> <span class="p">:</span> <span class="mi">1</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+          <span class="n">a</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span> <span class="p">:</span> <span class="mi">0</span>
+</pre></div>
+</div>
+<p>The coverage report without details shows the coverage achieved for the
+covergroup and coverpoints without showing which bins were hit or how
+many times. The coverage report with details shows hit counts for each
+bin in addition to the coverage percentage achieved for the covergroups
+and coverpoints.</p>
 </section>
 <section id="saving-coverage-data">
 <h2>Saving Coverage Data<a class="headerlink" href="#saving-coverage-data" title="Permalink to this heading"></a></h2>
