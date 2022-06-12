@@ -66,6 +66,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../index.html">Module code</a> &raquo;</li>
+          <li><a href="../vsc.html">vsc</a> &raquo;</li>
       <li>vsc.coverage</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -234,9 +235,18 @@
         <span class="k">pass</span>
         
         <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Queries coverage achieved by all instances of this covergroup type</span>
+<span class="sd">            :return: coverage achieved as percentage (0..100)</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span>
         
         <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Queries coverage achieved by this instances of this covergroup type</span>
+<span class="sd">            :return: coverage achieved as percentage (0..100)</span>
+<span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span>
         
         <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

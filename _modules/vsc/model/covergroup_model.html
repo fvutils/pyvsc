@@ -66,6 +66,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../vsc.html">vsc</a> &raquo;</li>
       <li>vsc.model.covergroup_model</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -171,6 +172,15 @@
         <span class="k">return</span> <span class="n">cp</span></div>
         
 <div class="viewcode-block" id="CovergroupModel.get_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span></div>
+        
+<div class="viewcode-block" id="CovergroupModel.coverage_ev"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.coverage_ev">[docs]</a>    <span class="k">def</span> <span class="nf">coverage_ev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span> <span class="o">=</span> <span class="kc">False</span></div>
+    
+<div class="viewcode-block" id="CovergroupModel.get_inst_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_inst_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span> <span class="o">=</span> <span class="mf">0.0</span>
             <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">:</span>
@@ -185,14 +195,8 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span> <span class="o">=</span> <span class="nb">round</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coverage</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span> <span class="o">=</span> <span class="kc">True</span>
             
-        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span></div>
-        
-<div class="viewcode-block" id="CovergroupModel.coverage_ev"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.coverage_ev">[docs]</a>    <span class="k">def</span> <span class="nf">coverage_ev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span> <span class="o">=</span> <span class="kc">False</span></div>
-    
-<div class="viewcode-block" id="CovergroupModel.get_inst_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_inst_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="mf">0.0</span></div>
-            
+        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span>        </div>
+
 <div class="viewcode-block" id="CovergroupModel.accept"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.accept">[docs]</a>    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="n">v</span><span class="o">.</span><span class="n">visit_covergroup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
             

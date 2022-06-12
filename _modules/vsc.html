@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>vsc &mdash; pyvsc 0.0.1 documentation</title>
+      <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/css/theme.css" type="text/css" />
+      <link rel="stylesheet" href="../_static/graphviz.css" type="text/css" />
+  <!--[if lt IE 9]>
+    <script src="../_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+        <script data-url_root="../" id="documentation_options" src="../_static/documentation_options.js"></script>
+        <script src="../_static/jquery.js"></script>
+        <script src="../_static/underscore.js"></script>
+        <script src="../_static/_sphinx_javascript_frameworks_compat.js"></script>
+        <script src="../_static/doctools.js"></script>
+    <script src="../_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+            <a href="../index.html" class="icon icon-home"> pyvsc
+          </a>
+              <div class="version">
+                0.0
+              </div>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="../search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <ul>
+<li class="toctree-l1"><a class="reference internal" href="../introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../quickstart.html">Quickstart Guide</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../data_types.html">PyVSC Data Types</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../constraints.html">PyVSC Constraints</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../coverage.html">PyVSC Coverage</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../methods.html">PyVSC Methods</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../features.html">PyVSC Features</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../debug.html">Debug</a></li>
+<li class="toctree-l1"><a class="reference internal" href="../reference.html">API Reference</a></li>
+</ul>
+
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="../index.html">pyvsc</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="../index.html" class="icon icon-home"></a> &raquo;</li>
+          <li><a href="index.html">Module code</a> &raquo;</li>
+      <li>vsc</li>
+      <li class="wy-breadcrumbs-aside">
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <h1>Source code for vsc</h1><div class="highlight"><pre>
+<span></span><span class="c1"># Licensed to the Apache Software Foundation (ASF) under one</span>
+<span class="c1"># or more contributor license agreements.  See the NOTICE file</span>
+<span class="c1"># distributed with this work for additional information</span>
+<span class="c1"># regarding copyright ownership.  The ASF licenses this file</span>
+<span class="c1"># to you under the Apache License, Version 2.0 (the</span>
+<span class="c1"># &quot;License&quot;); you may not use this file except in compliance</span>
+<span class="c1"># with the License.  You may obtain a copy of the License at</span>
+<span class="c1">#</span>
+<span class="c1">#  http://www.apache.org/licenses/LICENSE-2.0</span>
+<span class="c1">#</span>
+<span class="c1"># Unless required by applicable law or agreed to in writing,</span>
+<span class="c1"># software distributed under the License is distributed on an</span>
+<span class="c1"># &quot;AS IS&quot; BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY</span>
+<span class="c1"># KIND, either express or implied.  See the License for the</span>
+<span class="c1"># specific language governing permissions and limitations</span>
+<span class="c1"># under the License.</span>
+
+<span class="kn">from</span> <span class="nn">_io</span> <span class="kn">import</span> <span class="n">StringIO</span>
+<span class="kn">from</span> <span class="nn">ctypes</span> <span class="kn">import</span> <span class="n">cdll</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">,</span> <span class="n">CFUNCTYPE</span>
+<span class="kn">from</span> <span class="nn">datetime</span> <span class="kn">import</span> <span class="n">datetime</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">from</span> <span class="nn">typing</span> <span class="kn">import</span> <span class="n">List</span>
+
+<span class="kn">from</span> <span class="nn">ucis</span> <span class="kn">import</span> <span class="n">UCIS_TESTSTATUS_OK</span><span class="p">,</span> <span class="n">db</span>
+<span class="kn">import</span> <span class="nn">ucis</span>
+<span class="kn">from</span> <span class="nn">ucis.lib.LibFactory</span> <span class="kn">import</span> <span class="n">LibFactory</span>
+<span class="kn">from</span> <span class="nn">ucis.lib.lib_ucis</span> <span class="kn">import</span> <span class="n">LibUCIS</span>
+<span class="kn">from</span> <span class="nn">ucis.mem.mem_factory</span> <span class="kn">import</span> <span class="n">MemFactory</span>
+<span class="kn">from</span> <span class="nn">ucis.report.coverage_report</span> <span class="kn">import</span> <span class="n">CoverageReport</span>
+<span class="kn">from</span> <span class="nn">ucis.report.coverage_report_builder</span> <span class="kn">import</span> <span class="n">CoverageReportBuilder</span>
+<span class="kn">from</span> <span class="nn">ucis.report.text_coverage_report_formatter</span> <span class="kn">import</span> <span class="n">TextCoverageReportFormatter</span>
+<span class="kn">from</span> <span class="nn">ucis.test_data</span> <span class="kn">import</span> <span class="n">TestData</span>
+<span class="kn">from</span> <span class="nn">ucis.ucis</span> <span class="kn">import</span> <span class="n">UCIS</span>
+<span class="kn">from</span> <span class="nn">ucis.xml.xml_factory</span> <span class="kn">import</span> <span class="n">XmlFactory</span>
+<span class="kn">from</span> <span class="nn">vsc.attrs</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">vsc.constraints</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">vsc.coverage</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">vsc.methods</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">vsc.rand_obj</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">vsc.types</span> <span class="kn">import</span> <span class="o">*</span>
+<span class="kn">from</span> <span class="nn">vsc.visitors.coverage_save_visitor</span> <span class="kn">import</span> <span class="n">CoverageSaveVisitor</span>
+<span class="kn">from</span> <span class="nn">ucis.ucdb.ucdb_factory</span> <span class="kn">import</span> <span class="n">UcdbFactory</span>
+<span class="kn">from</span> <span class="nn">ucis.ucdb.ucdb_ucis</span> <span class="kn">import</span> <span class="n">UcdbUCIS</span>
+<span class="kn">from</span> <span class="nn">vsc</span> <span class="kn">import</span> <span class="n">profile</span>
+<span class="kn">from</span> <span class="nn">vsc.impl.ctor</span> <span class="kn">import</span> <span class="n">glbl_debug</span><span class="p">,</span> <span class="n">glbl_solvefail_debug</span>
+
+
+<div class="viewcode-block" id="get_coverage_report"><a class="viewcode-back" href="../coverage.html#vsc.get_coverage_report">[docs]</a><span class="k">def</span> <span class="nf">get_coverage_report</span><span class="p">(</span><span class="n">details</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">str</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a textual coverage report of all covergroups</span>
+<span class="sd">    </span>
+<span class="sd">    :param bool details: Write details, such as the hits in each bin (False)</span>
+<span class="sd">    :return: String containin coverage report text</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">get_coverage_report_model</span><span class="p">()</span>
+
+    <span class="n">out</span> <span class="o">=</span> <span class="n">StringIO</span><span class="p">()</span>    
+    <span class="n">formatter</span> <span class="o">=</span> <span class="n">TextCoverageReportFormatter</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">out</span><span class="p">)</span>
+    <span class="n">formatter</span><span class="o">.</span><span class="n">details</span> <span class="o">=</span> <span class="n">details</span>
+    <span class="n">formatter</span><span class="o">.</span><span class="n">report</span><span class="p">()</span>
+    
+    <span class="k">return</span> <span class="n">out</span><span class="o">.</span><span class="n">getvalue</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="get_coverage_report_model"><a class="viewcode-back" href="../coverage.html#vsc.get_coverage_report_model">[docs]</a><span class="k">def</span> <span class="nf">get_coverage_report_model</span><span class="p">()</span><span class="o">-&gt;</span><span class="n">CoverageReport</span><span class="p">:</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Returns a coverage report model of all covergroups</span>
+<span class="sd">    </span>
+<span class="sd">    :return: Object describing collected coverage</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">covergroups</span> <span class="o">=</span> <span class="n">CoverageRegistry</span><span class="o">.</span><span class="n">inst</span><span class="p">()</span><span class="o">.</span><span class="n">covergroup_types</span><span class="p">()</span>
+
+    <span class="n">db</span> <span class="o">=</span> <span class="n">MemFactory</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>        
+    <span class="n">save_visitor</span> <span class="o">=</span> <span class="n">CoverageSaveVisitor</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span>
+    <span class="n">save_visitor</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">TestData</span><span class="p">(</span>
+        <span class="n">UCIS_TESTSTATUS_OK</span><span class="p">,</span>
+        <span class="s2">&quot;UCIS:simulator&quot;</span><span class="p">,</span>
+        <span class="n">ucis</span><span class="o">.</span><span class="n">ucis_Time</span><span class="p">()),</span> <span class="n">covergroups</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">CoverageReportBuilder</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>    </div>
+
+<div class="viewcode-block" id="report_coverage"><a class="viewcode-back" href="../coverage.html#vsc.report_coverage">[docs]</a><span class="k">def</span> <span class="nf">report_coverage</span><span class="p">(</span><span class="n">fp</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">details</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Writes a coverage report to a stream (stdout by default)</span>
+<span class="sd">    </span>
+<span class="sd">    :param fp: Stream to which to write the report</span>
+<span class="sd">    :param bool details: Write details, such as the hits in each bin (False)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">fp</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="n">fp</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">stdout</span>
+    <span class="n">fp</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">get_coverage_report</span><span class="p">(</span><span class="n">details</span><span class="p">))</span></div>
+    
+<div class="viewcode-block" id="write_coverage_db"><a class="viewcode-back" href="../coverage.html#vsc.write_coverage_db">[docs]</a><span class="k">def</span> <span class="nf">write_coverage_db</span><span class="p">(</span>
+        <span class="n">filename</span><span class="p">,</span> 
+        <span class="n">fmt</span><span class="o">=</span><span class="s2">&quot;xml&quot;</span><span class="p">,</span>
+        <span class="n">libucis</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Writes coverage data to persistent storage using the PyUCIS library.</span>
+<span class="sd">    </span>
+<span class="sd">    :param str filename: Destination for coverage data</span>
+<span class="sd">    :param str fmt: Format of the coverage data. &#39;xml&#39; and &#39;libucis&#39; supported</span>
+<span class="sd">    :param str libucis: Path to a library implementing the UCIS C API (default=None)</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="n">formats</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;xml&quot;</span><span class="p">,</span> <span class="s2">&quot;libucis&quot;</span><span class="p">]</span>
+    <span class="n">covergroups</span> <span class="o">=</span> <span class="n">CoverageRegistry</span><span class="o">.</span><span class="n">inst</span><span class="p">()</span><span class="o">.</span><span class="n">covergroup_types</span><span class="p">()</span>
+    <span class="n">db</span> <span class="p">:</span> <span class="n">UCIS</span>
+    
+    <span class="k">if</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">&quot;xml&quot;</span> <span class="ow">or</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">&quot;mem&quot;</span><span class="p">:</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="n">MemFactory</span><span class="o">.</span><span class="n">create</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">&quot;libucis&quot;</span><span class="p">:</span>
+        <span class="k">if</span> <span class="n">libucis</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="n">LibFactory</span><span class="o">.</span><span class="n">load_ucis_library</span><span class="p">(</span><span class="n">libucis</span><span class="p">)</span>
+        <span class="n">db</span> <span class="o">=</span> <span class="n">LibFactory</span><span class="o">.</span><span class="n">create</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unsupported coverage-report format &quot;</span> <span class="o">+</span> <span class="nb">format</span> 
+                        <span class="o">+</span> <span class="s2">&quot;. Supported formats: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">formats</span><span class="p">))</span>
+        
+    <span class="n">save_visitor</span> <span class="o">=</span> <span class="n">CoverageSaveVisitor</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    <span class="n">now</span> <span class="o">=</span> <span class="n">datetime</span><span class="o">.</span><span class="n">now</span>
+    <span class="n">save_visitor</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="n">TestData</span><span class="p">(</span>
+        <span class="n">UCIS_TESTSTATUS_OK</span><span class="p">,</span>
+        <span class="s2">&quot;UCIS:simulator&quot;</span><span class="p">,</span>
+        <span class="n">ucis</span><span class="o">.</span><span class="n">ucis_Time</span><span class="p">()),</span> <span class="n">covergroups</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">fmt</span> <span class="o">==</span> <span class="s2">&quot;xml&quot;</span><span class="p">:</span>
+        <span class="n">XmlFactory</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">db</span><span class="p">,</span> <span class="n">filename</span><span class="p">)</span>
+    <span class="k">elif</span> <span class="n">fmt</span> <span class="o">!=</span> <span class="s2">&quot;mem&quot;</span><span class="p">:</span>
+        <span class="n">db</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
+
+    <span class="k">return</span> <span class="n">db</span></div>
+
+<span class="k">def</span> <span class="nf">qsim_save_coverage</span><span class="p">(</span><span class="n">ucdb</span><span class="p">,</span> <span class="n">region</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Contributes Python coverage to Mentor Questa&#39;s coverage database</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ucdb=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ucdb</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; region=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">region</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; param=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">param</span><span class="p">))</span>
+    <span class="c1"># Load the UCIS library and initialize the Python</span>
+    <span class="c1"># interface</span>
+    <span class="n">UcdbFactory</span><span class="o">.</span><span class="n">load_ucdb_library</span><span class="p">(</span><span class="s2">&quot;libucdb.so&quot;</span><span class="p">)</span>
+    
+    <span class="n">db</span> <span class="o">=</span> <span class="n">UcdbUCIS</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="n">ucdb</span><span class="p">)</span>
+    <span class="n">covergroups</span> <span class="o">=</span> <span class="n">CoverageRegistry</span><span class="o">.</span><span class="n">inst</span><span class="p">()</span><span class="o">.</span><span class="n">covergroup_types</span><span class="p">()</span>
+    <span class="n">save_visitor</span> <span class="o">=</span> <span class="n">CoverageSaveVisitor</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
+    
+    <span class="n">save_visitor</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">covergroups</span><span class="p">)</span>
+    
+    <span class="k">pass</span>
+
+<span class="c1"># Make the callback-function object global to </span>
+<span class="c1"># prevent it being garbage-collected</span>
+<span class="n">_qsim_cov_save_coverage_cb</span> <span class="o">=</span> <span class="kc">None</span>
+
+<span class="k">def</span> <span class="nf">vsc_static_init</span><span class="p">():</span>
+    <span class="c1"># Load the application</span>
+    <span class="n">lib</span> <span class="o">=</span> <span class="n">cdll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lib=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">lib</span><span class="p">))</span>
+  
+    <span class="c1"># If we&#39;re running inside Mentor QuestaSim,</span>
+    <span class="c1"># register a callback to save coverage data </span>
+    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lib</span><span class="p">,</span> <span class="s2">&quot;mti_AddUCDBSaveCB&quot;</span><span class="p">):</span>
+        <span class="k">global</span> <span class="n">_qsim_cov_save_coverage_cb</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PyVSC Note: Registered coverage-save callback with Mentor Questa&quot;</span><span class="p">)</span>
+        <span class="n">ucdb_save_func_t</span> <span class="o">=</span> <span class="n">CFUNCTYPE</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">)</span>
+        <span class="n">add_cb</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">mti_AddUCDBSaveCB</span>
+        <span class="n">add_cb</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">]</span>
+        <span class="n">_qsim_cov_save_coverage_cb</span> <span class="o">=</span> <span class="n">ucdb_save_func_t</span><span class="p">(</span><span class="n">qsim_save_coverage</span><span class="p">)</span>
+        <span class="n">add_cb</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">_qsim_cov_save_coverage_cb</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
+
+   
+<span class="c1">#vsc_static_init()</span>
+
+<span class="k">def</span> <span class="nf">vsc_debug</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">glbl_debug</span>
+    <span class="n">glbl_debug</span> <span class="o">=</span> <span class="n">val</span>
+    
+<span class="k">def</span> <span class="nf">vsc_solvefail_debug</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
+    <span class="k">global</span> <span class="n">glbl_solvefail_debug</span>
+    <span class="n">glbl_solvefail_debug</span> <span class="o">=</span> <span class="n">val</span>
+
+    
+</pre></div>
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

@@ -72,6 +72,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#specifying-sampling-data-at-instantiation">Specifying Sampling Data at Instantiation</a></li>
 </ul>
 </li>
+<li class="toctree-l2"><a class="reference internal" href="#coverage-api">Coverage API</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#coverage-reports">Coverage Reports</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#saving-coverage-data">Saving Coverage Data</a><ul>
 <li class="toctree-l3"><a class="reference internal" href="#saving-to-xml">Saving to XML</a></li>
@@ -626,27 +627,121 @@ sampling.</p>
 of <code class="xref any docutils literal notranslate"><span class="pre">a</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">b</span></code> in the context and sample the coverpoints with those values.</p>
 </section>
 </section>
+<section id="coverage-api">
+<h2>Coverage API<a class="headerlink" href="#coverage-api" title="Permalink to this heading"></a></h2>
+<p>PyVSC covergroup classes implement methods for querying achieved coverage.</p>
+<ul class="simple">
+<li><p><a class="reference internal" href="reference.html#vsc.coverage.coverpoint.get_coverage" title="vsc.coverage.coverpoint.get_coverage"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">get_coverage</span></code></a> - Reports coverage achieved by all covergroup instances (0..100)</p></li>
+<li><p><a class="reference internal" href="reference.html#vsc.coverage.coverpoint.get_inst_coverage" title="vsc.coverage.coverpoint.get_inst_coverage"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">get_inst_coverage</span></code></a> - Reports coverage by this instance (0..100)</p></li>
+</ul>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
+<span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
+            <span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp1</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;a&quot;</span> <span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([],</span> <span class="p">[</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">])</span>
+            <span class="p">})</span>
+
+<span class="n">cg1</span> <span class="o">=</span> <span class="n">my_covergroup</span><span class="p">()</span>
+<span class="n">cg2</span> <span class="o">=</span> <span class="n">my_covergroup</span><span class="p">()</span>
+
+<span class="n">cg1</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Type=</span><span class="si">%f</span><span class="s2"> cg1=</span><span class="si">%f</span><span class="s2"> cg2=</span><span class="si">%f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+  <span class="n">cg1</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">(),</span>
+  <span class="n">cg1</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">(),</span>
+  <span class="n">cg2</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()))</span>
+
+<span class="n">cg2</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Type=</span><span class="si">%f</span><span class="s2"> cg1=</span><span class="si">%f</span><span class="s2"> cg2=</span><span class="si">%f</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+  <span class="n">cg1</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">(),</span>
+  <span class="n">cg1</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">(),</span>
+  <span class="n">cg2</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()))</span>
+</pre></div>
+</div>
+<p>Running this example produces:</p>
+<div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">Type</span><span class="o">=</span><span class="mf">25.000000</span> <span class="n">cg1</span><span class="o">=</span><span class="mf">25.000000</span> <span class="n">cg2</span><span class="o">=</span><span class="mf">0.000000</span>
+<span class="n">Type</span><span class="o">=</span><span class="mf">50.000000</span> <span class="n">cg1</span><span class="o">=</span><span class="mf">25.000000</span> <span class="n">cg2</span><span class="o">=</span><span class="mf">25.000000</span>
+</pre></div>
+</div>
+<p>Sampling the first covergroup instance results in its instance coverage
+being increased to 25% (1/4 bins have been hit) and the combined type
+coverage incrasing to 25%. Sampling the second covergroup instance raises
+its instance coverage to 25% as well, while increasing the total type
+coverage achieved to 50%.</p>
+</section>
 <section id="coverage-reports">
 <h2>Coverage Reports<a class="headerlink" href="#coverage-reports" title="Permalink to this heading"></a></h2>
 <p>PyVSC provides three methods for obtaining a coverage report.</p>
-<ul class="simple">
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">get_coverage_report_model</span></code> – Returns a coverage-report object with information about each type and instance of coverage</p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">get_coverage_report</span></code> – Returns a string with a textual coverage report</p></li>
-<li><p><code class="xref any docutils literal notranslate"><span class="pre">report_coverage</span></code> – Prints a coverage report to a stream (defaults to stdout)</p></li>
+<span class="target" id="module-vsc"></span><dl class="py function">
+<dt class="sig sig-object py" id="vsc.get_coverage_report">
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a textual coverage report of all covergroups</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p>
+</dd>
+<dt class="field-even">Returns</dt>
+<dd class="field-even"><p>String containin coverage report text</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-0"></span><dl class="py function">
+<dt class="sig sig-object py" id="vsc.get_coverage_report_model">
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">CoverageReport</span></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report_model" title="Permalink to this definition"></a></dt>
+<dd><p>Returns a coverage report model of all covergroups</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns</dt>
+<dd class="field-odd"><p>Object describing collected coverage</p>
+</dd>
+</dl>
+</dd></dl>
+
+<span class="target" id="module-1"></span><dl class="py function">
+<dt class="sig sig-object py" id="vsc.report_coverage">
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">report_coverage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc.html#report_coverage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.report_coverage" title="Permalink to this definition"></a></dt>
+<dd><p>Writes a coverage report to a stream (stdout by default)</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>fp</strong> – Stream to which to write the report</p></li>
+<li><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.10)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p></li>
 </ul>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 <section id="saving-coverage-data">
 <h2>Saving Coverage Data<a class="headerlink" href="#saving-coverage-data" title="Permalink to this heading"></a></h2>
 <p>PyVSC uses the <a class="reference external" href="https://github.com/fvutils/pyucis">PyUCIS</a> library to export
 coverage data using the API or XML interchange format defined by the
-<code class="xref any docutils literal notranslate"><span class="pre">Accellera</span> <span class="pre">UCIS</span></code> standard.</p>
+<a class="reference external" href="https://accellera.org/downloads/standards/ucis">Accellera UCIS</a> standard.</p>
 <p>Using the PyUCIS library, PyVSC can write coverage data to an XML-format
 coverage interchange file. Or, can write coverage data directly to a
 coverage database using a shared library that implements the UCIS C API.</p>
-<p>PyVSC provides the <code class="xref any docutils literal notranslate"><span class="pre">write_coverage_db</span></code> method for saving coverage data.</p>
+<p>PyVSC provides the <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> method for saving coverage data.</p>
+<span class="target" id="module-2"></span><dl class="py function">
+<dt class="sig sig-object py" id="vsc.write_coverage_db">
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">write_coverage_db</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xml'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">libucis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc.html#write_coverage_db"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.write_coverage_db" title="Permalink to this definition"></a></dt>
+<dd><p>Writes coverage data to persistent storage using the PyUCIS library.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Destination for coverage data</p></li>
+<li><p><strong>fmt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Format of the coverage data. ‘xml’ and ‘libucis’ supported</p></li>
+<li><p><strong>libucis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.10)"><em>str</em></a>) – Path to a library implementing the UCIS C API (default=None)</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
 <section id="saving-to-xml">
 <h3>Saving to XML<a class="headerlink" href="#saving-to-xml" title="Permalink to this heading"></a></h3>
-<p>By default, the <code class="xref any docutils literal notranslate"><span class="pre">write_coverage_db</span></code> method saves coverage data to an
+<p>By default, the <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> method saves coverage data to an
 XML file formatted according to the UCIS interchange-format schema.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
  <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
@@ -673,7 +768,7 @@ XML file formatted according to the UCIS interchange-format schema.</p>
 <h3>Saving via a UCIS API Implementation<a class="headerlink" href="#saving-via-a-ucis-api-implementation" title="Permalink to this heading"></a></h3>
 <p>When an implementation of the UCIS C API is available, PyVSC
 can write coverage data using that API implementation. In this
-case, the <code class="xref any docutils literal notranslate"><span class="pre">fmt</span></code> parameter of the <code class="xref any docutils literal notranslate"><span class="pre">write_coverage_db</span></code> method
+case, the <code class="xref any docutils literal notranslate"><span class="pre">fmt</span></code> parameter of the <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> method
 must be specified as <code class="xref any docutils literal notranslate"><span class="pre">libucis</span></code>. The <code class="xref any docutils literal notranslate"><span class="pre">libucis</span></code> parameter of
 the method must specify the name of the shared library that
 implements the UCIS API.</p>
@@ -699,7 +794,7 @@ implements the UCIS API is named <code class="xref any docutils literal notransl
 <span class="n">vsc</span><span class="o">.</span><span class="n">write_coverage_db</span><span class="p">(</span><span class="s1">&#39;cov.db&#39;</span><span class="p">,</span> <span class="n">fmt</span><span class="o">=</span><span class="s1">&#39;libucis&#39;</span><span class="p">,</span> <span class="n">libucis</span><span class="o">=</span><span class="s1">&#39;libucis.so&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Calling <code class="xref any docutils literal notranslate"><span class="pre">write_coverage_db</span></code> in this way causes the PyUCIS library
+<p>Calling <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> in this way causes the PyUCIS library
 to load the specified shared library and call UCIS C API functions
 to record the coverage data collected by the PyVSC library.</p>
 </section>

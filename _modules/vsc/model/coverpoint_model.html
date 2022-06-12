@@ -66,6 +66,7 @@
   <ul class="wy-breadcrumbs">
       <li><a href="../../../index.html" class="icon icon-home"></a> &raquo;</li>
           <li><a href="../../index.html">Module code</a> &raquo;</li>
+          <li><a href="../../vsc.html">vsc</a> &raquo;</li>
       <li>vsc.model.coverpoint_model</li>
       <li class="wy-breadcrumbs-aside">
       </li>
@@ -237,14 +238,17 @@
         <span class="k">return</span> <span class="p">(</span><span class="n">b</span><span class="p">,</span><span class="n">bin_idx</span><span class="p">)</span>
     
 <div class="viewcode-block" id="CoverpointModel.get_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.get_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">float</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">type_cg</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span></div>
+    
+<div class="viewcode-block" id="CoverpointModel.get_inst_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.get_inst_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span> <span class="o">=</span> <span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_l</span><span class="p">)</span><span class="o">-</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unhit_s</span><span class="p">))</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">hit_l</span><span class="p">)</span> <span class="o">*</span> <span class="mf">100.0</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span> <span class="o">=</span> <span class="kc">True</span>
         
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span></div>
-    
-<div class="viewcode-block" id="CoverpointModel.get_inst_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.get_inst_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;get_inst_coverage unimplemented&quot;</span><span class="p">)</span></div>
         
 <div class="viewcode-block" id="CoverpointModel.sample"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.sample">[docs]</a>    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 
