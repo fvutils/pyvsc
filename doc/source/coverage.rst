@@ -583,6 +583,7 @@ Let's using a derivative of the example show above to see the differences
 between a coverage report with and without details.
 
 .. code-block:: python3
+
         @vsc.covergroup        
         class my_covergroup(object):
             
