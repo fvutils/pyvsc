@@ -716,6 +716,30 @@ coverage achieved to 50%.</p>
 
 <p>Let’s using a derivative of the example show above to see the differences
 between a coverage report with and without details.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
+<span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
+            <span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
+            <span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp1</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span>
+            <span class="s2">&quot;a&quot;</span> <span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">,</span> <span class="mi">8</span><span class="p">)</span>
+            <span class="p">})</span>
+
+<span class="n">cg1</span> <span class="o">=</span> <span class="n">my_covergroup</span><span class="p">()</span>
+<span class="n">cg2</span> <span class="o">=</span> <span class="n">my_covergroup</span><span class="p">()</span>
+
+<span class="n">cg1</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">cg2</span><span class="o">.</span><span class="n">sample</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;==== Without Details ===&quot;</span><span class="p">)</span>
+<span class="n">vsc</span><span class="o">.</span><span class="n">report_coverage</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">()</span>
+<span class="nb">print</span><span class="p">(</span><span class="s2">&quot;==== With Details ===&quot;</span><span class="p">)</span>
+<span class="n">vsc</span><span class="o">.</span><span class="n">report_coverage</span><span class="p">(</span><span class="n">details</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
 <p>The output from this code is shown below:</p>
 <div class="highlight-default notranslate"><div class="highlight"><pre><span></span><span class="n">TYPE</span> <span class="n">my_covergroup</span> <span class="p">:</span> <span class="mf">50.000000</span><span class="o">%</span>
   <span class="n">CVP</span> <span class="n">cp1</span> <span class="p">:</span> <span class="mf">50.000000</span><span class="o">%</span>
