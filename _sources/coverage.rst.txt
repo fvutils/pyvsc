@@ -744,8 +744,8 @@ flows that PyVSC data is known to have been used in.
   with the relevant vendor's documentation and/or Application Engineers.
 
 Please report other tool flows that accept coverage data from PyVSC
-via the project's `Issues <https://github.com/fvutils/pyvsc/issues>` or 
-`Discussion <https://github.com/fvutils/pyvsc/discussions>` areas.
+via the project's `Issues <https://github.com/fvutils/pyvsc/issues>`_ or 
+`Discussion <https://github.com/fvutils/pyvsc/discussions>`_ areas.
 
 Viewing Coverage with PyUCIS-Viewer
 -----------------------------------
