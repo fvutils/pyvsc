@@ -25,7 +25,6 @@ Created on Jan 23, 2020
 from unittest.case import TestCase
 
 import vsc
-from vsc import rand_enum_t, rand_bit_t, rangelist
 from enum import Enum, auto, IntEnum
 
 
@@ -41,19 +40,20 @@ class TestExamplesUbus(VscTestCase):
         class ubus_transfer(object):
             
             def __init__(self):
-                self.addr = rand_bit_t(16)
-                self.read_write = rand_enum_t(ubus_read_write_enum)
-                self.size = rand_bit_t(32)
+#                self.addr = vsc.rand_bit_t(16)
+                self.addr = vsc.rand(vsc.bit_t(16))
+                self.read_write = vsc.rand_enum_t(ubus_read_write_enum)
+                self.size = vsc.rand_bit_t(32)
                 self.data = vsc.randsz_list_t(vsc.uint8_t())
                 self.wait_state = vsc.randsz_list_t(vsc.bit_t(4))
-                self.error_pos = rand_bit_t(32)
-                self.transmit_delay = rand_bit_t(32)
+                self.error_pos = vsc.rand_bit_t(32)
+                self.transmit_delay = vsc.rand_bit_t(32)
                 self.master = ""
                 self.slave = ""
 
             @vsc.constraint
             def c_read_write(self):
-                self.read_write in rangelist(
+                self.read_write in vsc.rangelist(
                     ubus_read_write_enum.READ, 
                     ubus_read_write_enum.WRITE)
 
@@ -63,7 +63,7 @@ class TestExamplesUbus(VscTestCase):
                 
             @vsc.constraint
             def c_size(self):
-                self.size in rangelist(1,2,4,8)
+                self.size in vsc.rangelist(1,2,4,8)
 
             @vsc.constraint
             def c_data_wait_size(self):

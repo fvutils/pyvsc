@@ -10,7 +10,7 @@ class ScalarT(object):
     W = 0
     S = False
     
-    def __new__(cls, i=0):
+    def __new__(cls, w=-1, i=0):
         ctor = Ctor.inst()
         
         # TODO: need to check construction mode, etc?
@@ -33,7 +33,8 @@ class ScalarT(object):
                 lib_field.val().set_val_u(i)
         else:
             raise Exception("Field >64 not yet supported")
-        
+
+        print("scalar_t::new")        
         ret = FieldScalarImpl("", lib_field, cls.S)
         
         return ret

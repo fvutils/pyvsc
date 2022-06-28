@@ -14,15 +14,16 @@ class EnumT(object):
     # was created
     EnumInfo = None
     
-    def __new__(cls, e_t):
+    def __new__(cls, e_t, i=-1):
         ctor = Ctor.inst()
-        
+
+        print("e_t: %s" % str(e_t))        
         # Need to grab the enum type info
         info = EnumInfoMgr.inst().getInfo(e_t)
         
+        lib_field = ctor.ctxt().mkModelFieldRoot(
+            info.lib_obj,
+            "")
         
-        print("e_t: %s" % e_t.__qualname__)
-
-        return FieldEnumImpl()
-        pass
+        return FieldEnumImpl("", lib_field, info)
     pass

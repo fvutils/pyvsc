@@ -12,7 +12,7 @@ from vsc2.impl.field_base_impl import FieldBaseImpl
 
 class FieldEnumImpl(FieldBaseImpl):
     
-    def __init__(self, name, lib_field, e_t):
+    def __init__(self, name, lib_field, e_info):
         super().__init__(name, lib_field)
         ctxt : Context = Ctor.inst().ctxt()
         pass

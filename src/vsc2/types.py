@@ -14,7 +14,11 @@ from vsc2.impl.rand_t_meta import RandTMeta
 
 
 class rand(RandT, metaclass=RandTMeta):
+    # 'rand' must wrap any field to set 'rand' flag
     pass
+
+def attr(T):
+    raise Exception("attr used")
 
 class enum_t(EnumT, metaclass=EnumTMeta):
     pass
@@ -32,6 +36,16 @@ class bit_t(ScalarT, metaclass=BitTMeta):
 #********************************************************************
 #* Compat types that match with vsc1
 #********************************************************************
+
+def rand_bit_t(w=1, i=0):
+    return rand(bit_t(w, i))
+
+def rand_int_t(w=32, i=0):
+    return rand(int_t(w, i))
+
+def rand_enum_t(e_t, i=0):
+    return rand(enum_t(e_t))
+
 rand_uint8_t = rand[bit_t[8]]
 rand_uint16_t = rand[bit_t[16]]
 rand_uint32_t = rand[bit_t[32]]

@@ -66,11 +66,14 @@ class RandObjImpl(object):
     @staticmethod
     def __setattr__(self, attr, val):
         try:
-            fo = object.__getattribute__(attr)
+            fo = object.__getattribute__(self, attr)
         except:
             object.__setattr__(self, attr, val)
         else:
-            object.__setattr__(self, attr, val)
+            if hasattr(fo, "set_val"):
+                fo.set_val(val)
+            else:
+                object.__setattr__(self, attr, val)
             
         pass
     
