@@ -39,8 +39,6 @@ from vsc.methods import *
 from vsc.rand_obj import *
 from vsc.types import *
 from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
-from ucis.ucdb.ucdb_factory import UcdbFactory
-from ucis.ucdb.ucdb_ucis import UcdbUCIS
 from vsc import profile
 from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug
 
@@ -129,47 +127,6 @@ def write_coverage_db(
         db.write(filename)
 
     return db
-
-def qsim_save_coverage(ucdb, region, param):
-    """
-    Contributes Python coverage to Mentor Questa's coverage database
-    """
-    
-    print("ucdb=" + str(ucdb) + " region=" + str(region) + " param=" + str(param))
-    # Load the UCIS library and initialize the Python
-    # interface
-    UcdbFactory.load_ucdb_library("libucdb.so")
-    
-    db = UcdbUCIS(db=ucdb)
-    covergroups = CoverageRegistry.inst().covergroup_types()
-    save_visitor = CoverageSaveVisitor(db)
-    
-    save_visitor.save(None, covergroups)
-    
-    pass
-
-# Make the callback-function object global to 
-# prevent it being garbage-collected
-_qsim_cov_save_coverage_cb = None
-
-def vsc_static_init():
-    # Load the application
-    lib = cdll.LoadLibrary(None)
-    print("lib=" + str(lib))
-  
-    # If we're running inside Mentor QuestaSim,
-    # register a callback to save coverage data 
-    if hasattr(lib, "mti_AddUCDBSaveCB"):
-        global _qsim_cov_save_coverage_cb
-        print("PyVSC Note: Registered coverage-save callback with Mentor Questa")
-        ucdb_save_func_t = CFUNCTYPE(None, c_void_p, c_void_p, c_void_p)
-        add_cb = lib.mti_AddUCDBSaveCB
-        add_cb.argtypes = [c_void_p, c_void_p, c_void_p]
-        _qsim_cov_save_coverage_cb = ucdb_save_func_t(qsim_save_coverage)
-        add_cb(None, _qsim_cov_save_coverage_cb, None)
-
-   
-#vsc_static_init()
 
 def vsc_debug(val):
     global glbl_debug

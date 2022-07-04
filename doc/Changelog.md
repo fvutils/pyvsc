@@ -1,4 +1,7 @@
 
+## 0.7.4
+- Adjust to deprecated PyUCIS functionality
+
 ## 0.7.3
 - Correct an issue with the covergroup 'get_coverage' method
 
