@@ -28,6 +28,7 @@ class EnumInfo(object):
                 # An IntEnum exposes its value via an __int__ method
                 
                 if hasattr(en, "__int__"):
+                    print("Set i=%d" % int(en))
                     i = int(en)
                 if i < 0:
                     have_neg = True
@@ -68,5 +69,8 @@ class EnumInfo(object):
             raise Exception("Unsupported enum type %s" % str(e_t))
         
         ctor.ctxt().addDataTypeEnum(self.lib_obj)
+        for r in self.lib_obj.getDomain().getRanges():
+            print("Range: %s" % str(r))
+        
         
         pass

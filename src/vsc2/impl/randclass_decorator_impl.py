@@ -18,6 +18,7 @@ from vsc2.impl.typeinfo import TypeInfo
 from vsc2.impl.type_kind_e import TypeKindE
 from vsc2.impl.field_typeinfo import FieldTypeInfo
 from vsc2.impl.rand_t import RandT
+from vsc2.impl.list_t import ListT
 
 class RandClassDecoratorImpl(object):
     """Decorator implementation for @randclass and type-model building code"""
@@ -26,12 +27,14 @@ class RandClassDecoratorImpl(object):
         pass
     
     def _getLibDataType(self, name):
+        ctor = Ctor.inst()
+
         ds_t = ctor.ctxt().findDataTypeStruct(name)
         
         if ds_t is not None:
             raise Exception("Type already registered")
         else:
-            ds_t = ctor.ctxt().mkDataTypeStruct(T.__qualname__)
+            ds_t = ctor.ctxt().mkDataTypeStruct(name)
             ctor.ctxt().addDataTypeStruct(ds_t)
         
         return ds_t
@@ -120,6 +123,8 @@ class RandClassDecoratorImpl(object):
                     Tp._typeinfo.addField(field_ti)
                     
                 # TODO: fill in factory
+            elif issubclass(t, ListT):
+                print("  Is a list: %s" % str(t.T))
             else:
                 raise Exception("Non-scalar fields are not yet supported")
 #                print("   Is a scalar: %d,%d" % (f.type.W, f.type.S))

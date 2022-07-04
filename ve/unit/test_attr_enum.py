@@ -64,11 +64,11 @@ class TestAttrEnum(VscTestCase):
         inst = my_s()
         
         for i in range(100):
+            inst.randomize()
             if inst.a == my_e.A:
                 a_hist[0] += 1
             else:
                 a_hist[1] += 1
-            inst.randomize()
             
         print("hist: " + str(a_hist))
         

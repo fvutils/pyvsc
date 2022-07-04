@@ -4,13 +4,14 @@ Created on May 24, 2020
 @author: ballance
 '''
 from enum import IntEnum, auto
-import vsc
+import vsc1 as vsc
 from vsc1.visitors.variable_bound_visitor import VariableBoundVisitor
 
 from vsc_test_case import VscTestCase
 
 
 class TestVariableBoundsVisitor(VscTestCase):
+    """Note: these tests require VSC1"""
     
     def test_smoke(self):
         @vsc.randobj

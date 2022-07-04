@@ -5,12 +5,16 @@ Created on Feb 26, 2022
 '''
 
 from vsc2.impl.bit_t_meta import BitTMeta
-from vsc2.impl.int_t_meta import IntTMeta
-from vsc2.impl.scalar_t import ScalarT
 from vsc2.impl.enum_t import EnumT
 from vsc2.impl.enum_t_meta import EnumTMeta
+from vsc2.impl.int_t_meta import IntTMeta
+from vsc2.impl.list_t import ListT
+from vsc2.impl.list_t_meta import ListTMeta
+from vsc2.impl.rand_list_t import RandListT
+from vsc2.impl.rand_list_t_meta import RandListTMeta
 from vsc2.impl.rand_t import RandT
 from vsc2.impl.rand_t_meta import RandTMeta
+from vsc2.impl.scalar_t import ScalarT
 
 
 class rand(RandT, metaclass=RandTMeta):
@@ -18,7 +22,7 @@ class rand(RandT, metaclass=RandTMeta):
     pass
 
 def attr(T):
-    raise Exception("attr used")
+    return T
 
 class enum_t(EnumT, metaclass=EnumTMeta):
     pass
@@ -33,6 +37,16 @@ class bit_t(ScalarT, metaclass=BitTMeta):
     S = False
     pass
 
+class list_t(ListT, metaclass=ListTMeta):
+    pass
+
+class rand_list_t(RandListT, metaclass=RandListTMeta):
+    pass
+
+class fill(object):
+    def __init__(self, sz):
+        self._sz = sz
+
 #********************************************************************
 #* Compat types that match with vsc1
 #********************************************************************
@@ -45,6 +59,10 @@ def rand_int_t(w=32, i=0):
 
 def rand_enum_t(e_t, i=0):
     return rand(enum_t(e_t))
+
+
+class randsz_list_t(RandListT, metaclass=RandListTMeta):
+    pass
 
 rand_uint8_t = rand[bit_t[8]]
 rand_uint16_t = rand[bit_t[16]]

@@ -8,9 +8,10 @@ from libvsc import core
 
 class FieldModelInfo(object):
     
-    def __init__(self, obj, name):
+    def __init__(self, obj, name, typeinfo):
         self._obj = obj
         self._name = name
+        self._typeinfo = typeinfo
         self._lib_obj = None
         self._idx = -1
         self._parent = None

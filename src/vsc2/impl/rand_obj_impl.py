@@ -21,14 +21,22 @@ class RandObjImpl(object):
             if s.facade_obj is None:
                 s.facade_obj = self
             elif s.facade_obj is self:
-                s.inc_inh_depth()                
+                s.inc_inh_depth()
+            else:
+                # Need a new scope for this field
+                self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
+                self._randstate = ctor.ctxt().mkRandState(0)
+                s = ctor.push_scope(self, self._model, False)
         else: # s is None
-            obj = ctor.ctxt().mkModelFieldRoot(None, "<>")
+            self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
+            self._randstate = ctor.ctxt().mkRandState(0)
+            s = ctor.push_scope(self, self._model, False)
+
+        print("init: %d" % s.inh_depth())
+        
+        if s.inh_depth() == 1:
             self._modelinfo = FieldModelInfo(self, "<>")
-            self._modelinfo._lib_obj = obj
-            s = ctor.push_scope(self, obj, False)
-            
-        print("init")
+            self._modelinfo._lib_obj = s._lib_scope
         
         base(self, *args, *kwargs)
 
@@ -57,7 +65,6 @@ class RandObjImpl(object):
         ret = object.__getattribute__(self, attr)
         
         if not ctor.expr_mode():
-            print("ret=%s" % str(ret))
             if hasattr(ret, "get_val"):
                 ret = ret.get_val()
                 

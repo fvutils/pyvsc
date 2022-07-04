@@ -3,6 +3,7 @@ Created on Feb 27, 2022
 
 @author: mballance
 '''
+import libvsc.core as libvsc
 from vsc2.impl.ctor import Ctor
 from vsc2.impl.field_enum_impl import FieldEnumImpl
 from vsc2.impl.enum_info_mgr import EnumInfoMgr
@@ -21,9 +22,11 @@ class EnumT(object):
         # Need to grab the enum type info
         info = EnumInfoMgr.inst().getInfo(e_t)
         
-        lib_field = ctor.ctxt().mkModelFieldRoot(
+        lib_field = libvsc.Task_ModelBuildField(
+            ctor.ctxt(),
             info.lib_obj,
             "")
+        print("lib_field: %s" % str(lib_field))
         
         return FieldEnumImpl("", lib_field, info)
     pass

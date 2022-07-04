@@ -13,9 +13,9 @@ from vsc2.impl.field_modelinfo import FieldModelInfo
 
 class FieldBaseImpl(object):
     
-    def __init__(self, name, lib_field):
+    def __init__(self, name, typeinfo, lib_field):
         ctxt : Context = Ctor.inst().ctxt()
-        self._modelinfo = FieldModelInfo(self, name)
+        self._modelinfo = FieldModelInfo(self, name, typeinfo)
         self._modelinfo._lib_obj = lib_field
         
     def model(self):

@@ -39,6 +39,7 @@
 						</toolChain>
 					</folderInfo>
 					<sourceEntries>
+						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="packages/libvsc/python"/>
 						<entry flags="VALUE_WORKSPACE_PATH" kind="sourcePath" name="packages/libvsc/src"/>
 					</sourceEntries>
 				</configuration>
