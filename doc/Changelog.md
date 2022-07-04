@@ -1,4 +1,8 @@
 
+## 0.7.5
+- Adjust PyUCIS dependencies to ensure presence of critical bug fix
+- Test updates to adjust to change in PyUCIS report functionality
+
 ## 0.7.4
 - Adjust to deprecated PyUCIS functionality
 
