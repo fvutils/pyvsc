@@ -117,8 +117,6 @@
 <span class="kn">from</span> <span class="nn">vsc.rand_obj</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">vsc.types</span> <span class="kn">import</span> <span class="o">*</span>
 <span class="kn">from</span> <span class="nn">vsc.visitors.coverage_save_visitor</span> <span class="kn">import</span> <span class="n">CoverageSaveVisitor</span>
-<span class="kn">from</span> <span class="nn">ucis.ucdb.ucdb_factory</span> <span class="kn">import</span> <span class="n">UcdbFactory</span>
-<span class="kn">from</span> <span class="nn">ucis.ucdb.ucdb_ucis</span> <span class="kn">import</span> <span class="n">UcdbUCIS</span>
 <span class="kn">from</span> <span class="nn">vsc</span> <span class="kn">import</span> <span class="n">profile</span>
 <span class="kn">from</span> <span class="nn">vsc.impl.ctor</span> <span class="kn">import</span> <span class="n">glbl_debug</span><span class="p">,</span> <span class="n">glbl_solvefail_debug</span>
 
@@ -207,47 +205,6 @@
         <span class="n">db</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="n">filename</span><span class="p">)</span>
 
     <span class="k">return</span> <span class="n">db</span></div>
-
-<span class="k">def</span> <span class="nf">qsim_save_coverage</span><span class="p">(</span><span class="n">ucdb</span><span class="p">,</span> <span class="n">region</span><span class="p">,</span> <span class="n">param</span><span class="p">):</span>
-    <span class="sd">&quot;&quot;&quot;</span>
-<span class="sd">    Contributes Python coverage to Mentor Questa&#39;s coverage database</span>
-<span class="sd">    &quot;&quot;&quot;</span>
-    
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;ucdb=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">ucdb</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; region=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">region</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; param=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">param</span><span class="p">))</span>
-    <span class="c1"># Load the UCIS library and initialize the Python</span>
-    <span class="c1"># interface</span>
-    <span class="n">UcdbFactory</span><span class="o">.</span><span class="n">load_ucdb_library</span><span class="p">(</span><span class="s2">&quot;libucdb.so&quot;</span><span class="p">)</span>
-    
-    <span class="n">db</span> <span class="o">=</span> <span class="n">UcdbUCIS</span><span class="p">(</span><span class="n">db</span><span class="o">=</span><span class="n">ucdb</span><span class="p">)</span>
-    <span class="n">covergroups</span> <span class="o">=</span> <span class="n">CoverageRegistry</span><span class="o">.</span><span class="n">inst</span><span class="p">()</span><span class="o">.</span><span class="n">covergroup_types</span><span class="p">()</span>
-    <span class="n">save_visitor</span> <span class="o">=</span> <span class="n">CoverageSaveVisitor</span><span class="p">(</span><span class="n">db</span><span class="p">)</span>
-    
-    <span class="n">save_visitor</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">covergroups</span><span class="p">)</span>
-    
-    <span class="k">pass</span>
-
-<span class="c1"># Make the callback-function object global to </span>
-<span class="c1"># prevent it being garbage-collected</span>
-<span class="n">_qsim_cov_save_coverage_cb</span> <span class="o">=</span> <span class="kc">None</span>
-
-<span class="k">def</span> <span class="nf">vsc_static_init</span><span class="p">():</span>
-    <span class="c1"># Load the application</span>
-    <span class="n">lib</span> <span class="o">=</span> <span class="n">cdll</span><span class="o">.</span><span class="n">LoadLibrary</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;lib=&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">lib</span><span class="p">))</span>
-  
-    <span class="c1"># If we&#39;re running inside Mentor QuestaSim,</span>
-    <span class="c1"># register a callback to save coverage data </span>
-    <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">lib</span><span class="p">,</span> <span class="s2">&quot;mti_AddUCDBSaveCB&quot;</span><span class="p">):</span>
-        <span class="k">global</span> <span class="n">_qsim_cov_save_coverage_cb</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;PyVSC Note: Registered coverage-save callback with Mentor Questa&quot;</span><span class="p">)</span>
-        <span class="n">ucdb_save_func_t</span> <span class="o">=</span> <span class="n">CFUNCTYPE</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">)</span>
-        <span class="n">add_cb</span> <span class="o">=</span> <span class="n">lib</span><span class="o">.</span><span class="n">mti_AddUCDBSaveCB</span>
-        <span class="n">add_cb</span><span class="o">.</span><span class="n">argtypes</span> <span class="o">=</span> <span class="p">[</span><span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">,</span> <span class="n">c_void_p</span><span class="p">]</span>
-        <span class="n">_qsim_cov_save_coverage_cb</span> <span class="o">=</span> <span class="n">ucdb_save_func_t</span><span class="p">(</span><span class="n">qsim_save_coverage</span><span class="p">)</span>
-        <span class="n">add_cb</span><span class="p">(</span><span class="kc">None</span><span class="p">,</span> <span class="n">_qsim_cov_save_coverage_cb</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-
-   
-<span class="c1">#vsc_static_init()</span>
 
 <span class="k">def</span> <span class="nf">vsc_debug</span><span class="p">(</span><span class="n">val</span><span class="p">):</span>
     <span class="k">global</span> <span class="n">glbl_debug</span>
