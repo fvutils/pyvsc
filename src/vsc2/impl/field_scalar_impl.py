@@ -134,9 +134,13 @@ class FieldScalarImpl(FieldBaseImpl):
    
     def __invert__(self): 
         ctor = Ctor.inst()
-        self.to_expr()
-        lhs = pop_expr()
-        return expr(ExprUnaryModel(UnaryExprType.Not, lhs))
+        lhs = Expr.toExpr(self)
+        ctor.pop_expr(lhs)
+
+        if ctor.is_type_mode():
+            raise Exception("mkTypeExprUnary not supported")
+        else:
+            return Expr(ctor.ctxt().mkExprModelUnary(core.UnaryOp.Not, lhs))
     
     def inside(self, rhs):
         self.to_expr()
@@ -188,16 +192,22 @@ class FieldScalarImpl(FieldBaseImpl):
                 upper = ctor.pop_expr(upper)
                 Expr.toExpr(rng.stop)
                 lower = ctor.pop_expr()
-                return Expr(ctor.ctxt().mkModelExprPartSelect(
-                    ctor.ctxt().mkModelExprFieldRefModel(self._int_field_info.model), 
-                    upper, 
-                    lower))
+                if ctor.is_type_mode():
+                    raise Exception("mkTypeExprPartSelect not implemented")
+                else:
+                    return Expr(ctor.ctxt().mkModelExprPartSelect(
+                        ctor.ctxt().mkModelExprFieldRefModel(self._modelinfo._lib_obj), 
+                        upper, 
+                        lower))
             else:
                 # single value
                 Expr.toExpr(rng)
                 e = ctor.pop_expr()
-                return Expr(ctor.ctxt().mkModelExprPartSelect(
-                    ctor.ctxt().mkModelExprFieldRef(self._int_field_info.model), e))
+                if ctor.is_type_mode():
+                    raise Exception("mkTypeExprPartSelect not implemented")
+                else:
+                    return Expr(ctor.ctxt().mkModelExprPartSelect(
+                        ctor.ctxt().mkModelExprFieldRef(self._modelinfo._lib_obj), e, e))
         else:
             curr = int(self.get_model().get_val())
             if isinstance(rng, slice):

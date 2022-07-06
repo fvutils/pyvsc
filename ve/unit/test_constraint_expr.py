@@ -7,8 +7,8 @@ from vsc_test_case import VscTestCase
 import vsc
 
 class TestConstraintExpr(VscTestCase):
-    
-    def test_eq(self):
+
+    def test_redefine_field(self):
         @vsc.randobj
         class my_c(object):
             def __init__(self):
@@ -22,6 +22,22 @@ class TestConstraintExpr(VscTestCase):
             with my_i.randomize_with() as it:
                 it.a == it.b
             self.assertEqual(my_i.a, my_i.b)
+                
+    def test_eq(self):
+        @vsc.randobj
+        class my_c(object):
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+                print("__init__ a=%s" %str(self.a))
+                
+        my_i = my_c()
+        for i in range(20):
+            with my_i.randomize_with() as it:
+                it.a != 0
+                it.a == it.b
+            self.assertEqual(my_i.a, my_i.b)
+            self.assertNotEqual(my_i.a, 0)
         
     def test_ne(self):
         @vsc.randobj

@@ -92,8 +92,21 @@ class RandObjImpl(object):
         except:
             object.__setattr__(self, attr, val)
         else:
-            if hasattr(fo, "set_val"):
-                fo.set_val(val)
+            if hasattr(fo, "_modelinfo"):
+                # We're not in expression context, so the user 
+                # really wants us to say the actual value of
+                # the field.
+                if hasattr(val, "_modelinfo"):
+                    ctor = Ctor.inst()
+                    # Looks like we're re-assigning it
+                    if ctor.scope() is not None and ctor.scope().inh_depth() > 0:
+                        object.__setattr__(self, attr, val)
+                    else:
+                        raise Exception("Cannot re-construct field")
+                elif hasattr(fo, "set_val"):
+                    fo.set_val(val)
+                else:
+                    object.__setattr__(self, attr, val)
             else:
                 object.__setattr__(self, attr, val)
             
