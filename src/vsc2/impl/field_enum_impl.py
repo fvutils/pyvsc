@@ -12,29 +12,28 @@ from vsc2.impl.field_base_impl import FieldBaseImpl
 
 class FieldEnumImpl(FieldBaseImpl):
     
-    def __init__(self, name, lib_field, e_info):
-        super().__init__(name, lib_field)
+    def __init__(self, name, typeinfo, lib_field):
+        super().__init__(name, typeinfo, lib_field)
         ctxt : Context = Ctor.inst().ctxt()
-        self._e_info = e_info
         pass
     
     def get_val(self):
         val = self._modelinfo._lib_obj.val().val_i()
-        val_e = self._e_info.v2e_m[val]
+        val_e = self._modelinfo._typeinfo._e_info.v2e_m[val]
         return val_e
     
     def set_val(self, v):
-        val = self._e_info.e2v_m[v]
+        val = self._modelinfo._typeinfo._e_info.e2v_m[v]
         self._modelinfo._lib_obj.val().set_val_i(val)
     
     @property
     def val(self):
         val = self._modelinfo._lib_obj.val().val_i()
-        val_e = self._e_info.v2e_m[val]
+        val_e = self._modelinfo._typeinfo._e_info.v2e_m[val]
         return val_e
     
     @val.setter
     def val(self, v):
-        val = self._e_info.e2v_m[v]
+        val = self._modelinfo._typeinfo._e_info.e2v_m[v]
         self._modelinfo._lib_obj.val().set_val_i(val)
     

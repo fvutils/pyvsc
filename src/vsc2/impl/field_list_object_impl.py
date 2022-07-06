@@ -8,8 +8,8 @@ from vsc2.impl.ctor import Ctor
 
 class FieldListObjectImpl(FieldBaseImpl):
 
-    def __init__(self, name, lib_field):
-        super().__init__(name, lib_field)
+    def __init__(self, name, typeinfo, lib_field):
+        super().__init__(name, typeinfo, lib_field)
         self._elems = []
         
     @property

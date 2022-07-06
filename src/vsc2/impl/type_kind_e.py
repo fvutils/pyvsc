@@ -7,4 +7,9 @@ from enum import Enum, auto
 
 class TypeKindE(Enum):
     Field = auto()
+    Enum = auto()
+    List = auto()
+    Scalar = auto()
     RandClass = auto()
+    RandObj = auto()
+    

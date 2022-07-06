@@ -8,8 +8,8 @@ from vsc2.impl.typeinfo import TypeInfo
 
 class RandClassTypeInfo(TypeInfo):
     
-    def __init__(self, lib_typeobj):
-        super().__init__(TypeKindE.RandClass, lib_typeobj)
+    def __init__(self, lib_typeobj, kind=TypeKindE.RandClass):
+        super().__init__(kind, lib_typeobj)
         self._field_ctor_m = {}
         self._constraint_m = {}
         self._constraint_l = []

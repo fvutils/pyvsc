@@ -3,8 +3,11 @@ Created on Feb 26, 2022
 
 @author: mballance
 '''
-from vsc2.impl.field_scalar_impl import FieldScalarImpl
 from vsc2.impl.ctor import Ctor
+from vsc2.impl.field_scalar_impl import FieldScalarImpl
+from vsc2.impl.type_kind_e import TypeKindE
+from vsc2.impl.typeinfo import TypeInfo
+
 
 class ScalarT(object):
     W = 0
@@ -35,7 +38,11 @@ class ScalarT(object):
             raise Exception("Field >64 not yet supported")
 
         print("scalar_t::new")        
-        ret = FieldScalarImpl("", lib_field, cls.S)
+        ret = FieldScalarImpl(
+            "", 
+            TypeInfo(TypeKindE.Scalar, lib_type),
+            lib_field, 
+            cls.S)
         
         return ret
     

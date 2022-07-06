@@ -8,6 +8,7 @@ from vsc2.impl.ctor import Ctor
 from libvsc import core
 from vsc2.impl.field_modelinfo import FieldModelInfo
 from vsc1.model.field_model import FieldModel
+from vsc2.impl.type_kind_e import TypeKindE
 
 class RandObjImpl(object):
 
@@ -35,7 +36,10 @@ class RandObjImpl(object):
         print("init: %d" % s.inh_depth())
         
         if s.inh_depth() == 1:
-            self._modelinfo = FieldModelInfo(self, "<>")
+            self._modelinfo = FieldModelInfo(
+                self, 
+                "<>",
+                type(self)._typeinfo)
             self._modelinfo._lib_obj = s._lib_scope
         
         base(self, *args, *kwargs)
@@ -45,7 +49,7 @@ class RandObjImpl(object):
             
             # Collect and connect VSC fields to the
             # broader data model
-            Ctor.inst().push_expr_mode()        
+            Ctor.inst().push_expr_mode()
             for fn in dir(self):
                 fo = getattr(self, fn)
                 if hasattr(fo, "_modelinfo"):
@@ -53,6 +57,17 @@ class RandObjImpl(object):
                     mi : FieldModelInfo = fo._modelinfo
                     mi._lib_obj.setName(fn)
                     s.lib_scope.addField(mi._lib_obj)
+                    
+            # Build out constraints
+            for c in type(self)._typeinfo._constraint_l:
+                cb = ctor.ctxt().mkModelConstraintBlock(c._name)
+                print("--> constraint")
+                ctor.push_constraint_scope(cb)
+                c._method_t(self)
+                print("<-- constraint")
+                ctor.pop_constraint_scope()
+                self._modelinfo._lib_obj.addConstraint(cb)
+            
             Ctor.inst().pop_expr_mode()
         
             # TODO: Collect and build out constraints

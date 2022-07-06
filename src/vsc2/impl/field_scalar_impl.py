@@ -10,29 +10,17 @@ from vsc2.impl.ctor import Ctor
 from vsc2.impl.expr import Expr
 from vsc2.impl.field_base_impl import FieldBaseImpl
 from vsc2.impl.field_modelinfo import FieldModelInfo
+from vsc2.impl.typeinfo import TypeInfo
+from vsc2.impl.type_kind_e import TypeKindE
 
 
 class FieldScalarImpl(FieldBaseImpl):
     
-    def __init__(self, name, lib_field, is_signed):
-        super().__init__(name, lib_field)
+    def __init__(self, name, typeinfo, lib_field, is_signed):
+        super().__init__(name, typeinfo, lib_field)
         
         self._is_signed = is_signed
         
-        # if width <= 64:
-        #     if is_signed:
-        #         self._model.val().set_val_i(iv)
-        #     else:
-        #         self._model.val().set_val_u(iv)
-        # else:
-        #     raise Exception("Field >64 not supported")
-        #
-        # if is_rand:
-        #     print("Set DeclRand")
-        #     self._model.setFlag(core.ModelFieldFlag.DeclRand)
-        #     self._model.setFlag(core.ModelFieldFlag.UsedRand)
-        
-    
     def get_val(self):
         if self._is_signed:
             return self._modelinfo._lib_obj.val().val_i()

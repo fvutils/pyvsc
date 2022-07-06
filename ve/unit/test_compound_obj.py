@@ -28,7 +28,7 @@ class TestCompoundObj(VscTestCase):
 
         @vsc.randobj        
         class C1(object):
-            
+
             def __init__(self):
                 super().__init__()
                 self.a = rand_uint16_t()

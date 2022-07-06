@@ -6,7 +6,6 @@ Created on Jun 21, 2020
 from enum import Enum, auto, IntEnum
 
 import vsc
-from vsc1.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc_test_case import VscTestCase
 
 
@@ -40,6 +39,10 @@ class TestListScalar(VscTestCase):
         it.randomize()
         
         print("it.l.size=" + str(it.l.size))
+        self.assertGreaterEqual(it.l.size, 2)
+        self.assertLessEqual(it.l.size, 10)
+        
+        return
         
         for i,v in enumerate(it.l):
             print("v[" + str(i) + "] = " + str(v))
@@ -264,7 +267,8 @@ class TestListScalar(VscTestCase):
                 
         it = my_item_c()
         it.randomize()
-        print("Model: " + ModelPrettyPrinter.print(it.get_model()))
+        # TODO: vsc2 needs ModelPrettyPrinter as well
+#        print("Model: " + ModelPrettyPrinter.print(it.get_model()))
         
         self.assertEqual(it.l.sum, 5)
         

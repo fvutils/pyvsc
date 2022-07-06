@@ -5,7 +5,7 @@ Created on Feb 26, 2022
 '''
 
 from vsc2.impl.constraint_decorator_impl import ConstraintDecoratorImpl
-from vsc2.impl.rand_obj_decorator_impl import RandObjDecoratorImpl
+from vsc2.impl.randobj_decorator_impl import RandObjDecoratorImpl
 from vsc2.impl.randclass_decorator_impl import RandClassDecoratorImpl
 from vsc2.impl.covergroup_decorator_impl import CovergroupDecoratorImpl
 

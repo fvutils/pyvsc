@@ -29,7 +29,7 @@ class rangelist(object):
             self.range_l = ctor.ctxt().mkTypeExprRangelist()
         else:
             self.range_l = ctor.ctxt().mkModelExprRangelist()
-            
+
         for i in range(-1,-(len(args)+1), -1):
             a = args[i]
             if isinstance(a, tuple):
@@ -41,23 +41,27 @@ class rangelist(object):
                 e1 = Expr.toExpr(a[1])
                 ctor.pop_expr(e1)
                 if ctor.is_type_mode():
-                    self.range_l.addRange(ctor.ctxt().mkTypeExprRange(False, e0, e1))
+                    self.range_l.addRange(ctor.ctxt().mkTypeExprRange(
+                        False, e0._model, e1._model))
                 else:
-                    self.range_l.addRange(ctor.ctxt().mkModelExprRange(False, e0, e1))
+                    self.range_l.addRange(ctor.ctxt().mkModelExprRange(
+                        False, e0._model, e1._model))
             elif isinstance(a, rng):
                 if ctor.is_type_mode():
-                    self.range_l.add_range(ctor.ctxt().mkTypeExprRange(False, a.low, a.high))
+                    self.range_l.addRange(ctor.ctxt().mkTypeExprRange(
+                        False, a.low._model, a.high._model))
                 else:
-                    self.range_l.add_range(ctor.ctxt().mkModelExprRange(False, a.low, a.high))
+                    self.range_l.addRange(ctor.ctxt().mkModelExprRange(
+                        False, a.low._model, a.high._model))
             elif isinstance(a, list):
                 for ai in a:
                     to_expr(ai)
                     eai = pop_expr()
-                    self.range_l.add_range(eai)
+                    self.range_l.addRange(eai)
             else:
                 to_expr(a)
                 e = pop_expr()
-                self.range_l.add_range(e)
+                self.range_l.addRange(e)
 #            self.range_l.rl.reverse()
 
                 # This needs to be convertioble to a
@@ -92,8 +96,15 @@ class rangelist(object):
             self.range_l.add_range(e)        
                 
     def __contains__(self, lhs):
-        to_expr(lhs)
-        return expr(ExprInModel(pop_expr(), self.range_l))
+        ctor = Ctor.inst()
+        lhs_e = Expr.toExpr(lhs)
+        ctor.pop_expr(lhs_e)
+
+        if ctor.is_type_mode():
+            raise Exception("ExprIn")
+        else:
+            # Really need a 'clone' method
+            return Expr(ctor.ctxt().mkModelExprIn(lhs_e._model, self.range_l))
     
     def __invert__(self):
         print("rangelist.__invert__")
