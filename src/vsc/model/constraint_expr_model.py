@@ -30,6 +30,7 @@ from vsc.model.expr_model import ExprModel
 class ConstraintExprModel(ConstraintModel):
     
     def __init__(self, e):
+        super().__init__()
         self.e = e
         
     def build(self, btor):
