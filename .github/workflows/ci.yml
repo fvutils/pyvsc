@@ -42,6 +42,7 @@ jobs:
         touch build/html/.nojekyll
         cp -r build/html ../
     - name: Deploy
+      if: startsWith(github.ref, 'refs/heads/master')
       uses: JamesIves/github-pages-deploy-action@4.1.7
       with:
         branch: gh-pages
