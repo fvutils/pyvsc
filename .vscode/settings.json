@@ -1,0 +1,14 @@
+{
+    "python.defaultInterpreterPath": "${workspaceFolder}/packages/python/bin/python3",
+    "python.testing.unittestArgs": [
+        "-v",
+        "-s",
+        "./ve/unit",
+        "-p",
+        "test_**.py"
+    ],
+    "python.envFile": "${workspaceFolder}/.env",
+    "python.testing.pytestEnabled": false,
+    "python.testing.unittestEnabled": true
+}
+
