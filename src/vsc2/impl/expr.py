@@ -11,6 +11,10 @@ class Expr(object):
     def __init__(self, model):
         self._model = model
         Ctor.inst().push_expr(self)
+
+    @property
+    def model(self):
+        return self._model
         
     @staticmethod
     def toExpr(rhs):

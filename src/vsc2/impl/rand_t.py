@@ -8,7 +8,7 @@ class RandT(object):
     
     T = None
     
-    def __new__(cls, field=None):
+    def __new__(cls, iv=0, field=None):
         
         print("RandT: field=%s" % str(field))
         

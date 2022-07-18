@@ -8,7 +8,7 @@ for i in 1 2; do
   vsc_dir=`dirname $vsc_dir`
 done
 
-export PYTHONPATH=${vsc_dir}/src:/project/fun/portaskela/boolector/inst/lib
+export PYTHONPATH=${vsc_dir}/src
 
 # valgrind --tool=memcheck --suppressions=./valgrind-python.supp ${vsc_dir}/packages/python/bin/python3 -m unittest ${@:1}
 # valgrind --tool=memcheck python3 -m unittest ${@:1}

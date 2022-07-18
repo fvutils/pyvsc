@@ -80,9 +80,18 @@ class Ctor():
     
     def push_constraint_scope(self, c):
         self._constraint_s.append(c)
-        
+
+    def in_constraint_scope(self):
+        return len(self._constraint_s) > 0
+
     def constraint_scope(self):
         return self._constraint_s[-1]
+
+    def last_constraint_stmt(self):
+        if len(self._constraint_s) > 0:
+            return self._constraint_s[-1].constraints()[-1]
+        else:
+            return None
     
     def pop_constraint_scope(self):
         # Collect remaining expressions and convert to expr_statements
