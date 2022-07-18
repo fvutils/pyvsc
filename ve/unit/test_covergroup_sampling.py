@@ -144,8 +144,8 @@ class TestCovergroupSampling(VscTestCase):
 
         self.assertEqual(len(report.covergroups), 1)
         self.assertEqual(len(report.covergroups[0].coverpoints), 2)
-        self.assertEqual(report.covergroups[0].coverpoints[0].coverage, 13.33)
-        self.assertEqual(report.covergroups[0].coverpoints[1].coverage, 13.33)
+        self.assertEqual(round(report.covergroups[0].coverpoints[0].coverage,2), 13.33)
+        self.assertEqual(round(report.covergroups[0].coverpoints[1].coverage,2), 13.33)
 
 
     def test_cross_sampling(self):

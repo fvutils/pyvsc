@@ -121,7 +121,7 @@ class TestPyUcisSave(TestCase):
         print(">================== Write XML ========================")
         vsc.write_coverage_db(out)
         print("<================== Write XML ========================")
-        db = XmlFactory.read(out)
+        db = XmlFactory.read(StringIO(out.getvalue()))
         print(">================== Build Report =====================")
         report = CoverageReportBuilder.build(db)
         print("<================== Build Report =====================")

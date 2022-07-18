@@ -1,3 +1,20 @@
+
+## 0.7.5
+- Adjust PyUCIS dependencies to ensure presence of critical bug fix
+- Test updates to adjust to change in PyUCIS report functionality
+
+## 0.7.4
+- Adjust to deprecated PyUCIS functionality
+
+## 0.7.3
+- Correct an issue with the covergroup 'get_coverage' method
+
+## 0.7.2
+- Disable some internal debug output that was inadvertently left on
+
+## 0.7.1
+- (#156) Correct random distribution for signed variables constrained to negaitve value ranges
+
 ## 0.7.0
 - (#146) Correct an issue with enums and the new constant-expression eval from #132
 

@@ -93,6 +93,15 @@ class CovergroupModel(FieldCompositeModel):
         return cp
         
     def get_coverage(self):
+        if self.type_cg is not None:
+            return self.type_cg.get_coverage()
+        else:
+            return self.get_inst_coverage()
+        
+    def coverage_ev(self, cp, bin_idx):
+        self.coverage_calc_valid = False
+    
+    def get_inst_coverage(self):
         if not self.coverage_calc_valid:
             self.coverage = 0.0
             for cp in self.coverpoint_l:
@@ -107,14 +116,8 @@ class CovergroupModel(FieldCompositeModel):
                 self.coverage = round(self.coverage, 4)
             self.coverage_calc_valid = True
             
-        return self.coverage
-        
-    def coverage_ev(self, cp, bin_idx):
-        self.coverage_calc_valid = False
-    
-    def get_inst_coverage(self):
-        return 0.0
-            
+        return self.coverage        
+
     def accept(self, v):
         v.visit_covergroup(self)
             

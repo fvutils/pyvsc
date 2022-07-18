@@ -452,7 +452,7 @@ constraint.
          @vsc.constraint
          def ab_c(self):
             self.a < self.b
-            soft(self.a == 5)
+            vsc.soft(self.a == 5)
             
     item = my_item()
     item.randomize() # a==5

@@ -328,6 +328,8 @@ def to_expr(t):
         return expr(ExprLiteralModel(int(t), True, 32))
     elif isinstance(type(t), (EnumMeta,IntEnum)):
         return expr(EnumInfo.get(type(t)).e2e(t))
+    elif isinstance(t, type):
+        raise Exception("Illegal attempt to convert a type (%s) to a value" % str(t))
     elif hasattr(t, "to_expr"):
         return t.to_expr()
     elif callable(t):

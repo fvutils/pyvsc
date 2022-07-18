@@ -517,18 +517,272 @@ sampling.
 In the example above, calling the `sample` method will sample the current value
 of `a` and `b` in the context and sample the coverpoints with those values.
 
+Coverage API
+============
+PyVSC covergroup classes implement methods for querying achieved coverage.
+
+- `get_coverage` - Reports coverage achieved by all covergroup instances (0..100)
+- `get_inst_coverage` - Reports coverage by this instance (0..100)
+
+.. code-block:: python3
+
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=vsc.bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], [1, 2, 4, 8])
+                    })
+
+        cg1 = my_covergroup()
+        cg2 = my_covergroup()
+        
+        cg1.sample(1)
+        print("Type=%f cg1=%f cg2=%f" % (
+          cg1.get_coverage(),
+          cg1.get_inst_coverage(),
+          cg2.get_inst_coverage()))
+          
+        cg2.sample(2)
+        print("Type=%f cg1=%f cg2=%f" % (
+          cg1.get_coverage(),
+          cg1.get_inst_coverage(),
+          cg2.get_inst_coverage()))
+
+Running this example produces:
+
+.. code-block::
+
+  Type=25.000000 cg1=25.000000 cg2=0.000000
+  Type=50.000000 cg1=25.000000 cg2=25.000000
+
+Sampling the first covergroup instance results in its instance coverage 
+being increased to 25% (1/4 bins have been hit) and the combined type
+coverage incrasing to 25%. Sampling the second covergroup instance raises
+its instance coverage to 25% as well, while increasing the total type
+coverage achieved to 50%.
 
 Coverage Reports
 ================
 
 PyVSC provides three methods for obtaining a coverage report. 
-- `get_coverage_report_model` -- Returns a coverage-report object with information about each type and instance of coverage
-- `get_coverage_report` -- Returns a string with a textual coverage report
-- `report_coverage` -- Prints a coverage report to a stream (defaults to stdout)
+
+.. automodule:: vsc
+  :members: get_coverage_report
+
+.. automodule:: vsc
+  :members: get_coverage_report_model
+
+.. automodule:: vsc
+  :members: report_coverage
+ 
+Let's using a derivative of the example show above to see the differences 
+between a coverage report with and without details.
+
+.. code-block:: python3
+
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=vsc.bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin_array([], 1, 2, 4, 8)
+                    })
+
+        cg1 = my_covergroup()
+        cg2 = my_covergroup()
+       
+        cg1.sample(1)
+        cg2.sample(2)
+        
+        print("==== Without Details ===")
+        vsc.report_coverage()
+        print()
+        print("==== With Details ===")
+        vsc.report_coverage(details=True)
+
+The output from this code is shown below:
+
+.. code-block::
+
+    TYPE my_covergroup : 50.000000%
+      CVP cp1 : 50.000000%
+      INST my_covergroup : 25.000000%
+          CVP cp1 : 25.000000%
+      INST my_covergroup_1 : 25.000000%
+          CVP cp1 : 25.000000%
+
+    ==== With Details ===
+    TYPE my_covergroup : 50.000000%
+      CVP cp1 : 50.000000%
+      Bins:
+          a[0] : 1
+          a[1] : 1
+          a[2] : 0
+          a[3] : 0
+      INST my_covergroup : 25.000000%
+          CVP cp1 : 25.000000%
+          Bins:
+              a[0] : 1
+              a[1] : 0
+              a[2] : 0
+              a[3] : 0
+      INST my_covergroup_1 : 25.000000%
+          CVP cp1 : 25.000000%
+          Bins:
+              a[0] : 0
+              a[1] : 1
+              a[2] : 0
+              a[3] : 0
+ 
+
+The coverage report without details shows the coverage achieved for the
+covergroup and coverpoints without showing which bins were hit or how
+many times. The coverage report with details shows hit counts for each
+bin in addition to the coverage percentage achieved for the covergroups
+and coverpoints.
+ 
+Saving Coverage Data
+====================
+
+PyVSC uses the `PyUCIS <https://github.com/fvutils/pyucis>`_ library to export
+coverage data using the API or XML interchange format defined by the
+`Accellera UCIS <https://accellera.org/downloads/standards/ucis>`_ standard.
+
+Using the PyUCIS library, PyVSC can write coverage data to an XML-format
+coverage interchange file. Or, can write coverage data directly to a
+coverage database using a shared library that implements the UCIS C API.
+
+PyVSC provides the `write_coverage_db` method for saving coverage data.
+
+.. automodule:: vsc
+  :members: write_coverage_db
+
+Saving to XML
+-------------
+
+By default, the `write_coverage_db` method saves coverage data to an
+XML file formatted according to the UCIS interchange-format schema.
+
+.. code-block:: python3
+
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin(1, 2, 4),
+                    "b" : vsc.bin(8, [12,15])
+                    })
+                    
+       my_cg_1 = my_covergroup()
+       my_cg_1.sample(1)
+       my_cg_1.sample(2)
+       my_cg_1.sample(8)
+       
+       vsc.write_coverage_db('cov.xml')
+       
+Saving via a UCIS API Implementation
+------------------------------------
+
+When an implementation of the UCIS C API is available, PyVSC
+can write coverage data using that API implementation. In this
+case, the `fmt` parameter of the `write_coverage_db` method 
+must be specified as `libucis`. The `libucis` parameter of 
+the method must specify the name of the shared library that
+implements the UCIS API.
+
+In the example below, the tool-provided shared library that
+implements the UCIS API is named `libucis.so`. 
+
+.. code-block:: python3
+
+        @vsc.covergroup        
+        class my_covergroup(object):
+            
+            def __init__(self):
+                self.with_sample(
+                    a=bit_t(4)
+                    )
+                self.cp1 = vsc.coverpoint(self.a, bins={
+                    "a" : vsc.bin(1, 2, 4),
+                    "b" : vsc.bin(8, [12,15])
+                    })
+                    
+       my_cg_1 = my_covergroup()
+       my_cg_1.sample(1)
+       my_cg_1.sample(2)
+       my_cg_1.sample(8)
+       
+       vsc.write_coverage_db('cov.db', fmt='libucis', libucis='libucis.so')
+
+Calling `write_coverage_db` in this way causes the PyUCIS library
+to load the specified shared library and call UCIS C API functions
+to record the coverage data collected by the PyVSC library.
+
+Using Coverage Data
+===================
+
+Coverage data saved from PyVSC can be used in several open-source and
+closed-source commercial tool flows. The sections below describe 
+flows that PyVSC data is known to have been used in.
+
+.. note::
+
+  The information below with respect to closed-source/commercial tool 
+  flows represents data collected from users of those flows and tools. 
+  You are well-advised to confirm the accuracy of the information 
+  with the relevant vendor's documentation and/or Application Engineers.
+
+Please report other tool flows that accept coverage data from PyVSC
+via the project's `Issues <https://github.com/fvutils/pyvsc/issues>`_ or 
+`Discussion <https://github.com/fvutils/pyvsc/discussions>`_ areas.
+
+Viewing Coverage with PyUCIS-Viewer
+-----------------------------------
+
+`PyUCIS-Viewer <https://github.com/fvutils/pyucis-viewer>`_ is a very
+simple graphical viewer for functional coverage data. It currently 
+supports reading coverage data from UCIS XML-interchange-formatted
+files.
+
+Siemens Questa: Writing Coverage Data
+-------------------------------------
+
+Siemens Questa [#]_ is reported to provide a library that implements the 
+UCIS C API. Using this library, coverage data can be written
+directly to a Questa coverage database. See the information above about
+writing coverage data to a UCIS API implementation for more information
+on how to utilize this flow.
+
+ 
+Synopsys VCS: Importing Coverage Data
+-------------------------------------
+
+Bringing coverage in UCIS XML-interchange format into the Synopsys VCS [#]_ 
+metric analysis flow has been described using an import command. To follow
+this flow, write coverage data out from PyVSC in UCIS XML-interchange format.
+
+Use the following VCS import command to read the data from the XML coverage
+file into a VCS coverage database:
+
+.. code:: shell
+
+  % covimport -readucis <cov.xml> -dbname <cov.vdb>
 
 
 
-
+.. [#] Questa is a trademark of Siemens Industry Software Inc.
+.. [#] VCS is a trademark of Synopsys Inc.
 
 
 

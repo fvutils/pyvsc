@@ -757,5 +757,27 @@ class TestRandomDist(VscTestCase):
         self.assertGreater(zero_cnt, 0)
         self.assertGreater(max_cnt, 0)
         
+    def test_signed_8bit_neg_values(self):
 
+        @vsc.randobj
+        class my_cls(object):
+            def __init__(self):
+                self.a = vsc.rand_int8_t()
+        
+            @vsc.constraint
+            def a_c(self):
+                self.a <= -100
+                
+        bins = [0]*28
+        
+        myi = my_cls()
+        for i in range(200):
+            myi.randomize()
+            self.assertLessEqual(myi.a, -100)
+            bins[myi.a+100] += 1
+        print("bins: %s" % str(bins))
+        
+        for i,b in enumerate(bins):
+            self.assertNotEqual(b, 0)
+        
         
