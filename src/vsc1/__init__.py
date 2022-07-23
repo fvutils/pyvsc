@@ -41,6 +41,7 @@ from vsc1.rand_obj import *
 from vsc1.types import *
 from vsc1.visitors.coverage_save_visitor import CoverageSaveVisitor
 from vsc1 import profile, impl
+from .model.rand_state import RandState
 from vsc1.impl.ctor import glbl_debug, glbl_solvefail_debug
 
 

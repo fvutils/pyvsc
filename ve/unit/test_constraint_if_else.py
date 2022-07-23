@@ -63,6 +63,10 @@ class TestConstraintIfElse(VscTestCase):
         # Randomize
         for i in range(5):
             my.randomize()
+            if my.a != 0:
+                self.assertEquals(my.b, 0)
+            else:
+                self.assertEquals(my.b, 1)
             print("ITERATION : ", i+1, my.a, my.b)
             
     def test_if_then_foreach_nesting(self):

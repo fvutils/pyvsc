@@ -17,11 +17,15 @@ class ScalarT(object):
         ctor = Ctor.inst()
         
         # TODO: need to check construction mode, etc?
+
+        if w == -1:
+            w = cls.W 
         
         # Create a model field based on the relevant signedness/size
-        lib_type = ctor.ctxt().findDataTypeInt(cls.S, cls.W)
+        print("ScalarT: w=%d, cls.W=%d" % (w, cls.W))
+        lib_type = ctor.ctxt().findDataTypeInt(cls.S, w)
         if lib_type is None:
-            lib_type = ctor.ctxt().mkDataTypeInt(cls.S, cls.W)
+            lib_type = ctor.ctxt().mkDataTypeInt(cls.S, w)
             ctor.ctxt().addDataTypeInt(lib_type)
             
         

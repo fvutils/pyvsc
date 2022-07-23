@@ -13,5 +13,7 @@ export PYTHONPATH=${vsc_dir}/src
 # valgrind --tool=memcheck --suppressions=./valgrind-python.supp ${vsc_dir}/packages/python/bin/python3 -m unittest ${@:1}
 # valgrind --tool=memcheck python3 -m unittest ${@:1}
 # gdb --args python3 -m unittest ${@:1}
-${vsc_dir}/packages/python/bin/python3 -m unittest ${@:1}
+#PREF="gdb --args "
+#PREF="valgrind --tool=memcheck"
+$PREF ${vsc_dir}/packages/python/bin/python3 -m unittest ${@:1}
 

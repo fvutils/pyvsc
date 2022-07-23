@@ -27,7 +27,7 @@ Created on Jul 28, 2019
 import vsc
 from vsc_test_case import VscTestCase
 
-class TestIfElse(VscTestCase):
+class TestConstraintIfElse2(VscTestCase):
 
     def test_if_then(self):
 

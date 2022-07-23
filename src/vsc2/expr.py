@@ -55,13 +55,22 @@ class rangelist(object):
                         False, a.low._model, a.high._model))
             elif isinstance(a, list):
                 for ai in a:
-                    to_expr(ai)
-                    eai = pop_expr()
-                    self.range_l.addRange(eai)
+                    eai = Expr.toExpr(ai)
+                    ctor.pop_expr(eai)
+                    if ctor.is_type_mode():
+                        raise Exception("TODO")
+                    else:
+                        r = ctor.ctxt().mkModelExprRange(True, eai._model, None)
+                    self.range_l.addRange(r)
             else:
-                to_expr(a)
-                e = pop_expr()
-                self.range_l.addRange(e)
+                e = Expr.toExpr(a)
+                ctor.pop_expr(e)
+                if ctor.is_type_mode():
+                    raise Exception("TODO")
+                else:
+                    r = ctor.ctxt().mkModelExprRange(True, e._model, None)
+
+                self.range_l.addRange(r)
 #            self.range_l.rl.reverse()
 
                 # This needs to be convertioble to a

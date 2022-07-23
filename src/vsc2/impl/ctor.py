@@ -3,6 +3,7 @@ Created on Mar 11, 2022
 
 @author: mballance
 '''
+from tkinter import W
 from libvsc import core
 from vsc2.impl.ctor_scope import CtorScope
 
@@ -11,6 +12,7 @@ class Ctor():
     _inst = None
     
     def __init__(self):
+
         self._ctxt = core.Context.inst()
         
         print("Ctor: ctxt=%s" % str(self._ctxt))
@@ -23,6 +25,11 @@ class Ctor():
     
     def ctxt(self):
         return self._ctxt
+
+    def mkRandState(self):
+        from .rand_state import RandState
+
+        return RandState(f"{self._randstate.rand_u}")
     
     def scope(self):
         if len(self._scope_s) > 0:
@@ -110,6 +117,8 @@ class Ctor():
     @classmethod
     def inst(cls):
         if cls._inst is None:
+            from .rand_state import RandState
             cls._inst = Ctor()
+            cls._inst._randstate = RandState.mk()
         return cls._inst
         

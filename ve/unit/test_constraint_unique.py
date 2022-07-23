@@ -28,7 +28,7 @@ import vsc
 from vsc_test_case import VscTestCase
 
 
-class TestUnique(VscTestCase):
+class TestConstraintUnique(VscTestCase):
 
     def test_simple(self):
 

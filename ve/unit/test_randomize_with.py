@@ -37,14 +37,7 @@ class TestRandomizeWith(VscTestCase):
                 self.b = vsc.rand_bit_t(16)
                 self.c = vsc.rand_bit_t(16)
                 self.d = vsc.rand_bit_t(16)
-#                 self.e = rand_bit_t(16)
-#                 self.f = rand_bit_t(16)
-#                 self.g = rand_bit_t(16)
 
-#            @vsc.constraint
-#            def abc_c(self):
-#                self
-                
             @vsc.constraint
             def my_a_c(self):
                 self.a < 10
@@ -52,14 +45,17 @@ class TestRandomizeWith(VscTestCase):
                     self.b < 1000
                 with vsc.else_then():
                     self.b < 2000
+                pass
                 
         c = my_class()
 
         for i in range(1000):
 #            c.randomize()
+            print("== i=%0d" % i)
             with c.randomize_with() as it:
                 it.a == (i%10)
-            self.assertEquals(it.a, (i%10))
+                pass
+            self.assertEqual(it.a, (i%10))
         
             print("i=" + str(i) + " c.a=" + hex(c.a) + " c.b=" + hex(c.b) + " c.c=" + hex(c.c) + " c.d=" + hex(c.d))
             

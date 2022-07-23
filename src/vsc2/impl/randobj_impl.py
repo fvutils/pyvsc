@@ -26,11 +26,11 @@ class RandObjImpl(object):
             else:
                 # Need a new scope for this field
                 self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
-                self._randstate = ctor.ctxt().mkRandState(0)
+                self._randstate = ctor.mkRandState()
                 s = ctor.push_scope(self, self._model, False)
         else: # s is None
             self._model = ctor.ctxt().mkModelFieldRoot(None, "<>")
-            self._randstate = ctor.ctxt().mkRandState(0)
+            self._randstate = ctor.mkRandState()
             s = ctor.push_scope(self, self._model, False)
 
         print("init: %d" % s.inh_depth())
@@ -122,7 +122,7 @@ class RandObjImpl(object):
         solver = ctxt.mkCompoundSolver()
         
         solver.solve(
-            self._randstate,
+            self._randstate._model,
             [self._model],
             [],
             core.SolveFlags.Randomize+
@@ -137,7 +137,7 @@ class RandObjImpl(object):
         
         def __enter__(self):
             ctor = Ctor.inst()
-            cs = ctor.ctxt().mkModelConstraintBlock("xx")
+            cs = ctor.ctxt().mkModelConstraintScope()
             ctor.push_constraint_scope(cs)
             ctor.push_expr_mode()
             return self._obj
@@ -148,15 +148,17 @@ class RandObjImpl(object):
             cs = ctor.pop_constraint_scope()
             mi = self._obj._modelinfo
             
-            if mi._randstate is None:
-                mi._randstate = ctor.ctxt().mkRandState(0)
+            if self._obj._randstate is None:
+                self._obj._randstate = ctor.mkRandState()
             
             solver = ctor.ctxt().mkCompoundSolver()
             
-            print("Solve: lib_obj=%s" % str(mi._lib_obj), flush=True)
+            print("Solve: lib_obj=%s cs.size=%d" % (
+                str(mi._lib_obj),
+                len(cs.constraints())), flush=True)
         
             solver.solve(
-                mi._randstate,
+                self._obj._randstate._model,
                 [mi._lib_obj],
                 [cs],
                 core.SolveFlags.Randomize+
@@ -171,10 +173,12 @@ class RandObjImpl(object):
     
     @staticmethod
     def set_randstate(self, state):
+        self._randstate.setState(state)
         pass
 
     @staticmethod
     def get_randstate(self):
+        return self._randstate.clone()
         pass
 
     

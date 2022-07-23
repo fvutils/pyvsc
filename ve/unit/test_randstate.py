@@ -4,7 +4,6 @@ Created on Oct 12, 2021
 @author: mballance
 '''
 import vsc
-from vsc1.model.rand_state import RandState
 from vsc_test_case import VscTestCase
 
 
@@ -28,13 +27,13 @@ class TestRandState(VscTestCase):
         v1 = []
         v2 = []
         
-        rs1 = RandState(0)
+        rs1 = vsc.RandState(0)
         ci.set_randstate(rs1)
         for _ in range(100):
             ci.randomize()
             v1.append((ci.a,ci.b))
 
-        rs2 = RandState(100)
+        rs2 = vsc.RandState(100)
         ci.set_randstate(rs2)
         
         for _ in range(100):
@@ -67,14 +66,14 @@ class TestRandState(VscTestCase):
         v2 = []
 
         print("Iteration 1")        
-        rs1 = RandState.mkFromSeed(10, "abc")
+        rs1 = vsc.RandState.mkFromSeed(10, "abc")
         ci.set_randstate(rs1)
         for _ in range(10):
             ci.randomize()
             v1.append((ci.a,ci.b))
 
         print("Iteration 2") 
-        rs2 = RandState.mkFromSeed(10, "abc")
+        rs2 = vsc.RandState.mkFromSeed(10, "abc")
         ci.set_randstate(rs2)
         for _ in range(10):
             ci.randomize()
@@ -110,7 +109,7 @@ class TestRandState(VscTestCase):
         v2_2 = []
 
         print("Iteration 1")        
-        rs1 = RandState.mkFromSeed(0)
+        rs1 = vsc.RandState.mkFromSeed(0)
         
         ci.set_randstate(rs1)
         for _ in range(10):
@@ -119,8 +118,8 @@ class TestRandState(VscTestCase):
         
         rand_s = rs1.randint(0, 1000000)
         
-        rs2_1 = RandState.mkFromSeed(rand_s)
-        rs2_2 = RandState.mkFromSeed(rand_s)
+        rs2_1 = vsc.RandState.mkFromSeed(rand_s)
+        rs2_2 = vsc.RandState.mkFromSeed(rand_s)
         
         print("Iteration 2_1") 
         ci.set_randstate(rs2_1)
@@ -174,7 +173,7 @@ class TestRandState(VscTestCase):
         v2 = []
 
         print("Iteration 1")        
-        rs1 = RandState(0)
+        rs1 = vsc.RandState(0)
         ci.set_randstate(rs1)
         for _ in range(10):
             ci.randomize()
