@@ -151,15 +151,23 @@
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="c1"># Propagate cached values to the type</span>
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">cross_l</span><span class="p">)):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">cross_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">iff_val_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">iff_val_cache</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">cross_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_target_value_cache</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">cross_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">iff_val_cache</span><span class="p">)</span>
                 
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">)):</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">target_val_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">target_val_cache</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">iff_val_cache</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">iff_val_cache</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">set_target_value_cache</span><span class="p">(</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">target_val_cache</span><span class="p">,</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">iff_val_cache</span><span class="p">)</span>
 
             <span class="c1"># Now, sample the type</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">:</span>
+            <span class="n">cp</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
             
+        <span class="k">for</span> <span class="n">cr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_l</span><span class="p">:</span>
+            <span class="n">cr</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
+
 <div class="viewcode-block" id="CovergroupModel.add_coverpoint"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.add_coverpoint">[docs]</a>    <span class="k">def</span> <span class="nf">add_coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">):</span>
         <span class="n">cp</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">CoverpointModel</span><span class="p">):</span>
@@ -178,9 +186,11 @@
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span></div>
         
 <div class="viewcode-block" id="CovergroupModel.coverage_ev"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.coverage_ev">[docs]</a>    <span class="k">def</span> <span class="nf">coverage_ev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;coverage_ev&quot;</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span> <span class="o">=</span> <span class="kc">False</span></div>
     
 <div class="viewcode-block" id="CovergroupModel.get_inst_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_inst_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;get_inst_coverage: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span> <span class="o">=</span> <span class="mf">0.0</span>
             <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">:</span>

@@ -117,6 +117,7 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="n">iff</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache_valid</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">finalized</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">=</span> <span class="mi">0</span>
@@ -133,6 +134,13 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span> <span class="o">=</span> <span class="mf">0.0</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
+
+<div class="viewcode-block" id="CoverpointCrossModel.set_target_value_cache"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_cross_model.CoverpointCrossModel.set_target_value_cache">[docs]</a>    <span class="k">def</span> <span class="nf">set_target_value_cache</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">iff</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache</span> <span class="o">=</span> <span class="n">iff</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache_valid</span> <span class="o">=</span> <span class="kc">True</span></div>
+
+<div class="viewcode-block" id="CoverpointCrossModel.reset"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_cross_model.CoverpointCrossModel.reset">[docs]</a>    <span class="k">def</span> <span class="nf">reset</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache_valid</span> <span class="o">=</span> <span class="kc">False</span></div>
 
 <div class="viewcode-block" id="CoverpointCrossModel.coverpoints"><a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_cross_model.CoverpointCrossModel.coverpoints">[docs]</a>    <span class="k">def</span> <span class="nf">coverpoints</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span></div>
@@ -216,8 +224,9 @@
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">finalized</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cross sampled before finalization&quot;</span><span class="p">)</span>
         
-        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache_valid</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">iff</span><span class="o">.</span><span class="n">val</span><span class="p">())</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache_valid</span> <span class="o">=</span> <span class="kc">True</span>
         
         <span class="n">have_cp_hit</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache</span>
         <span class="n">key_m</span> <span class="o">=</span> <span class="p">[]</span>
