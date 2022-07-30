@@ -26,6 +26,7 @@ class TestCoverageWildcardBins(VscTestCase):
         cg_i.sample(0)
         self.assertEqual(cg_i.get_coverage(), 0.0)
         cg_i.sample(0x81)
+        self.assertEqual(cg_i.cp_a.get_coverage(), 100.0)
         self.assertEqual(cg_i.get_coverage(), 100.0)
         
     def test_single_wildcard_bin_1_1(self):
@@ -135,7 +136,21 @@ class TestCoverageWildcardBins(VscTestCase):
 
         class uut(object):
             def __init__(self):
-                self.value = 0
+                self._val = 40
+
+            def exp(self, v1, v2):
+                if v2 == 1:
+                    return v2
+                else:
+                    return v1 * self.exp(v1, v2-1)
+
+            @property
+            def value(self):
+#                if self._val > 10:
+#                    self._val = 2
+                ret = self.exp(self._val, self._val)
+#                self._val += 1
+                return ret
 
         @vsc.covergroup
         class internal_coverage(object):
@@ -217,13 +232,13 @@ class TestCoverageWildcardBins(VscTestCase):
         cg = internal_coverage(uut_i)
         cg_split = internal_coverage_split_cp(uut_i)
 
-        count_wc = 10000
+        count_wc = 1000
         start_wc_ms = int(round(time.time() * 1000))
         for i in range(count_wc):
             cg.sample()
         end_wc_ms = int(round(time.time() * 1000))
 
-        count_split = 10000
+        count_split = 1000
         start_split_ms = int(round(time.time() * 1000))
         for i in range(count_split):
             cg_split.sample()
@@ -231,6 +246,13 @@ class TestCoverageWildcardBins(VscTestCase):
 
         print("Sample wildcard bins %d times in %dmS" % (count_wc, (end_wc_ms-start_wc_ms)))
         print("Sample split bins %d times in %dmS" % (count_split, (end_split_ms-start_split_ms)))
+
+        # With caching, we expect sampling individual coverpoints to
+        # take longer than sampling multiple bins
+        self.assertGreater(
+            (end_split_ms-start_split_ms),
+            (end_wc_ms-start_wc_ms)
+        )
 
 
 

@@ -48,7 +48,9 @@ class CoverpointModel(CoverItemBase):
         # Cached value Target-ref field. This is used to retrieve values for
         # type covergroups
         self.iff_val_cache = True
+        self.iff_val_cache_valid = False
         self.target_val_cache = 0
+        self.target_val_cache_valid = False
 
         self.name = name
         self.n_bins = 0
@@ -72,7 +74,16 @@ class CoverpointModel(CoverItemBase):
             self.options = CoverageOptionsModel()
         else:
             self.options = options
-            
+
+    def set_target_value_cache(self, val, iff=True):
+        self.target_val_cache = val
+        self.target_val_cache_valid = True
+        self.iff_val_cache = iff
+        self.iff_val_cache_valid = True
+
+    def reset(self):
+        self.target_val_cache_valid = False            
+        self.iff_val_cache_valid = False
             
     def add_bin_model(self, bin_m):
         bin_m.parent = self
@@ -172,8 +183,8 @@ class CoverpointModel(CoverItemBase):
         return self.coverage
         
     def sample(self):
-
-        if self.iff is not None:
+        if self.iff is not None and not self.iff_val_cache_valid:
+            self.iff_val_cache_valid = True
             self.iff_val_cache = bool(self.iff.val())
 
         if self.iff_val_cache:            
@@ -183,7 +194,7 @@ class CoverpointModel(CoverItemBase):
                 b.sample()
             for b in self.illegal_bin_model_l:
                 b.sample()
-            
+
     def select_unhit_bin(self, r:RandIF)->int:
         if len(self.unhit_s) > 0:
             return r.sample(self.unhit_s,1)[0]
@@ -212,7 +223,8 @@ class CoverpointModel(CoverItemBase):
             self.hit_illegal_l[bin_idx] += 1
             
     def get_val(self):
-        if self.target is not None:
+        if self.target is not None and not self.target_val_cache_valid:
+            self.target_val_cache_valid = True
             self.target_val_cache = self.target.val()
         return self.target_val_cache
             

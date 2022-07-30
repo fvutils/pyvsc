@@ -1,4 +1,8 @@
 
+## 0.7.6
+- (#160) Cache a coverpoint's target value to improve efficiency when 
+  computing the target value is time consuming 
+
 ## 0.7.5
 - Adjust PyUCIS dependencies to ensure presence of critical bug fix
 - Test updates to adjust to change in PyUCIS report functionality

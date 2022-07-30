@@ -72,15 +72,23 @@ class CovergroupModel(FieldCompositeModel):
         if self.type_cg is not None:
             # Propagate cached values to the type
             for i in range(len(self.cross_l)):
-                self.type_cg.cross_l[i].iff_val_cache = self.cross_l[i].iff_val_cache
+                self.type_cg.cross_l[i].set_target_value_cache(
+                    self.cross_l[i].iff_val_cache)
                 
             for i in range(len(self.coverpoint_l)):
-                self.type_cg.coverpoint_l[i].target_val_cache = self.coverpoint_l[i].target_val_cache
-                self.type_cg.coverpoint_l[i].iff_val_cache = self.coverpoint_l[i].iff_val_cache
+                self.type_cg.coverpoint_l[i].set_target_value_cache(
+                    self.coverpoint_l[i].target_val_cache,
+                    self.coverpoint_l[i].iff_val_cache)
 
             # Now, sample the type
             self.type_cg.sample()
+
+        for cp in self.coverpoint_l:
+            cp.reset()
             
+        for cr in self.cross_l:
+            cr.reset()
+
     def add_coverpoint(self, cp):
         cp.parent = self
         if isinstance(cp, CoverpointModel):
@@ -99,9 +107,11 @@ class CovergroupModel(FieldCompositeModel):
             return self.get_inst_coverage()
         
     def coverage_ev(self, cp, bin_idx):
+        print("coverage_ev")
         self.coverage_calc_valid = False
     
     def get_inst_coverage(self):
+        print("get_inst_coverage: %s" % self.coverage_calc_valid)
         if not self.coverage_calc_valid:
             self.coverage = 0.0
             for cp in self.coverpoint_l:

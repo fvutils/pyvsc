@@ -38,6 +38,7 @@ class CoverpointCrossModel(CoverItemBase):
         self.name = name
         self.iff = iff
         self.iff_val_cache = True
+        self.iff_val_cache_valid = False
         self.coverpoint_model_l = []
         self.finalized = False
         self.n_bins = 0
@@ -54,6 +55,13 @@ class CoverpointCrossModel(CoverItemBase):
         self.coverage = 0.0
         self.coverage_calc_valid = False
         self.options = options
+
+    def set_target_value_cache(self, iff):
+        self.iff_val_cache = iff
+        self.iff_val_cache_valid = True
+
+    def reset(self):
+        self.iff_val_cache_valid = False
 
     def coverpoints(self):
         return self.coverpoint_model_l
@@ -137,8 +145,9 @@ class CoverpointCrossModel(CoverItemBase):
         if not self.finalized:
             raise Exception("Cross sampled before finalization")
         
-        if self.iff is not None:
+        if self.iff is not None and not self.iff_val_cache_valid:
             self.iff_val_cache = bool(self.iff.val())
+            self.iff_val_cache_valid = True
         
         have_cp_hit = self.iff_val_cache
         key_m = []
