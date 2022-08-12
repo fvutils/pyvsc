@@ -21,7 +21,7 @@ Created on Dec 23, 2019
 '''
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestRandomizeWith(VscTestCase):

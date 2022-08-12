@@ -5,7 +5,7 @@ Created on Mar 3, 2020
 '''
 import vsc
 from unittest.case import TestCase
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestConstraintMode(VscTestCase):
     

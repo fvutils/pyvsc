@@ -21,9 +21,9 @@ Created on Jul 28, 2019
 '''
 
 import unittest
-from unittest.case import TestCase
 import vsc
-from vsc_test_case import VscTestCase
+from unittest.case import TestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestImplies(VscTestCase):

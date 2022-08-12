@@ -7,7 +7,7 @@ from enum import auto, Enum, IntEnum
 import time
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestScalarArray(VscTestCase):

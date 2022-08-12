@@ -22,7 +22,7 @@ Created on Jan 22, 2020
 
 import vsc
 from vsc1.model.rand_info_builder import RandInfoBuilder
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestRandInfoBuilder(VscTestCase):

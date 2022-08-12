@@ -3,11 +3,11 @@ Created on May 24, 2020
 
 @author: ballance
 '''
-from enum import IntEnum, auto
 import vsc1 as vsc
+from enum import IntEnum, auto
 from vsc1.visitors.variable_bound_visitor import VariableBoundVisitor
 
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestVariableBoundsVisitor(VscTestCase):

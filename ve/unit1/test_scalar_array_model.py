@@ -3,7 +3,7 @@ Created on May 17, 2020
 
 @author: ballance
 '''
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from vsc1.model.field_composite_model import FieldCompositeModel
 from vsc1.model.field_array_model import FieldArrayModel
 from vsc1.model.constraint_foreach_model import ConstraintForeachModel

@@ -3,10 +3,10 @@ Created on May 6, 2021
 
 @author: mballance
 '''
+import random
 import vsc
 from vsc1.model.rand_if import RandIF
-from vsc_test_case import VscTestCase
-import random
+from .vsc_test_case import VscTestCase
 from vsc1.visitors.model_pretty_printer import ModelPrettyPrinter
 
 

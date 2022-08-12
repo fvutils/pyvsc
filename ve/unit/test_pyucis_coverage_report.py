@@ -12,7 +12,7 @@ from ucis.test_data import TestData
 import vsc
 from vsc1.impl.coverage_registry import CoverageRegistry
 from vsc1.visitors.coverage_save_visitor import CoverageSaveVisitor
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestPyUCISCoverageReport(VscTestCase):

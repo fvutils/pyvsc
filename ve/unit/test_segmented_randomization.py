@@ -6,7 +6,7 @@ Created on Mar 1, 2020
 from unittest.case import TestCase
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestSegmentedRandomization(VscTestCase):

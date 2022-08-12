@@ -115,6 +115,7 @@ class RandClassDecoratorImpl(object):
                         ctor.ctxt().mkTypeFieldPhy(
                             f.name,
                             it,
+                            False,
                             attr,
                             None),
                             lambda self, name, lib_field, s=t.S: RandClassImpl.createPrimField(self, name, lib_field, s))

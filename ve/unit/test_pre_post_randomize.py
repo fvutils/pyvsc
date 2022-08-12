@@ -5,7 +5,7 @@ Created on Jul 18, 2020
 '''
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from enum import Enum, auto
 
 

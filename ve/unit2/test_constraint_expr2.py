@@ -3,7 +3,7 @@ Created on Mar 26, 2020
 
 @author: ballance
 '''
-from vsc_test_case2 import VscTestCase2
+from .vsc_test_case2 import VscTestCase2
 import vsc2 as vsc
 from vsc2.impl.ctor import Ctor
 

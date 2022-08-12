@@ -4,7 +4,7 @@ Created on Jun 28, 2022
 @author: mballance
 '''
 import vsc2
-from vsc_test_case2 import VscTestCase2
+from .vsc_test_case2 import VscTestCase2
 
 class TestListBasics(VscTestCase2):
     

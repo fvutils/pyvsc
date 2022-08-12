@@ -16,10 +16,9 @@
 # specific language governing permissions and limitations
 # under the License.
 
-from unittest.case import TestCase
 import vsc
-from vsc import rand_uint16_t, rand_attr, attr
-from vsc_test_case import VscTestCase
+from unittest.case import TestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestCompoundObj(VscTestCase):
@@ -31,16 +30,16 @@ class TestCompoundObj(VscTestCase):
 
             def __init__(self):
                 super().__init__()
-                self.a = rand_uint16_t()
-                self.b = rand_uint16_t()
+                self.a = vsc.rand_uint16_t()
+                self.b = vsc.rand_uint16_t()
 
         @vsc.randobj                
         class C2(object):
             
             def __init__(self):
                 super().__init__()
-                self.c1 = rand_attr(C1())
-                self.c2 = rand_attr(C1())
+                self.c1 = vsc.rand_attr(C1())
+                self.c2 = vsc.rand_attr(C1())
                 
         c2 = C2()
         
@@ -55,16 +54,16 @@ class TestCompoundObj(VscTestCase):
             
             def __init__(self):
                 super().__init__()
-                self.a = rand_uint16_t()
-                self.b = rand_uint16_t()
+                self.a = vsc.rand_uint16_t()
+                self.b = vsc.rand_uint16_t()
                 
         @vsc.randobj
         class C2(object):
             
             def __init__(self):
                 super().__init__()
-                self.c1 = rand_attr(C1())
-                self.c2 = attr(C1())
+                self.c1 = vsc.rand_attr(C1())
+                self.c2 = vsc.attr(C1())
                 
                 @vsc.constraint
                 def c1_c2_c(self):

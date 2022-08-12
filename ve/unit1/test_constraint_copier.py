@@ -3,7 +3,7 @@ Created on May 19, 2020
 
 @author: ballance
 '''
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from vsc1.model.constraint_model import ConstraintModel
 from vsc1.model.field_scalar_model import FieldScalarModel
 from vsc1.model.constraint_if_else_model import ConstraintIfElseModel

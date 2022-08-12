@@ -3,7 +3,6 @@ Created on Mar 11, 2022
 
 @author: mballance
 '''
-from tkinter import W
 from libvsc import core
 from vsc2.impl.ctor_scope import CtorScope
 

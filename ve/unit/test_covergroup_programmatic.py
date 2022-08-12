@@ -3,9 +3,8 @@ Created on Apr 10, 2020
 
 @author: ballance
 '''
-from vsc_test_case import VscTestCase
 import vsc
-from vsc import bin_array, get_coverage_report_model
+from .vsc_test_case import VscTestCase
 
 class TestCovergroupProgrammatic(VscTestCase):
     
@@ -28,12 +27,12 @@ class TestCovergroupProgrammatic(VscTestCase):
                         vsc.coverpoint(
                             getattr(self, var_names[i]),
                             bins=dict(
-                                values=bin_array([], [1,15]))))
+                                values=vsc.bin_array([], [1,15]))))
                     
         cg1 = my_cg(2)
         cg2 = my_cg(4)
         
-        report = get_coverage_report_model()
+        report = vsc.get_coverage_report_model()
         self.assertEqual(2, report.covergroups)
     
     

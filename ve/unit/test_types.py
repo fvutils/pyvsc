@@ -5,7 +5,7 @@ Created on Apr 24, 2021
 '''
 import vsc
 import random
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestTypes(VscTestCase):
     

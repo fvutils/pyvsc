@@ -24,7 +24,7 @@ import unittest
 from unittest.case import TestCase
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestSmoke(VscTestCase):

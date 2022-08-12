@@ -6,7 +6,7 @@ Created on Aug 8, 2020
 from enum import IntEnum, auto, Enum
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestCovergroupSampling(VscTestCase):

@@ -3,11 +3,10 @@ Created on Mar 13, 2021
 
 @author: mballance
 '''
-from vsc_test_case import VscTestCase
-from enum import IntEnum, IntFlag, Flag, auto, Enum
-import vsc
-from vsc_test_case import VscTestCase
 import random
+import vsc
+from .vsc_test_case import VscTestCase
+from enum import IntEnum, IntFlag, Flag, auto, Enum
 
 
 class TestCoverageCross(VscTestCase):

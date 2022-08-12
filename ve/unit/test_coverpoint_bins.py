@@ -4,7 +4,7 @@ Created on Jul 1, 2020
 @author: ballance
 '''
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from enum import Enum, auto, IntEnum
 
 class TestCoverpointBins(VscTestCase):

@@ -30,5 +30,7 @@ package:
           url: https://github.com/google/riscv-dv.git
         - name: libvsc
           url: https://github.com/fvutils/libvsc.git
+        - name: ninja
+          src: pypi
 
 

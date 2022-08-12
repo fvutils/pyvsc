@@ -4,7 +4,7 @@ Created on Apr 29, 2021
 @author: mballance
 '''
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestCoverageOptions(VscTestCase):
     

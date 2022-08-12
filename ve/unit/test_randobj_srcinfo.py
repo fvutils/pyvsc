@@ -4,7 +4,7 @@ Created on Aug 21, 2021
 @author: mballance
 '''
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from vsc1.model.field_composite_model import FieldCompositeModel
 
 class TestRandObjSrcInfo(VscTestCase):

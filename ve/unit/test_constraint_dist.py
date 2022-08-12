@@ -4,10 +4,10 @@ Created on Aug 9, 2020
 @author: ballance
 '''
 
-from enum import Enum, auto, IntEnum
 import vsc
+from enum import Enum, auto, IntEnum
 
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestConstraintDist(VscTestCase):

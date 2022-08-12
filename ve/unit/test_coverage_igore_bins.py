@@ -3,7 +3,7 @@ Created on Oct 10, 2021
 
 @author: mballance
 '''
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from enum import IntEnum, auto
 #from coverage import covergroup
 

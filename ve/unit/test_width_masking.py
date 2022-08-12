@@ -5,7 +5,7 @@ Created on Aug 15, 2020
 '''
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestWidthMasking(VscTestCase):
     

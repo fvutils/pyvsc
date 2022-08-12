@@ -3,9 +3,8 @@ Created on Apr 10, 2020
 
 @author: ballance
 '''
-from vsc_test_case import VscTestCase
 import vsc
-from vsc import bin_array
+from .vsc_test_case import VscTestCase
 
 class TestCovergroupParameterized(VscTestCase):
     
@@ -21,11 +20,11 @@ class TestCovergroupParameterized(VscTestCase):
                     )
                 
                 self.a_cp = vsc.coverpoint(self.a, bins=dict(
-                    bins_a=bin_array([], [1,16])))
+                    bins_a=vsc.bin_array([], [1,16])))
                 
                 if create_cpb:
                     self.b_cp = vsc.coverpoint(self.b, bins=dict(
-                        bins_b=bin_array([], [1,16])))
+                        bins_b=vsc.bin_array([], [1,16])))
                     
         cg1 = my_cg(False)
         cg2 = my_cg(True)

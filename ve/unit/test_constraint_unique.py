@@ -20,12 +20,12 @@ Created on Jul 28, 2019
 @author: ballance
 '''
 
-from enum import Enum, auto
 import unittest
+import vsc
+from enum import Enum, auto
 from unittest.case import TestCase
 
-import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestConstraintUnique(VscTestCase):

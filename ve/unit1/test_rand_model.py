@@ -4,7 +4,7 @@ Created on Feb 29, 2020
 @author: ballance
 '''
 
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 from vsc1.model.bin_expr_type import BinExprType
 from vsc1.model.constraint_block_model import ConstraintBlockModel

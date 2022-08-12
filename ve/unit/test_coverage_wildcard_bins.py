@@ -5,7 +5,7 @@ Created on Jul 23, 2021
 '''
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestCoverageWildcardBins(VscTestCase):
     

@@ -6,7 +6,7 @@ Created on Mar 4, 2020
 
 from unittest import TestCase
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestFixedSizeArray(VscTestCase):
     

@@ -3,8 +3,8 @@ Created on Mar 26, 2020
 
 @author: ballance
 '''
-from vsc_test_case import VscTestCase
 import vsc
+from .vsc_test_case import VscTestCase
 
 class TestConstraintDynamic(VscTestCase):
     

@@ -3,9 +3,8 @@ Created on May 3, 2021
 
 @author: mballance
 '''
-from vsc_test_case import VscTestCase
-
 import vsc
+from .vsc_test_case import VscTestCase
 
 class TestRandszArray(VscTestCase):
     

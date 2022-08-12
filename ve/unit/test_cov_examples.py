@@ -3,9 +3,8 @@ Created on Jan 28, 2021
 
 @author: mballance
 '''
-from vsc_test_case import VscTestCase
 import vsc
-from vsc import report_coverage
+from .vsc_test_case import VscTestCase
 
 class TestCovExamples(VscTestCase):
     
@@ -57,7 +56,7 @@ class TestCovExamples(VscTestCase):
         it.b = 2
         my_cg_i.sample(it)
  
-        report_coverage(details=True)
+        vsc.report_coverage(details=True)
         print("coverage: %f %f" % (my_cg_i.a_cp.get_coverage(), my_cg_i.b_cp.get_coverage()))
         
     def test_cov_2(self):
@@ -111,6 +110,6 @@ class TestCovExamples(VscTestCase):
         self.assertEqual(my_cg_i.a_cp.get_coverage(), 25.0)
         self.assertEqual(my_cg_i.b_cp.get_coverage(), 50.0)
         self.assertEqual(my_cg_i.ab_cross.get_coverage(), 12.5)
-        report_coverage(details=True)
+        vsc.report_coverage(details=True)
         print("coverage: %f %f" % (my_cg_i.a_cp.get_coverage(), my_cg_i.b_cp.get_coverage()))
         

@@ -11,8 +11,7 @@ from ucis.report.coverage_report_builder import CoverageReportBuilder
 from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
 from ucis.xml.xml_factory import XmlFactory
 import vsc
-from vsc import bin_array
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestCoverageReport(VscTestCase):
@@ -28,7 +27,7 @@ class TestCoverageReport(VscTestCase):
                     b=vsc.uint8_t()))
                 
                 self.a_cp = vsc.coverpoint(self.a, bins={
-                    "a" : bin_array(4, [1,15])
+                    "a" : vsc.bin_array(4, [1,15])
                     })
 
         my_cg_1 = my_cg()
@@ -60,7 +59,7 @@ class TestCoverageReport(VscTestCase):
                     b=vsc.uint8_t()))
                 
                 self.a_cp = vsc.coverpoint(self.a, bins={
-                    "a" : bin_array([], [0,15])
+                    "a" : vsc.bin_array([], [0,15])
                     })
 
         my_cg_1 = my_cg()
@@ -91,7 +90,7 @@ class TestCoverageReport(VscTestCase):
                     b=vsc.uint8_t()))
                 
                 self.a_cp = vsc.coverpoint(self.a, bins={
-                    "a" : bin_array([], [0,15])
+                    "a" : vsc.bin_array([], [0,15])
                     })
 
         my_cg_1 = my_cg()
@@ -119,7 +118,7 @@ class TestCoverageReport(VscTestCase):
                     b=vsc.uint8_t()))
                 
                 self.a_cp = vsc.coverpoint(self.a, bins={
-                    "a" : bin_array([], [0,15])
+                    "a" : vsc.bin_array([], [0,15])
                     })
 
         my_cg_1 = my_cg()
@@ -143,7 +142,7 @@ class TestCoverageReport(VscTestCase):
                     b=vsc.uint8_t()))
                 
                 self.a_cp = vsc.coverpoint(self.a, bins={
-                    "a" : bin_array([], [0,15])
+                    "a" : vsc.bin_array([], [0,15])
                     })
 
         my_cg_1 = my_cg()

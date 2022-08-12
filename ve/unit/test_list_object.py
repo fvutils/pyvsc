@@ -4,7 +4,7 @@ Created on Jun 20, 2020
 @author: ballance
 '''
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from vsc1.visitors.model_pretty_printer import ModelPrettyPrinter
 
 class TestListObject(VscTestCase):

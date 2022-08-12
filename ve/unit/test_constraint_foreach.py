@@ -5,7 +5,7 @@ Created on Jun 26, 2021
 '''
 from enum import auto, Enum
 
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestConstraintForeach(VscTestCase):

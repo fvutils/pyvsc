@@ -6,7 +6,7 @@ Created on Sep 26, 2020
 from enum import Enum
 import vsc
 
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestConstraintIfElse(VscTestCase):

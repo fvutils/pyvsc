@@ -5,10 +5,10 @@ Created on Jul 30, 2020
 '''
 
 import random
+import vsc
 from enum import IntEnum, auto
 
-import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestFieldStandalone(VscTestCase):

@@ -6,7 +6,7 @@ Created on Oct 25, 2020
 from enum import IntEnum, auto
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestSolveFailure(VscTestCase):

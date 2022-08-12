@@ -3,7 +3,7 @@ Created on Mar 7, 2020
 
 @author: ballance
 '''
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from vsc1.model.covergroup_model import CovergroupModel
 from vsc1.model.coverpoint_model import CoverpointModel
 from vsc1.model.expr_ref_model import ExprRefModel

@@ -4,7 +4,7 @@ Created on Dec 20, 2020
 @author: mballance
 '''
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestExtArray(VscTestCase):
     

@@ -3,7 +3,7 @@ Created on Nov 19, 2021
 
 @author: mballance
 '''
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestConstraintRangelist(VscTestCase):
     

@@ -23,7 +23,7 @@ Created on Jul 28, 2019
 from unittest import TestCase
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestPartSelect(VscTestCase):

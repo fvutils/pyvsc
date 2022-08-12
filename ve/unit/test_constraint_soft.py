@@ -4,7 +4,7 @@ Created on Mar 21, 2020
 @author: ballance
 '''
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 class TestConstraintSoft(VscTestCase):
     

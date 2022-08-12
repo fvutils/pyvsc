@@ -7,7 +7,7 @@ Created on Aug 8, 2020
 from enum import IntEnum, IntFlag, Flag, auto, Enum
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestCoverageEnum(VscTestCase):

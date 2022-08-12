@@ -3,7 +3,7 @@ Created on Jun 1, 2020
 
 @author: ballance
 '''
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 import vsc
 
 class TestRandomDist(VscTestCase):

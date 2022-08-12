@@ -40,10 +40,10 @@ class RandClassImpl(object):
             # Push a new scope. Know we're in non-type mode
             print("TODO: Create root field for %s" % type(self)._typeinfo._lib_typeobj.name())
             self._model = ctor.ctxt().buildModelField(typeinfo._lib_typeobj, "<>")
-            self._randstate = ctor.ctxt().mkRandState(0)
+            self._randstate = ctor.ctxt().mkRandState("0")
             s = ctor.push_scope(self, self._model, False)
             
-        self._modelinfo = FieldModelInfo(self, "<>")
+        self._modelinfo = FieldModelInfo(self, "<>", typeinfo)
         self._modelinfo._lib_obj = s._lib_scope
         
         base(self, *args, *kwargs)
@@ -148,10 +148,11 @@ class RandClassImpl(object):
     
     @staticmethod    
     def createPrimField(lib_field, name, idx, is_signed):
+        typeinfo = None
         ctor = Ctor.inst()
         print("__createPrimField %s" % name)
 
-        field = FieldScalarImpl(name, lib_field, is_signed)
+        field = FieldScalarImpl(name, typeinfo, lib_field, is_signed)
         field._modelinfo._idx = idx
         
         

@@ -1,4 +1,3 @@
-from vsc_test_case import VscTestCase
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -27,7 +26,7 @@ from builtins import range, callable
 from enum import IntEnum
 import unittest
 from unittest.case import TestCase
-from vsc import *
+from .vsc_test_case import VscTestCase
 
 class TestCovergroup(VscTestCase):
     

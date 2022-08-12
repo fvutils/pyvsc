@@ -1,4 +1,3 @@
-from vsc_test_case import VscTestCase
 
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -23,6 +22,7 @@ Created on Jan 23, 2020
 @author: ballance
 '''
 from unittest.case import TestCase
+from .vsc_test_case import VscTestCase
 
 import vsc
 from enum import Enum, auto, IntEnum

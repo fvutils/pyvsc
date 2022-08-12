@@ -6,7 +6,7 @@ Created on Jun 24, 2020
 from enum import Enum, auto, IntEnum, EnumMeta
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 
 
 class TestAttrEnum(VscTestCase):

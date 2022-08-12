@@ -3,9 +3,7 @@
     "python.testing.unittestArgs": [
         "-v",
         "-s",
-        "./ve/unit",
-        "-p",
-        "test_**.py"
+        "./ve"
     ],
     "python.envFile": "${workspaceFolder}/.env",
     "python.testing.pytestEnabled": false,

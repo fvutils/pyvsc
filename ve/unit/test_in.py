@@ -22,7 +22,7 @@ Created on Jul 28, 2019
 
 
 import vsc
-from vsc_test_case import VscTestCase
+from .vsc_test_case import VscTestCase
 from enum import Enum, auto
 
 
