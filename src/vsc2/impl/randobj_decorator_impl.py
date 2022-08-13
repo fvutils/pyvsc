@@ -4,7 +4,7 @@ Created on May 22, 2022
 @author: mballance
 '''
 from vsc2.impl.ctor import Ctor
-from vsc2.impl.randclass_typeinfo import RandClassTypeInfo
+from vsc2.impl.typeinfo_randclass import TypeInfoRandClass
 from vsc2.impl.randobj_impl import RandObjImpl
 from vsc2.impl.type_kind_e import TypeKindE
 

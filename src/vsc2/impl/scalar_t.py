@@ -6,7 +6,7 @@ Created on Feb 26, 2022
 from vsc2.impl.ctor import Ctor
 from vsc2.impl.field_scalar_impl import FieldScalarImpl
 from vsc2.impl.type_kind_e import TypeKindE
-from vsc2.impl.typeinfo import TypeInfo
+from vsc2.impl.typeinfo_vsc import TypeInfoVsc
 
 
 class ScalarT(object):
@@ -44,7 +44,7 @@ class ScalarT(object):
         print("scalar_t::new")        
         ret = FieldScalarImpl(
             "", 
-            TypeInfo(TypeKindE.Scalar, lib_type),
+            TypeInfoVsc(TypeKindE.Scalar, lib_type),
             lib_field, 
             cls.S)
         

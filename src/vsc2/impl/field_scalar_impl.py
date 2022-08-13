@@ -10,7 +10,7 @@ from vsc2.impl.ctor import Ctor
 from vsc2.impl.expr import Expr
 from vsc2.impl.field_base_impl import FieldBaseImpl
 from vsc2.impl.field_modelinfo import FieldModelInfo
-from vsc2.impl.typeinfo import TypeInfo
+from vsc2.impl.typeinfo_vsc import TypeInfoVsc
 from vsc2.impl.type_kind_e import TypeKindE
 
 

@@ -27,9 +27,9 @@ def covergroup(*args, **kwargs):
 def randclass(*args, **kwargs):
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         # No-argument form
-        return RandClassDecoratorImpl({})(args[0])
+        return RandClassDecoratorImpl([], {})(args[0])
     else:
-        return RandClassDecoratorImpl(kwargs)
+        return RandClassDecoratorImpl(args, kwargs)
     
 def randobj(*args, **kwargs):
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):

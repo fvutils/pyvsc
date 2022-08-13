@@ -8,6 +8,7 @@ from libvsc import core
 from vsc2.impl import field_scalar_impl
 from vsc2.impl.field_scalar_impl import FieldScalarImpl
 from vsc2.impl.field_modelinfo import FieldModelInfo
+from .typeinfo_randclass import TypeInfoRandClass
 
 
 class RandClassImpl(object):
@@ -18,6 +19,7 @@ class RandClassImpl(object):
         # TODO: Push a context into which to add fields
         ctor = Ctor.inst()
         typeinfo = type(self)._typeinfo
+        randclass_ti = TypeInfoRandClass.get(typeinfo)
 
         s = ctor.scope()
 
@@ -38,20 +40,19 @@ class RandClassImpl(object):
                 s = ctor.push_scope(self, self._model, False)
         else:
             # Push a new scope. Know we're in non-type mode
-            print("TODO: Create root field for %s" % type(self)._typeinfo._lib_typeobj.name())
-            self._model = ctor.ctxt().buildModelField(typeinfo._lib_typeobj, "<>")
+            print("TODO: Create root field for %s" % randclass_ti.lib_typeobj.name())
+            self._model = ctor.ctxt().buildModelField(randclass_ti.lib_typeobj, "<>")
             self._randstate = ctor.ctxt().mkRandState("0")
             s = ctor.push_scope(self, self._model, False)
             
-        self._modelinfo = FieldModelInfo(self, "<>", typeinfo)
+        self._modelinfo = FieldModelInfo(self, "<>", randclass_ti)
         self._modelinfo._lib_obj = s._lib_scope
         
         base(self, *args, *kwargs)
         print("_randclass __init__")
 
-        print("_field_ctor_m: %s" % str(self._typeinfo._field_typeinfo))
-        for field_ti in self._typeinfo._field_typeinfo:
-            print("name: %s" % field_ti._name)
+        for field_ti in randclass_ti.getFields():
+            print("name: %s" % field_ti.name)
 
             # What to pass here?
             
@@ -71,10 +72,10 @@ class RandClassImpl(object):
         if s.dec_inh_depth() == 0 and ctor.is_type_mode():
             # Time to pop this level. But before we do so, build
             # out the relevant constraints
-            print("TODO: build out constraints: %s" % str(typeinfo._constraint_m))
+            print("TODO: build out constraints: %s" % str(randclass_ti.getConstraints()))
 
             ctor.push_expr_mode()
-            for c in self._typeinfo._constraint_l:
+            for c in randclass_ti.getConstraints():
                 cb = ctor.ctxt().mkTypeConstraintBlock(c._name)
                 ctor.push_constraint_scope(cb)
                 print("--> Invoke constraint")
@@ -118,14 +119,12 @@ class RandClassImpl(object):
         if debug > 0:
             pass
 
-        print("--> solver.solve", flush=True)        
         solver.solve(
             self._randstate,
             [self._model],
             [],
             core.SolveFlags.Randomize+core.SolveFlags.RandomizeDeclRand+core.SolveFlags.RandomizeTopFields
             )
-        print("<-- solver.solve", flush=True)        
         
         if debug > 0:
             pass

@@ -20,6 +20,8 @@ package:
           src: pypi
         - name: pytest
           src: pypi
+        - name: pytypeworks
+          url: https://github.com/mballance/pytypeworks.git
         - name: pytest-cov
           src: pypi
         - name: toposort

@@ -11,7 +11,7 @@ from vsc2.impl.field_list_object_impl import FieldListObjectImpl
 from vsc2.impl.field_list_scalar_impl import FieldListScalarImpl
 from vsc2.impl.scalar_t import ScalarT
 from vsc2.impl.type_kind_e import TypeKindE
-from vsc2.impl.typeinfo import TypeInfo
+from vsc2.impl.typeinfo_vsc import TypeInfoVsc
 
 
 class ListT(object):
@@ -57,14 +57,14 @@ class ListT(object):
         if kind == TypeKindE.Scalar:
             ret = FieldListScalarImpl(
                 "", 
-                TypeInfo(TypeKindE.List, None, typeinfo),
+                TypeInfoVsc(TypeKindE.List, None, typeinfo),
                 lib_field)
         elif kind == TypeKindE.Enum:
             pass
         elif kind == TypeKindE.RandObj:
             ret = FieldListObjectImpl(
                 "", 
-                TypeInfo(TypeKindE.List, None, typeinfo),
+                TypeInfoVsc(TypeKindE.List, None, typeinfo),
                 lib_field)
         
         
