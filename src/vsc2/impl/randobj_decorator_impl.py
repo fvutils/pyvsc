@@ -17,7 +17,7 @@ class RandObjDecoratorImpl(object):
     def __call__(self, T):
         ctor = Ctor.inst()
         
-        T._typeinfo = RandClassTypeInfo(None, TypeKindE.RandObj)
+        T._typeinfo = TypeInfoRandClass(None, TypeKindE.RandObj)
         
         RandObjImpl.addMethods(T)
         

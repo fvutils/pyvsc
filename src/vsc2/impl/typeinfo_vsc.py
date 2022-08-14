@@ -4,6 +4,8 @@ Created on Apr 6, 2022
 @author: mballance
 '''
 
+import typeworks
+
 class TypeInfoVsc(object):
     
     ATTR_NAME = "_vsc_typeinfo"

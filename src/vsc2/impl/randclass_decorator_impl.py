@@ -44,12 +44,16 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
     
     def pre_decorate(self, T):
         # Ensure we've created type-info of appropriate type
+        print("RandClasss.PreDecorate")
         randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
+        
+        print("  TI: %s" % str(randclass_ti))
         
         randclass_ti.lib_typeobj = self._getLibDataType(T.__qualname__)
 
         print("RandClass %s" % T.__qualname__)
         print("  Bases: %s" % str(T.__bases__))
+        print("  TI: %s ; lib_typeobj: %s" % (str(randclass_ti), str(randclass_ti.lib_typeobj)))
 
         constraints = typeworks.DeclRgy.pop_decl(ConstraintDecoratorImpl)
         randclass_ti.addConstraints(constraints)
@@ -115,28 +119,31 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
             raise Exception("Non-scalar fields are not yet supported")
     
     def post_decorate(self, T, Tp):
-        ctor = Ctor.inst()
         randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
         super().post_decorate(T, Tp)
         
         # Add methods
-        base_init = Tp.__init__
-        Tp.__init__ = lambda self, *args, **kwargs: RandClassImpl.init(
-            self, base_init, *args, *kwargs)
-        Tp.randomize = lambda self: RandClassImpl.randomize(self)
-        Tp.randomize_with = lambda self: RandClassImpl.randomize_with(self)
+        randclass_ti._base_init = Tp.__init__
+        Tp.__init__ = RandClassImpl.init
+        Tp.randomize = RandClassImpl.randomize
+        Tp.randomize_with = RandClassImpl.randomize_with
         Tp.__setattr__ = lambda self, name, val: RandClassImpl.setattr(self, name, val)
         Tp.__getattribute__ = lambda self, name: RandClassImpl.getattr(self, name)
         
+
+    def pre_register(self):
+        ctor = Ctor.inst()
+        randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
+        
         # Finish elaborating the type object by building out the constraints
         # We first must create a temp object that can be used by the constraint builder
-
+        
         # Push a frame for the object to find
         ctor.push_scope(None, randclass_ti.lib_typeobj, True)
         
         # Now, go create the object itself. Note that we're in
         # type mode, so type fields are built out
-        obj = Tp()
+        obj = self.get_typeinfo().Tp()
 
         ctor.push_scope(obj, randclass_ti.lib_typeobj, True)
         ctor.push_expr_mode()        
@@ -148,7 +155,6 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
             randclass_ti.lib_typeobj.addConstraint(cs)
         ctor.pop_expr_mode()
         ctor.pop_scope()        
-        
     
     def __collectConstraints(self, typeinfo, clsT):
         """Connect constraints from base classes"""

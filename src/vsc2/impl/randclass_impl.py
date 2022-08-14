@@ -3,9 +3,10 @@ Created on Apr 6, 2022
 
 @author: mballance
 '''
+
+import typeworks
 from vsc2.impl.ctor import Ctor
 from libvsc import core
-from vsc2.impl import field_scalar_impl
 from vsc2.impl.field_scalar_impl import FieldScalarImpl
 from vsc2.impl.field_modelinfo import FieldModelInfo
 from .typeinfo_randclass import TypeInfoRandClass
@@ -15,78 +16,11 @@ class RandClassImpl(object):
     """Implementation methods for @randclass-decorated classes"""
 
     @staticmethod
-    def init(self, base, *args, **kwargs):
-        # TODO: Push a context into which to add fields
-        ctor = Ctor.inst()
-        typeinfo = type(self)._typeinfo
-        randclass_ti = TypeInfoRandClass.get(typeinfo)
-
-        s = ctor.scope()
-
-        if s is not None:
-            if s.facade_obj is None:
-                # The field-based caller has setup a frame for us. 
-                # Add the object reference
-                s.facade_obj = self
-            elif s.facade_obj is self:
-                s.inc_inh_depth()
-            else:
-                # Need a new scope
-                if s._type_mode:
-                    raise Exception("Shouldn't hit this in type mode")
-                print("TODO: Create root field for %s" % type(self)._typeinfo._lib_typeobj.name())
-                self._model = ctor.ctxt().buildModelField(typeinfo._lib_typeobj, "<>")
-                self._randstate = ctor.ctxt().mkRandState(0)
-                s = ctor.push_scope(self, self._model, False)
-        else:
-            # Push a new scope. Know we're in non-type mode
-            print("TODO: Create root field for %s" % randclass_ti.lib_typeobj.name())
-            self._model = ctor.ctxt().buildModelField(randclass_ti.lib_typeobj, "<>")
-            self._randstate = ctor.ctxt().mkRandState("0")
-            s = ctor.push_scope(self, self._model, False)
-            
-        self._modelinfo = FieldModelInfo(self, "<>", randclass_ti)
-        self._modelinfo._lib_obj = s._lib_scope
+    def init(self, *args, **kwargs):
+        randclass_ti = TypeInfoRandClass.get(typeworks.TypeInfo.get(type(self)))
+        randclass_ti.init(self, args, kwargs)
         
-        base(self, *args, *kwargs)
-        print("_randclass __init__")
 
-        for field_ti in randclass_ti.getFields():
-            print("name: %s" % field_ti.name)
-
-            # What to pass here?
-            
-                    # Grab the appropriate field from the scope
-            field = s.lib_scope.getField(field_ti._idx)
-            
-            f = field_ti._ctor(
-                field,
-                field_ti._name,
-                field_ti._idx)
-            self._modelinfo.addSubfield(f._modelinfo)
-            setattr(self, field_ti._name, f)
-            
-#            s.lib_scope.addField(f.model())
-
-        # TODO: determine if we're at leaf level (?)
-        if s.dec_inh_depth() == 0 and ctor.is_type_mode():
-            # Time to pop this level. But before we do so, build
-            # out the relevant constraints
-            print("TODO: build out constraints: %s" % str(randclass_ti.getConstraints()))
-
-            ctor.push_expr_mode()
-            for c in randclass_ti.getConstraints():
-                cb = ctor.ctxt().mkTypeConstraintBlock(c._name)
-                ctor.push_constraint_scope(cb)
-                print("--> Invoke constraint")
-                c._method_t(self)
-                print("<-- Invoke constraint")
-                ctor.pop_constraint_scope()
-                
-                self._modelinfo._lib_obj.addConstraint(cb)
-            ctor.pop_expr_mode()
-            
-            ctor.pop_scope()
         pass
     
     @staticmethod
