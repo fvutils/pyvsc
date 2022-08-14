@@ -63,7 +63,7 @@ class RandClassImpl(object):
                 field,
                 field_ti._name,
                 field_ti._idx)
-            f._modelinfo.parent = self._modelinfo
+            self._modelinfo.addSubfield(f._modelinfo)
             setattr(self, field_ti._name, f)
             
 #            s.lib_scope.addField(f.model())
@@ -109,11 +109,14 @@ class RandClassImpl(object):
                 ret = ret.get_val()
         
         return ret
-
+    
     @staticmethod
     def randomize(self, debug=0, lint=0, solve_fail_debug=0):
+        modelinfo : FieldModelInfo = self._modelinfo
         ctxt = Ctor.inst().ctxt()
 
+        modelinfo.pre_randomize()
+        
         solver = ctxt.mkCompoundSolver()
         
         if debug > 0:
@@ -126,6 +129,7 @@ class RandClassImpl(object):
             core.SolveFlags.Randomize+core.SolveFlags.RandomizeDeclRand+core.SolveFlags.RandomizeTopFields
             )
         
+        modelinfo.post_randomize()
         if debug > 0:
             pass
 

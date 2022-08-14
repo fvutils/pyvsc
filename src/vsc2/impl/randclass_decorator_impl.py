@@ -3,18 +3,14 @@
 #*
 #* @author: mballance
 #****************************************************************************
-from dataclasses import _MISSING_TYPE
-import dataclasses
 import typeworks
 from .constraint_decorator_impl import ConstraintDecoratorImpl
 
-from vsc2.impl.field_scalar_impl import FieldScalarImpl
 from vsc2.impl.scalar_t import ScalarT
 from libvsc import core
 from vsc2.impl.ctor import Ctor
 from vsc2.impl.typeinfo_randclass import TypeInfoRandClass
 from vsc2.impl.randclass_impl import RandClassImpl
-from vsc2.impl.typeinfo_vsc import TypeInfoVsc
 from vsc2.impl.type_kind_e import TypeKindE
 from vsc2.impl.typeinfo_field import TypeInfoField
 from vsc2.impl.rand_t import RandT
@@ -118,29 +114,6 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
         else:
             raise Exception("Non-scalar fields are not yet supported")
     
-    # def __call__(self, T):
-    #     ctor = Ctor.inst()
-    #     Tp = dataclasses.dataclass(T, init=False)
-        
-
-            
-    #     # Process dataclass fields to determine which 
-    #     # require special treatment because they are 
-    #     # PyVSC fields        
-    #     idx = 0
-    #     for f in dataclasses.fields(Tp):
-    #         print("==> Field: %s type=%s" % (str(f), str(f.type))) 
-
-
-            
-    #         print("<== Field: %s" % str(f)) 
-            
-
-        
-
-        
-    #     return Tp
-
     def post_decorate(self, T, Tp):
         ctor = Ctor.inst()
         randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
@@ -153,7 +126,7 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
         Tp.randomize = lambda self: RandClassImpl.randomize(self)
         Tp.randomize_with = lambda self: RandClassImpl.randomize_with(self)
         Tp.__setattr__ = lambda self, name, val: RandClassImpl.setattr(self, name, val)
-        Tp.__getattribute__ = lambda self, name: RandClassImpl.getattr(self, name)        
+        Tp.__getattribute__ = lambda self, name: RandClassImpl.getattr(self, name)
         
         # Finish elaborating the type object by building out the constraints
         # We first must create a temp object that can be used by the constraint builder
