@@ -82,7 +82,7 @@ class Randomizer(RandIF):
             self.solve_fail_debug = glbl_solvefail_debug
             
 #        self.swizzler = SolveGroupSwizzlerRange(solve_info)
-        self.swizzler = SolveGroupSwizzlerPartsel(randstate, solve_info)
+        self.swizzler = SolveGroupSwizzlerPartsel(randstate, solve_info, debug=self.debug)
     
     _state_p = [0,1]
     _rng = None

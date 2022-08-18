@@ -16,8 +16,8 @@ from vsc.model.variable_bound_model import VariableBoundModel
 
 class SolveGroupSwizzlerPartsel(object):
     
-    def __init__(self, randstate, solve_info):
-        self.debug = 0
+    def __init__(self, randstate, solve_info, debug=0):
+        self.debug = debug
         self.randstate = randstate
         self.solve_info = solve_info
     
@@ -59,7 +59,6 @@ class SolveGroupSwizzlerPartsel(object):
             field_l = field_l.copy()
             
             swizzle_node_l = []
-            swizzle_expr_l = []
             max_swizzle = 4
 
             # Select up to `max_swizzle` fields to swizzle            
@@ -69,38 +68,26 @@ class SolveGroupSwizzlerPartsel(object):
                     f = field_l.pop(field_idx)
                     e_l = self.swizzle_field(f, rs, bound_m)
                     if e_l is not None:
-                        swizzle_expr_l.append(e_l)
-                        n_l = []
                         for e in e_l:
-                            n_l.append(e.build(btor))
-                        swizzle_node_l.append(n_l)
+                            swizzle_node_l.append(e.build(btor))
                 else:
                     break
 
             # Each entry in the nodelist corresponds to a field
-            for field_nl in swizzle_node_l:
-                # Start by assuming all
-                for n in field_nl:
-                    btor.Assume(n)
-
+            while (len(swizzle_node_l) > 0):
+                idx = self.randstate.randint(0, len(swizzle_node_l)-1)
+                n = swizzle_node_l.pop(idx)
+                btor.Assume(n)
                 if self.solve_info is not None:
                     self.solve_info.n_sat_calls += 1
-                if btor.Sat() != btor.SAT:
-                    # Add one at a time, preserving those that are SAT
-
-                    for n in field_nl:
-                        btor.Assume(n)
-                        if btor.Sat() == btor.SAT:
-                            btor.Assert(n)
-                            
-#                    if self.debug > 0:
-#                        print("Randomization constraint failed. Removing last: %s" %
-#                              self.pretty_printer.print(e))
+                if btor.Sat() == btor.SAT:
+                    if self.debug > 0:
+                        print("  Constraint SAT")
+                    btor.Assert(n)
                 else:
-                    # Randomization constraints succeeded. Go ahead and assert
-                    for n in field_nl:
-                        btor.Assert(n)
-                    
+                    if self.debug > 0:
+                        print("  Constraint UNSAT")
+
             if self.solve_info is not None:
                 self.solve_info.n_sat_calls += 1
             if btor.Sat() != btor.SAT:

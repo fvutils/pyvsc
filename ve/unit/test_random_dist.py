@@ -779,5 +779,26 @@ class TestRandomDist(VscTestCase):
         
         for i,b in enumerate(bins):
             self.assertNotEqual(b, 0)
+
+    def test_two_var_1(self):
+
+        @vsc.randobj
+        class my_cls(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(32)
+                self.b = vsc.rand_bit_t(32)
+            
+            @vsc.constraint
+            def ab_c(self):
+                self.a >= 0
+                self.b >= 0
+                self.a <= 50
+                self.b <= 50
+                self.a + self.b <= 60
+
+        c = my_cls()
+        for i in range(100):
+            c.randomize(debug=False)
+            print("[%d] a=%d b=%d" % (i, c.a, c.b))
         
         

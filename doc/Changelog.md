@@ -1,4 +1,7 @@
 
+## 0.7.7
+- (#161) Adjust swizzling algorithm to improve multi-variable distribution
+
 ## 0.7.6
 - (#160) Cache a coverpoint's target value to improve efficiency when 
   computing the target value is time consuming 
