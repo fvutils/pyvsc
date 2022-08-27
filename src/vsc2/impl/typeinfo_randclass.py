@@ -4,6 +4,8 @@ Created on Mar 18, 2022
 @author: mballance
 '''
 from typing import List
+import vsc2.impl as vsc_impl
+import libvsc.core as libvsc
 
 from .field_modelinfo import FieldModelInfo
 
@@ -24,14 +26,20 @@ class TypeInfoRandClass(TypeInfoVsc):
         self._field_typeinfo = []
         self._base_init = None
         
-    def init(self, obj, args, kwargs):
+    def init(self, obj, args, kwargs, ctxt_b=None):
         # Run the base behavior
         self._info.init(obj, args, kwargs)
         
         # TODO: Push a context into which to add fields
-        ctor = Ctor.inst()
+        ctxt_a = Ctor.inst().ctxt()
+        ctor = vsc_impl.Ctor.inst()
+
+        if ctxt_b is None:
+            ctxt_b = libvsc.ModelBuildContext(ctxt_a)
 
         s = ctor.scope()
+
+        print("s=%s" % str(s))
 
         if s is not None:
             if s.facade_obj is None:
@@ -45,27 +53,32 @@ class TypeInfoRandClass(TypeInfoVsc):
                 if s._type_mode:
                     raise Exception("Shouldn't hit this in type mode")
                 print("TODO: Create root field for %s" % self.lib_typeobj.name())
-                obj._model = ctor.ctxt().buildModelField(self.lib_typeobj, "<>")
-                obj._randstate = ctor.ctxt().mkRandState("0")
+                obj._model = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
+                obj._randstate = ctxt_b.ctxt().mkRandState("0")
                 s = ctor.push_scope(obj, obj._model, False)
         else:
             # Push a new scope. Know we're in non-type mode
             print("Self: %s" % str(self), flush=True)
             print("TODO: Create root field for %s" % self.lib_typeobj.name())
-            obj._model = ctor.ctxt().buildModelField(self.lib_typeobj, "<>")
-            obj._randstate = ctor.ctxt().mkRandState("0")
+            obj._model = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
+            print("Ret: %s" % str(obj._model))
+            obj._randstate = ctxt_b.ctxt().mkRandState("0")
             s = ctor.push_scope(obj, obj._model, False)
-            
-        obj._modelinfo = FieldModelInfo(self, "<>", self)
-        obj._modelinfo._lib_obj = s._lib_scope
+
+        obj._modelinfo = FieldModelInfo(obj, "<>", self)
+        obj._modelinfo._lib_obj = s.lib_scope
         
         for field_ti in self.getFields():
             print("name: %s" % field_ti.name)
 
             # What to pass here?
             
-                    # Grab the appropriate field from the scope
+            # Grab the appropriate field from the scope
+            print("lib_scope=%s" % str(s.lib_scope), flush=True)
             field = s.lib_scope.getField(field_ti._idx)
+
+            if field is None:
+                raise Exception("Internal error: getField(%d) returned None" % field_ti._idx)
             
             f = field_ti._ctor(
                 field,
@@ -77,24 +90,45 @@ class TypeInfoRandClass(TypeInfoVsc):
 #            s.lib_scope.addField(f.model())
 
         # TODO: determine if we're at leaf level (?)
-        if s.dec_inh_depth() == 0 and ctor.is_type_mode():
-            # Time to pop this level. But before we do so, build
-            # out the relevant constraints
-            print("TODO: build out constraints: %s" % str(self.getConstraints()))
+        if s.dec_inh_depth() == 0:
+            if ctor.is_type_mode():
+                # Time to pop this level. But before we do so, build
+                # out the relevant constraints
+                print("TODO: build out constraints: %s" % str(self.getConstraints()))
 
-            # This doesn't seem right...
-            ctor.push_expr_mode()
-            for c in self.getConstraints():
-                cb = ctor.ctxt().mkTypeConstraintBlock(c._name)
-                ctor.push_constraint_scope(cb)
-                print("--> Invoke constraint")
-                c._method_t(obj)
-                print("<-- Invoke constraint")
-                ctor.pop_constraint_scope()
+                # This doesn't seem right...
+                ctor.push_expr_mode()
+                for c in self.getConstraints():
+                    cb = ctxt_a.mkTypeConstraintBlock(c._name)
+                    ctor.push_constraint_scope(cb)
+                    print("--> Invoke constraint")
+                    c._method_t(obj)
+                    print("<-- Invoke constraint")
+                    ctor.pop_constraint_scope()
                 
-                obj._modelinfo._lib_obj.addConstraint(cb)
-            ctor.pop_expr_mode()
-            ctor.pop_scope()        
+                    obj._modelinfo._lib_obj.addConstraint(cb)
+                ctor.pop_expr_mode()
+            ctor.pop_scope()
+
+    def elab(self, obj):
+        self.elabConstraints(obj)
+
+    def elabConstraints(self, obj):
+        """
+        Elaborate constraint types
+        """
+        ctor = Ctor.inst()
+
+        ctor.push_scope(obj, self.lib_typeobj, True)
+        ctor.push_expr_mode()        
+        for c in self.getConstraints():
+            cs = ctor.ctxt().mkTypeConstraintBlock(c.name)
+            ctor.push_constraint_scope(cs)
+            c(obj)
+            ctor.pop_constraint_scope()
+            self.lib_typeobj.addConstraint(cs)
+        ctor.pop_expr_mode()
+        ctor.pop_scope()
 
     def addField(self, field_ti):
         self._lib_typeobj.addField(field_ti._lib_typeobj)

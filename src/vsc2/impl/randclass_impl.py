@@ -87,7 +87,7 @@ class RandClassImpl(object):
     def createPrimField(lib_field, name, idx, is_signed):
         typeinfo = None
         ctor = Ctor.inst()
-        print("__createPrimField %s" % name)
+        print("__createPrimField %s" % name, flush=True)
 
         field = FieldScalarImpl(name, typeinfo, lib_field, is_signed)
         field._modelinfo._idx = idx

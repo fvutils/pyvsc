@@ -132,12 +132,23 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
         
 
     def pre_register(self):
-        ctor = Ctor.inst()
-        randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
-        
         # Finish elaborating the type object by building out the constraints
         # We first must create a temp object that can be used by the constraint builder
-        
+
+        self.elab_type()
+
+    def elab_type(self):
+        randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
+        obj = self.create_type_inst()
+        randclass_ti.elab(obj)
+
+    def create_type_inst(self):
+        """
+        Creates the object instance used for type elaboration
+        """
+        ctor = Ctor.inst()
+        randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
+
         # Push a frame for the object to find
         ctor.push_scope(None, randclass_ti.lib_typeobj, True)
         
@@ -145,17 +156,10 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
         # type mode, so type fields are built out
         obj = self.get_typeinfo().Tp()
 
-        ctor.push_scope(obj, randclass_ti.lib_typeobj, True)
-        ctor.push_expr_mode()        
-        for c in randclass_ti.getConstraints():
-            cs = ctor.ctxt().mkTypeConstraintBlock(c.name)
-            ctor.push_constraint_scope(cs)
-            c(obj)
-            ctor.pop_constraint_scope()
-            randclass_ti.lib_typeobj.addConstraint(cs)
-        ctor.pop_expr_mode()
-        ctor.pop_scope()        
-    
+        # Note: creation of the object pops the stack frame we pushed
+
+        return obj
+
     def __collectConstraints(self, typeinfo, clsT):
         """Connect constraints from base classes"""
         # First, connect any additional constraints registered in the base class
