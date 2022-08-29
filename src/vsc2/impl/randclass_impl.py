@@ -7,6 +7,7 @@ Created on Apr 6, 2022
 import typeworks
 from vsc2.impl.ctor import Ctor
 from libvsc import core
+from .rand_state import RandState
 from vsc2.impl.field_scalar_impl import FieldScalarImpl
 from vsc2.impl.field_modelinfo import FieldModelInfo
 from .typeinfo_randclass import TypeInfoRandClass
@@ -48,6 +49,9 @@ class RandClassImpl(object):
     def randomize(self, debug=0, lint=0, solve_fail_debug=0):
         modelinfo : FieldModelInfo = self._modelinfo
         ctxt = Ctor.inst().ctxt()
+
+        if self._randstate is None:
+            self._randstate = RandState.mk()
 
         modelinfo.pre_randomize()
         

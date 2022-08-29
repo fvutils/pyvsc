@@ -54,7 +54,7 @@ class TypeInfoRandClass(TypeInfoVsc):
                     raise Exception("Shouldn't hit this in type mode")
                 print("TODO: Create root field for %s" % self.lib_typeobj.name())
                 obj._model = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
-                obj._randstate = ctxt_b.ctxt().mkRandState("0")
+                obj._randstate = None
                 s = ctor.push_scope(obj, obj._model, False)
         else:
             # Push a new scope. Know we're in non-type mode
@@ -62,7 +62,7 @@ class TypeInfoRandClass(TypeInfoVsc):
             print("TODO: Create root field for %s" % self.lib_typeobj.name())
             obj._model = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
             print("Ret: %s" % str(obj._model))
-            obj._randstate = ctxt_b.ctxt().mkRandState("0")
+            obj._randstate = None
             s = ctor.push_scope(obj, obj._model, False)
 
         obj._modelinfo = FieldModelInfo(obj, "<>", self)

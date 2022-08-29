@@ -1,8 +1,11 @@
 
 import random
+import libvsc.core as vsc_core
 from .ctor import Ctor
 
 class RandState(object):
+
+    _glblState : vsc_core.RandState = None
 
     def __init__(self, seed : str):
         ctor = Ctor.inst()
@@ -24,11 +27,20 @@ class RandState(object):
     
     def randint(self, low, high):
         return self._model.randint32(low, high)
+
+    @classmethod
+    def seed(cls, seed : str):
+        ctor = Ctor.inst()
+        cls._glblState = ctor.ctxt().mkRandState(f"{seed}")
+        pass
     
     @classmethod
     def mk(cls):
         """Creates a random-state object using the Python random state"""
-        seed = random.randint(0, 0xFFFFFFFF)
+        if cls._glblState is None:
+            ctor = Ctor.inst()
+            cls._glblState = ctor.ctxt().mkRandState("0")
+        seed = cls._glblState.randint32(0, 0x7FFFFFFF)
         return RandState(f"{seed}")
    
     @classmethod
