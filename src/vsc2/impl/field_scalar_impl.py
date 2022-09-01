@@ -22,16 +22,22 @@ class FieldScalarImpl(FieldBaseImpl):
         self._is_signed = is_signed
         
     def get_val(self):
-        if self._is_signed:
-            return self._modelinfo._lib_obj.val().val_i()
+        ctor = Ctor.inst()
+        if not ctor.is_type_mode():
+            if self._is_signed:
+                return self._modelinfo._lib_obj.val().val_i()
+            else:
+                return self._modelinfo._lib_obj.val().val_u()
         else:
-            return self._modelinfo._lib_obj.val().val_u()
+            return 0
     
     def set_val(self, v):
-        if self._is_signed:
-            self._modelinfo._lib_obj.val().set_val_i(v)
-        else:
-            self._modelinfo._lib_obj.val().set_val_u(v)
+        ctor = Ctor.inst()
+        if not ctor.is_type_mode():
+            if self._is_signed:
+                self._modelinfo._lib_obj.val().set_val_i(v)
+            else:
+                self._modelinfo._lib_obj.val().set_val_u(v)
 
     @property        
     def val(self):

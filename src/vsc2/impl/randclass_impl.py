@@ -40,7 +40,7 @@ class RandClassImpl(object):
 
         if not ctor.expr_mode():
             # TODO: Check whether this is a 'special' field
-            if hasattr(ret, "get_val"):
+            if hasattr(ret, "get_val") and not ctor.is_type_mode():
                 ret = ret.get_val()
         
         return ret

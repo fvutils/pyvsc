@@ -4,7 +4,6 @@ Created on Mar 18, 2022
 @author: mballance
 '''
 from typing import List
-import vsc2.impl as vsc_impl
 import libvsc.core as libvsc
 
 from .field_modelinfo import FieldModelInfo
@@ -31,11 +30,10 @@ class TypeInfoRandClass(TypeInfoVsc):
         self._info.init(obj, args, kwargs)
         
         # TODO: Push a context into which to add fields
-        ctxt_a = Ctor.inst().ctxt()
-        ctor = vsc_impl.Ctor.inst()
+        ctor = Ctor.inst()
 
         if ctxt_b is None:
-            ctxt_b = libvsc.ModelBuildContext(ctxt_a)
+            ctxt_b = libvsc.ModelBuildContext(ctor.ctxt())
 
         s = ctor.scope()
 
@@ -99,7 +97,7 @@ class TypeInfoRandClass(TypeInfoVsc):
                 # This doesn't seem right...
                 ctor.push_expr_mode()
                 for c in self.getConstraints():
-                    cb = ctxt_a.mkTypeConstraintBlock(c._name)
+                    cb = ctor.ctxt().mkTypeConstraintBlock(c._name)
                     ctor.push_constraint_scope(cb)
                     print("--> Invoke constraint")
                     c._method_t(obj)
