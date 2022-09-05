@@ -18,26 +18,28 @@ class FieldScalarImpl(FieldBaseImpl):
     
     def __init__(self, name, typeinfo, lib_field, is_signed):
         super().__init__(name, typeinfo, lib_field)
-        
         self._is_signed = is_signed
         
-    def get_val(self):
+    def get_val(self, lib_obj_p):
         ctor = Ctor.inst()
         if not ctor.is_type_mode():
+            print("lib_obj_p.name=%s" % lib_obj_p.name())
+            field = lib_obj_p.getField(self._modelinfo._idx)
             if self._is_signed:
-                return self._modelinfo._lib_obj.val().val_i()
+                return field.val().val_i()
             else:
-                return self._modelinfo._lib_obj.val().val_u()
+                return field.val().val_u()
         else:
             return 0
     
-    def set_val(self, v):
+    def set_val(self, lib_obj_p, v):
         ctor = Ctor.inst()
         if not ctor.is_type_mode():
+            field = lib_obj_p.getField(self._modelinfo._idx)
             if self._is_signed:
-                self._modelinfo._lib_obj.val().set_val_i(v)
+                field.val().set_val_i(v)
             else:
-                self._modelinfo._lib_obj.val().set_val_u(v)
+                field.val().set_val_u(v)
 
     @property        
     def val(self):

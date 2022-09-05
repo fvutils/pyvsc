@@ -30,9 +30,9 @@ class Ctor():
 
         return RandState(f"{self._randstate.rand_u}")
     
-    def scope(self):
+    def scope(self, off=-1):
         if len(self._scope_s) > 0:
-            return self._scope_s[-1]
+            return self._scope_s[off]
         else:
             return None
         

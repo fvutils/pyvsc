@@ -65,6 +65,9 @@ class TypeInfoRandClass(TypeInfoVsc):
 
         obj._modelinfo = FieldModelInfo(obj, "<>", self)
         obj._modelinfo._lib_obj = s.lib_scope
+
+        if not ctor.is_type_mode():
+            s.lib_scope.setFieldData(obj)
         
         for field_ti in self.getFields():
             print("name: %s" % field_ti.name)
@@ -73,10 +76,11 @@ class TypeInfoRandClass(TypeInfoVsc):
             
             # Grab the appropriate field from the scope
             print("lib_scope=%s" % str(s.lib_scope), flush=True)
-            field = s.lib_scope.getField(field_ti._idx)
-
-            if field is None:
-                raise Exception("Internal error: getField(%d) returned None" % field_ti._idx)
+#            field = s.lib_scope.getField(field_ti._idx)
+#
+#            if field is None:
+#                raise Exception("Internal error: getField(%d) returned None" % field_ti._idx)
+            field = None
             
             f = field_ti._ctor(
                 field,

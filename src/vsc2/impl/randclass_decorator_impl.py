@@ -85,9 +85,14 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
             print("   Is a scalar: %d,%d" % (t.W, t.S))
 
             if has_init:
-                iv = init
+                iv = ctor.ctxt().mkModelVal()
+                iv.setBits(t.W)
+                if t.S:
+                    iv.set_val_i(init)
+                else:
+                    iv.set_val_u(init)
             else:
-                iv = 0
+                iv = None
                 
             # Create a TypeField instance to represent the field
             it = ctor.ctxt().findDataTypeInt(t.S, t.W)
@@ -108,7 +113,7 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
                     it,
                     False,
                     attr,
-                    None), # TODO: initial value
+                    iv), # TODO: initial value
                 lambda self, name, lib_field, s=t.S: RandClassImpl.createPrimField(self, name, lib_field, s))
             randclass_ti.addField(field_ti)
             self._field_idx += 1
@@ -124,11 +129,7 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
         
         # Add methods
         randclass_ti._base_init = Tp.__init__
-        Tp.__init__ = RandClassImpl.init
-        Tp.randomize = RandClassImpl.randomize
-        Tp.randomize_with = RandClassImpl.randomize_with
-        Tp.__setattr__ = lambda self, name, val: RandClassImpl.setattr(self, name, val)
-        Tp.__getattribute__ = lambda self, name: RandClassImpl.getattr(self, name)
+        RandClassImpl.addMethods(Tp)
         
 
     def pre_register(self):
