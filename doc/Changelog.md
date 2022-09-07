@@ -1,4 +1,7 @@
 
+## 0.7.8
+- (#163) Remove an accidentally-committed debug message
+
 ## 0.7.7
 - (#161) Adjust swizzling algorithm to improve multi-variable distribution
 

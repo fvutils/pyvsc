@@ -107,7 +107,6 @@ class CovergroupModel(FieldCompositeModel):
             return self.get_inst_coverage()
         
     def coverage_ev(self, cp, bin_idx):
-        print("coverage_ev")
         self.coverage_calc_valid = False
     
     def get_inst_coverage(self):
