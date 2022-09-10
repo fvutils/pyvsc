@@ -10,7 +10,7 @@ from vsc2.impl.ctor import Ctor
 from libvsc import core
 from .rand_state import RandState
 from vsc2.impl.field_scalar_impl import FieldScalarImpl
-from vsc2.impl.field_modelinfo import FieldModelInfo
+from vsc2.impl.modelinfo import ModelInfo
 from .typeinfo_randclass import TypeInfoRandClass
 
 
@@ -27,23 +27,30 @@ class RandClassImpl(object):
     
     @staticmethod
     def setattr(self, name, v):
-        try:
-            fo = object.__getattribute__(self, name)
-        except:
-            object.__setattr__(self, name, v)
-        else:
-            ctor = Ctor.inst()
-            if hasattr(fo, "set_val"):
-                fo.set_val(self._modelinfo._lib_obj, v)
-            else:
-                object.__setattr__(self, name, v)
+        object.__setattr__(self, name, v)
+        # ctor = Ctor.inst()
+
+        # if ctor.raw_mode():
+        #     object.__setattr__(self, name, v)
+        # else:
+        #     print("SETATTR: %s %s" % (name, str(v)), flush=True)
+        #     try:
+        #         fo = object.__getattribute__(self, name)
+        #     except:
+        #         object.__setattr__(self, name, v)
+        #     else:
+        #         if hasattr(fo, "set_val"):
+        #             fo.set_val(self._modelinfo._lib_obj, v)
+        #         else:
+        #             object.__setattr__(self, name, v)
             
     @staticmethod
     def __getattribute__(self, name):
         ctor = Ctor.inst()
         ret = object.__getattribute__(self, name)
 
-        if not name.startswith("__"):
+        if not ctor.raw_mode() and not name.startswith("__"):
+            ctor.push_raw_mode()
             if ctor.expr_mode() or ctor.is_type_mode():
                 # TODO: should transform into an expression proxy
                 # TODO: must handle type mode
@@ -54,14 +61,14 @@ class RandClassImpl(object):
                 # returns the field value (ie if the field is a scalar),
                 # or returns a closure that can be further queried
                 # if the field is a composite
-                print("Calling get_val for %s" % name)
-                ret = ret.get_val(self._modelinfo._lib_obj)
-        
+                ret = ret.get_val(self._modelinfo)
+            ctor.pop_raw_mode()
         return ret
 
     @staticmethod
-    def get_val(self, modelinfo_p : FieldModelInfo):
+    def get_val(self, modelinfo_p : ModelInfo):
         # Obtain the appropriate field-info from the parent
+        print("RandClass::get_val")
         return CompositeValClosure(
             self,
             modelinfo_p._subfield_modelinfo[self._modelinfo._idx]
@@ -69,7 +76,7 @@ class RandClassImpl(object):
     
     @staticmethod
     def randomize(self, debug=0, lint=0, solve_fail_debug=0):
-        modelinfo : FieldModelInfo = self._modelinfo
+        modelinfo : ModelInfo = self._modelinfo
         ctxt = Ctor.inst().ctxt()
 
         if self._randstate is None:
@@ -133,6 +140,6 @@ class RandClassImpl(object):
         T.randomize_with = cls.randomize_with
         T.__setattr__ = cls.setattr
         T.__getattribute__ = cls.__getattribute__
-        T.get_val = cls.get_val
+#        T.get_val = cls.get_val
 
         

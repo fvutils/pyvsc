@@ -9,22 +9,22 @@ from libvsc.core import Context
 from vsc2.impl.ctor import Ctor
 from vsc2.impl.expr import Expr
 from vsc2.impl.field_base_impl import FieldBaseImpl
-from vsc2.impl.field_modelinfo import FieldModelInfo
+from vsc2.impl.modelinfo import ModelInfo
 from vsc2.impl.typeinfo_vsc import TypeInfoVsc
 from vsc2.impl.type_kind_e import TypeKindE
 
 
 class FieldScalarImpl(FieldBaseImpl):
     
-    def __init__(self, name, typeinfo, lib_field, is_signed):
-        super().__init__(name, typeinfo, lib_field)
-        self._is_signed = is_signed
-        
-    def get_val(self, lib_obj_p):
+    def __init__(self, name, typeinfo, idx):
+        ctor = Ctor.inst()
+        super().__init__(name, typeinfo, idx)
+        self._is_signed = typeinfo.is_signed
+
+    def get_val(self, modelinfo_p):
         ctor = Ctor.inst()
         if not ctor.is_type_mode():
-            print("lib_obj_p.name=%s" % lib_obj_p.name())
-            field = lib_obj_p.getField(self._modelinfo._idx)
+            field = modelinfo_p.libobj.getField(self._modelinfo.idx)
             if self._is_signed:
                 return field.val().val_i()
             else:
@@ -32,7 +32,8 @@ class FieldScalarImpl(FieldBaseImpl):
         else:
             return 0
     
-    def set_val(self, lib_obj_p, v):
+    def set_val(self, modelinfo_p, v):
+        print("set_val: %d" % v)
         ctor = Ctor.inst()
         if not ctor.is_type_mode():
             field = lib_obj_p.getField(self._modelinfo._idx)

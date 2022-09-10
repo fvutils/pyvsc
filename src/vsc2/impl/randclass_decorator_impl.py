@@ -4,6 +4,7 @@
 #* @author: mballance
 #****************************************************************************
 import typeworks
+from vsc2.impl.typeinfo_scalar import TypeInfoScalar
 from .constraint_decorator_impl import ConstraintDecoratorImpl
 
 from vsc2.impl.scalar_t import ScalarT
@@ -21,7 +22,6 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
     
     def __init__(self, args, kwargs):
         super().__init__(args, kwargs)
-        self._field_idx = 0
         
     def get_type_category(self):
         return TypeKindE.RandClass
@@ -105,18 +105,15 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
             if is_rand:
                 attr |= core.TypeFieldAttr.Rand
 
-            field_ti = TypeInfoField(
-                key, 
-                self._field_idx,
-                ctor.ctxt().mkTypeFieldPhy(
-                    key,
-                    it,
-                    False,
-                    attr,
-                    iv), # TODO: initial value
-                lambda self, name, lib_field, s=t.S: RandClassImpl.createPrimField(self, name, lib_field, s))
-            randclass_ti.addField(field_ti)
-            self._field_idx += 1
+            field_type_obj = ctor.ctxt().mkTypeFieldPhy(
+                key,
+                it,
+                False,
+                attr,
+                iv) # TODO: initial value
+
+            field_ti = TypeInfoField(key, TypeInfoScalar(t.S))
+            randclass_ti.addField(field_ti, field_type_obj)
             self.set_field_initial(key, None)
         elif issubclass(t, ListT):
             print("  Is a list: %s" % str(t.T))
@@ -151,6 +148,7 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
         randclass_ti = TypeInfoRandClass.get(self.get_typeinfo())
 
         # Push a frame for the object to find
+        print("create_type: lib_typeobj=%s" % str(randclass_ti.lib_typeobj))
         ctor.push_scope(None, randclass_ti.lib_typeobj, True)
         
         # Now, go create the object itself. Note that we're in

@@ -6,7 +6,9 @@ Created on Mar 18, 2022
 from typing import List
 import libvsc.core as libvsc
 
-from .field_modelinfo import FieldModelInfo
+from rctgen.impl.modelinfo_component import ModelInfoComponent
+
+from .modelinfo import ModelInfo
 
 from .ctor import Ctor
 
@@ -25,7 +27,12 @@ class TypeInfoRandClass(TypeInfoVsc):
         self._field_typeinfo = []
         self._base_init = None
         
-    def init(self, obj, args, kwargs, ctxt_b=None):
+    def init(self, 
+        obj, 
+        args, 
+        kwargs,
+        modelinfo=None,
+        ctxt_b=None):
         # Run the base behavior
         self._info.init(obj, args, kwargs)
         
@@ -35,9 +42,17 @@ class TypeInfoRandClass(TypeInfoVsc):
         if ctxt_b is None:
             ctxt_b = libvsc.ModelBuildContext(ctor.ctxt())
 
+        if modelinfo is None:
+            modelinfo = ModelInfoComponent(obj, "<>", self)
+
         s = ctor.scope()
 
         print("s=%s" % str(s))
+
+        ctor.push_raw_mode()
+
+        # Create modelinfo for this field
+        obj._modelinfo = modelinfo
 
         if s is not None:
             if s.facade_obj is None:
@@ -51,23 +66,24 @@ class TypeInfoRandClass(TypeInfoVsc):
                 if s._type_mode:
                     raise Exception("Shouldn't hit this in type mode")
                 print("TODO: Create root field for %s" % self.lib_typeobj.name())
-                obj._model = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
+                obj._modelinfo.libobj = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
                 obj._randstate = None
-                s = ctor.push_scope(obj, obj._model, False)
+                s = ctor.push_scope(obj, obj._modelinfo.libobj, False)
         else:
             # Push a new scope. Know we're in non-type mode
             print("Self: %s" % str(self), flush=True)
             print("TODO: Create root field for %s" % self.lib_typeobj.name())
-            obj._model = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
-            print("Ret: %s" % str(obj._model))
+            obj._modelinfo.libobj = self.lib_typeobj.mkRootField(ctxt_b, "<>", False)
             obj._randstate = None
-            s = ctor.push_scope(obj, obj._model, False)
+            s = ctor.push_scope(obj, obj._modelinfo.libobj, False)
 
-        obj._modelinfo = FieldModelInfo(obj, "<>", self)
-        obj._modelinfo._lib_obj = s.lib_scope
+        # Capture the active composite-type scope
+        modelinfo.libobj = s.lib_scope
 
         if not ctor.is_type_mode():
-            s.lib_scope.setFieldData(obj)
+            print("Set Data: %08x" % id(obj))
+            if s.lib_scope is not None:
+                s.lib_scope.setFieldData(obj)
         
         for field_ti in self.getFields():
             print("name: %s" % field_ti.name)
@@ -76,20 +92,23 @@ class TypeInfoRandClass(TypeInfoVsc):
             
             # Grab the appropriate field from the scope
             print("lib_scope=%s" % str(s.lib_scope), flush=True)
-#            field = s.lib_scope.getField(field_ti._idx)
-#
-#            if field is None:
-#                raise Exception("Internal error: getField(%d) returned None" % field_ti._idx)
-            field = None
-            
-            f = field_ti._ctor(
-                field,
-                field_ti._name,
-                field_ti._idx)
-            obj._modelinfo.addSubfield(f._modelinfo)
-            setattr(obj, field_ti._name, f)
+
+            # Field constructor responsible for adding itself
+            # to the parent modelinfo
+            print("field_ti.idx: %d ; getField: %s" % (field_ti.idx, str(s.lib_scope.getField(field_ti.idx))))
+#            ctor.push_scope(None, s.lib_scope.getField(field_ti.idx), ctor.is_type_mode())
+            f = field_ti.createInst(
+                modelinfo,
+                field_ti.name,
+                field_ti.idx)
+#            ctor.pop_scope()
+
+            print("Set Attr: %s=%s" % (field_ti.name, str(f)))
+            setattr(obj, field_ti.name, f)
             
 #            s.lib_scope.addField(f.model())
+
+        ctor.pop_raw_mode()
 
         # TODO: determine if we're at leaf level (?)
         if s.dec_inh_depth() == 0:
@@ -112,6 +131,27 @@ class TypeInfoRandClass(TypeInfoVsc):
                 ctor.pop_expr_mode()
             ctor.pop_scope()
 
+    def createInst(
+            self,
+            modelinfo_p,
+            name,
+            idx):
+        field = self.info.Tp()
+        # Back-patch name and index -- something not available inside the constructor
+        field._modelinfo.name = name
+        field._modelinfo.idx = idx
+        modelinfo_p.addSubfield(field._modelinfo)
+
+        return field
+
+    def createTypeInst(self):
+        ctor = Ctor.inst()
+
+        ctor.push_scope(None, self.lib_typeobj, True)
+        obj = self.info.Tp()
+
+        return obj
+
     def elab(self, obj):
         self.elabConstraints(obj)
 
@@ -132,8 +172,10 @@ class TypeInfoRandClass(TypeInfoVsc):
         ctor.pop_expr_mode()
         ctor.pop_scope()
 
-    def addField(self, field_ti):
-        self._lib_typeobj.addField(field_ti._lib_typeobj)
+    def addField(self, field_ti, field_obj):
+        if field_obj is not None:
+            self._lib_typeobj.addField(field_obj)
+        field_ti.idx = len(self._field_typeinfo)
         self._field_typeinfo.append(field_ti)
         
     def getFields(self) -> List[TypeInfoField]:

@@ -5,18 +5,43 @@ Created on Apr 7, 2022
 '''
 
 from libvsc import core
+from vsc2.impl.ctor import Ctor
 
-class FieldModelInfo(object):
+class ModelInfo(object):
     
-    def __init__(self, obj, name, typeinfo):
-        self._obj = obj
+    def __init__(self, obj, name, typeinfo, idx=-1):
+        self._obj = obj # User-facade object
         self._name = name
         self._typeinfo = typeinfo
-        self._lib_obj = None
-        self._idx = -1
+        self._idx = idx
+        self._libobj = None # Native object for the root of a data-structure tree
         self._parent = None
         self._randstate = None
         self._subfield_modelinfo = []
+
+    @property
+    def obj(self):
+        return self._obj
+
+    @obj.setter
+    def obj(self, v):
+        self._obj = v
+
+    @property
+    def idx(self):
+        return self._idx
+
+    @idx.setter
+    def idx(self, v):
+        self._idx = v
+
+    @property
+    def libobj(self):
+        return self._libobj
+
+    @libobj.setter
+    def libobj(self, v):
+        self._libobj = v
         
     @property
     def parent(self):

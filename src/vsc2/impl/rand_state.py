@@ -41,6 +41,7 @@ class RandState(object):
             ctor = Ctor.inst()
             cls._glblState = ctor.ctxt().mkRandState("0")
         seed = cls._glblState.randint32(0, 0x7FFFFFFF)
+        print("seed=%d" % seed)
         return RandState(f"{seed}")
    
     @classmethod

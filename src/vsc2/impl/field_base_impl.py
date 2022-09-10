@@ -8,19 +8,15 @@ from libvsc.core import Context
 
 from vsc2.impl.ctor import Ctor
 from vsc2.impl.expr import Expr
-from vsc2.impl.field_modelinfo import FieldModelInfo
+from vsc2.impl.modelinfo import ModelInfo
 
 
 class FieldBaseImpl(object):
     
-    def __init__(self, name, typeinfo, lib_field):
+    def __init__(self, name, typeinfo, idx):
         ctxt : Context = Ctor.inst().ctxt()
-        self._modelinfo = FieldModelInfo(self, name, typeinfo)
-        self._modelinfo._lib_obj = lib_field
+        self._modelinfo = ModelInfo(self, name, typeinfo, idx)
         
-    def model(self):
-        return self._modelinfo._lib_obj
-    
     def _to_expr(self):
         ctor = Ctor.inst()
 

@@ -6,7 +6,7 @@ Created on May 25, 2022
 from libvsc.core import Context
 
 from vsc2.impl.ctor import Ctor
-from vsc2.impl.field_modelinfo import FieldModelInfo
+from vsc2.impl.modelinfo import ModelInfo
 from vsc2.impl.field_base_impl import FieldBaseImpl
 
 

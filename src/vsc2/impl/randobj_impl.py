@@ -6,7 +6,7 @@ Created on May 22, 2022
 from vsc2.impl import ctor
 from vsc2.impl.ctor import Ctor
 from libvsc import core
-from vsc2.impl.field_modelinfo import FieldModelInfo
+from vsc2.impl.modelinfo import ModelInfo
 from vsc1.model.field_model import FieldModel
 from vsc2.impl.type_kind_e import TypeKindE
 
@@ -36,7 +36,7 @@ class RandObjImpl(object):
         print("init: %d" % s.inh_depth())
         
         if s.inh_depth() == 1:
-            self._modelinfo = FieldModelInfo(
+            self._modelinfo = ModelInfo(
                 self, 
                 "<>",
                 type(self)._typeinfo)
@@ -54,7 +54,7 @@ class RandObjImpl(object):
                 fo = getattr(self, fn)
                 if hasattr(fo, "_modelinfo"):
                     print("fn: %s" % fn)
-                    mi : FieldModelInfo = fo._modelinfo
+                    mi : ModelInfo = fo._modelinfo
                     mi._lib_obj.setName(fn)
                     s.lib_scope.addField(mi._lib_obj)
                     

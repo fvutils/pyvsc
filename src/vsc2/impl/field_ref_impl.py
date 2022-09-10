@@ -1,18 +1,18 @@
 
-from vsc2.impl.field_modelinfo import FieldModelInfo
+from vsc2.impl.modelinfo import ModelInfo
 
 
 class FieldRefImpl(object):
 
     def __init__(self, name, idx):
         self.target = None
-        self._modelinfo = FieldModelInfo(self, name, None)
+        self._modelinfo = ModelInfo(self, name, None)
         self._modelinfo._idx = idx
         pass
 
-    def get_val(self, lib_obj_p):
+    def get_val(self, modelinfo_p):
         print("get_val")
-        this_f = lib_obj_p.getField(self._modelinfo._idx)
+        this_f = modelinfo_p.libobj.getField(self._modelinfo._idx)
         print("this_f: %s" % str(this_f))
         target = this_f.getRef()
 

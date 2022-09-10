@@ -20,6 +20,7 @@ class Ctor():
         self._constraint_s = []
         self._expr_s = []
         self._expr_mode_s = []
+        self._raw_mode_s = []
         pass
     
     def ctxt(self):
@@ -75,6 +76,15 @@ class Ctor():
         
     def pop_expr_mode(self):
         return self._expr_mode_s.pop()
+
+    def push_raw_mode(self, m=True):
+        self._raw_mode_s.append(m)
+
+    def raw_mode(self):
+        return len(self._raw_mode_s) and self._raw_mode_s[-1]
+
+    def pop_raw_mode(self):
+        return self._raw_mode_s.pop()
         
     def push_constraint_decl(self, c):
         self._constraint_l.append(c)
