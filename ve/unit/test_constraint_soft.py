@@ -247,4 +247,32 @@ class TestConstraintSoft(VscTestCase):
 
 #        print("inst.c2[0].x[0].value", inst.c2[0].x[0].value)
 #        print("inst.c2[0].x[1].value", inst.c2[0].x[1].value)
+
+    def test_soft_dynamic(self):
+        @vsc.randobj
+        class RandA:
+            def __init__(self):
+                self.a_field = vsc.rand_uint8_t(8)
+                self.b_field = vsc.rand_uint8_t(8)
+
+            @vsc.constraint
+            def default_c(self):
+                self.a_field < 100
+                self.b_field < 200
+                pass
+
+    
+            @vsc.dynamic_constraint
+            def fixed_c(self):
+                vsc.soft(self.a_field == 8)
+                vsc.soft(self.b_field == 8)
+
+        rand_a = RandA()
+
+        with rand_a.randomize_with(solve_fail_debug=1,debug=1) as it:
+            it.fixed_c()
+            it.a_field == 10
+
+        print(rand_a.a_field)
+        pass
         

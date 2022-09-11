@@ -1,4 +1,7 @@
 
+## 0.7.9
+- (#164) Correct issue with handling of soft constraints declared in dynamic-constraint blocks
+
 ## 0.7.8
 - (#163) Remove an accidentally-committed debug message
 

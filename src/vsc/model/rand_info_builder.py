@@ -35,6 +35,7 @@ from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_model import FieldModel
@@ -153,6 +154,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         return self._rng.sample(s, k)
     
     def visit_constraint_block(self, c):
+        if RandInfoBuilder.EN_DEBUG:
+            print("--> RandInfoBuilder::visit_constraint_block")
+
         if not c.enabled:
             # Ignore constraint blocks that aren't enabled
             return
@@ -163,6 +167,9 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             self._constraint_s.append(c)
             super().visit_constraint_block(c)
             self._constraint_s.clear()
+
+        if RandInfoBuilder.EN_DEBUG:
+            print("<-- RandInfoBuilder::visit_constraint_block")
             
     def visit_constraint_solve_order(self, c : ConstraintSolveOrderModel):
         if self._pass == 0:
@@ -171,11 +178,15 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                     ExpandSolveOrderVisitor(self._order_m).expand(a, b)
         
     def visit_constraint_stmt_enter(self, c):
+        if RandInfoBuilder.EN_DEBUG:
+            print("--> RandInfoBuilder::visit_constraint_stmt_enter")
         if self._pass == 1 and len(self._constraint_s) == 1:
             self._active_randset = None
             self._active_order_randset_s.clear()
         self._constraint_s.append(c)
         super().visit_constraint_stmt_enter(c)
+        if RandInfoBuilder.EN_DEBUG:
+            print("<-- RandInfoBuilder::visit_constraint_stmt_enter")
         
     def visit_constraint_stmt_leave(self, c):
         c_blk = self._constraint_s[0]
@@ -199,8 +210,13 @@ class RandInfoBuilder(ModelVisitor,RandIF):
     def visit_constraint_expr(self, c):
         if RandInfoBuilder.EN_DEBUG:
             print("--> RandInfoBuilder::visit_constraint_expr")
-            
-        super().visit_constraint_expr(c)
+
+        if isinstance(c.e, ExprDynRefModel):
+            # Don't consider a dynamic-constraint reference to be
+            # a full-fledged constraint statement
+            c.e.accept(self)
+        else:
+            super().visit_constraint_expr(c)
         
         if RandInfoBuilder.EN_DEBUG:
             print("<-- RandInfoBuilder::visit_constraint_expr")
