@@ -127,7 +127,7 @@ class TypeInfoRandClass(TypeInfoVsc):
                     print("<-- Invoke constraint")
                     ctor.pop_constraint_scope()
                 
-                    obj._modelinfo._lib_obj.addConstraint(cb)
+                    obj._modelinfo.libobj.addConstraint(cb)
                 ctor.pop_expr_mode()
             ctor.pop_scope()
 

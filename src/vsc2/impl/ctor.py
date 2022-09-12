@@ -21,6 +21,7 @@ class Ctor():
         self._expr_s = []
         self._expr_mode_s = []
         self._raw_mode_s = []
+        self._bottom_up_mi_s = []
         pass
     
     def ctxt(self):
@@ -47,6 +48,15 @@ class Ctor():
         
     def is_type_mode(self):
         return len(self._scope_s) > 0 and self._scope_s[-1]._type_mode
+
+    def push_bottom_up_mi(self, mi):
+        self._bottom_up_mi_s.append(mi)
+
+    def bottom_up_mi(self):
+        return self._bottom_up_mi_s[-1]
+    
+    def pop_bottom_up_mi(self):
+        return self._bottom_up_mi_s.pop()
         
     def push_expr(self, e):
         self._expr_s.append(e)

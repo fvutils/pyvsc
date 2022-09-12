@@ -18,6 +18,7 @@ class ModelInfo(object):
         self._parent = None
         self._randstate = None
         self._subfield_modelinfo = []
+        self._is_topdown_scope = True
 
     @property
     def obj(self):
@@ -26,6 +27,14 @@ class ModelInfo(object):
     @obj.setter
     def obj(self, v):
         self._obj = v
+
+    @property
+    def name(self):
+        return self._name
+
+    @name.setter
+    def name(self, v):
+        self._name = v
 
     @property
     def idx(self):

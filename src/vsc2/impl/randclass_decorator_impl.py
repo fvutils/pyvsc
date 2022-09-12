@@ -85,6 +85,7 @@ class RandClassDecoratorImpl(typeworks.ClsDecoratorBase):
             print("   Is a scalar: %d,%d" % (t.W, t.S))
 
             if has_init:
+                print("Field: %s init=%s" % (key, str(init)))
                 iv = ctor.ctxt().mkModelVal()
                 iv.setBits(t.W)
                 if t.S:
