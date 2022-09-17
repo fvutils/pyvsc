@@ -26,24 +26,21 @@ class RandClassImpl(object):
         pass
     
     @staticmethod
-    def setattr(self, name, v):
-        object.__setattr__(self, name, v)
-        # ctor = Ctor.inst()
+    def __setattr__(self, name, v):
+        ctor = Ctor.inst()
+        if ctor.raw_mode():
+            object.__setattr__(self, name, v)
+        else:
+            try:
+                fo = object.__getattribute__(self, name)
+            except:
+                object.__setattr__(self, name, v)
+            else:
+                if hasattr(fo, "set_val"):
+                    fo.set_val(self._modelinfo, v)
+                else:
+                    object.__setattr__(self, name, v)
 
-        # if ctor.raw_mode():
-        #     object.__setattr__(self, name, v)
-        # else:
-        #     print("SETATTR: %s %s" % (name, str(v)), flush=True)
-        #     try:
-        #         fo = object.__getattribute__(self, name)
-        #     except:
-        #         object.__setattr__(self, name, v)
-        #     else:
-        #         if hasattr(fo, "set_val"):
-        #             fo.set_val(self._modelinfo._lib_obj, v)
-        #         else:
-        #             object.__setattr__(self, name, v)
-            
     @staticmethod
     def __getattribute__(self, name):
         ctor = Ctor.inst()
@@ -138,7 +135,7 @@ class RandClassImpl(object):
         T.__init__ = cls.init
         T.randomize = cls.randomize
         T.randomize_with = cls.randomize_with
-        T.__setattr__ = cls.setattr
+        T.__setattr__ = cls.__setattr__
         T.__getattribute__ = cls.__getattribute__
 #        T.get_val = cls.get_val
 

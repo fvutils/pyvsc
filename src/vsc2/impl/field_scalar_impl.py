@@ -33,10 +33,9 @@ class FieldScalarImpl(FieldBaseImpl):
             return 0
     
     def set_val(self, modelinfo_p, v):
-        print("set_val: %d" % v)
         ctor = Ctor.inst()
         if not ctor.is_type_mode():
-            field = lib_obj_p.getField(self._modelinfo._idx)
+            field = modelinfo_p.libobj.getField(self._modelinfo.idx)
             if self._is_signed:
                 field.val().set_val_i(v)
             else:

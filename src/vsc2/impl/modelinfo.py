@@ -19,6 +19,7 @@ class ModelInfo(object):
         self._randstate = None
         self._subfield_modelinfo = []
         self._is_topdown_scope = True
+        self._is_ref = False
 
     @property
     def obj(self):

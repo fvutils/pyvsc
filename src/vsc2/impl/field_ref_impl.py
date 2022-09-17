@@ -8,6 +8,7 @@ class FieldRefImpl(object):
         self.target = None
         self._modelinfo = ModelInfo(self, name, None)
         self._modelinfo._idx = idx
+        self._modelinfo._is_ref = True
         pass
 
     def get_val(self, modelinfo_p):
