@@ -4,14 +4,18 @@ Created on May 18, 2020
 @author: ballance
 '''
 
+from ast import BinOp
 from typing import Dict, Set
 import typing
+from vsc.model.bin_expr_type import BinExprType
 from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
@@ -39,6 +43,7 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         self.foreach_scope_s = []
         self.constraint_collector_s = []
         self.foreach_ref_expander = ForeachRefExpander(self.index_set)
+        self.constraint_block = None
         
     @staticmethod
     def build(m, bound_m : typing.Dict[FieldModel,VariableBoundModel]):
@@ -48,10 +53,6 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
         m.accept(builder)
         builder.phase = 1
         m.accept(builder)
-        
-#        print("--> ArrayConstraintBuilder")
-#        print("Model: " + ModelPrettyPrinter.print(m))
-#        print("<-- ArrayConstraintBuilder")
         
         return builder.constraints
     
@@ -166,11 +167,30 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
                 range_l = size_bound.domain.range_l
                 max_size = int(range_l[-1][1])
 
+                # Composite arrays have a maximum size of their
+                # current size, since the user must populate them
+                if not f.is_scalar:
+                    if len(f.field_l) < max_size:
+                        max_size = len(f.field_l)
+
+                        if self.constraint_block is None:
+                            self.constraint_block = ConstraintBlockModel("array_sz_c")
+                            self.constraints.append(self.constraint_block)
+
+                        # Add a constraint to limit the random size field
+                        self.constraint_block.addConstraint(ConstraintExprModel(
+                            ExprBinModel(
+                                ExprFieldRefModel(f.size),
+                                BinExprType.Le,
+                                ExprLiteralModel(len(f.field_l), False, 32)
+                            )
+                        ))
+
                 # TODO: how do we manage a max size here?                
                 if max_size > 100000:
                     raise Exception("Max size for array " + f.name + " (" + str(max_size) + " exceeds 100000")
                 
-                if len(f.field_l) < max_size:
+                if len(f.field_l) < max_size and f.is_scalar:
                     # Extend the size appropriately
                     for i in range(max_size-len(f.field_l)):
                         f.add_field()
@@ -179,5 +199,3 @@ class ArrayConstraintBuilder(ConstraintOverrideVisitor):
                 # Need to recurse into sub-fields for non-scalar arrays
                 for sf in f.field_l:
                     sf.accept(self)
-
-        
