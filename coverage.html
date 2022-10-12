@@ -17,6 +17,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -73,8 +74,14 @@
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#coverage-api">Coverage API</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#coverage-reports">Coverage Reports</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#coverage-reports">Coverage Reports</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vsc.get_coverage_report"><code class="docutils literal notranslate"><span class="pre">get_coverage_report()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vsc.get_coverage_report_model"><code class="docutils literal notranslate"><span class="pre">get_coverage_report_model()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#vsc.report_coverage"><code class="docutils literal notranslate"><span class="pre">report_coverage()</span></code></a></li>
+</ul>
+</li>
 <li class="toctree-l2"><a class="reference internal" href="#saving-coverage-data">Saving Coverage Data</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#vsc.write_coverage_db"><code class="docutils literal notranslate"><span class="pre">write_coverage_db()</span></code></a></li>
 <li class="toctree-l3"><a class="reference internal" href="#saving-to-xml">Saving to XML</a></li>
 <li class="toctree-l3"><a class="reference internal" href="#saving-via-a-ucis-api-implementation">Saving via a UCIS API Implementation</a></li>
 </ul>

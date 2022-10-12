@@ -17,6 +17,7 @@
         <script src="_static/underscore.js"></script>
         <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
+        <script src="_static/sphinx_highlight.js"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -52,14 +53,109 @@
 <li class="toctree-l1"><a class="reference internal" href="debug.html">Debug</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#domain-specific-language-api">Domain-Specific Language API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#module-vsc.attrs">Data and Constraints</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#id1">Data and Constraints</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-vsc.attrs">Data and Constraints</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.attrs.attr"><code class="docutils literal notranslate"><span class="pre">attr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.attrs.rand_attr"><code class="docutils literal notranslate"><span class="pre">rand_attr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.constraint_t"><code class="docutils literal notranslate"><span class="pre">constraint_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.dynamic_constraint_t"><code class="docutils literal notranslate"><span class="pre">dynamic_constraint_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.dynamic_constraint"><code class="docutils literal notranslate"><span class="pre">dynamic_constraint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.constraint"><code class="docutils literal notranslate"><span class="pre">constraint()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.weight"><code class="docutils literal notranslate"><span class="pre">weight</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.dist"><code class="docutils literal notranslate"><span class="pre">dist()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.if_then"><code class="docutils literal notranslate"><span class="pre">if_then</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.else_if"><code class="docutils literal notranslate"><span class="pre">else_if</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.else_then_c"><code class="docutils literal notranslate"><span class="pre">else_then_c</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.implies"><code class="docutils literal notranslate"><span class="pre">implies</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.soft"><code class="docutils literal notranslate"><span class="pre">soft()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.unique"><code class="docutils literal notranslate"><span class="pre">unique()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.forall"><code class="docutils literal notranslate"><span class="pre">forall</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.foreach"><code class="docutils literal notranslate"><span class="pre">foreach</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.solve_order"><code class="docutils literal notranslate"><span class="pre">solve_order()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.rand_obj.randobj"><code class="docutils literal notranslate"><span class="pre">randobj()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.rand_obj.generator"><code class="docutils literal notranslate"><span class="pre">generator()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.unsigned"><code class="docutils literal notranslate"><span class="pre">unsigned()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.signed"><code class="docutils literal notranslate"><span class="pre">signed()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.expr"><code class="docutils literal notranslate"><span class="pre">expr</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.dynamic_constraint_proxy"><code class="docutils literal notranslate"><span class="pre">dynamic_constraint_proxy</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.expr_subscript"><code class="docutils literal notranslate"><span class="pre">expr_subscript</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rng"><code class="docutils literal notranslate"><span class="pre">rng</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rangelist"><code class="docutils literal notranslate"><span class="pre">rangelist</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.to_expr"><code class="docutils literal notranslate"><span class="pre">to_expr()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.field_info"><code class="docutils literal notranslate"><span class="pre">field_info</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.type_base"><code class="docutils literal notranslate"><span class="pre">type_base</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.type_bool"><code class="docutils literal notranslate"><span class="pre">type_bool</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.type_enum"><code class="docutils literal notranslate"><span class="pre">type_enum</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.enum_t"><code class="docutils literal notranslate"><span class="pre">enum_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_enum_t"><code class="docutils literal notranslate"><span class="pre">rand_enum_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.bit_t"><code class="docutils literal notranslate"><span class="pre">bit_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.bool_t"><code class="docutils literal notranslate"><span class="pre">bool_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.uint8_t"><code class="docutils literal notranslate"><span class="pre">uint8_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.uint16_t"><code class="docutils literal notranslate"><span class="pre">uint16_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.uint32_t"><code class="docutils literal notranslate"><span class="pre">uint32_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.uint64_t"><code class="docutils literal notranslate"><span class="pre">uint64_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_bit_t"><code class="docutils literal notranslate"><span class="pre">rand_bit_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_uint8_t"><code class="docutils literal notranslate"><span class="pre">rand_uint8_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_uint16_t"><code class="docutils literal notranslate"><span class="pre">rand_uint16_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_uint32_t"><code class="docutils literal notranslate"><span class="pre">rand_uint32_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_uint64_t"><code class="docutils literal notranslate"><span class="pre">rand_uint64_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.int_t"><code class="docutils literal notranslate"><span class="pre">int_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.int8_t"><code class="docutils literal notranslate"><span class="pre">int8_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.int16_t"><code class="docutils literal notranslate"><span class="pre">int16_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.int32_t"><code class="docutils literal notranslate"><span class="pre">int32_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.int64_t"><code class="docutils literal notranslate"><span class="pre">int64_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_int_t"><code class="docutils literal notranslate"><span class="pre">rand_int_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_int8_t"><code class="docutils literal notranslate"><span class="pre">rand_int8_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_int16_t"><code class="docutils literal notranslate"><span class="pre">rand_int16_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_int32_t"><code class="docutils literal notranslate"><span class="pre">rand_int32_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_int64_t"><code class="docutils literal notranslate"><span class="pre">rand_int64_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.list_t"><code class="docutils literal notranslate"><span class="pre">list_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.rand_list_t"><code class="docutils literal notranslate"><span class="pre">rand_list_t</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.types.randsz_list_t"><code class="docutils literal notranslate"><span class="pre">randsz_list_t</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#id1">Data and Constraints</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.covergroup"><code class="docutils literal notranslate"><span class="pre">covergroup()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.bin"><code class="docutils literal notranslate"><span class="pre">bin</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.bin_array"><code class="docutils literal notranslate"><span class="pre">bin_array</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.wildcard_bin"><code class="docutils literal notranslate"><span class="pre">wildcard_bin</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.wildcard_bin_array"><code class="docutils literal notranslate"><span class="pre">wildcard_bin_array</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.binsof"><code class="docutils literal notranslate"><span class="pre">binsof</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.coverpoint"><code class="docutils literal notranslate"><span class="pre">coverpoint</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.coverage.cross"><code class="docutils literal notranslate"><span class="pre">cross</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 <li class="toctree-l2"><a class="reference internal" href="#model-api">Model API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#id2">Data and constraints</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-vsc.model.covergroup_model">Coverage</a></li>
-<li class="toctree-l3"><a class="reference internal" href="#module-vsc.model.rangelist_model">Expressions</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#id2">Data and constraints</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.field_composite_model.FieldCompositeModel"><code class="docutils literal notranslate"><span class="pre">FieldCompositeModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_block_model.ConstraintBlockModel"><code class="docutils literal notranslate"><span class="pre">ConstraintBlockModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_expr_model.ConstraintExprModel"><code class="docutils literal notranslate"><span class="pre">ConstraintExprModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_if_else_model.ConstraintIfElseModel"><code class="docutils literal notranslate"><span class="pre">ConstraintIfElseModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_implies_model.ConstraintImpliesModel"><code class="docutils literal notranslate"><span class="pre">ConstraintImpliesModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_model.ConstraintModel"><code class="docutils literal notranslate"><span class="pre">ConstraintModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_scope_model.ConstraintScopeModel"><code class="docutils literal notranslate"><span class="pre">ConstraintScopeModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_unique_model.ConstraintUniqueModel"><code class="docutils literal notranslate"><span class="pre">ConstraintUniqueModel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-vsc.model.covergroup_model">Coverage</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.covergroup_model.CovergroupModel"><code class="docutils literal notranslate"><span class="pre">CovergroupModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.covergroup_registry.CovergroupRegistry"><code class="docutils literal notranslate"><span class="pre">CovergroupRegistry</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_array_model.CoverpointBinArrayModel"><code class="docutils literal notranslate"><span class="pre">CoverpointBinArrayModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_collection_model.CoverpointBinCollectionModel"><code class="docutils literal notranslate"><span class="pre">CoverpointBinCollectionModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_enum_model.CoverpointBinEnumModel"><code class="docutils literal notranslate"><span class="pre">CoverpointBinEnumModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_model_base.CoverpointBinModelBase"><code class="docutils literal notranslate"><span class="pre">CoverpointBinModelBase</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_single_bag_model.CoverpointBinSingleBagModel"><code class="docutils literal notranslate"><span class="pre">CoverpointBinSingleBagModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_single_range_model.CoverpointBinSingleRangeModel"><code class="docutils literal notranslate"><span class="pre">CoverpointBinSingleRangeModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_single_val_model.CoverpointBinSingleValModel"><code class="docutils literal notranslate"><span class="pre">CoverpointBinSingleValModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_cross_model.CoverpointCrossModel"><code class="docutils literal notranslate"><span class="pre">CoverpointCrossModel</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_model.CoverpointModel"><code class="docutils literal notranslate"><span class="pre">CoverpointModel</span></code></a></li>
+</ul>
+</li>
+<li class="toctree-l3"><a class="reference internal" href="#module-vsc.model.rangelist_model">Expressions</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#vsc.model.rangelist_model.RangelistModel"><code class="docutils literal notranslate"><span class="pre">RangelistModel</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
