@@ -270,5 +270,81 @@ class TestConstraintForeach(VscTestCase):
             outStr += "\t" + str(int(sel))
         print(outStr)
 
+    def test_mem_segments_1(self):
+        import vsc
+
+        @vsc.randobj
+        class mem_segment(object):
+            def __init__(self):
+                self.capacity = vsc.rand_uint16_t()
+
+        @vsc.randobj
+        class mem_segments(object):
+
+            def __init__(self):
+                self.max_total_capacity = vsc.rand_uint16_t()
+                self.mem_segments = vsc.rand_list_t(mem_segment())
+                for _ in range(10):
+                    self.mem_segments.append(mem_segment())
+                self.sz_array = vsc.rand_list_t(vsc.rand_uint16_t(), 10)
+
+            @vsc.constraint
+            def sz_c(self):
+                self.max_total_capacity >= 100
+                self.max_total_capacity <= 200
+
+                with vsc.foreach(self.mem_segments, idx=True, it=False) as idx:
+                    self.sz_array[idx] == self.mem_segments[idx].capacity
+                    self.mem_segments[idx].capacity <= self.max_total_capacity
+                self.sz_array.sum == self.max_total_capacity
+
+        ms = mem_segments()
+
+        for _ in range(4):
+            ms.randomize()
+            print("max_total_capacity: %d" % ms.max_total_capacity)
+            for i,s in enumerate(ms.mem_segments):
+                print("[%d] %d" % (i, s.capacity))
+
+    def test_mem_segments(self):
+        import vsc
+
+        @vsc.randobj
+        class mem_segment(object):
+            def __init__(self):
+                self.capacity = vsc.rand_uint16_t()
+
+        @vsc.randobj
+        class mem_segments(object):
+
+            def __init__(self):
+                self.max_total_capacity = vsc.rand_uint16_t()
+                self.mem_segments = vsc.rand_list_t(mem_segment())
+                for _ in range(10):
+                    self.mem_segments.append(mem_segment())
+                self.sz_array = vsc.rand_list_t(vsc.rand_uint16_t(), 10)
+
+            @vsc.constraint
+            def sz_c(self):
+                self.max_total_capacity >= 100
+                self.max_total_capacity <= 200
+
+                with vsc.foreach(self.mem_segments, idx=True, it=False) as idx:
+                    self.sz_array[idx] == self.mem_segments[idx].capacity
+                    self.mem_segments[idx].capacity <= self.max_total_capacity
+                    with vsc.if_then(idx > 0):
+                        with vsc.implies(self.mem_segments[idx].capacity > 0):
+                            self.mem_segments[idx-1].capacity > 0
+                
+                self.sz_array.sum == self.max_total_capacity
+
+        ms = mem_segments()
+        ms.randomize()
+
+        print("max_total_capacity: %d" % ms.max_total_capacity)
+        for i,s in enumerate(ms.mem_segments):
+            print("[%d] %d" % (i, s.capacity))
+
+
 
         
