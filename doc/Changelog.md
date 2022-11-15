@@ -1,4 +1,8 @@
 
+## 0.8.1
+- (#135) Add an 'original_module' field to randobj classes so true declaration
+  location can be determined
+  
 ## 0.8.0
 - (#166) Correct rand-size list support for composite elements
 

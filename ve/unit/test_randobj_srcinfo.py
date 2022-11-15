@@ -68,4 +68,25 @@ class TestRandObjSrcInfo(VscTestCase):
         
         self.assertEqual(len(obj_m.constraint_model_l), 1)
         self.assertIsNone(obj_m.constraint_model_l[0].constraint_l[0].srcinfo)        
+
+    def test_original_module_1(self):
         
+        @vsc.randobj
+        class my_c(object):
+            
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.b = vsc.rand_uint8_t()
+                pass
+            
+            @vsc.constraint
+            def my_c(self):
+                self.a < self.b
+
+        obj = my_c()
+        self.assertIsNot(my_c.__module__, my_c.original_module)
+        self.assertEqual(str(my_c.original_module), "test_randobj_srcinfo")
+        obj_m : FieldCompositeModel = obj.get_model()
+        
+        self.assertEqual(len(obj_m.constraint_model_l), 1)
+        self.assertIsNone(obj_m.constraint_model_l[0].constraint_l[0].srcinfo)               

@@ -330,6 +330,9 @@ def randobj(*args, **kwargs):
     if len(args) == 1 and len(kwargs) == 0 and callable(args[0]):
         # Called without arguments
         obj = _randobj({})
+        # Capture the original module, since our inheritance
+        # trick causes the module to not match the user's module
+        args[0].original_module = args[0].__module__ 
         return obj(args[0])
     else:
         obj = _randobj(kwargs)
