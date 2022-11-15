@@ -65,10 +65,10 @@
         <div class="rst-content">
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
-      <li><a href="../../index.html" class="icon icon-home"></a> &raquo;</li>
-          <li><a href="../index.html">Module code</a> &raquo;</li>
-          <li><a href="../vsc.html">vsc</a> &raquo;</li>
-      <li>vsc.rand_obj</li>
+      <li><a href="../../index.html" class="icon icon-home"></a></li>
+          <li class="breadcrumb-item"><a href="../index.html">Module code</a></li>
+          <li class="breadcrumb-item"><a href="../vsc.html">vsc</a></li>
+      <li class="breadcrumb-item active">vsc.rand_obj</li>
       <li class="wy-breadcrumbs-aside">
       </li>
   </ul>
@@ -410,6 +410,9 @@
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="n">callable</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
         <span class="c1"># Called without arguments</span>
         <span class="n">obj</span> <span class="o">=</span> <span class="n">_randobj</span><span class="p">({})</span>
+        <span class="c1"># Capture the original module, since our inheritance</span>
+        <span class="c1"># trick causes the module to not match the user&#39;s module</span>
+        <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">original_module</span> <span class="o">=</span> <span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="vm">__module__</span> 
         <span class="k">return</span> <span class="n">obj</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">obj</span> <span class="o">=</span> <span class="n">_randobj</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span>
