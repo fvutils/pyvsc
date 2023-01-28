@@ -1,3 +1,6 @@
+## 0.8.2
+- (#172) Change list subscript to return a ValueInt such that the 
+   value returned by a list subscript can, itself, be subscripted
 
 ## 0.8.1
 - (#135) Add an 'original_module' field to randobj classes so true declaration

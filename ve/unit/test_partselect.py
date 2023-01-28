@@ -57,5 +57,28 @@ class TestPartSelect(VscTestCase):
                 self.c == 0
         except:
             print("expected failure")
+
+    def test_array_elem_bitselect(self):
+
+        list_of_blocks = vsc.list_t(vsc.bit_t(64), 64)
+        block          = vsc.bit_t(64)
+
+        for i in range(64):
+            list_of_blocks[i] = (1 << i)
+
+        for i in range(64):
+            self.assertEqual(list_of_blocks[i], (1 << i))
+
+        for i in range(64):
+            for j in range(64):
+                if (i == j):
+                    self.assertEqual(list_of_blocks[i][j], 1)
+                else:
+                    self.assertEqual(list_of_blocks[i][j], 0)
+
+#        block[3]             # returns bit 3 of the 64b vector
+#        list_of_blocks[0]
+#        list_of_blocks[0][3] # fails with: TypeError: 'int' object is not subscriptable        
+
  
 

@@ -1015,7 +1015,7 @@ class list_t(object):
             return list_object_it(self)
     
     def __getitem__(self, k):
-        model = self._int_field_info.model
+        model = self.get_model()
         if get_expr_mode():
             # TODO: must determine whether we're within a foreach or just on our own
             to_expr(k)
@@ -1050,7 +1050,7 @@ class list_t(object):
                     if (v & (1 << (self.t.width-1))) != 0:
                         v = -((~v & self.mask)+1)
                         
-                return v
+                return ValueInt(v)
             else:
                 return self.backing_arr[k]
             
@@ -1066,16 +1066,15 @@ class list_t(object):
             self.backing_arr[k] = v
             
     def __str__(self):
+        model = self.get_model()
         ret = "["
         if self.is_enum:
             ei : EnumInfo = self.t.enum_i
-            model = self._int_field_info.model
             for i in range(self.size):
                 if i > 0:
                     ret += ", "
                 ret += str(ei.v2e(model.field_l[i].get_val()))
         elif self.is_scalar:
-            model = self._int_field_info.model
             for i in range(self.size):
                 if i > 0:
                     ret += ", "
