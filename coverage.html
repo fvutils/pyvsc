@@ -1,40 +1,78 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>PyVSC Coverage &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
-    <script src="_static/js/theme.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="PyVSC Methods" href="methods.html" />
     <link rel="prev" title="PyVSC Constraints" href="constraints.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> pyvsc
+          
+
+          
           </a>
+
+          
+            
+            
               <div class="version">
                 0.0
               </div>
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -42,7 +80,18 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Guide</a></li>
@@ -100,34 +149,75 @@
 <li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">pyvsc</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
-      <li class="breadcrumb-item active">PyVSC Coverage</li>
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>PyVSC Coverage</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/coverage.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
+            
   <section id="pyvsc-coverage">
-<h1>PyVSC Coverage<a class="headerlink" href="#pyvsc-coverage" title="Permalink to this heading"></a></h1>
+<h1>PyVSC Coverage<a class="headerlink" href="#pyvsc-coverage" title="Permalink to this heading">¶</a></h1>
 <section id="covergroups">
-<h2>Covergroups<a class="headerlink" href="#covergroups" title="Permalink to this heading"></a></h2>
+<h2>Covergroups<a class="headerlink" href="#covergroups" title="Permalink to this heading">¶</a></h2>
 <p>With PyVSC, a covergroup is declared as a Python class that is decorated
 with the <a class="reference internal" href="reference.html#vsc.coverage.covergroup" title="vsc.coverage.covergroup"><code class="xref any py py-func docutils literal notranslate"><span class="pre">covergroup</span></code></a> decorator.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
@@ -155,7 +245,7 @@ the <code class="xref any docutils literal notranslate"><span class="pre">__init
 <p>Covergroup instances are created by creating an instance of a <a class="reference internal" href="reference.html#vsc.coverage.covergroup" title="vsc.coverage.covergroup"><code class="xref any py py-func docutils literal notranslate"><span class="pre">covergroup</span></code></a>-decorated
 class.</p>
 <section id="specifying-covergroup-options">
-<h3>Specifying Covergroup Options<a class="headerlink" href="#specifying-covergroup-options" title="Permalink to this heading"></a></h3>
+<h3>Specifying Covergroup Options<a class="headerlink" href="#specifying-covergroup-options" title="Permalink to this heading">¶</a></h3>
 <p>PyVSC covergroups contain an <code class="xref any docutils literal notranslate"><span class="pre">options</span></code> attribute and a <code class="xref any docutils literal notranslate"><span class="pre">type_options</span></code> attribute
 with which to configure covergroup options. Options may only be changed within
 the <code class="xref any docutils literal notranslate"><span class="pre">__init__</span></code> method.</p>
@@ -164,11 +254,6 @@ the <code class="xref any docutils literal notranslate"><span class="pre">__init
 <p><code class="xref any docutils literal notranslate"><span class="pre">options</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">type_options</span></code> attributes are provided, but the values are currently ignored</p>
 </div>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 22%" />
-<col style="width: 14%" />
-<col style="width: 65%" />
-</colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Option name</p></th>
 <th class="head"><p>Default</p></th>
@@ -260,7 +345,7 @@ for the first time, by referencing the options fields directly.</p>
 </section>
 </section>
 <section id="coverpoints">
-<h2>Coverpoints<a class="headerlink" href="#coverpoints" title="Permalink to this heading"></a></h2>
+<h2>Coverpoints<a class="headerlink" href="#coverpoints" title="Permalink to this heading">¶</a></h2>
 <p>A coverpoint is declared using the <a class="reference internal" href="reference.html#vsc.coverage.coverpoint" title="vsc.coverage.coverpoint"><code class="xref any py py-class docutils literal notranslate"><span class="pre">coverpoint</span></code></a> method. The name of the
 coverpoint will be the same as the class attribute to which it is
 assigned.</p>
@@ -268,12 +353,12 @@ assigned.</p>
 an expression involving PyVSC-typed variables, or it can be a simple
 reference to a callable field that returns a value.</p>
 <section id="specifying-bins">
-<h3>Specifying Bins<a class="headerlink" href="#specifying-bins" title="Permalink to this heading"></a></h3>
+<h3>Specifying Bins<a class="headerlink" href="#specifying-bins" title="Permalink to this heading">¶</a></h3>
 <p>Bins are specified as a Python <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a>, and passed via the <code class="xref any docutils literal notranslate"><span class="pre">bins</span></code> keyword
 argument to the coverpoint method. Both individual bins and arrays of
 bins can be specified.</p>
 <section id="individual-bins">
-<h4>Individual Bins<a class="headerlink" href="#individual-bins" title="Permalink to this heading"></a></h4>
+<h4>Individual Bins<a class="headerlink" href="#individual-bins" title="Permalink to this heading">¶</a></h4>
 <p>Individual bins are specified with the <a class="reference internal" href="reference.html#vsc.coverage.bin" title="vsc.coverage.bin"><code class="xref any py py-class docutils literal notranslate"><span class="pre">bin</span></code></a> method. The <a class="reference internal" href="reference.html#vsc.coverage.bin" title="vsc.coverage.bin"><code class="xref any py py-class docutils literal notranslate"><span class="pre">bin</span></code></a> method
 accepts a list of individual values and value ranges that the bin contains.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
@@ -291,7 +376,7 @@ accepts a list of individual values and value ranges that the bin contains.</p>
 contains the value 8 and the value range 12..15.</p>
 </section>
 <section id="bin-arrays">
-<h4>Bin Arrays<a class="headerlink" href="#bin-arrays" title="Permalink to this heading"></a></h4>
+<h4>Bin Arrays<a class="headerlink" href="#bin-arrays" title="Permalink to this heading">¶</a></h4>
 <p>Bin arrays partition a list of values and ranges into a specified number
 of bins. Bin arrays are specified using the <a class="reference internal" href="reference.html#vsc.coverage.bin_array" title="vsc.coverage.bin_array"><code class="xref any py py-class docutils literal notranslate"><span class="pre">bin_array</span></code></a> method. The first
 parameter to this method specifies how values are to be partitioned. This
@@ -313,7 +398,7 @@ with a bin for value 1, 2, and 4 respectively. Bin <code class="xref any docutil
 four bins, each covering two values of the range 8..16.</p>
 </section>
 <section id="auto-bins">
-<h4>Auto-Bins<a class="headerlink" href="#auto-bins" title="Permalink to this heading"></a></h4>
+<h4>Auto-Bins<a class="headerlink" href="#auto-bins" title="Permalink to this heading">¶</a></h4>
 <p>Auto-binning can be used in many cases to cause bins to be created for
 all values of an enumerated type, or to cause the legal value range to be
 partitioned evenly based on the <code class="xref any docutils literal notranslate"><span class="pre">auto_bin_max</span></code> option.
@@ -334,7 +419,7 @@ parameter is used to specify that the value being sampled is an 8-bit
 unsigned integer.</p>
 </section>
 <section id="wildcard-bins-single">
-<h4>Wildcard Bins (Single)<a class="headerlink" href="#wildcard-bins-single" title="Permalink to this heading"></a></h4>
+<h4>Wildcard Bins (Single)<a class="headerlink" href="#wildcard-bins-single" title="Permalink to this heading">¶</a></h4>
 <p>A wildcard specification may be used to specify the values within
 single bins. The checked value may either be specified as a string
 that contains wildcard characters (‘x’, ‘?’) or may be specified
@@ -371,7 +456,7 @@ form:</p>
 </div>
 </section>
 <section id="wildcard-bins-array">
-<h4>Wildcard Bins (Array)<a class="headerlink" href="#wildcard-bins-array" title="Permalink to this heading"></a></h4>
+<h4>Wildcard Bins (Array)<a class="headerlink" href="#wildcard-bins-array" title="Permalink to this heading">¶</a></h4>
 <p>A wildcard specification may also be used to specify arrays of bins.
 In this case, the wildcard characters specify a location where all
 possibilities must be expanded.</p>
@@ -390,7 +475,7 @@ possibilities must be expanded.</p>
 </div>
 </section>
 <section id="ignore-and-illegal-bins">
-<h4>Ignore and Illegal Bins<a class="headerlink" href="#ignore-and-illegal-bins" title="Permalink to this heading"></a></h4>
+<h4>Ignore and Illegal Bins<a class="headerlink" href="#ignore-and-illegal-bins" title="Permalink to this heading">¶</a></h4>
 <p><code class="xref any docutils literal notranslate"><span class="pre">Ignore</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">illegal</span></code> bins may be specified on coverpoints in
 addition to the other bins described above. An ignore or illegal
 bin trims values from other bins if it intersects values within
@@ -424,7 +509,7 @@ applied, the bins in the example above are:
 </section>
 </section>
 <section id="coverpoint-crosses">
-<h3>Coverpoint Crosses<a class="headerlink" href="#coverpoint-crosses" title="Permalink to this heading"></a></h3>
+<h3>Coverpoint Crosses<a class="headerlink" href="#coverpoint-crosses" title="Permalink to this heading">¶</a></h3>
 <p>Coverpoint crosses are specified using the <a class="reference internal" href="reference.html#vsc.coverage.cross" title="vsc.coverage.cross"><code class="xref any py py-class docutils literal notranslate"><span class="pre">cross</span></code></a> method. The first
 parameter to the <a class="reference internal" href="reference.html#vsc.coverage.cross" title="vsc.coverage.cross"><code class="xref any py py-class docutils literal notranslate"><span class="pre">cross</span></code></a> method is a list of the coverpoints that
 compose the coverpoint cross.</p>
@@ -448,7 +533,7 @@ compose the coverpoint cross.</p>
 </div>
 </section>
 <section id="specifying-coverpoint-sampling-conditions">
-<h3>Specifying Coverpoint Sampling Conditions<a class="headerlink" href="#specifying-coverpoint-sampling-conditions" title="Permalink to this heading"></a></h3>
+<h3>Specifying Coverpoint Sampling Conditions<a class="headerlink" href="#specifying-coverpoint-sampling-conditions" title="Permalink to this heading">¶</a></h3>
 <p>A sampling condition can be specified on both coverpoints and coverpoint
 crosses using the <code class="xref any docutils literal notranslate"><span class="pre">iff</span></code> keyword parameter to the <a class="reference internal" href="reference.html#vsc.coverage.coverpoint" title="vsc.coverage.coverpoint"><code class="xref any py py-class docutils literal notranslate"><span class="pre">coverpoint</span></code></a> and <a class="reference internal" href="reference.html#vsc.coverage.cross" title="vsc.coverage.cross"><code class="xref any py py-class docutils literal notranslate"><span class="pre">cross</span></code></a>
 methods.</p>
@@ -465,16 +550,11 @@ methods.</p>
 </div>
 </section>
 <section id="coverpoint-options">
-<h3>Coverpoint Options<a class="headerlink" href="#coverpoint-options" title="Permalink to this heading"></a></h3>
+<h3>Coverpoint Options<a class="headerlink" href="#coverpoint-options" title="Permalink to this heading">¶</a></h3>
 <p>Both type options and instance options can specified on both coverpoints
 and coverpoint crosses. Only the following options are currently
 respected:</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 22%" />
-<col style="width: 14%" />
-<col style="width: 65%" />
-</colgroup>
 <thead>
 <tr class="row-odd"><th class="head"><p>Option name</p></th>
 <th class="head"><p>Default</p></th>
@@ -526,7 +606,7 @@ covergroup-level <code class="docutils literal notranslate"><span class="pre">at
 </section>
 </section>
 <section id="providing-coverage-data-to-sample">
-<h2>Providing Coverage Data to Sample<a class="headerlink" href="#providing-coverage-data-to-sample" title="Permalink to this heading"></a></h2>
+<h2>Providing Coverage Data to Sample<a class="headerlink" href="#providing-coverage-data-to-sample" title="Permalink to this heading">¶</a></h2>
 <p>PyVSC supports several methods for providing data for a covergroup
 instance to sample.
 - Data in a <a class="reference internal" href="reference.html#vsc.rand_obj.randobj" title="vsc.rand_obj.randobj"><code class="xref any py py-func docutils literal notranslate"><span class="pre">randobj</span></code></a>-decorated class object can be provided by
@@ -536,7 +616,7 @@ lambda expressions to obtain the data from the instantiating context
 - Data can be provided via the <a class="reference internal" href="reference.html#vsc.model.covergroup_model.CovergroupModel.sample" title="vsc.model.covergroup_model.CovergroupModel.sample"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">sample</span></code></a> methods, using a user-specified
 sample-method signature.</p>
 <section id="declaring-a-custom-sample-method">
-<h3>Declaring a Custom Sample Method<a class="headerlink" href="#declaring-a-custom-sample-method" title="Permalink to this heading"></a></h3>
+<h3>Declaring a Custom Sample Method<a class="headerlink" href="#declaring-a-custom-sample-method" title="Permalink to this heading">¶</a></h3>
 <p>Use of a custom <a class="reference internal" href="reference.html#vsc.model.covergroup_model.CovergroupModel.sample" title="vsc.model.covergroup_model.CovergroupModel.sample"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">sample</span></code></a> method that accepts parameters is specified
 by calling the <code class="xref any docutils literal notranslate"><span class="pre">with_sample</span></code> method and passing either a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.11)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> of
 parameter-name/parameter-type pairs or a list of keyword arguments.
@@ -597,7 +677,7 @@ using individual keyword arguments.</p>
 as shown in the example above.</p>
 </section>
 <section id="specifying-sampling-data-at-instantiation">
-<h3>Specifying Sampling Data at Instantiation<a class="headerlink" href="#specifying-sampling-data-at-instantiation" title="Permalink to this heading"></a></h3>
+<h3>Specifying Sampling Data at Instantiation<a class="headerlink" href="#specifying-sampling-data-at-instantiation" title="Permalink to this heading">¶</a></h3>
 <p>PyVSC supports specifying coverage-sampling data when the covergroup
 is instanced, as well as specifying it each time the sample method is
 called. In this case, no parameters are passed to the <a class="reference internal" href="reference.html#vsc.model.covergroup_model.CovergroupModel.sample" title="vsc.model.covergroup_model.CovergroupModel.sample"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">sample</span></code></a> method.</p>
@@ -635,7 +715,7 @@ of <code class="xref any docutils literal notranslate"><span class="pre">a</span
 </section>
 </section>
 <section id="coverage-api">
-<h2>Coverage API<a class="headerlink" href="#coverage-api" title="Permalink to this heading"></a></h2>
+<h2>Coverage API<a class="headerlink" href="#coverage-api" title="Permalink to this heading">¶</a></h2>
 <p>PyVSC covergroup classes implement methods for querying achieved coverage.</p>
 <ul class="simple">
 <li><p><a class="reference internal" href="reference.html#vsc.coverage.coverpoint.get_coverage" title="vsc.coverage.coverpoint.get_coverage"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">get_coverage</span></code></a> - Reports coverage achieved by all covergroup instances (0..100)</p></li>
@@ -680,17 +760,17 @@ its instance coverage to 25% as well, while increasing the total type
 coverage achieved to 50%.</p>
 </section>
 <section id="coverage-reports">
-<h2>Coverage Reports<a class="headerlink" href="#coverage-reports" title="Permalink to this heading"></a></h2>
+<h2>Coverage Reports<a class="headerlink" href="#coverage-reports" title="Permalink to this heading">¶</a></h2>
 <p>PyVSC provides three methods for obtaining a coverage report.</p>
 <span class="target" id="module-vsc"></span><dl class="py function">
 <dt class="sig sig-object py" id="vsc.get_coverage_report">
-<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a textual coverage report of all covergroups</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p>
 </dd>
-<dt class="field-even">Returns</dt>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>String containin coverage report text</p>
 </dd>
 </dl>
@@ -698,10 +778,10 @@ coverage achieved to 50%.</p>
 
 <span class="target" id="module-0"></span><dl class="py function">
 <dt class="sig sig-object py" id="vsc.get_coverage_report_model">
-<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">CoverageReport</span></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report_model" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report_model</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">CoverageReport</span></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report_model"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report_model" title="Permalink to this definition">¶</a></dt>
 <dd><p>Returns a coverage report model of all covergroups</p>
 <dl class="field-list simple">
-<dt class="field-odd">Returns</dt>
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
 <dd class="field-odd"><p>Object describing collected coverage</p>
 </dd>
 </dl>
@@ -709,10 +789,10 @@ coverage achieved to 50%.</p>
 
 <span class="target" id="module-1"></span><dl class="py function">
 <dt class="sig sig-object py" id="vsc.report_coverage">
-<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">report_coverage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc.html#report_coverage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.report_coverage" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">report_coverage</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fp</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc.html#report_coverage"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.report_coverage" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes a coverage report to a stream (stdout by default)</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fp</strong> – Stream to which to write the report</p></li>
 <li><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.11)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p></li>
@@ -786,7 +866,7 @@ bin in addition to the coverage percentage achieved for the covergroups
 and coverpoints.</p>
 </section>
 <section id="saving-coverage-data">
-<h2>Saving Coverage Data<a class="headerlink" href="#saving-coverage-data" title="Permalink to this heading"></a></h2>
+<h2>Saving Coverage Data<a class="headerlink" href="#saving-coverage-data" title="Permalink to this heading">¶</a></h2>
 <p>PyVSC uses the <a class="reference external" href="https://github.com/fvutils/pyucis">PyUCIS</a> library to export
 coverage data using the API or XML interchange format defined by the
 <a class="reference external" href="https://accellera.org/downloads/standards/ucis">Accellera UCIS</a> standard.</p>
@@ -796,10 +876,10 @@ coverage database using a shared library that implements the UCIS C API.</p>
 <p>PyVSC provides the <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> method for saving coverage data.</p>
 <span class="target" id="module-2"></span><dl class="py function">
 <dt class="sig sig-object py" id="vsc.write_coverage_db">
-<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">write_coverage_db</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xml'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">libucis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc.html#write_coverage_db"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.write_coverage_db" title="Permalink to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">write_coverage_db</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filename</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fmt</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'xml'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">libucis</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc.html#write_coverage_db"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.write_coverage_db" title="Permalink to this definition">¶</a></dt>
 <dd><p>Writes coverage data to persistent storage using the PyUCIS library.</p>
 <dl class="field-list simple">
-<dt class="field-odd">Parameters</dt>
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Destination for coverage data</p></li>
 <li><p><strong>fmt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><em>str</em></a>) – Format of the coverage data. ‘xml’ and ‘libucis’ supported</p></li>
@@ -810,7 +890,7 @@ coverage database using a shared library that implements the UCIS C API.</p>
 </dd></dl>
 
 <section id="saving-to-xml">
-<h3>Saving to XML<a class="headerlink" href="#saving-to-xml" title="Permalink to this heading"></a></h3>
+<h3>Saving to XML<a class="headerlink" href="#saving-to-xml" title="Permalink to this heading">¶</a></h3>
 <p>By default, the <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> method saves coverage data to an
 XML file formatted according to the UCIS interchange-format schema.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
@@ -835,7 +915,7 @@ XML file formatted according to the UCIS interchange-format schema.</p>
 </div>
 </section>
 <section id="saving-via-a-ucis-api-implementation">
-<h3>Saving via a UCIS API Implementation<a class="headerlink" href="#saving-via-a-ucis-api-implementation" title="Permalink to this heading"></a></h3>
+<h3>Saving via a UCIS API Implementation<a class="headerlink" href="#saving-via-a-ucis-api-implementation" title="Permalink to this heading">¶</a></h3>
 <p>When an implementation of the UCIS C API is available, PyVSC
 can write coverage data using that API implementation. In this
 case, the <code class="xref any docutils literal notranslate"><span class="pre">fmt</span></code> parameter of the <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> method
@@ -870,7 +950,7 @@ to record the coverage data collected by the PyVSC library.</p>
 </section>
 </section>
 <section id="using-coverage-data">
-<h2>Using Coverage Data<a class="headerlink" href="#using-coverage-data" title="Permalink to this heading"></a></h2>
+<h2>Using Coverage Data<a class="headerlink" href="#using-coverage-data" title="Permalink to this heading">¶</a></h2>
 <p>Coverage data saved from PyVSC can be used in several open-source and
 closed-source commercial tool flows. The sections below describe
 flows that PyVSC data is known to have been used in.</p>
@@ -885,71 +965,90 @@ with the relevant vendor’s documentation and/or Application Engineers.</p>
 via the project’s <a class="reference external" href="https://github.com/fvutils/pyvsc/issues">Issues</a> or
 <a class="reference external" href="https://github.com/fvutils/pyvsc/discussions">Discussion</a> areas.</p>
 <section id="viewing-coverage-with-pyucis-viewer">
-<h3>Viewing Coverage with PyUCIS-Viewer<a class="headerlink" href="#viewing-coverage-with-pyucis-viewer" title="Permalink to this heading"></a></h3>
+<h3>Viewing Coverage with PyUCIS-Viewer<a class="headerlink" href="#viewing-coverage-with-pyucis-viewer" title="Permalink to this heading">¶</a></h3>
 <p><a class="reference external" href="https://github.com/fvutils/pyucis-viewer">PyUCIS-Viewer</a> is a very
 simple graphical viewer for functional coverage data. It currently
 supports reading coverage data from UCIS XML-interchange-formatted
 files.</p>
 </section>
 <section id="siemens-questa-writing-coverage-data">
-<h3>Siemens Questa: Writing Coverage Data<a class="headerlink" href="#siemens-questa-writing-coverage-data" title="Permalink to this heading"></a></h3>
-<p>Siemens Questa <a class="footnote-reference brackets" href="#id3" id="id1">1</a> is reported to provide a library that implements the
+<h3>Siemens Questa: Writing Coverage Data<a class="headerlink" href="#siemens-questa-writing-coverage-data" title="Permalink to this heading">¶</a></h3>
+<p>Siemens Questa <a class="footnote-reference brackets" href="#id3" id="id1" role="doc-noteref"><span class="fn-bracket">[</span>1<span class="fn-bracket">]</span></a> is reported to provide a library that implements the
 UCIS C API. Using this library, coverage data can be written
 directly to a Questa coverage database. See the information above about
 writing coverage data to a UCIS API implementation for more information
 on how to utilize this flow.</p>
 </section>
 <section id="synopsys-vcs-importing-coverage-data">
-<h3>Synopsys VCS: Importing Coverage Data<a class="headerlink" href="#synopsys-vcs-importing-coverage-data" title="Permalink to this heading"></a></h3>
-<p>Bringing coverage in UCIS XML-interchange format into the Synopsys VCS <a class="footnote-reference brackets" href="#id4" id="id2">2</a>
+<h3>Synopsys VCS: Importing Coverage Data<a class="headerlink" href="#synopsys-vcs-importing-coverage-data" title="Permalink to this heading">¶</a></h3>
+<p>Bringing coverage in UCIS XML-interchange format into the Synopsys VCS <a class="footnote-reference brackets" href="#id4" id="id2" role="doc-noteref"><span class="fn-bracket">[</span>2<span class="fn-bracket">]</span></a>
 metric analysis flow has been described using an import command. To follow
 this flow, write coverage data out from PyVSC in UCIS XML-interchange format.</p>
 <p>Use the following VCS import command to read the data from the XML coverage
 file into a VCS coverage database:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>% covimport -readucis &lt;cov.xml&gt; -dbname &lt;cov.vdb&gt;
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>%<span class="w"> </span>covimport<span class="w"> </span>-readucis<span class="w"> </span>&lt;cov.xml&gt;<span class="w"> </span>-dbname<span class="w"> </span>&lt;cov.vdb&gt;
 </pre></div>
 </div>
-<dl class="footnote brackets">
-<dt class="label" id="id3"><span class="brackets"><a class="fn-backref" href="#id1">1</a></span></dt>
-<dd><p>Questa is a trademark of Siemens Industry Software Inc.</p>
-</dd>
-<dt class="label" id="id4"><span class="brackets"><a class="fn-backref" href="#id2">2</a></span></dt>
-<dd><p>VCS is a trademark of Synopsys Inc.</p>
-</dd>
-</dl>
+<aside class="footnote-list brackets">
+<aside class="footnote brackets" id="id3" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id1">1</a><span class="fn-bracket">]</span></span>
+<p>Questa is a trademark of Siemens Industry Software Inc.</p>
+</aside>
+<aside class="footnote brackets" id="id4" role="note">
+<span class="label"><span class="fn-bracket">[</span><a role="doc-backlink" href="#id2">2</a><span class="fn-bracket">]</span></span>
+<p>VCS is a trademark of Synopsys Inc.</p>
+</aside>
+</aside>
 </section>
 </section>
 </section>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="constraints.html" class="btn btn-neutral float-left" title="PyVSC Constraints" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="methods.html" class="btn btn-neutral float-right" title="PyVSC Methods" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="constraints.html" class="btn btn-neutral float-left" title="PyVSC Constraints" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
-  </div>
+    <p>
+        &#169; Copyright 2019-2023, Matthew Ballance and Contributors.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>

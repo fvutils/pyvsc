@@ -1,40 +1,78 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" >
 <head>
-  <meta charset="utf-8" /><meta name="generator" content="Docutils 0.17.1: http://docutils.sourceforge.net/" />
+  <meta charset="utf-8" />
+  <meta name="generator" content="Docutils 0.19: https://docutils.sourceforge.io/" />
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  
   <title>PyVSC Data Types &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/graphviz.css" type="text/css" />
+
+  
+  
+
+  
+  
+
+  
+
+  
   <!--[if lt IE 9]>
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
         <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/jquery.js"></script>
-        <script src="_static/underscore.js"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
         <script src="_static/doctools.js"></script>
         <script src="_static/sphinx_highlight.js"></script>
-    <script src="_static/js/theme.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="PyVSC Constraints" href="constraints.html" />
     <link rel="prev" title="Quickstart Guide" href="quickstart.html" /> 
 </head>
 
-<body class="wy-body-for-nav"> 
+<body class="wy-body-for-nav">
+
+   
   <div class="wy-grid-for-nav">
+    
     <nav data-toggle="wy-nav-shift" class="wy-nav-side">
       <div class="wy-side-scroll">
         <div class="wy-side-nav-search" >
+          
+
+          
             <a href="index.html" class="icon icon-home"> pyvsc
+          
+
+          
           </a>
+
+          
+            
+            
               <div class="version">
                 0.0
               </div>
+            
+          
+
+          
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" />
@@ -42,7 +80,18 @@
     <input type="hidden" name="area" value="default" />
   </form>
 </div>
-        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
               <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
 <li class="toctree-l1"><a class="reference internal" href="quickstart.html">Quickstart Guide</a></li>
@@ -63,32 +112,73 @@
 <li class="toctree-l1"><a class="reference internal" href="reference.html">API Reference</a></li>
 </ul>
 
+            
+          
         </div>
+        
       </div>
     </nav>
 
-    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
           <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
           <a href="index.html">pyvsc</a>
+        
       </nav>
 
+
       <div class="wy-nav-content">
+        
         <div class="rst-content">
-          <div role="navigation" aria-label="Page navigation">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
   <ul class="wy-breadcrumbs">
-      <li><a href="index.html" class="icon icon-home"></a></li>
-      <li class="breadcrumb-item active">PyVSC Data Types</li>
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>PyVSC Data Types</li>
+    
+    
       <li class="wy-breadcrumbs-aside">
+        
+          
             <a href="_sources/data_types.rst.txt" rel="nofollow"> View page source</a>
+          
+        
       </li>
+    
   </ul>
+
+  
   <hr/>
 </div>
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
-             
+            
   <section id="pyvsc-data-types">
-<h1>PyVSC Data Types<a class="headerlink" href="#pyvsc-data-types" title="Permalink to this heading"></a></h1>
+<h1>PyVSC Data Types<a class="headerlink" href="#pyvsc-data-types" title="Permalink to this heading">¶</a></h1>
 <p>Generating good random data requires characterizing the data to be randomized.
 PyVSC provides specific data types to characterize the size and signedness
 of fields to be used in constraints.</p>
@@ -120,17 +210,11 @@ that are random, unsigned (bit), and 8-bits wide.</p>
 capture types that are equivalent, PyVSC provides several ways of capturing the
 same type information.</p>
 <section id="scalar-standard-width-attributes">
-<h2>Scalar Standard-Width Attributes<a class="headerlink" href="#scalar-standard-width-attributes" title="Permalink to this heading"></a></h2>
+<h2>Scalar Standard-Width Attributes<a class="headerlink" href="#scalar-standard-width-attributes" title="Permalink to this heading">¶</a></h2>
 <p>PyVSC provides a set of standard-width data types, modeled after the types defined
 in <code class="file docutils literal notranslate"><span class="pre">stdint.h</span></code>. Both random and non-random variants of these attribute classes are
 provided.</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 13%" />
-<col style="width: 15%" />
-<col style="width: 38%" />
-<col style="width: 35%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p>Width</p></td>
 <td><p>Signed</p></td>
@@ -194,16 +278,11 @@ class attribute. By default, the initial value will be 0.</p>
 16-bit field, and a random signed 64-bit field is created.</p>
 </section>
 <section id="scalar-arbitrary-width-attributes">
-<h2>Scalar Arbitrary-Width Attributes<a class="headerlink" href="#scalar-arbitrary-width-attributes" title="Permalink to this heading"></a></h2>
+<h2>Scalar Arbitrary-Width Attributes<a class="headerlink" href="#scalar-arbitrary-width-attributes" title="Permalink to this heading">¶</a></h2>
 <p>PyVSC provides four classes for constructing arbitrary-width scalar class attributes.
 The first parameter of the class constructor is the width. The second parameter
 specifies the initial value for the attribute.</p>
 <table class="docutils align-default">
-<colgroup>
-<col style="width: 18%" />
-<col style="width: 41%" />
-<col style="width: 41%" />
-</colgroup>
 <tbody>
 <tr class="row-odd"><td><p>Signed</p></td>
 <td><p>Random</p></td>
@@ -231,7 +310,7 @@ specifies the initial value for the attribute.</p>
 random unsigned 12-bit attribute.</p>
 </section>
 <section id="enum-type-attributes">
-<h2>Enum-type Attributes<a class="headerlink" href="#enum-type-attributes" title="Permalink to this heading"></a></h2>
+<h2>Enum-type Attributes<a class="headerlink" href="#enum-type-attributes" title="Permalink to this heading">¶</a></h2>
 <p>PyVSC supports Python <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.Enum" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">Enum</span></code></a> and <a class="reference external" href="https://docs.python.org/3/library/enum.html#enum.IntEnum" title="(in Python v3.11)"><code class="xref py py-class docutils literal notranslate"><span class="pre">IntEnum</span></code></a> enumerated types. Attributes
 are declared using the <a class="reference internal" href="reference.html#vsc.types.enum_t" title="vsc.types.enum_t"><code class="xref any py py-class docutils literal notranslate"><span class="pre">enum_t</span></code></a> and <a class="reference internal" href="reference.html#vsc.types.rand_enum_t" title="vsc.types.rand_enum_t"><code class="xref any py py-class docutils literal notranslate"><span class="pre">rand_enum_t</span></code></a> classes.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="k">class</span> <span class="nc">my_e</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
@@ -248,7 +327,7 @@ are declared using the <a class="reference internal" href="reference.html#vsc.ty
 </div>
 </section>
 <section id="class-type-attributes">
-<h2>Class-type Attributes<a class="headerlink" href="#class-type-attributes" title="Permalink to this heading"></a></h2>
+<h2>Class-type Attributes<a class="headerlink" href="#class-type-attributes" title="Permalink to this heading">¶</a></h2>
 <p>Random and non-random class attributes can be created using classes
 decorated with <a class="reference internal" href="reference.html#vsc.rand_obj.randobj" title="vsc.rand_obj.randobj"><code class="xref any py py-func docutils literal notranslate"><span class="pre">randobj</span></code></a>. Non-random class attributes can optionally
 be decorated with <a class="reference internal" href="reference.html#vsc.attrs.attr" title="vsc.attrs.attr"><code class="xref any py py-func docutils literal notranslate"><span class="pre">attr</span></code></a>.</p>
@@ -268,7 +347,7 @@ be decorated with <a class="reference internal" href="reference.html#vsc.attrs.a
 </div>
 </section>
 <section id="accessing-attribute-values">
-<h2>Accessing Attribute Values<a class="headerlink" href="#accessing-attribute-values" title="Permalink to this heading"></a></h2>
+<h2>Accessing Attribute Values<a class="headerlink" href="#accessing-attribute-values" title="Permalink to this heading">¶</a></h2>
 <p>The value of scalar attributes can be accessed in two ways. All PyVSC scalar attribute
 types provide a <a class="reference internal" href="reference.html#vsc.types.type_base.get_val" title="vsc.types.type_base.get_val"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">get_val()</span></code></a> and <a class="reference internal" href="reference.html#vsc.types.type_base.set_val" title="vsc.types.type_base.set_val"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">set_val()</span></code></a> method. These methods can be called to
 get or set the current value.</p>
@@ -276,7 +355,7 @@ get or set the current value.</p>
 allows the value of class attributes to be accessed directly.</p>
 </section>
 <section id="list-type-attributes">
-<h2>List-type Attributes<a class="headerlink" href="#list-type-attributes" title="Permalink to this heading"></a></h2>
+<h2>List-type Attributes<a class="headerlink" href="#list-type-attributes" title="Permalink to this heading">¶</a></h2>
 <p>Random and non-random class attributes of list type can be created using the
 <a class="reference internal" href="reference.html#vsc.types.list_t" title="vsc.types.list_t"><code class="xref any py py-class docutils literal notranslate"><span class="pre">list_t</span></code></a> class. The size of the list can be later changed by appending or
 removing elements, or clearing the list. Randomizing the array will not
@@ -326,33 +405,50 @@ constraint bounding the list size.</p>
 
 
            </div>
+           
           </div>
-          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
-        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+          <footer>
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
         <a href="constraints.html" class="btn btn-neutral float-right" title="PyVSC Constraints" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right" aria-hidden="true"></span></a>
+        <a href="quickstart.html" class="btn btn-neutral float-left" title="Quickstart Guide" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
     </div>
 
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2022, Matthew Ballance and Contributors.</p>
-  </div>
+    <p>
+        &#169; Copyright 2019-2023, Matthew Ballance and Contributors.
 
-  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    
     <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
-    provided by <a href="https://readthedocs.org">Read the Docs</a>.
-   
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
 
 </footer>
         </div>
       </div>
+
     </section>
+
   </div>
-  <script>
+  
+
+  <script type="text/javascript">
       jQuery(function () {
           SphinxRtdTheme.Navigation.enable(true);
       });
-  </script> 
+  </script>
+
+  
+  
+    
+   
 
 </body>
 </html>
