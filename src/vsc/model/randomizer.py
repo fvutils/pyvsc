@@ -20,7 +20,7 @@
 # @author: ballance
 
 
-import random
+import copy
 import sys
 import time
 from typing import List, Dict
@@ -67,7 +67,9 @@ class Randomizer(RandIF):
     """Implements the core randomization algorithm"""
     
     EN_DEBUG = False
-    
+
+    randomize_cache = {}
+
     def __init__(self, randstate, debug=0, lint=0, solve_fail_debug=0, solve_info=None):
         self.randstate = randstate
         self.pretty_printer = ModelPrettyPrinter()
@@ -83,13 +85,16 @@ class Randomizer(RandIF):
             
 #        self.swizzler = SolveGroupSwizzlerRange(solve_info)
         self.swizzler = SolveGroupSwizzlerPartsel(randstate, solve_info, debug=self.debug)
+        self.cache = {}
+        # TODO Reset btor cache after so many uses maybe to release resources?
+        self.cache_uses = 100
     
     _state_p = [0,1]
     _rng = None
-    
+
     def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
         """Randomize the variables and constraints in a RandInfo collection"""
-        
+
         if self.solve_info is not None:
             self.solve_info.n_randsets = len(ri.randsets())
         
@@ -113,7 +118,7 @@ class Randomizer(RandIF):
                     
             for uf in ri.unconstrained():
                 print("Unconstrained: " + uf.fullname)
-               
+
         # Assign values to the unconstrained fields first
         uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
         for uf in uc_rand:
@@ -140,125 +145,149 @@ class Randomizer(RandIF):
 #        max_fields = 20
         max_fields = 0
         while rs_i < len(ri.randsets()):
-            btor = Boolector()
-            self.btor = btor
-            btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
-            btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
+            # If missing from cache, initialize/build btor and randset
+            # TODO What is going on with max_fields? It would break this
+            #      caching setup.
+            if rs_i not in self.cache:
+                btor = Boolector()
+                # self.btor = btor
+                btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
+                btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
             
-            start_rs_i = rs_i
+                start_rs_i = rs_i
 
-            constraint_l = []
-            soft_constraint_l = []
+                constraint_l = []
+                soft_constraint_l = []
             
-            # Collect up to max_fields fields to randomize at a time
-            n_fields = 0
-            while rs_i < len(ri.randsets()):
-                rs = ri.randsets()[rs_i]
-                
-                rs_node_builder = RandSetNodeBuilder(btor)
+                # Collect up to max_fields fields to randomize at a time
+                n_fields = 0
+                while rs_i < len(ri.randsets()):
+                    rs = ri.randsets()[rs_i]
 
-                all_fields = rs.all_fields()
-                if self.debug > 0:
-                    print("Pre-Randomize: RandSet[%d]" % rs_i)
-                    for f in all_fields:
-                        if f in bound_m.keys():
-                            print("  Field: %s is_rand=%s %s var=%s" % (f.fullname, str(f.is_used_rand), str(bound_m[f].domain.range_l), str(f.var)))
-                        else:
-                            print("  Field: %s is_rand=%s (unbounded)" % (f.fullname, str(f.is_used_rand)))
-                    for c in rs.constraints():
-                        print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
-                    for c in rs.soft_constraints():
-                        print("  SoftConstraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
-                        
-                if self.solve_info is not None:
-                    self.solve_info.n_cfields += len(all_fields)
+                    rs_node_builder = RandSetNodeBuilder(btor)
 
-                rs_node_builder.build(rs)
-                n_fields += len(all_fields)
-                
-                constraint_l.extend(list(map(lambda c:(c,c.build(btor, False)), rs.constraints())))
-                soft_constraint_l.extend(list(map(lambda c:(c,c.build(btor, True)), rs.soft_constraints())))
-                
-                # Sort the list in descending order so we know which constraints
-                # to prioritize
-                soft_constraint_l.sort(key=lambda c:c[0].priority, reverse=True)
-                
-                rs_i += 1
-                if n_fields > max_fields or rs.order != -1:
-                    break
-                
-            for c in constraint_l:
-                try:
-                    btor.Assume(c[1])
-                except Exception as e:
-                    print("Exception: " + self.pretty_printer.print(c[0]))
-                    raise e
-                
-            if self.solve_info is not None:
-                self.solve_info.n_sat_calls += 1
-                
-            if btor.Sat() != btor.SAT:
-                # If the system doesn't solve with hard constraints added,
-                # then we may as well bail now
-                active_randsets = []
-                for rs in ri.randsets():
-                    active_randsets.append(rs)
-                    for f in rs.all_fields():
-                        f.dispose()
-                        
-                if self.solve_fail_debug > 0:
-                    raise SolveFailure(
-                        "solve failure",
-                        self.create_diagnostics(active_randsets))
-                else:
-                    raise SolveFailure(
-                        "solve failure",
-                        "Solve failure: set 'solve_fail_debug=1' for more details")
-            else:
-                # Lock down the hard constraints that are confirmed
-                # to be valid
+                    all_fields = rs.all_fields()
+                    if self.debug > 0:
+                        print("Pre-Randomize: RandSet[%d]" % rs_i)
+                        for f in all_fields:
+                            if f in bound_m.keys():
+                                print("  Field: %s is_rand=%s %s var=%s" % (f.fullname, str(f.is_used_rand), str(bound_m[f].domain.range_l), str(f.var)))
+                            else:
+                                print("  Field: %s is_rand=%s (unbounded)" % (f.fullname, str(f.is_used_rand)))
+                        for c in rs.constraints():
+                            print("  Constraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+                        for c in rs.soft_constraints():
+                            print("  SoftConstraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
+
+                    if self.solve_info is not None:
+                        self.solve_info.n_cfields += len(all_fields)
+
+                    rs_node_builder.build(rs)
+                    n_fields += len(all_fields)
+
+                    constraint_l.extend(list(map(lambda c:(c,c.build(btor, False)), rs.constraints())))
+                    soft_constraint_l.extend(list(map(lambda c:(c,c.build(btor, True)), rs.soft_constraints())))
+
+                    # Sort the list in descending order so we know which constraints
+                    # to prioritize
+                    soft_constraint_l.sort(key=lambda c:c[0].priority, reverse=True)
+
+                    # TODO: Is this part of a disabled feature to solve randsets together?
+                    # rs_i += 1
+                    if n_fields > max_fields or rs.order != -1:
+                        break
+                    
                 for c in constraint_l:
-                    btor.Assert(c[1])
-
-            # If there are soft constraints, add these now
-            if len(soft_constraint_l) > 0:                
-                for c in soft_constraint_l:
                     try:
                         btor.Assume(c[1])
                     except Exception as e:
-                        from ..visitors.model_pretty_printer import ModelPrettyPrinter
-                        print("Exception: " + ModelPrettyPrinter.print(c[0]))
+                        print("Exception: " + self.pretty_printer.print(c[0]))
                         raise e
 
                 if self.solve_info is not None:
-                    self.solve_info.n_sat_calls += 1                    
+                    self.solve_info.n_sat_calls += 1
+
                 if btor.Sat() != btor.SAT:
-                    # All the soft constraints cannot be satisfied. We'll need to
-                    # add them incrementally
-                    if self.debug > 0:
-                        print("Note: some of the %d soft constraints could not be satisfied" % len(soft_constraint_l))
-                        
-                    for c in soft_constraint_l:
-                        btor.Assume(c[1])
-                        
-                        if self.solve_info is not None:
-                            self.solve_info.n_sat_calls += 1                    
-                        if btor.Sat() == btor.SAT:
-                            if self.debug > 0:
-                                print("Note: soft constraint %s (%d) passed" % (
-                                    self.pretty_printer.print(c[0]), c[0].priority))
-                            btor.Assert(c[1])
-                        else:
-                            if self.debug > 0:
-                                print("Note: soft constraint %s (%d) failed" % (
-                                    self.pretty_printer.print(c[0]), c[0].priority))
+                    # If the system doesn't solve with hard constraints added,
+                    # then we may as well bail now
+                    active_randsets = []
+                    for rs in ri.randsets():
+                        active_randsets.append(rs)
+                        for f in rs.all_fields():
+                            f.dispose()
+
+                    if self.solve_fail_debug > 0:
+                        raise SolveFailure(
+                            "solve failure",
+                            self.create_diagnostics(active_randsets))
+                    else:
+                        raise SolveFailure(
+                            "solve failure",
+                            "Solve failure: set 'solve_fail_debug=1' for more details")
                 else:
-                    # All the soft constraints could be satisfied. Assert them now
-                    if self.debug > 0:
-                        print("Note: all %d soft constraints could be satisfied" % len(soft_constraint_l))
-                    for c in soft_constraint_l:
+                    # Lock down the hard constraints that are confirmed
+                    # to be valid
+                    for c in constraint_l:
                         btor.Assert(c[1])
-                
+
+                # If there are soft constraints, add these now
+                if len(soft_constraint_l) > 0:                
+                    for c in soft_constraint_l:
+                        try:
+                            btor.Assume(c[1])
+                        except Exception as e:
+                            from ..visitors.model_pretty_printer import ModelPrettyPrinter
+                            print("Exception: " + ModelPrettyPrinter.print(c[0]))
+                            raise e
+
+                    if self.solve_info is not None:
+                        self.solve_info.n_sat_calls += 1                    
+                    if btor.Sat() != btor.SAT:
+                        # All the soft constraints cannot be satisfied. We'll need to
+                        # add them incrementally
+                        if self.debug > 0:
+                            print("Note: some of the %d soft constraints could not be satisfied" % len(soft_constraint_l))
+
+                        for c in soft_constraint_l:
+                            btor.Assume(c[1])
+
+                            if self.solve_info is not None:
+                                self.solve_info.n_sat_calls += 1                    
+                            if btor.Sat() == btor.SAT:
+                                if self.debug > 0:
+                                    print("Note: soft constraint %s (%d) passed" % (
+                                        self.pretty_printer.print(c[0]), c[0].priority))
+                                btor.Assert(c[1])
+                            else:
+                                if self.debug > 0:
+                                    print("Note: soft constraint %s (%d) failed" % (
+                                        self.pretty_printer.print(c[0]), c[0].priority))
+                    else:
+                        # All the soft constraints could be satisfied. Assert them now
+                        if self.debug > 0:
+                            print("Note: all %d soft constraints could be satisfied" % len(soft_constraint_l))
+                        for c in soft_constraint_l:
+                            btor.Assert(c[1])
+
+                # Changes made to the randset are covered by the randomization_cache 
+                # Cache btor reference for use later
+                # TODO Use @dataclass instead of a dict of str
+                self.cache[rs_i] = {}
+                self.cache[rs_i]['btor'] = btor
+            else:
+                # Setup some necessary variables
+                start_rs_i = rs_i
+                rs = ri.randsets()[rs_i]
+                btor = self.cache[rs_i]['btor']
+                # self.btor = btor
+                all_fields = rs.all_fields()
+
+            rs_i += 1
+
+            # TODO Boolector Push()/Pop() do not release orphan expressions/nodes and
+            #      cause Sat() calls to slow down and leak memory. Add release feature to PyBoolector?
+            btor.Push()
+
 #            btor.Sat()
             x = start_rs_i
             while x < rs_i:
@@ -270,19 +299,24 @@ class Randomizer(RandIF):
                 
             # Finalize the value of the field
             x = start_rs_i
-            reset_v = DynamicExprResetVisitor()
+            # TODO What cleanup do we need if caching?
+            # reset_v = DynamicExprResetVisitor()
             while x < rs_i:
                 rs = ri.randsets()[x]
                 for f in rs.all_fields():
+                    f: FieldScalarModel = f
                     f.post_randomize()
-                    f.set_used_rand(False, 0)
-                    f.dispose() # Get rid of the solver var, since we're done with it
-                    f.accept(reset_v)
+                    # TODO What does this all do? Do we need to clean up if we're going to reuse this agian?
+                    # f.set_used_rand(False, 0)
+                    # f.dispose() # Get rid of the solver var, since we're done with it
+                    # f.accept(reset_v)
 #                for f in rs.nontarget_field_s:
 #                    f.dispose()
-                for c in rs.constraints():
-                    c.accept(reset_v)
-                RandSetDisposeVisitor().dispose(rs)
+                # TODO What does this all do? Do we need to clean up if we're going to reuse this agian?
+                # for c in rs.constraints():
+                #     c.accept(reset_v)
+                # TODO What does this all do? Do we need to clean up if we're going to reuse this agian?
+                # RandSetDisposeVisitor().dispose(rs)
                 
                 if self.debug > 0:
                     print("Post-Randomize: RandSet[%d]" % x)
@@ -298,7 +332,9 @@ class Randomizer(RandIF):
                         print("  SoftConstraint: " + self.pretty_printer.do_print(c, show_exp=True, print_values=True))
                         
                 x += 1
-                
+
+            # TODO Cleanup boolector state. See Push() comment above.
+            btor.Pop()
                 
         end = int(round(time.time() * 1000))
 
@@ -524,74 +560,129 @@ class Randomizer(RandIF):
             randomize_start(srcinfo, field_model_l, constraint_l)
         else:
             solve_info = None
-        
-        clear_soft_priority = ClearSoftPriorityVisitor()
-        
-        for f in field_model_l:
-            f.set_used_rand(True, 0)
-            clear_soft_priority.clear(f)
-           
-        if debug > 0: 
-            print("Initial Model:")        
-            for fm in field_model_l:
-                print("  " + ModelPrettyPrinter.print(fm))
-                
-        # First, invoke pre_randomize on all elements
+
+        # Create a unique string for the cache dict key
+        # TODO filename and lineno probably aren't necessary
+        # TODO Is there a better way to do this? Cache this by object ref in caller instead?
+        call_hash = f'{srcinfo.filename}:{str(srcinfo.lineno)}\n'
         for fm in field_model_l:
-            fm.pre_randomize()
-            
-        if constraint_l is None:
-            constraint_l = []
-            
-        for c in constraint_l:
-            clear_soft_priority.clear(c)
-
-        # Collect all variables (pre-array) and establish bounds            
-        bounds_v = VariableBoundVisitor()
-        bounds_v.process(field_model_l, constraint_l, False)
-
-        # TODO: need to handle inline constraints that impact arrays
-        constraints_len = len(constraint_l)
-        for fm in field_model_l:
-            constraint_l.extend(ArrayConstraintBuilder.build(
-                fm, bounds_v.bound_m))
-            # Now, handle dist constraints
-            DistConstraintBuilder.build(randstate, fm)
-            
-        for c in constraint_l:
-            constraint_l.extend(ArrayConstraintBuilder.build(
-                c, bounds_v.bound_m))
-            # Now, handle dist constraints
-            DistConstraintBuilder.build(randstate, c)
-
-        # If we made changes during array remodeling,
-        # re-run bounds checking on the updated model
-#        if len(constraint_l) != constraints_len:
-        bounds_v.process(field_model_l, constraint_l)
-
-        if debug > 0:
-            print("Final Model:")        
-            for fm in field_model_l:
-                print("  " + ModelPrettyPrinter.print(fm))
+            call_hash += ModelPrettyPrinter.print(fm)
+        if constraint_l is not None: 
             for c in constraint_l:
-                print("  " + ModelPrettyPrinter.print(c, show_exp=True))
+                call_hash += ModelPrettyPrinter.print(c, show_exp=True)
 
-#        if lint > 0:
-#            LintVisitor().lint(
-#                field_model_l,
-#                constraint_l)
-            
+        if call_hash in Randomizer.randomize_cache:
+            bounds_v = Randomizer.randomize_cache[call_hash]['bounds_v']
+            ri = Randomizer.randomize_cache[call_hash]['ri']
+            r = Randomizer.randomize_cache[call_hash]['r']
+            constraint_l = Randomizer.randomize_cache[call_hash]['constraints_l']
 
-        r = Randomizer(
-            randstate,
-            solve_info=solve_info,
-            debug=debug, 
-            lint=lint, 
-            solve_fail_debug=solve_fail_debug)
-#        if Randomizer._rng is None:
-#            Randomizer._rng = random.Random(random.randrange(sys.maxsize))
-        ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
+            clear_soft_priority = ClearSoftPriorityVisitor()
+
+            # Reset cached field_model_l vars to be rand again
+            for f in field_model_l:
+                f.set_used_rand(True, 0)
+                clear_soft_priority.clear(f)
+
+            # First, invoke pre_randomize on all elements
+            for fm in field_model_l:
+                fm.pre_randomize()
+
+            Randomizer.fast_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri)
+
+        else:
+            # Make copy of field and constraint models
+            field_model_l_copy = copy.deepcopy(field_model_l)
+            # Keep field_model_l copy unique except for the val references so
+            # that __getattr__ or however value lookup works still work
+            # TODO Is there a better way to pass on a clone/copy?
+            for fc, f in zip(field_model_l_copy, field_model_l):
+                for vc, v in zip(fc.field_l, f.field_l):
+                    vc.val = v.val
+            field_model_l = field_model_l_copy
+            if constraint_l is not None:
+                # print('constraint_l', dill.detect.baditems(constraint_l))
+                constraint_l = copy.deepcopy(constraint_l)
+
+            clear_soft_priority = ClearSoftPriorityVisitor()
         
+            for f in field_model_l:
+                f.set_used_rand(True, 0)
+                clear_soft_priority.clear(f)
+
+            if debug > 0: 
+                print("Initial Model:")        
+                for fm in field_model_l:
+                    print("  " + ModelPrettyPrinter.print(fm))
+
+            # First, invoke pre_randomize on all elements
+            for fm in field_model_l:
+                fm.pre_randomize()
+
+            if constraint_l is None:
+                constraint_l = []
+
+            for c in constraint_l:
+                clear_soft_priority.clear(c)
+
+            # Collect all variables (pre-array) and establish bounds            
+            bounds_v = VariableBoundVisitor()
+            bounds_v.process(field_model_l, constraint_l, False)
+
+            # TODO: need to handle inline constraints that impact arrays
+            constraints_len = len(constraint_l)
+            for fm in field_model_l:
+                constraint_l.extend(ArrayConstraintBuilder.build(
+                    fm, bounds_v.bound_m))
+                # Now, handle dist constraints
+                DistConstraintBuilder.build(randstate, fm)
+
+            for c in constraint_l:
+                constraint_l.extend(ArrayConstraintBuilder.build(
+                    c, bounds_v.bound_m))
+                # Now, handle dist constraints
+                DistConstraintBuilder.build(randstate, c)
+
+            # If we made changes during array remodeling,
+            # re-run bounds checking on the updated model
+#            if len(constraint_l) != constraints_len:
+            bounds_v.process(field_model_l, constraint_l)
+
+            if debug > 0:
+                print("Final Model:")        
+                for fm in field_model_l:
+                    print("  " + ModelPrettyPrinter.print(fm))
+                for c in constraint_l:
+                    print("  " + ModelPrettyPrinter.print(c, show_exp=True))
+
+#            if lint > 0:
+#                LintVisitor().lint(
+#                    field_model_l,
+#                    constraint_l)
+
+            r = Randomizer(
+                randstate,
+                solve_info=solve_info,
+                debug=debug, 
+                lint=lint, 
+                solve_fail_debug=solve_fail_debug)
+#            if Randomizer._rng is None:
+#                Randomizer._rng = random.Random(random.randrange(sys.maxsize))
+            ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
+
+            # TODO Unecessary function refactor? 
+            Randomizer.fast_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri)
+
+            # Cache all interesting variables for later 
+            # TODO Use @dataclass instead of a dict of str
+            Randomizer.randomize_cache[call_hash] = {}
+            Randomizer.randomize_cache[call_hash]['bounds_v'] = bounds_v
+            Randomizer.randomize_cache[call_hash]['ri'] = ri
+            Randomizer.randomize_cache[call_hash]['r'] = r
+            Randomizer.randomize_cache[call_hash]['constraints_l'] = constraint_l
+
+    @staticmethod
+    def fast_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri):
         try:
             r.randomize(ri, bounds_v.bound_m)
         finally:

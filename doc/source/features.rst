@@ -5,6 +5,7 @@ PyVSC Features
 
 Constraint Features
 
+The short-circuit operators, ``and`` and ``or``, in Python can cannot be overloaded by PyVSC and shouldn't be used in constraints.
 
 =========================  ======  =============  ===  ===========
 Feature                    PyVSC   SystemVerilog  PSS  Description

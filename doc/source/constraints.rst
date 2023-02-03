@@ -81,7 +81,7 @@ condition without knowing the details of what that condition is.
                 
         my_i = my_cls()
 
-        with my_i.randomize()
+        my_i.randomize()
 
         with my_i.randomize_with() as it:
             it.a_small()
