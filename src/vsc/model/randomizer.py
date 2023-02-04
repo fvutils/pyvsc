@@ -86,7 +86,8 @@ class Randomizer(RandIF):
 #        self.swizzler = SolveGroupSwizzlerRange(solve_info)
         self.swizzler = SolveGroupSwizzlerPartsel(randstate, solve_info, debug=self.debug)
         self.cache = {}
-        # TODO Reset btor cache after so many uses maybe to release resources?
+        # TODO Reset btor cache after so many uses to circumvent Boolector instance
+        #      slowing down as more expressions permanently become part of the model/formula.
         self.cache_uses = 100
     
     _state_p = [0,1]
@@ -570,6 +571,12 @@ class Randomizer(RandIF):
         if constraint_l is not None: 
             for c in constraint_l:
                 call_hash += ModelPrettyPrinter.print(c, show_exp=True)
+
+        if call_hash in Randomizer.randomize_cache:
+            r = Randomizer.randomize_cache[call_hash]['r']
+            r.cache_uses -= 1
+            if r.cache_uses <= 0:
+                del Randomizer.randomize_cache[call_hash]
 
         if call_hash in Randomizer.randomize_cache:
             bounds_v = Randomizer.randomize_cache[call_hash]['bounds_v']
