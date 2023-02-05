@@ -598,18 +598,9 @@ class Randomizer(RandIF):
             Randomizer.fast_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri)
 
         else:
-            # Make copy of field and constraint models
-            field_model_l_copy = copy.deepcopy(field_model_l)
-            # Keep field_model_l copy unique except for the val references so
-            # that __getattr__ or however value lookup works still work
-            # TODO Is there a better way to pass on a clone/copy?
-            for fc, f in zip(field_model_l_copy, field_model_l):
-                for vc, v in zip(fc.field_l, f.field_l):
-                    vc.val = v.val
-            field_model_l = field_model_l_copy
-            if constraint_l is not None:
-                # print('constraint_l', dill.detect.baditems(constraint_l))
-                constraint_l = copy.deepcopy(constraint_l)
+            # Make copy of field and constraint models, together to keep FieldScalarModels the same
+            # TODO The deepcopy() in FieldScalarModel keeps the val reference, is that the best way?
+            (field_model_l, constraint_l) = copy.deepcopy((field_model_l, constraint_l))
 
             clear_soft_priority = ClearSoftPriorityVisitor()
         

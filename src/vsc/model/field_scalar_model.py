@@ -19,6 +19,7 @@
 #
 # @author: ballance
 
+from copy import deepcopy
 
 from vsc.model.field_model import FieldModel
 from vsc.model.rand_gen_data import RandGenData
@@ -44,7 +45,19 @@ class FieldScalarModel(FieldModel):
         self.rand_if = rand_if
         self.var = None
         self.val = ValueScalar(0)
-        
+
+    def __deepcopy__(self, memo):
+        cls = self.__class__
+        result = cls.__new__(cls)
+        memo[id(self)] = result
+        for k, v in self.__dict__.items():
+            setattr(result, k, deepcopy(v, memo))
+
+        # NOTE Deepcopy everything except val, keep it as reference so top level can get value
+        result.val = self.val
+
+        return result
+
     def set_used_rand(self, is_rand, level=0):
         # Field is considered rand when
         # - It is a root field, on which 'randomize' is called
