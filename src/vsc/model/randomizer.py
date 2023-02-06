@@ -137,9 +137,10 @@ class Randomizer(RandIF):
                 # TODO: are there any cases where these could be ranges?
                 idx = self.randstate.randint(0, len(range_l)-1)
                 uf.set_val(range_l[idx][0])                
-                
+
+            # TODO We want to re-randomize unconstrained variables when caching. Do we need to lock?
             # Lock so we don't overwrite
-            uf.set_used_rand(False)
+            # uf.set_used_rand(False)
 
         rs_i = 0
         start_rs_i = 0
