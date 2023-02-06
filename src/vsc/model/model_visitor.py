@@ -65,7 +65,8 @@ class ModelVisitor(object):
             
         # Visit constraints
         for c in f.constraint_model_l:
-            c.accept(self)
+            if c.enabled:
+                c.accept(self)
             
     def visit_generator(self, g):
         self.visit_composite_field(g)
