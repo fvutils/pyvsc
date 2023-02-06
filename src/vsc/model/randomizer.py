@@ -562,15 +562,26 @@ class Randomizer(RandIF):
         else:
             solve_info = None
 
-        # Create a unique string for the cache dict key
-        # TODO filename and lineno probably aren't necessary
-        # TODO Is there a better way to do this? Cache this by object ref in caller instead?
-        call_hash = f'{srcinfo.filename}:{str(srcinfo.lineno)}\n'
+        # Create a unique string for this call based on object ids and mode bits
+        # Is there more than rand_mode and constraint_mode to cover here?
+        # TODO Can we cache the base constraints so that with constraints have a prebuilt
+        #      model and such to build off of?
+        call_hash = ''
         for fm in field_model_l:
-            call_hash += ModelPrettyPrinter.print(fm)
+            # Each field and its rand_mode
+            for f in fm.field_l:
+                call_hash += f'{hex(id(f))}-{f.fullname}-{f.rand_mode=}\n'
+            # Each constraint block and whether it's enabled
+            for cm in fm.constraint_model_l:
+                call_hash += f'{hex(id(cm))}-{cm.name}-{cm.enabled=}\n'
         if constraint_l is not None: 
-            for c in constraint_l:
-                call_hash += ModelPrettyPrinter.print(c, show_exp=True)
+            # Each with constraint(block?) and its expressions
+            # TODO Is this missing anything? Dynamic expressions? Too aggressive?
+            for cm in constraint_l:
+                call_hash += f'{hex(id(cm))}-{cm.name}-{cm.enabled=}\n'
+                for c in cm.constraint_l:
+                    call_hash += f'{hex(id(c))}\n'
+        call_hash = call_hash
 
         if call_hash in Randomizer.randomize_cache:
             r = Randomizer.randomize_cache[call_hash]['r']
