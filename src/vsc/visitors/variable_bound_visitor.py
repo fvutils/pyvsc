@@ -7,6 +7,7 @@
 from typing import Dict, List
 
 from vsc.model.bin_expr_type import BinExprType
+from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
@@ -102,7 +103,9 @@ class VariableBoundVisitor(ModelVisitor):
             b.update()
 #            print(b.toString())
             
-        
+    def visit_constraint_block(self, c:ConstraintBlockModel):
+        if c.enabled:
+            super().visit_constraint_block(c)
 
     def visit_constraint_if_else(self, c:ConstraintIfElseModel):
         self.depth += 1

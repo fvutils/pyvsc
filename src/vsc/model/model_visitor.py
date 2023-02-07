@@ -104,8 +104,7 @@ class ModelVisitor(object):
         pass
     
     def visit_constraint_block(self, c : ConstraintBlockModel):
-        if c.enabled:
-            self.visit_constraint_scope(c)
+        self.visit_constraint_scope(c)
         
     def visit_constraint_dynref(self, c):
         c.c.accept(self)
