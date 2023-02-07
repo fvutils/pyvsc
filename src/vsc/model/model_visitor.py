@@ -65,8 +65,7 @@ class ModelVisitor(object):
             
         # Visit constraints
         for c in f.constraint_model_l:
-            if c.enabled:
-                c.accept(self)
+            c.accept(self)
             
     def visit_generator(self, g):
         self.visit_composite_field(g)
@@ -105,7 +104,8 @@ class ModelVisitor(object):
         pass
     
     def visit_constraint_block(self, c : ConstraintBlockModel):
-        self.visit_constraint_scope(c)
+        if c.enabled:
+            self.visit_constraint_scope(c)
         
     def visit_constraint_dynref(self, c):
         c.c.accept(self)
