@@ -277,7 +277,7 @@ class TestConstraintDist(VscTestCase):
         for i in range(4):
             hist.append([0]*4)
             
-        for i in range(400):
+        for _ in range(400):
             my.randomize(debug=0)
             for i in range(4):
                 v = my.a[i]
