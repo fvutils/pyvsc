@@ -245,7 +245,10 @@ class ModelPrettyPrinter(ModelVisitor):
             else:
                 self.write(e.fm.fullname + "(" + str(int(e.fm.get_val())) + ")")
         else:
-            self.write(e.fm.fullname)
+            if e.fm.is_used_rand:
+                self.write(e.fm.fullname)
+            else:
+                self.write(e.fm.fullname + '(' + str(int(e.fm.get_val())) + ')')
         
     def visit_expr_unary(self, e : vm.ExprUnaryModel):
         self.write(UnaryExprType.toString(e.op))

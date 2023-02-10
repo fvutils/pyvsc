@@ -581,6 +581,10 @@ class Randomizer(RandIF):
                     if hasattr(f, 'field_l'):
                         f.latest_field_l = None
 
+        # The call_hash needs the value of non-rand fields in the pretty printer
+        for f in field_model_l:
+            f.set_used_rand(True, 0)
+
         # Generate dist constraints early for generating call hash
         (field_model_l_og, constraint_l_og) = (field_model_l, constraint_l) # copy.deepcopy((field_model_l, constraint_l))
         randstate_copy = copy.deepcopy(randstate)
