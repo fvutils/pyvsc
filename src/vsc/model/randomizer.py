@@ -40,6 +40,7 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.field_model import FieldModel
 from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.generator_model import GeneratorModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
@@ -572,44 +573,54 @@ class Randomizer(RandIF):
 
         if constraint_l is None:
             constraint_l = []
-        
-        # HACK Fill out field_l in FieldArrayModels so that look ups work
-        # This breaks deepcopy since it'll now have deepcopy references...
+
+        cache_enabled = True
         for fm in field_model_l:
-            if hasattr(fm, 'field_l'):
-                for f in fm.field_l:
-                    if hasattr(f, 'field_l'):
-                        f.latest_field_l = None
+            # Skip GeneratorModel since it adds soft constraints
+            if isinstance(fm, GeneratorModel):
+                cache_enabled = False
+                break
 
-        # The call_hash needs the value of non-rand fields in the pretty printer
-        for f in field_model_l:
-            f.set_used_rand(True, 0)
+        if cache_enabled:
+            # HACK Fill out field_l in FieldArrayModels so that look ups work
+            # This breaks deepcopy since it'll now have deepcopy references...
+            for fm in field_model_l:
+                if hasattr(fm, 'field_l'):
+                    for f in fm.field_l:
+                        if hasattr(f, 'field_l'):
+                            f.latest_field_l = None
 
-        # Generate dist constraints early for generating call hash
-        (field_model_l_og, constraint_l_og) = (field_model_l, constraint_l) # copy.deepcopy((field_model_l, constraint_l))
-        randstate_copy = copy.deepcopy(randstate)
-        for fm in field_model_l_og:
-            DistConstraintBuilder.build(randstate_copy, fm)
-        for c in constraint_l_og:
-            DistConstraintBuilder.build(randstate_copy, c)
+            # The call_hash needs the value of non-rand fields in the pretty printer
+            for f in field_model_l:
+                f.set_used_rand(True, 0)
 
-        # Create a unique string for this call based on object ids and mode bits
-        # Is there more than rand_mode and constraint_mode to cover here?
-        # TODO Can we cache the base constraints so that with constraints have a prebuilt
-        #      model and such to build off of?
-        # call_hash = Randomizer.get_id_call_hash(field_model_l, constraint_l, field_model_l_copy, constraint_l_copy)
-        call_hash = Randomizer.get_pretty_call_hash(randstate, field_model_l_og, constraint_l_og)
+            # Generate dist constraints early for generating call hash
+            (field_model_l_og, constraint_l_og) = (field_model_l, constraint_l)
+            # Save state so that rebuilding dist constraints is exactly the same for the copy
+            state = randstate.rng.getstate()
+            for fm in field_model_l_og:
+                DistConstraintBuilder.build(randstate, fm)
+            for c in constraint_l_og:
+                DistConstraintBuilder.build(randstate, c)
+            randstate.rng.setstate(state)
 
-        for fm in field_model_l_og:
-            ConstraintOverrideRollbackVisitor.rollback(fm)
+            # Create a unique string for this call based on object ids and mode bits
+            # Is there more than rand_mode and constraint_mode to cover here?
+            # TODO Can we cache the base constraints so that with constraints have a prebuilt
+            #      model and such to build off of?
+            # call_hash = Randomizer.get_id_call_hash(field_model_l, constraint_l, field_model_l_copy, constraint_l_copy)
+            call_hash = Randomizer.get_pretty_call_hash(randstate, field_model_l_og, constraint_l_og)
 
-        if call_hash in Randomizer.randomize_cache:
-            cache = Randomizer.randomize_cache[call_hash]
-            cache.r.btor_cache_uses -= 1
-            if cache.r.btor_cache_uses <= 0:
-                del Randomizer.randomize_cache[call_hash]
+            for fm in field_model_l_og:
+                ConstraintOverrideRollbackVisitor.rollback(fm)
 
-        if call_hash in Randomizer.randomize_cache:
+            if call_hash in Randomizer.randomize_cache:
+                cache = Randomizer.randomize_cache[call_hash]
+                cache.r.btor_cache_uses -= 1
+                if cache.r.btor_cache_uses <= 0:
+                    del Randomizer.randomize_cache[call_hash]
+
+        if cache_enabled and call_hash in Randomizer.randomize_cache:
             cache = Randomizer.randomize_cache[call_hash]
 
             clear_soft_priority = ClearSoftPriorityVisitor()
@@ -701,16 +712,18 @@ class Randomizer(RandIF):
             Randomizer.try_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri)
 
             # Cache all interesting variables for later 
-            Randomizer.randomize_cache[call_hash] = rand_cache_entry(bounds_v, ri, r, field_model_l, constraint_l)
+            if cache_enabled:
+                Randomizer.randomize_cache[call_hash] = rand_cache_entry(bounds_v, ri, r, field_model_l, constraint_l)
 
         # HACK Fill out field_l in FieldArrayModels so that look ups work
         # This breaks deepcopy since it'll now have deepcopy references...
-        field_model_l = Randomizer.randomize_cache[call_hash].field_model_l
-        for fm_new, fm_og in zip(field_model_l, field_model_l_og):
-            if hasattr(fm_og, 'field_l'):
-                for f_new, f_og in zip(fm_new.field_l, fm_og.field_l):
-                    if hasattr(f_og, 'field_l'):
-                        f_og.latest_field_l = f_new.field_l
+        if cache_enabled:
+            field_model_l = Randomizer.randomize_cache[call_hash].field_model_l
+            for fm_new, fm_og in zip(field_model_l, field_model_l_og):
+                if hasattr(fm_og, 'field_l'):
+                    for f_new, f_og in zip(fm_new.field_l, fm_og.field_l):
+                        if hasattr(f_og, 'field_l'):
+                            f_og.latest_field_l = f_new.field_l
 
 
     @staticmethod
@@ -722,7 +735,7 @@ class Randomizer(RandIF):
                 # TODO This pretty print is an expensive call. Need a better way
                 #      to construct a unique ID/hash that doesn't depend on
                 #      object lifetimes
-                call_hash += ModelPrettyPrinter.print(fm)
+                call_hash += ModelPrettyPrinter.print(fm, print_values=True)
                 # Each constraint block and whether it's enabled
                 if hasattr(fm, 'field_l'):
                     for f in fm.field_l:
@@ -749,7 +762,7 @@ class Randomizer(RandIF):
             # Each with constraint(block?) and its expressions
             # TODO Is this missing anything? Dynamic expressions? Too aggressive?
             for cm in constraint_l:
-                call_hash += ModelPrettyPrinter.print(cm)
+                call_hash += ModelPrettyPrinter.print(cm, print_values=True)
                 # HACK Place with constraints inside list forever to prevent obj ID reuse
                 Randomizer.constraint_keep.append(cm)
                 call_hash += f'{hex(id(cm))}-{cm.name}-{cm.enabled=}\n'
@@ -831,7 +844,6 @@ class Randomizer(RandIF):
         
         for fm in field_model_l:
             fm.post_randomize()
-        
         
         # Process constraints to identify variable/constraint sets
 

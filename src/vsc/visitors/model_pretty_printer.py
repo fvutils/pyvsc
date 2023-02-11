@@ -240,15 +240,15 @@ class ModelPrettyPrinter(ModelVisitor):
                 for i, f in enumerate(e.fm.field_l):
                     if i > 0:
                         self.write(", ")
-                    self.write(str(int(f.get_val())))
+                    try:
+                        self.write(str(int(f.get_val())))
+                    except NotImplementedError:
+                        self.write('?')
                 self.write("]")
             else:
                 self.write(e.fm.fullname + "(" + str(int(e.fm.get_val())) + ")")
         else:
-            if e.fm.is_used_rand:
-                self.write(e.fm.fullname)
-            else:
-                self.write(e.fm.fullname + '(' + str(int(e.fm.get_val())) + ')')
+            self.write(e.fm.fullname)
         
     def visit_expr_unary(self, e : vm.ExprUnaryModel):
         self.write(UnaryExprType.toString(e.op))
