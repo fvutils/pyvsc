@@ -51,7 +51,12 @@ class FieldScalarModel(FieldModel):
         result = cls.__new__(cls)
         memo[id(self)] = result
         for k, v in self.__dict__.items():
-            setattr(result, k, deepcopy(v, memo))
+            if k not in ['var']:
+                setattr(result, k, deepcopy(v, memo))
+
+        # TODO This is a workaround for the deepcopy in do_randomize somewhere getting
+        #      access to Boolector objects, which in turn can't be deepcopied.
+        result.var = None
 
         # NOTE Deepcopy everything except val, keep it as reference so top level can get value
         result.val = self.val

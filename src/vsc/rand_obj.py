@@ -86,10 +86,6 @@ class _randobj:
                     self.build_field_model(None)
                     pop_srcinfo_mode()
 
-            # Prevent parent references from deepcopying
-            def __deepcopy__(self, memo):
-                return self
-
         # Add the interposer class
         ret = type(T.__name__, (randobj_interposer,), dict())
         

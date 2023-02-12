@@ -574,6 +574,15 @@ class Randomizer(RandIF):
         if constraint_l is None:
             constraint_l = []
 
+        clear_soft_priority = ClearSoftPriorityVisitor()
+
+        for f in field_model_l:
+            f.set_used_rand(True, 0)
+            clear_soft_priority.clear(f)
+
+        for fm in field_model_l:
+            fm.pre_randomize()
+
         cache_enabled = True
         for fm in field_model_l:
             # Skip GeneratorModel since it adds soft constraints
@@ -589,10 +598,6 @@ class Randomizer(RandIF):
                     for f in fm.field_l:
                         if hasattr(f, 'field_l'):
                             f.latest_field_l = None
-
-            # The call_hash needs the value of non-rand fields in the pretty printer
-            for f in field_model_l:
-                f.set_used_rand(True, 0)
 
             # Generate dist constraints early for generating call hash
             (field_model_l_og, constraint_l_og) = (field_model_l, constraint_l)
@@ -631,31 +636,16 @@ class Randomizer(RandIF):
                 f.set_used_rand(True, 0)
                 clear_soft_priority.clear(f)
 
-            # First, invoke pre_randomize on all elements
-            # TODO This is untested. What happens to pre_randomize() on a deepcopy?
-            for fm in cache.field_model_l:
-                fm.pre_randomize()
-
             Randomizer.try_randomize(srcinfo, cache.field_model_l, solve_info, cache.bounds_v, cache.r, cache.ri)
         else:
             # Make copy of field and constraint models, together to keep FieldScalarModels the same
             # TODO The deepcopy() in FieldScalarModel keeps the val reference, is that the best way?
             (field_model_l, constraint_l) = copy.deepcopy((field_model_l, constraint_l))
 
-            clear_soft_priority = ClearSoftPriorityVisitor()
-        
-            for f in field_model_l:
-                f.set_used_rand(True, 0)
-                clear_soft_priority.clear(f)
-
             if debug > 0: 
                 print("Initial Model:")        
                 for fm in field_model_l:
                     print("  " + ModelPrettyPrinter.print(fm))
-
-            # First, invoke pre_randomize on all elements
-            for fm in field_model_l:
-                fm.pre_randomize()
 
             for c in constraint_l:
                 clear_soft_priority.clear(c)
@@ -768,56 +758,6 @@ class Randomizer(RandIF):
                 call_hash += f'{hex(id(cm))}-{cm.name}-{cm.enabled=}\n'
                 for c in cm.constraint_l:
                     call_hash += f'{hex(id(c))}\n'
-                for c in cm.constraint_l:
-                    # TODO dist constraint hack
-                    if isinstance(c, ConstraintOverrideModel):
-                        # dist_value = c.new_constraint.constraint_l[-1].expr.rhs.val().toString()
-                        # call_hash += f'{c.name}-{dist_value=}\n'
-                        call_hash += f'{hex(id(c.new_constraint))}\n'
-                    if isinstance(c, ConstraintForeachModel):
-                        for fe_c in c.constraint_l:
-                            if isinstance(fe_c, ConstraintOverrideModel):
-                                call_hash += f'{hex(id(fe_c.new_constraint))}\n'
-        return call_hash
-
-    @staticmethod
-    def get_id_call_hash(field_model_l, constraint_l, fml_copy, cl_copy):
-        call_hash = ''
-        if field_model_l is not None: 
-            for fm in field_model_l:
-                # Each field and its rand_mode
-                # TODO call_hash += f'{hex(id(fm))}-{fm.fullname}\n'
-                if hasattr(fm, 'field_l'):
-                    for f in fm.field_l:
-                        call_hash += f'{hex(id(f))}-{f.fullname}-{f.rand_mode=}\n'
-                # Each constraint block and whether it's enabled
-                if hasattr(fm, 'constraint_model_l'):
-                    for cm in fm.constraint_model_l:
-                        call_hash += f'{hex(id(cm))}-{cm.name}-{cm.enabled=}\n'
-            for fm in fml_copy:
-                # Each constraint block and whether it's enabled
-                if hasattr(fm, 'constraint_model_l'):
-                    for cm in fm.constraint_model_l:
-                        # TODO dist constraint hack
-                        for c in cm.constraint_l:
-                            if isinstance(c, ConstraintOverrideModel):
-                                # dist_value = c.new_constraint.constraint_l[-1].expr.rhs.val().toString()
-                                # call_hash += f'{cm.name}-{dist_value=}\n'
-                                call_hash += f'{hex(id(c.new_constraint))}\n'
-                            if isinstance(c, ConstraintForeachModel):
-                                for fe_c in c.constraint_l:
-                                    if isinstance(fe_c, ConstraintOverrideModel):
-                                        call_hash += f'{hex(id(fe_c.new_constraint))}\n'
-        if constraint_l is not None: 
-            # Each with constraint(block?) and its expressions
-            # TODO Is this missing anything? Dynamic expressions? Too aggressive?
-            for cm in constraint_l:
-                Randomizer.constraint_keep.append(cm)
-                call_hash += f'{hex(id(cm))}-{cm.name}-{cm.enabled=}\n'
-                for c in cm.constraint_l:
-                    call_hash += f'{hex(id(c))}\n'
-            
-            for cm in cl_copy:
                 for c in cm.constraint_l:
                     # TODO dist constraint hack
                     if isinstance(c, ConstraintOverrideModel):
