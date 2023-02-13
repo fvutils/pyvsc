@@ -101,7 +101,7 @@ class Randomizer(RandIF):
     _state_p = [0,1]
     _rng = None
 
-    def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel]):
+    def randomize(self, ri : RandInfo, bound_m : Dict[FieldModel,VariableBoundModel], cache_enabled: bool):
         """Randomize the variables and constraints in a RandInfo collection"""
 
         if self.solve_info is not None:
@@ -158,7 +158,7 @@ class Randomizer(RandIF):
             # If missing from cache, initialize/build btor and randset
             # TODO What is going on with max_fields? It would break this
             #      caching setup.
-            if rs_i not in self.btor_cache:
+            if not cache_enabled or rs_i not in self.btor_cache:
                 btor = Boolector()
                 # TODO Is self.btor used anywhere?
                 # self.btor = btor
@@ -282,7 +282,8 @@ class Randomizer(RandIF):
 
                 # Changes made to the randset are covered by the randomization_cache 
                 # Cache btor reference for use later
-                self.btor_cache[rs_i] = btor
+                if cache_enabled:
+                    self.btor_cache[rs_i] = btor
             else:
                 # Setup some necessary variables
                 start_rs_i = rs_i
@@ -294,9 +295,9 @@ class Randomizer(RandIF):
 
             rs_i += 1
 
-            # TODO Boolector Push()/Pop() do not release orphan expressions/nodes and
-            #      cause Sat() calls to slow down and leak memory. Add release feature to PyBoolector?
-            btor.Push()
+            # Boolector Push/Pop does _not_ release old swizzler expressions.
+            if cache_enabled:
+                btor.Push()
 
 #            btor.Sat()
             x = start_rs_i
@@ -309,24 +310,24 @@ class Randomizer(RandIF):
 
             # Finalize the value of the field
             x = start_rs_i
-            # TODO What cleanup do we need if caching?
-            # reset_v = DynamicExprResetVisitor()
             while x < rs_i:
                 rs = ri.randsets()[x]
                 for f in rs.all_fields():
                     f: FieldScalarModel = f
                     f.post_randomize()
-                    # TODO What does this all do? Do we need to clean up if we're going to reuse this agian?
-                    # f.set_used_rand(False, 0)
-                    # f.dispose() # Get rid of the solver var, since we're done with it
-                    # f.accept(reset_v)
-#                for f in rs.nontarget_field_s:
-#                    f.dispose()
-                # TODO What does this all do? Do we need to clean up if we're going to reuse this agian?
-                # for c in rs.constraints():
-                #     c.accept(reset_v)
-                # TODO What does this all do? Do we need to clean up if we're going to reuse this agian?
-                # RandSetDisposeVisitor().dispose(rs)
+
+                # TODO Does some of this need to be done while caching, too?
+                if not cache_enabled:
+                    reset_v = DynamicExprResetVisitor()
+                    for f in rs.all_fields():
+                        f.set_used_rand(False, 0)
+                        f.dispose() # Get rid of the solver var, since we're done with it
+                        f.accept(reset_v)
+#                   for f in rs.nontarget_field_s:
+#                       f.dispose()
+                    for c in rs.constraints():
+                        c.accept(reset_v)
+                    RandSetDisposeVisitor().dispose(rs)
                 
                 if self.debug > 0:
                     print("Post-Randomize: RandSet[%d]" % x)
@@ -343,8 +344,9 @@ class Randomizer(RandIF):
                         
                 x += 1
 
-            # TODO Cleanup boolector state. See Push() comment above.
-            btor.Pop()
+            # Release swizzler assertions
+            if cache_enabled:
+                btor.Pop()
                 
         end = int(round(time.time() * 1000))
 
@@ -563,7 +565,8 @@ class Randomizer(RandIF):
             constraint_l : List[ConstraintModel] = None,
             debug=0,
             lint=0,
-            solve_fail_debug=0):
+            solve_fail_debug=0,
+            cache_enabled=True):
         if profile_on():
             solve_info = SolveInfo()
             solve_info.totaltime = time.time()
@@ -583,7 +586,6 @@ class Randomizer(RandIF):
         for fm in field_model_l:
             fm.pre_randomize()
 
-        cache_enabled = True
         for fm in field_model_l:
             # Skip GeneratorModel since it adds soft constraints
             if isinstance(fm, GeneratorModel):
@@ -628,7 +630,7 @@ class Randomizer(RandIF):
         if cache_enabled and call_hash in Randomizer.randomize_cache:
             cache = Randomizer.randomize_cache[call_hash]
 
-            clear_soft_priority = ClearSoftPriorityVisitor()
+            # clear_soft_priority = ClearSoftPriorityVisitor()
 
             # Reset cached field_model_l vars to be rand again
             # TODO This is untested. Are there deepcopy issues here?
@@ -636,11 +638,12 @@ class Randomizer(RandIF):
                 f.set_used_rand(True, 0)
                 clear_soft_priority.clear(f)
 
-            Randomizer.try_randomize(srcinfo, cache.field_model_l, solve_info, cache.bounds_v, cache.r, cache.ri)
+            Randomizer.try_randomize(srcinfo, cache.field_model_l, solve_info, cache.bounds_v, cache.r, cache.ri, cache_enabled)
         else:
             # Make copy of field and constraint models, together to keep FieldScalarModels the same
             # TODO The deepcopy() in FieldScalarModel keeps the val reference, is that the best way?
-            (field_model_l, constraint_l) = copy.deepcopy((field_model_l, constraint_l))
+            if cache_enabled:
+                (field_model_l, constraint_l) = copy.deepcopy((field_model_l, constraint_l))
 
             if debug > 0: 
                 print("Initial Model:")        
@@ -699,7 +702,7 @@ class Randomizer(RandIF):
             ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
 
             # TODO Unecessary function refactor? 
-            Randomizer.try_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri)
+            Randomizer.try_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri, cache_enabled)
 
             # Cache all interesting variables for later 
             if cache_enabled:
@@ -771,9 +774,9 @@ class Randomizer(RandIF):
         return call_hash
 
     @staticmethod
-    def try_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri):
+    def try_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri, cache_enabled):
         try:
-            r.randomize(ri, bounds_v.bound_m)
+            r.randomize(ri, bounds_v.bound_m, cache_enabled)
         finally:
             # Rollback any constraints we've replaced for arrays
             if solve_info is not None:

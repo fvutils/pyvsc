@@ -157,7 +157,8 @@ class _randobj:
             def randomize(self, 
                           debug=0,
                           lint=0,
-                          solve_fail_debug=0):
+                          solve_fail_debug=0,
+                          cache_enabled=True):
                 ro_int = self._get_ro_int()
                 if self.src_info == None:
                     frame = inspect.stack()[1]
@@ -171,7 +172,8 @@ class _randobj:
                         [model], 
                         debug=debug,
                         lint=lint,
-                        solve_fail_debug=solve_fail_debug)
+                        solve_fail_debug=solve_fail_debug,
+                        cache_enabled=cache_enabled)
                 except SolveFailure as e:
                     print(e.diagnostics)
                     raise e
@@ -271,7 +273,8 @@ class _randobj:
                         [c], 
                         debug=self.debug,
                         lint=self.lint,
-                        solve_fail_debug=self.solve_fail_debug)
+                        solve_fail_debug=self.solve_fail_debug,
+                        cache_enabled=self.cache_enabled)
                 except SolveFailure as e:
                     print(e.diagnostics)
                     raise e
@@ -279,12 +282,14 @@ class _randobj:
             def randomize_with(self, 
                                debug=0, 
                                lint=0,
-                               solve_fail_debug=0):
+                               solve_fail_debug=0,
+                               cache_enabled=True):
                 # Ensure the 'model' data structures have been built
                 self.get_model()
                 self.debug = debug
                 self.lint = lint
                 self.solve_fail_debug = solve_fail_debug
+                self.cache_enabled=cache_enabled
         
                 return self
             
