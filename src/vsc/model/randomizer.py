@@ -73,11 +73,6 @@ class Randomizer(RandIF):
 
     randomize_cache = {}
 
-    # HACK This is meant to keep constraint object IDs unique by preventing garbage collection
-    #      and cycling IDs. Generating unique IDs regardless of lifetimes or better hashing that
-    #      explores the entire constraint might be better.
-    constraint_keep = []
-
     def __init__(self, randstate, debug=0, lint=0, solve_fail_debug=0, solve_info=None):
         self.randstate = randstate
         self.pretty_printer = ModelPrettyPrinter()
@@ -587,7 +582,7 @@ class Randomizer(RandIF):
             fm.pre_randomize()
 
         for fm in field_model_l:
-            # Skip GeneratorModel since it adds soft constraints
+            # Skip GeneratorModel since it adds new soft constraints each call, not cache friendly
             if isinstance(fm, GeneratorModel):
                 cache_enabled = False
                 break
@@ -600,44 +595,27 @@ class Randomizer(RandIF):
                     for f in fm.field_l:
                         if hasattr(f, 'field_l'):
                             f.latest_field_l = None
-
-            # Generate dist constraints early for generating call hash
+            # Save off original variables for FieldArrayModel hack after randomize
             (field_model_l_og, constraint_l_og) = (field_model_l, constraint_l)
-            # Save state so that rebuilding dist constraints is exactly the same for the copy
-            state = randstate.rng.getstate()
-            for fm in field_model_l_og:
-                DistConstraintBuilder.build(randstate, fm)
-            for c in constraint_l_og:
-                DistConstraintBuilder.build(randstate, c)
-            randstate.rng.setstate(state)
 
             # Create a unique string for this call based on object ids and mode bits
-            # Is there more than rand_mode and constraint_mode to cover here?
+            # TODO Is there more than rand_mode and constraint_mode to cover here?
             # TODO Can we cache the base constraints so that with constraints have a prebuilt
             #      model and such to build off of?
-            # call_hash = Randomizer.get_id_call_hash(field_model_l, constraint_l, field_model_l_copy, constraint_l_copy)
             call_hash = Randomizer.get_pretty_call_hash(randstate, field_model_l_og, constraint_l_og)
-
-            for fm in field_model_l_og:
-                ConstraintOverrideRollbackVisitor.rollback(fm)
-
-            if call_hash in Randomizer.randomize_cache:
-                cache = Randomizer.randomize_cache[call_hash]
-                cache.r.btor_cache_uses -= 1
-                if cache.r.btor_cache_uses <= 0:
-                    del Randomizer.randomize_cache[call_hash]
+            # Skip dist constraints b/c they cost building bounds and array/dist constraints first
+            # HACK What's the best way to detect if there are dist constraints?
+            if ' dist { ' in call_hash:
+                cache_enabled = False
+            else:
+                if call_hash in Randomizer.randomize_cache:
+                    cache = Randomizer.randomize_cache[call_hash]
+                    cache.r.btor_cache_uses -= 1
+                    if cache.r.btor_cache_uses <= 0:
+                        del Randomizer.randomize_cache[call_hash]
 
         if cache_enabled and call_hash in Randomizer.randomize_cache:
             cache = Randomizer.randomize_cache[call_hash]
-
-            # clear_soft_priority = ClearSoftPriorityVisitor()
-
-            # Reset cached field_model_l vars to be rand again
-            # TODO This is untested. Are there deepcopy issues here?
-            for f in cache.field_model_l:
-                f.set_used_rand(True, 0)
-                clear_soft_priority.clear(f)
-
             Randomizer.try_randomize(srcinfo, cache.field_model_l, solve_info, cache.bounds_v, cache.r, cache.ri, cache_enabled)
         else:
             # Make copy of field and constraint models, together to keep FieldScalarModels the same
@@ -727,9 +705,9 @@ class Randomizer(RandIF):
             for fm in field_model_l:
                 # TODO This pretty print is an expensive call. Need a better way
                 #      to construct a unique ID/hash that doesn't depend on
-                #      object lifetimes
+                #      object lifetimes. Can some of this be cached?
                 call_hash += ModelPrettyPrinter.print(fm, print_values=True)
-                # Each constraint block and whether it's enabled
+                # Each variable and whether it's rand
                 if hasattr(fm, 'field_l'):
                     for f in fm.field_l:
                         call_hash += f'{f.fullname}-{f.rand_mode=}\n'
@@ -737,40 +715,15 @@ class Randomizer(RandIF):
                 if hasattr(fm, 'constraint_model_l'):
                     for cm in fm.constraint_model_l:
                         call_hash += f'{cm.name}-{cm.enabled=}\n'
-                if hasattr(fm, 'constraint_model_l'):
-                    for cm in fm.constraint_model_l:
-                        # TODO dist constraint hack
-                        #      T
-                        for c in cm.constraint_l:
-                            if isinstance(c, ConstraintOverrideModel):
-                                # dist_value = c.new_constraint.constraint_l[-1].expr.rhs.val().toString()
-                                # call_hash += f'{cm.name}-{dist_value=}\n'
-                                call_hash += f'{hex(id(c.new_constraint))}\n'
-                            if isinstance(c, ConstraintForeachModel):
-                                for fe_c in c.constraint_l:
-                                    if isinstance(fe_c, ConstraintOverrideModel):
-                                        call_hash += f'{hex(id(fe_c.new_constraint))}\n'
+                # TODO Is there a way to detect or quickly generate dist constraints?
 
         if constraint_l is not None: 
             # Each with constraint(block?) and its expressions
             # TODO Is this missing anything? Dynamic expressions? Too aggressive?
             for cm in constraint_l:
                 call_hash += ModelPrettyPrinter.print(cm, print_values=True)
-                # HACK Place with constraints inside list forever to prevent obj ID reuse
-                Randomizer.constraint_keep.append(cm)
-                call_hash += f'{hex(id(cm))}-{cm.name}-{cm.enabled=}\n'
-                for c in cm.constraint_l:
-                    call_hash += f'{hex(id(c))}\n'
-                for c in cm.constraint_l:
-                    # TODO dist constraint hack
-                    if isinstance(c, ConstraintOverrideModel):
-                        # dist_value = c.new_constraint.constraint_l[-1].expr.rhs.val().toString()
-                        # call_hash += f'{c.name}-{dist_value=}\n'
-                        call_hash += f'{hex(id(c.new_constraint))}\n'
-                    if isinstance(c, ConstraintForeachModel):
-                        for fe_c in c.constraint_l:
-                            if isinstance(fe_c, ConstraintOverrideModel):
-                                call_hash += f'{hex(id(fe_c.new_constraint))}\n'
+                call_hash += f'{cm.name}-{cm.enabled=}\n'
+                # TODO Is there a way to detect or quickly generate dist constraints?
         return call_hash
 
     @staticmethod
