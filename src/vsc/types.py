@@ -964,11 +964,11 @@ class list_t(object):
             if self.is_enum:
                 ei : EnumInfo = self.t.enum_i
                 val = ei.e2v(lhs)
-                for f in model.get_field_l():
+                for f in model.field_l:
                     if int(f.get_val()) == val:
                         return True
             elif self.is_scalar:
-                for f in model.get_field_l():
+                for f in model.field_l:
                     if int(f.get_val()) == int(lhs):
                         return True
             else:
@@ -987,7 +987,7 @@ class list_t(object):
                     raise StopIteration()
                 else:
                     # The model's view is always masked 2's complement
-                    v = int(self.model.get_field_l()[self.idx].get_val())
+                    v = int(self.model.field_l[self.idx].get_val())
                     
                     if self.l.t.is_signed:
                         if (v & (1 << (self.l.t.width-1))) != 0:
@@ -1041,10 +1041,10 @@ class list_t(object):
         else:
             if self.is_enum:
                 ei : EnumInfo = self.t.enum_i
-                return ei.v2e(model.get_field_l()[k].get_val())
+                return ei.v2e(model.field_l[k].get_val())
             elif self.is_scalar:
                 # The model's view is always masked 2's complement
-                v = int(model.get_field_l()[k].get_val())
+                v = int(model.field_l[k].get_val())
                 
                 if self.t.is_signed:
                     if (v & (1 << (self.t.width-1))) != 0:
@@ -1073,12 +1073,12 @@ class list_t(object):
             for i in range(self.size):
                 if i > 0:
                     ret += ", "
-                ret += str(ei.v2e(model.get_field_l()[i].get_val()))
+                ret += str(ei.v2e(model.field_l[i].get_val()))
         elif self.is_scalar:
             for i in range(self.size):
                 if i > 0:
                     ret += ", "
-                ret += model.get_field_l()[i].get_val().toString()
+                ret += model.field_l[i].get_val().toString()
         else:
             for i in range(self.size):
                 if i > 0:

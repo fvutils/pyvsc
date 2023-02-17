@@ -19,9 +19,9 @@
 #
 # @author: ballance
 
-
 import copy
 from dataclasses import dataclass
+import random
 import sys
 import time
 from typing import List, Dict
@@ -31,8 +31,6 @@ import pyboolector
 from vsc.constraints import constraint, soft
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.constraint_model import ConstraintModel
-from vsc.model.constraint_override_model import ConstraintOverrideModel
-from vsc.model.constraint_foreach_model import ConstraintForeachModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
@@ -72,6 +70,7 @@ class Randomizer(RandIF):
     EN_DEBUG = False
 
     randomize_cache = {}
+    randomize_call_count = {}
 
     def __init__(self, randstate, debug=0, lint=0, solve_fail_debug=0, solve_info=None):
         self.randstate = randstate
@@ -141,18 +140,18 @@ class Randomizer(RandIF):
                 idx = self.randstate.randint(0, len(range_l)-1)
                 uf.set_val(range_l[idx][0])                
 
-            # TODO We want to re-randomize unconstrained variables when caching. Do we need to lock?
             # Lock so we don't overwrite
-            # uf.set_used_rand(False)
+            if not cache_enabled:
+                uf.set_used_rand(False)
 
         rs_i = 0
         start_rs_i = 0
+        # TODO What is going on with max_fields? It would probably
+        #      break this caching setup.
 #        max_fields = 20
         max_fields = 0
         while rs_i < len(ri.randsets()):
             # If missing from cache, initialize/build btor and randset
-            # TODO What is going on with max_fields? It would break this
-            #      caching setup.
             if not cache_enabled or rs_i not in self.btor_cache:
                 btor = Boolector()
                 # TODO Is self.btor used anywhere?
@@ -202,7 +201,7 @@ class Randomizer(RandIF):
                     # rs_i += 1
                     if n_fields > max_fields or rs.order != -1:
                         break
-                    
+
                 for c in constraint_l:
                     try:
                         btor.Assume(c[1])
@@ -237,7 +236,7 @@ class Randomizer(RandIF):
                         btor.Assert(c[1])
 
                 # If there are soft constraints, add these now
-                if len(soft_constraint_l) > 0:                
+                if len(soft_constraint_l) > 0:
                     for c in soft_constraint_l:
                         try:
                             btor.Assume(c[1])
@@ -247,7 +246,7 @@ class Randomizer(RandIF):
                             raise e
 
                     if self.solve_info is not None:
-                        self.solve_info.n_sat_calls += 1                    
+                        self.solve_info.n_sat_calls += 1
                     if btor.Sat() != btor.SAT:
                         # All the soft constraints cannot be satisfied. We'll need to
                         # add them incrementally
@@ -258,7 +257,7 @@ class Randomizer(RandIF):
                             btor.Assume(c[1])
 
                             if self.solve_info is not None:
-                                self.solve_info.n_sat_calls += 1                    
+                                self.solve_info.n_sat_calls += 1
                             if btor.Sat() == btor.SAT:
                                 if self.debug > 0:
                                     print("Note: soft constraint %s (%d) passed" % (
@@ -275,7 +274,7 @@ class Randomizer(RandIF):
                         for c in soft_constraint_l:
                             btor.Assert(c[1])
 
-                # Changes made to the randset are covered by the randomization_cache 
+                # Changes made to the randset are covered by the randomization_cache
                 # Cache btor reference for use later
                 if cache_enabled:
                     self.btor_cache[rs_i] = btor
@@ -588,13 +587,16 @@ class Randomizer(RandIF):
                 break
 
         if cache_enabled:
-            # HACK Fill out field_l in FieldArrayModels so that look ups work
-            # This breaks deepcopy since it'll now have deepcopy references...
+            # HACK Clear out field_l in FieldArrayModel from previous cache
             for fm in field_model_l:
                 if hasattr(fm, 'field_l'):
                     for f in fm.field_l:
-                        if hasattr(f, 'field_l'):
-                            f.latest_field_l = None
+                        if hasattr(f, 'field_l') and hasattr(f, 'old_field_l'):
+                            # Revert to original value
+                            f.field_l = f.old_field_l
+                        elif hasattr(f, 'field_l'):
+                            # Save off old, original value
+                            f.old_field_l = f.field_l
             # Save off original variables for FieldArrayModel hack after randomize
             (field_model_l_og, constraint_l_og) = (field_model_l, constraint_l)
 
@@ -608,6 +610,15 @@ class Randomizer(RandIF):
             if ' dist { ' in call_hash:
                 cache_enabled = False
             else:
+                if call_hash not in Randomizer.randomize_call_count:
+                    Randomizer.randomize_call_count[call_hash] = 0
+                Randomizer.randomize_call_count[call_hash] += 1
+
+                # Don't cache until this call_hash was seen N times
+                if Randomizer.randomize_call_count[call_hash] < 2:
+                    cache_enabled = False
+
+                # Reset cache entry after N uses due to Boolector model growth
                 if call_hash in Randomizer.randomize_cache:
                     cache = Randomizer.randomize_cache[call_hash]
                     cache.r.btor_cache_uses -= 1
@@ -623,33 +634,30 @@ class Randomizer(RandIF):
             if cache_enabled:
                 (field_model_l, constraint_l) = copy.deepcopy((field_model_l, constraint_l))
 
-            if debug > 0: 
-                print("Initial Model:")        
+            if debug > 0:
+                print("Initial Model:")
                 for fm in field_model_l:
                     print("  " + ModelPrettyPrinter.print(fm))
 
             for c in constraint_l:
                 clear_soft_priority.clear(c)
 
-            # Collect all variables (pre-array) and establish bounds            
+            # Collect all variables (pre-array) and establish bounds
             bounds_v = VariableBoundVisitor()
             bounds_v.process(field_model_l, constraint_l, False)
 
             # TODO: need to handle inline constraints that impact arrays
             constraints_len = len(constraint_l)
-            # TODO dist are handled as soft constraints that caching doesn't recalculate...
             for fm in field_model_l:
                 constraint_l.extend(ArrayConstraintBuilder.build(
                     fm, bounds_v.bound_m))
                 # Now, handle dist constraints
-                # TODO Does this depend on the ArrayConstraintBuilder above?
                 DistConstraintBuilder.build(randstate, fm)
 
             for c in constraint_l:
                 constraint_l.extend(ArrayConstraintBuilder.build(
                     c, bounds_v.bound_m))
                 # Now, handle dist constraints
-                # TODO Does this depend on the ArrayConstraintBuilder above?
                 DistConstraintBuilder.build(randstate, c)
 
             # If we made changes during array remodeling,
@@ -658,7 +666,7 @@ class Randomizer(RandIF):
             bounds_v.process(field_model_l, constraint_l)
 
             if debug > 0:
-                print("Final Model:")        
+                print("Final Model:")
                 for fm in field_model_l:
                     print("  " + ModelPrettyPrinter.print(fm))
                 for c in constraint_l:
@@ -672,36 +680,35 @@ class Randomizer(RandIF):
             r = Randomizer(
                 randstate,
                 solve_info=solve_info,
-                debug=debug, 
-                lint=lint, 
+                debug=debug,
+                lint=lint,
                 solve_fail_debug=solve_fail_debug)
 #            if Randomizer._rng is None:
 #                Randomizer._rng = random.Random(random.randrange(sys.maxsize))
             ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
 
-            # TODO Unecessary function refactor? 
             Randomizer.try_randomize(srcinfo, field_model_l, solve_info, bounds_v, r, ri, cache_enabled)
 
-            # Cache all interesting variables for later 
+            # Cache all interesting variables for later
             if cache_enabled:
                 Randomizer.randomize_cache[call_hash] = rand_cache_entry(bounds_v, ri, r, field_model_l, constraint_l)
 
-        # HACK Fill out field_l in FieldArrayModels so that look ups work
-        # This breaks deepcopy since it'll now have deepcopy references...
+        # HACK Fill out field_l in FieldArrayModels so that array lookups work in model
         if cache_enabled:
             field_model_l = Randomizer.randomize_cache[call_hash].field_model_l
             for fm_new, fm_og in zip(field_model_l, field_model_l_og):
                 if hasattr(fm_og, 'field_l'):
                     for f_new, f_og in zip(fm_new.field_l, fm_og.field_l):
                         if hasattr(f_og, 'field_l'):
-                            f_og.latest_field_l = f_new.field_l
+                            f_og.field_l = f_new.field_l
+
 
 
     @staticmethod
     def get_pretty_call_hash(randstate, field_model_l, constraint_l):
         call_hash = ''
         call_hash += f'{hex(id(randstate))}\n'
-        if field_model_l is not None: 
+        if field_model_l is not None:
             for fm in field_model_l:
                 # TODO This pretty print is an expensive call. Need a better way
                 #      to construct a unique ID/hash that doesn't depend on
@@ -715,15 +722,12 @@ class Randomizer(RandIF):
                 if hasattr(fm, 'constraint_model_l'):
                     for cm in fm.constraint_model_l:
                         call_hash += f'{cm.name}-{cm.enabled=}\n'
-                # TODO Is there a way to detect or quickly generate dist constraints?
 
-        if constraint_l is not None: 
-            # Each with constraint(block?) and its expressions
-            # TODO Is this missing anything? Dynamic expressions? Too aggressive?
+        if constraint_l is not None:
+            # Each with constraint(block?), its expressions, and enabled bit
             for cm in constraint_l:
                 call_hash += ModelPrettyPrinter.print(cm, print_values=True)
                 call_hash += f'{cm.name}-{cm.enabled=}\n'
-                # TODO Is there a way to detect or quickly generate dist constraints?
         return call_hash
 
     @staticmethod

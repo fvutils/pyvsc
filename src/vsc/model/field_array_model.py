@@ -48,17 +48,7 @@ class FieldArrayModel(FieldCompositeModel):
             is_rand_sz)
         self.size.parent = self
         self._set_size(0)
-
-        # Update this field at the end of each randomization
-        # TODO Remove this field from the deepcopy?
-        self.latest_field_l = None
-
-    def get_field_l(self):
-        """Retrieve the latest field_l"""
-        if self.latest_field_l is not None:
-            return self.latest_field_l
-        return self.field_l
-    
+        
     def append(self, fm):
         super().add_field(fm)
         self._set_size(len(self.field_l))
