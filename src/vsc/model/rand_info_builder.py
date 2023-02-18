@@ -30,6 +30,9 @@ from vsc.model.constraint_block_model import ConstraintBlockModel
 from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.constraint_if_else_model import ConstraintIfElseModel
+from vsc.model.constraint_implies_model import ConstraintImpliesModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
@@ -37,6 +40,10 @@ from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_unary_model import ExprUnaryModel
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.unary_expr_type import UnaryExprType
+from vsc.model.bin_expr_type import BinExprType
 from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_model import FieldModel
 from vsc.model.model_visitor import ModelVisitor
@@ -78,11 +85,12 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         
         self._order_m = {}
         self._expr2fm = Expr2FieldVisitor()
+        self._soft_cond_l = []
         
     @staticmethod
     def build(
-            field_model_l : [FieldModel],
-            constraint_l : [ConstraintModel],
+            field_model_l : List[FieldModel],
+            constraint_l : List[ConstraintModel],
             rng=None) ->RandInfo:
         if rng is None:
 #            rng = Random()
@@ -240,12 +248,51 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         # Update the priority of this constraint
         c.priority += self._soft_priority
         self._soft_priority += 1
-        
+
+        if self._pass == 1 and len(self._soft_cond_l) > 0:
+            # AND all soft conditions together
+            and_cond = self._soft_cond_l[0]
+            for soft_cond in self._soft_cond_l[1:]:
+                and_cond = ExprBinModel(and_cond, BinExprType.And, soft_cond)
+
+            # TODO Is it okay to add priority attr to root Constraint so
+            #      randomize can sort soft constraints easier?
+            soft_implies = ConstraintImpliesModel(and_cond, [c])
+            soft_implies.priority = c.priority
+            self._active_randset.add_soft_constraint(soft_implies)
+
         super().visit_constraint_soft(c)
         
         if RandInfoBuilder.EN_DEBUG:
             print("<-- RandInfoBuilder::visit_constraint_soft")
-        
+
+    def visit_constraint_scope(self, c : ConstraintScopeModel):
+        for cc in c.constraint_l:
+            cc.accept(self)
+
+        if self._pass == 1:
+            # Filter out all soft constraints
+            c.constraint_l = [cc for cc in c.constraint_l if not isinstance(cc, ConstraintSoftModel)]
+
+    def visit_constraint_if_else(self, c : ConstraintIfElseModel):
+        self.visit_constraint_stmt_enter(c)
+        self._soft_cond_l.append(c.cond)
+        c.cond.accept(self)
+        c.true_c.accept(self)
+        if c.false_c != None:
+            self._soft_cond_l[-1] = ExprUnaryModel(UnaryExprType.Not, c.cond)
+            c.false_c.accept(self)
+        self._soft_cond_l.pop()
+        self.visit_constraint_stmt_leave(c)
+
+    def visit_constraint_implies(self, c : ConstraintImpliesModel):
+        self.visit_constraint_stmt_enter(c)
+        self._soft_cond_l.append(c.cond)
+        c.cond.accept(self)
+        self.visit_constraint_scope(c)
+        self._soft_cond_l.pop()
+        self.visit_constraint_stmt_leave(c)
+
     def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
         fm = s.getFieldModel()
         if self._pass == 1:

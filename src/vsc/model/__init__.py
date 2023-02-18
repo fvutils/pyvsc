@@ -37,6 +37,7 @@ from .constraint_model import ConstraintModel
 from .constraint_block_model import ConstraintBlockModel
 from .constraint_expr_model import ConstraintExprModel
 from .constraint_if_else_model import ConstraintIfElseModel
+from .constraint_soft_model import ConstraintSoftModel
 from .constraint_implies_model import ConstraintImpliesModel
 from .constraint_scope_model import ConstraintScopeModel
 from .constraint_unique_model import ConstraintUniqueModel

@@ -76,7 +76,12 @@ class RandSet(object):
     
     def all_fields(self)->List[FieldModel]:
         return self.all_field_l
-        
+
+    def add_soft_constraint(self, c):
+        if c not in self.soft_constraint_s:
+            self.soft_constraint_s.add(c)
+            self.soft_constraint_l.append(c)
+
     def add_constraint(self, c):
         if isinstance(c, ConstraintSoftModel):
             if c not in self.soft_constraint_s:
