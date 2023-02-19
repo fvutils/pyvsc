@@ -266,14 +266,6 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         if RandInfoBuilder.EN_DEBUG:
             print("<-- RandInfoBuilder::visit_constraint_soft")
 
-    def visit_constraint_scope(self, c : ConstraintScopeModel):
-        for cc in c.constraint_l:
-            cc.accept(self)
-
-        if self._pass == 1:
-            # Filter out all soft constraints
-            c.constraint_l = [cc for cc in c.constraint_l if not isinstance(cc, ConstraintSoftModel)]
-
     def visit_constraint_if_else(self, c : ConstraintIfElseModel):
         self.visit_constraint_stmt_enter(c)
         self._soft_cond_l.append(c.cond)

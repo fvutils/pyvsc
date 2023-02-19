@@ -176,9 +176,8 @@ class Randomizer(RandIF):
                 rs_node_builder.build(rs)
                 n_fields += len(all_fields)
                 
-#                constraint_l.extend(list(map(lambda c:(c,c.build(btor),isinstance(c,ConstraintSoftModel)), rs.constraints())))
-                constraint_l.extend(list(map(lambda c:(c,c.build(btor)), rs.constraints())))
-                soft_constraint_l.extend(list(map(lambda c:(c,c.build(btor)), rs.soft_constraints())))
+                constraint_l.extend(list(map(lambda c:(c,c.build(btor, False)), rs.constraints())))
+                soft_constraint_l.extend(list(map(lambda c:(c,c.build(btor, True)), rs.soft_constraints())))
                 
                 # Sort the list in descending order so we know which constraints
                 # to prioritize

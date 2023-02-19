@@ -33,7 +33,7 @@ class ConstraintUniqueModel(ConstraintModel):
         self.unique_l = unique_l
         self.expr = None 
         
-    def build(self, btor):
+    def build(self, btor, soft=False):
         ret = None
 
         # Elements in the unique list might be arrays        

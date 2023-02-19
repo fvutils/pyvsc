@@ -32,7 +32,7 @@ class ConstraintModel(object):
     def dispose(self):
         self.node = None
     
-    def build(self, btor)->BoolectorNode:
+    def build(self, btor, soft=False)->BoolectorNode:
         raise Exception("build unimplemented for constraint " + str(type(self)))
     
     def get_nodes(self, node_l):

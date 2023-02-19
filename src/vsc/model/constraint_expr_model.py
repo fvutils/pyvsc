@@ -33,7 +33,7 @@ class ConstraintExprModel(ConstraintModel):
         super().__init__()
         self.e = e
         
-    def build(self, btor):
+    def build(self, btor, soft=False):
         return ExprModel.toBool(btor, self.e.build(btor))
         
     def accept(self, visitor):

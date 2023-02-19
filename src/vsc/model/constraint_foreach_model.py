@@ -27,7 +27,7 @@ class ConstraintForeachModel(ConstraintScopeModel):
             False)
         
         
-    def build(self, btor)->'BoolectorNode':
+    def build(self, btor, soft=False)->'BoolectorNode':
         # Unroll the constraints
         size = int(self.lhs.size.get_val())
         ret_l = []
@@ -39,7 +39,7 @@ class ConstraintForeachModel(ConstraintScopeModel):
             # Build out the constraints for this index
             # Note: some could be redundant
             for c in self.constraint_l:
-                ret_l.append(c.build(btor))
+                ret_l.append(c.build(btor, soft))
                 
         return btor.And(*ret_l)
     

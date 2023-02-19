@@ -36,13 +36,15 @@ class ConstraintScopeModel(ConstraintModel):
         self.constraint_l.append(c)
         return c
         
-    def build(self, btor):
+    def build(self, btor, soft=False):
         ret = None
         for c in self.constraint_l:
             if ret is None:
-                ret = c.build(btor)
+                ret = c.build(btor, soft)
             else:
-                ret = btor.And(ret, c.build(btor))
+                b = c.build(btor, soft)
+                if b is not None:
+                    ret = btor.And(ret, b)
              
         if ret is None:
             # An empty block defaults to 'true'
