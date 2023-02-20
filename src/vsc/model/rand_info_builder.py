@@ -256,10 +256,11 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 and_cond = ExprBinModel(and_cond, BinExprType.And, soft_cond)
 
             # TODO Is it okay to add priority attr to root Constraint so
-            #      randomize can sort soft constraints easier?
+            #      add_constraint can detect them and randomize can sort
+            #      soft constraints more easily?
             soft_implies = ConstraintImpliesModel(and_cond, [c])
             soft_implies.priority = c.priority
-            self._active_randset.add_soft_constraint(soft_implies)
+            self._active_randset.add_constraint(soft_implies)
 
         super().visit_constraint_soft(c)
         
