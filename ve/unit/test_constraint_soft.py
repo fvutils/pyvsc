@@ -277,31 +277,6 @@ class TestConstraintSoft(VscTestCase):
         pass
         
     def test_soft_nested(self):
-        @vsc.randobj
-        class Nested:
-            def __init__(self):
-                self.a = vsc.rand_uint8_t(8)
-                self.b = vsc.rand_uint8_t(8)
-                self.c = vsc.rand_uint8_t(8)
-
-            @vsc.constraint
-            def default_c(self):
-                self.a > 10
-                self.b == 20
-                self.c == 30
-                with vsc.if_then(self.a > 5):
-                    with vsc.if_then(self.a > 10):
-                        vsc.soft(self.b != 20)
-                    with vsc.implies(self.a > 10):
-                        vsc.soft(self.c != 30)
-
-        nested = Nested()
-
-        nested.randomize()
-        self.assertEqual(nested.b, 20)
-        self.assertEqual(nested.c, 30)
-
-    def test_soft_nested(self):
         """Test various nested soft constraint scenarios"""
 
         @vsc.randobj
