@@ -43,6 +43,7 @@ from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
 from vsc.model.rand_info_builder import RandInfoBuilder
+from vsc.model.rand_state import RandState
 from vsc.model.variable_bound_model import VariableBoundModel
 from vsc.visitors.array_constraint_builder import ArrayConstraintBuilder
 from vsc.visitors.constraint_override_rollback_visitor import ConstraintOverrideRollbackVisitor
@@ -553,7 +554,7 @@ class Randomizer(RandIF):
     
     @staticmethod
     def do_randomize(
-            randstate,
+            randstate: RandState,
             srcinfo : SourceInfo,
             field_model_l : List[FieldModel],
             constraint_l : List[ConstraintModel] = None,
@@ -705,9 +706,10 @@ class Randomizer(RandIF):
 
 
     @staticmethod
-    def get_pretty_call_hash(randstate, field_model_l, constraint_l):
+    def get_pretty_call_hash(randstate: RandState, field_model_l, constraint_l):
         call_hash = ''
         call_hash += f'{hex(id(randstate))}\n'
+        call_hash += f'{randstate.init_seed=}\n'
         if field_model_l is not None:
             for fm in field_model_l:
                 # TODO This pretty print is an expensive call. Need a better way

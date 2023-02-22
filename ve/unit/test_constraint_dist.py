@@ -690,7 +690,7 @@ class TestConstraintDist(VscTestCase):
             print()
         
         def run_obj(obj):
-            cnt = 6
+            cnt = 100
         
             print(f'Using {type(obj).__name__}')
             print('------------------')
