@@ -4,6 +4,7 @@ Created on Oct 11, 2020
 @author: ballance
 '''
 from vsc.model.constraint_model import ConstraintModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.model_visitor import ModelVisitor
@@ -16,9 +17,11 @@ class RandSetNodeBuilder(ModelVisitor):
         super().__init__()
         self.btor = btor
         self.phase = 0
+        self.soft_phase = 0
         
     def build(self, rs : RandSet):
         self.phase = 0
+        self.soft_phase = 0
         for f in rs.fields():
             f.accept(self)
         for c in rs.constraints():
@@ -26,12 +29,18 @@ class RandSetNodeBuilder(ModelVisitor):
         self.phase = 1
         for c in rs.constraints():
             c.accept(self)
+        self.soft_phase = 1
+        for c in rs.soft_constraints():
+            c.accept(self)
     
     def visit_constraint_stmt_enter(self, c:ConstraintModel):
         from ..visitors.model_pretty_printer import ModelPrettyPrinter
         if self.phase == 1:
-            c.build(self.btor)
-    
+            if isinstance(c, ConstraintSoftModel):
+                c.build(self.btor, self.soft_phase)
+            else:
+                c.build(self.btor)
+
     def visit_scalar_field(self, f:FieldScalarModel):
         if self.phase == 0:
             f.build(self.btor)

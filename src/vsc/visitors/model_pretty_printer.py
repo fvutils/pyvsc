@@ -133,16 +133,23 @@ class ModelPrettyPrinter(ModelVisitor):
             self.dec_indent()
             
         self.writeln("}")
-        
+
+    def visit_constraint_soft(self, c:vm.ConstraintSoftModel):
+        self.write(self.ind + "soft ")
+        c.expr.accept(self)
+        self.write("\n")
+
     def visit_constraint_implies(self, c:vm.ConstraintImpliesModel):
         self.write(self.ind)
         c.cond.accept(self)
-        self.write(" -> {")
+        self.write(" -> {\n")
 
+        self.inc_indent()
         for sc in c.constraint_l:
             sc.accept(self)
-            
-        self.write("}\n")
+        self.dec_indent()
+
+        self.write(self.ind + "}\n")
         
     def visit_constraint_solve_order(self, c:ConstraintSolveOrderModel):
         self.write(self.ind)

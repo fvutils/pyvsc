@@ -30,9 +30,9 @@ class ConstraintImpliesModel(ConstraintScopeModel):
         super().__init__(constraints)
         self.cond = cond
         
-    def build(self, btor):
+    def build(self, btor, soft=False):
         cond = ExprModel.toBool(btor, self.cond.build(btor))
-        body = super().build(btor)
+        body = super().build(btor, soft)
         
         return btor.Implies(cond, body)
     

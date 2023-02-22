@@ -17,9 +17,12 @@ class ConstraintSoftModel(ConstraintModel):
         self.expr = e
         self.priority = 0
 
-    def build(self, btor):
-        return self.expr.build(btor)
-        
+    def build(self, btor, soft=False):
+        if soft:
+            return self.expr.build(btor)
+        else:
+            return None
+
     def accept(self, v):
         v.visit_constraint_soft(self)
         
