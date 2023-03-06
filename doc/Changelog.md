@@ -1,3 +1,8 @@
+
+## 0.8.3
+- (#176) [Resolved by Alex Wilson] Correctly handle soft constraints
+  that are under conditions such as if/else. 
+
 ## 0.8.2
 - (#172) Change list subscript to return a ValueInt such that the 
    value returned by a list subscript can, itself, be subscripted
