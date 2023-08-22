@@ -326,6 +326,8 @@ def to_expr(t):
         return t
     elif type(t) == int or type(t) == ValueInt:
         return expr(ExprLiteralModel(int(t), True, 32))
+    elif type(t) == float:
+        return expr(ExprLiteralModel(int(round(t)), True, 32))
     elif isinstance(type(t), (EnumMeta,IntEnum)):
         return expr(EnumInfo.get(type(t)).e2e(t))
     elif isinstance(t, type):

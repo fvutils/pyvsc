@@ -1,4 +1,8 @@
 
+## 0.8.4
+- (#188) - Automatically convert floating-point numbers used in constraints
+  to integers
+
 ## 0.8.3
 - (#176) [Resolved by Alex Wilson] Correctly handle soft constraints
   that are under conditions such as if/else. 

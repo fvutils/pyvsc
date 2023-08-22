@@ -328,3 +328,26 @@ class TestScalarArray(VscTestCase):
         inst.randomize()
         self.assertEqual(inst.c1[0].a[0].enum_test, level_e.level_2)
         self.assertEqual(inst.c2[0].x[0].value, 3)
+
+    def test_list_sum_eq_fp_literal(self):
+
+        @vsc.randobj
+        class ThreadGroupConstraintItem(object):
+
+            def __init__(self, aThreadNum, aSharePercent):
+                self.mThreadNum = aThreadNum
+                self.mSharePercent = aSharePercent
+
+                self.GroupList = vsc.rand_list_t(vsc.rand_uint16_t(), self.mThreadNum)
+                self.GroupListScore = vsc.rand_list_t(vsc.rand_uint16_t(), self.mThreadNum)
+                self.GroupListId = vsc.rand_list_t(vsc.rand_uint16_t(), self.mThreadNum)
+
+            @vsc.constraint
+            def basic_c(self):
+#                self.GroupList.sum == int(self.mThreadNum * self.mSharePercent/100)
+                self.GroupList.sum == self.mThreadNum * self.mSharePercent/100
+
+        obj = ThreadGroupConstraintItem(8, 80)
+        obj.randomize()
+        self.assertEqual(obj.GroupList.sum, 6)
+        print("GroupList.sum=%d eq=%f" % (obj.GroupList.sum, (obj.mThreadNum * obj.mSharePercent/100)))
