@@ -11,10 +11,11 @@
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/doctools.js"></script>
-        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -106,7 +107,9 @@
 <span class="kn">from</span> <span class="nn">vsc.model.field_model</span> <span class="kn">import</span> <span class="n">FieldModel</span>
 
 
-<div class="viewcode-block" id="FieldCompositeModel"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel">[docs]</a><span class="k">class</span> <span class="nc">FieldCompositeModel</span><span class="p">(</span><span class="n">FieldModel</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel">[docs]</a>
+<span class="k">class</span> <span class="nc">FieldCompositeModel</span><span class="p">(</span><span class="n">FieldModel</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">is_rand</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">rand_if</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">name</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -127,8 +130,11 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">function_l</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constraint_l</span> <span class="o">=</span> <span class="p">[]</span>
 
-<div class="viewcode-block" id="FieldCompositeModel.finalize"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.finalize">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.finalize">[docs]</a>
+    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span></div>
+
     
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">is_declared_rand</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -139,14 +145,19 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">__is_declared_rand</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">rand_mode</span> <span class="o">=</span> <span class="nb">bool</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
     
-<div class="viewcode-block" id="FieldCompositeModel.set_used_rand"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.set_used_rand">[docs]</a>    <span class="k">def</span> <span class="nf">set_used_rand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_rand</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.set_used_rand">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.set_used_rand">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_used_rand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_rand</span><span class="p">,</span> <span class="n">level</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">is_used_rand</span> <span class="o">=</span> <span class="p">(</span><span class="n">is_rand</span> <span class="ow">and</span> 
                              <span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">is_declared_rand</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">rand_mode</span><span class="p">)</span> <span class="ow">or</span> <span class="n">level</span><span class="o">==</span><span class="mi">0</span><span class="p">))</span>
 
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">set_used_rand</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">is_used_rand</span><span class="p">,</span> <span class="n">level</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span></div>
+
             
-<div class="viewcode-block" id="FieldCompositeModel.build"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.build">[docs]</a>    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">builder</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.build">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.build">[docs]</a>
+    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">builder</span><span class="p">):</span>
         <span class="c1"># First, build the fields</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">builder</span><span class="p">)</span>
@@ -155,62 +166,92 @@
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_model_l</span><span class="p">:</span>
             <span class="n">c</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">builder</span><span class="p">)</span></div>
 
+
 <span class="c1">#        for f in self.field_l:</span>
 <span class="c1">#            if isinstance(f, FieldCompositeModel):</span>
 <span class="c1">#                f.build</span>
 
-<div class="viewcode-block" id="FieldCompositeModel.add_field"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.add_field">[docs]</a>    <span class="k">def</span> <span class="nf">add_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">FieldModel</span><span class="p">:</span>
+<div class="viewcode-block" id="FieldCompositeModel.add_field">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.add_field">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">f</span><span class="p">)</span><span class="o">-&gt;</span><span class="n">FieldModel</span><span class="p">:</span>
         <span class="n">f</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="n">f</span><span class="o">.</span><span class="n">idx</span>    <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">f</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span><span class="o">.</span><span class="n">idx</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">f</span></div>
+
         
-<div class="viewcode-block" id="FieldCompositeModel.get_field"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_field">[docs]</a>    <span class="k">def</span> <span class="nf">get_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.get_field">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_field">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span></div>
+
     
-<div class="viewcode-block" id="FieldCompositeModel.set_field"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.set_field">[docs]</a>    <span class="k">def</span> <span class="nf">set_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.set_field">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.set_field">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">,</span> <span class="n">f</span><span class="p">):</span>
         <span class="n">f</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="n">f</span><span class="o">.</span><span class="n">idx</span> <span class="o">=</span> <span class="n">idx</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">f</span></div>
+
         
-<div class="viewcode-block" id="FieldCompositeModel.find_field"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.find_field">[docs]</a>    <span class="k">def</span> <span class="nf">find_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.find_field">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.find_field">[docs]</a>
+    <span class="k">def</span> <span class="nf">find_field</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">f</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">f</span>
         <span class="k">return</span> <span class="kc">None</span></div>
+
         
-<div class="viewcode-block" id="FieldCompositeModel.add_constraint"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.add_constraint">[docs]</a>    <span class="k">def</span> <span class="nf">add_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.add_constraint">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.add_constraint">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
         <span class="n">c</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constraint_model_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="FieldCompositeModel.get_constraint"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_constraint">[docs]</a>    <span class="k">def</span> <span class="nf">get_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.get_constraint">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_constraint">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_model_l</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">c</span><span class="o">.</span><span class="n">name</span> <span class="o">==</span> <span class="n">name</span><span class="p">:</span>
                 <span class="k">return</span> <span class="n">c</span>
             
         <span class="k">return</span> <span class="kc">None</span></div>
+
         
-<div class="viewcode-block" id="FieldCompositeModel.add_dynamic_constraint"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.add_dynamic_constraint">[docs]</a>    <span class="k">def</span> <span class="nf">add_dynamic_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.add_dynamic_constraint">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.add_dynamic_constraint">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_dynamic_constraint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
         <span class="n">c</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constraint_dynamic_m</span><span class="p">[</span><span class="n">c</span><span class="o">.</span><span class="n">name</span><span class="p">]</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">constraint_dynamic_model_l</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">constraint_dynamic_model_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="FieldCompositeModel.get_constraints"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_constraints">[docs]</a>    <span class="k">def</span> <span class="nf">get_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">constraint_l</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.get_constraints">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_constraints">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_constraints</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">constraint_l</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">get_constraints</span><span class="p">(</span><span class="n">constraint_l</span><span class="p">)</span>
             
         <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">constraint_model_l</span><span class="p">:</span>
             <span class="n">constraint_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
             
-<div class="viewcode-block" id="FieldCompositeModel.get_fields"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_fields">[docs]</a>    <span class="k">def</span> <span class="nf">get_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_l</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.get_fields">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.get_fields">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field_l</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">FieldCompositeModel</span><span class="p">):</span>
                 <span class="n">f</span><span class="o">.</span><span class="n">get_fields</span><span class="p">(</span><span class="n">field_l</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">field_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">f</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="FieldCompositeModel.pre_randomize"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.pre_randomize">[docs]</a>    <span class="k">def</span> <span class="nf">pre_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<div class="viewcode-block" id="FieldCompositeModel.pre_randomize">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.pre_randomize">[docs]</a>
+    <span class="k">def</span> <span class="nf">pre_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Called during the randomization process to propagate `pre_randomize` event&quot;&quot;&quot;</span>
         
         <span class="c1"># Perform a phase callback if available. Note,</span>
@@ -221,8 +262,11 @@
             
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">pre_randomize</span><span class="p">()</span></div>
+
     
-<div class="viewcode-block" id="FieldCompositeModel.post_randomize"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.post_randomize">[docs]</a>    <span class="k">def</span> <span class="nf">post_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.post_randomize">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.post_randomize">[docs]</a>
+    <span class="k">def</span> <span class="nf">post_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Called during the randomization process to propagate `post_randomize` event&quot;&quot;&quot;</span>
         
         <span class="c1"># Perform a phase callback if available</span>
@@ -232,12 +276,20 @@
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="n">f</span><span class="o">.</span><span class="n">post_randomize</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="FieldCompositeModel.accept"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.accept">[docs]</a>    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+
+<div class="viewcode-block" id="FieldCompositeModel.accept">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.accept">[docs]</a>
+    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="n">v</span><span class="o">.</span><span class="n">visit_composite_field</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="FieldCompositeModel.dispose"><a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.dispose">[docs]</a>    <span class="k">def</span> <span class="nf">dispose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="FieldCompositeModel.dispose">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.field_composite_model.FieldCompositeModel.dispose">[docs]</a>
+    <span class="k">def</span> <span class="nf">dispose</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
-            <span class="n">f</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span></div></div>
+            <span class="n">f</span><span class="o">.</span><span class="n">dispose</span><span class="p">()</span></div>
+</div>
+
         
             
 </pre></div>

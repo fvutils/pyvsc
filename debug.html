@@ -12,10 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -86,7 +87,7 @@
            <div itemprop="articleBody">
              
   <section id="debug">
-<h1>Debug<a class="headerlink" href="#debug" title="Permalink to this heading"></a></h1>
+<h1>Debug<a class="headerlink" href="#debug" title="Link to this heading"></a></h1>
 <p>There are several situations in which you may need to enable or
 configure debug with PyVSC. The most common is when a set of
 constraints fails to solve, and diagnostics must be enabled
@@ -94,7 +95,7 @@ to help understand the reason for the failure. PyVSC targets
 execution speed over verbosity, so default behavior is to
 create no diagnostics when a solve failure occurs.</p>
 <section id="enabling-solve-fail-debug">
-<h2>Enabling Solve-Fail Debug<a class="headerlink" href="#enabling-solve-fail-debug" title="Permalink to this heading"></a></h2>
+<h2>Enabling Solve-Fail Debug<a class="headerlink" href="#enabling-solve-fail-debug" title="Link to this heading"></a></h2>
 <p>PyVSC provides an optional argument to the <code class="xref any docutils literal notranslate"><span class="pre">randomize</span></code> and
 <code class="xref any docutils literal notranslate"><span class="pre">randomize_with</span></code> method to enable solve-fail debug on a
 per-call basis.</p>
@@ -141,7 +142,7 @@ The environment variable VSC_SOLVEFAIL_DEBUG can also
 be set to 1.</p>
 </section>
 <section id="capturing-source-information">
-<h2>Capturing Source Information<a class="headerlink" href="#capturing-source-information" title="Permalink to this heading"></a></h2>
+<h2>Capturing Source Information<a class="headerlink" href="#capturing-source-information" title="Link to this heading"></a></h2>
 <p>Note that no source information is available for the constraints.
 This is because querying source information in Python is quite
 time-consuming.</p>

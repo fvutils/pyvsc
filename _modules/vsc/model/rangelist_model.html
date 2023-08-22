@@ -11,10 +11,11 @@
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/doctools.js"></script>
-        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -106,7 +107,9 @@
 <span class="c1"># @author: ballance</span>
 
 
-<div class="viewcode-block" id="RangelistModel"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel">[docs]</a><span class="k">class</span> <span class="nc">RangelistModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="RangelistModel">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel">[docs]</a>
+<span class="k">class</span> <span class="nc">RangelistModel</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rl</span> <span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]]</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span> <span class="o">=</span> <span class="p">[]</span>
@@ -122,14 +125,22 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">),</span> <span class="nb">int</span><span class="p">(</span><span class="n">r</span><span class="p">)])</span>
    
                     
-<div class="viewcode-block" id="RangelistModel.add_value"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.add_value">[docs]</a>    <span class="k">def</span> <span class="nf">add_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<div class="viewcode-block" id="RangelistModel.add_value">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.add_value">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_value</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">v</span><span class="p">,</span><span class="n">v</span><span class="p">])</span></div>
 
-<div class="viewcode-block" id="RangelistModel.add_range"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.add_range">[docs]</a>    <span class="k">def</span> <span class="nf">add_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
+
+<div class="viewcode-block" id="RangelistModel.add_range">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.add_range">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">])</span></div>
 
+
     <span class="c1"># Merge any overlapping ranges        </span>
-<div class="viewcode-block" id="RangelistModel.compact"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.compact">[docs]</a>    <span class="k">def</span> <span class="nf">compact</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="RangelistModel.compact">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.compact">[docs]</a>
+    <span class="k">def</span> <span class="nf">compact</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">sort</span><span class="p">(</span><span class="n">key</span><span class="o">=</span><span class="k">lambda</span> <span class="n">e</span> <span class="p">:</span> <span class="n">e</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
         
         <span class="n">i</span><span class="o">=</span><span class="mi">0</span>
@@ -144,8 +155,11 @@
             <span class="k">else</span><span class="p">:</span>
                 <span class="n">i</span> <span class="o">+=</span> <span class="mi">1</span>
         <span class="k">pass</span></div>
+
     
-<div class="viewcode-block" id="RangelistModel.intersect"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.intersect">[docs]</a>    <span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
+<div class="viewcode-block" id="RangelistModel.intersect">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.intersect">[docs]</a>
+    <span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">other</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        Intersects another list or ranges with this one,</span>
 <span class="sd">        trimming values that overlap</span>
@@ -163,6 +177,7 @@
                     <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">[</span><span class="n">rng_i</span><span class="p">],</span>
                     <span class="n">r</span><span class="p">)</span>
             <span class="n">rng_i</span> <span class="o">+=</span> <span class="mi">1</span></div>
+
     
     <span class="k">def</span> <span class="nf">_intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span>
                    <span class="n">ranges</span><span class="p">,</span>
@@ -198,7 +213,9 @@
             
         <span class="k">return</span> <span class="kc">False</span>
     
-<div class="viewcode-block" id="RangelistModel.equals"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.equals">[docs]</a>    <span class="k">def</span> <span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oth</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="RangelistModel.equals">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.equals">[docs]</a>
+    <span class="k">def</span> <span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oth</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">bool</span><span class="p">:</span>
         <span class="n">eq</span> <span class="o">=</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">oth</span><span class="p">,</span> <span class="n">RangelistModel</span><span class="p">)</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">oth</span><span class="o">.</span><span class="n">range_l</span><span class="p">):</span>
@@ -209,8 +226,11 @@
             <span class="n">eq</span> <span class="o">=</span> <span class="kc">False</span>
             
         <span class="k">return</span> <span class="n">eq</span></div>
+
     
-<div class="viewcode-block" id="RangelistModel.toString"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.toString">[docs]</a>    <span class="k">def</span> <span class="nf">toString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="RangelistModel.toString">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.toString">[docs]</a>
+    <span class="k">def</span> <span class="nf">toString</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="s2">&quot;[&quot;</span>
         <span class="k">for</span> <span class="n">i</span><span class="p">,</span><span class="n">r</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">):</span>
             <span class="k">if</span> <span class="n">i</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -219,18 +239,26 @@
         <span class="n">ret</span> <span class="o">+=</span> <span class="s2">&quot;]&quot;</span>
         
         <span class="k">return</span> <span class="n">ret</span></div>
+
             
 
-<div class="viewcode-block" id="RangelistModel.clone"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="RangelistModel.clone">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.clone">[docs]</a>
+    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="n">RangelistModel</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
         
         <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">:</span>
             <span class="n">ret</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">r</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
             
         <span class="k">return</span> <span class="n">ret</span></div>
+
     
-<div class="viewcode-block" id="RangelistModel.accept"><a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.accept">[docs]</a>    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
-        <span class="n">v</span><span class="o">.</span><span class="n">visit_rangelist</span><span class="p">(</span><span class="bp">self</span><span class="p">);</span></div></div>
+<div class="viewcode-block" id="RangelistModel.accept">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.rangelist_model.RangelistModel.accept">[docs]</a>
+    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+        <span class="n">v</span><span class="o">.</span><span class="n">visit_rangelist</span><span class="p">(</span><span class="bp">self</span><span class="p">);</span></div>
+</div>
+
 </pre></div>
 
            </div>

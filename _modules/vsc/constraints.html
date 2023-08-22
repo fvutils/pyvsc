@@ -11,10 +11,11 @@
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -124,7 +125,9 @@
 <span class="kn">from</span> <span class="nn">vsc.model.source_info</span> <span class="kn">import</span> <span class="n">SourceInfo</span>
 
 
-<div class="viewcode-block" id="constraint_t"><a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t">[docs]</a><span class="k">class</span> <span class="nc">constraint_t</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="constraint_t">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t">[docs]</a>
+<span class="k">class</span> <span class="nc">constraint_t</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span>
@@ -133,33 +136,50 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="k">pass</span>
     
-<div class="viewcode-block" id="constraint_t.constraint_mode"><a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t.constraint_mode">[docs]</a>    <span class="k">def</span> <span class="nf">constraint_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">en</span><span class="p">):</span>
+<div class="viewcode-block" id="constraint_t.constraint_mode">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t.constraint_mode">[docs]</a>
+    <span class="k">def</span> <span class="nf">constraint_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">en</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">enabled</span> <span class="o">=</span> <span class="n">en</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">set_constraint_enabled</span><span class="p">(</span><span class="n">en</span><span class="p">)</span></div>
+
             
-<div class="viewcode-block" id="constraint_t.set_model"><a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t.set_model">[docs]</a>    <span class="k">def</span> <span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+<div class="viewcode-block" id="constraint_t.set_model">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t.set_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">m</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">set_constraint_enabled</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enabled</span><span class="p">)</span></div>
+
             
     
-<div class="viewcode-block" id="constraint_t.elab"><a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t.elab">[docs]</a>    <span class="k">def</span> <span class="nf">elab</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;elab&quot;</span><span class="p">)</span></div></div>
+<div class="viewcode-block" id="constraint_t.elab">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint_t.elab">[docs]</a>
+    <span class="k">def</span> <span class="nf">elab</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;elab&quot;</span><span class="p">)</span></div>
+</div>
+
         
-<div class="viewcode-block" id="dynamic_constraint_t"><a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint_t">[docs]</a><span class="k">class</span> <span class="nc">dynamic_constraint_t</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="dynamic_constraint_t">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint_t">[docs]</a>
+<span class="k">class</span> <span class="nc">dynamic_constraint_t</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="kc">None</span>
         
-<div class="viewcode-block" id="dynamic_constraint_t.set_model"><a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint_t.set_model">[docs]</a>    <span class="k">def</span> <span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
+<div class="viewcode-block" id="dynamic_constraint_t.set_model">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint_t.set_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">m</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">m</span></div>
+
         
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprDynRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">))</span>
 
-<div class="viewcode-block" id="dynamic_constraint_t.call_closure"><a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint_t.call_closure">[docs]</a>    <span class="k">class</span> <span class="nc">call_closure</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="dynamic_constraint_t.call_closure">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint_t.call_closure">[docs]</a>
+    <span class="k">class</span> <span class="nc">call_closure</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
         
         <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">c</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">c</span> <span class="o">=</span> <span class="n">c</span>
@@ -170,10 +190,14 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">(</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="bp">self</span><span class="o">.</span><span class="n">kwargs</span><span class="p">)</span>
         
         <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
-            <span class="k">pass</span></div></div>
+            <span class="k">pass</span></div>
+</div>
+
         
 
-<div class="viewcode-block" id="dynamic_constraint"><a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint">[docs]</a><span class="k">def</span> <span class="nf">dynamic_constraint</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+<div class="viewcode-block" id="dynamic_constraint">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.dynamic_constraint">[docs]</a>
+<span class="k">def</span> <span class="nf">dynamic_constraint</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">dynamic_constraint_t</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
     
     <span class="c1"># Capture source info, since it&#39;s only</span>
@@ -181,7 +205,10 @@
     <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="constraint"><a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint">[docs]</a><span class="k">def</span> <span class="nf">constraint</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
+
+<div class="viewcode-block" id="constraint">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.constraint">[docs]</a>
+<span class="k">def</span> <span class="nf">constraint</span><span class="p">(</span><span class="n">c</span><span class="p">):</span>
     <span class="n">ret</span> <span class="o">=</span> <span class="n">constraint_t</span><span class="p">(</span><span class="n">c</span><span class="p">)</span>
     
     <span class="c1"># Capture source info, since it&#39;s only</span>
@@ -189,7 +216,10 @@
     <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
     <span class="k">return</span> <span class="n">ret</span></div>
 
-<div class="viewcode-block" id="weight"><a class="viewcode-back" href="../../reference.html#vsc.constraints.weight">[docs]</a><span class="k">class</span> <span class="nc">weight</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="weight">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.weight">[docs]</a>
+<span class="k">class</span> <span class="nc">weight</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">,</span> <span class="n">w</span><span class="p">):</span>
         <span class="n">rng_lhs_e</span> <span class="o">=</span> <span class="kc">None</span>
@@ -215,9 +245,12 @@
             <span class="n">rng_lhs_e</span><span class="p">,</span>
             <span class="n">rng_rhs_e</span><span class="p">,</span>
             <span class="n">w_e</span><span class="p">)</span></div>
+
     
 
-<div class="viewcode-block" id="dist"><a class="viewcode-back" href="../../reference.html#vsc.constraints.dist">[docs]</a><span class="k">def</span> <span class="nf">dist</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
+<div class="viewcode-block" id="dist">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.dist">[docs]</a>
+<span class="k">def</span> <span class="nf">dist</span><span class="p">(</span><span class="n">lhs</span><span class="p">,</span> <span class="n">weights</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Applies distribution weights to the specified field&quot;&quot;&quot;</span>
     
     <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
@@ -235,9 +268,12 @@
         <span class="n">c</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
         
     <span class="n">push_constraint_stmt</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
     
 
-<div class="viewcode-block" id="if_then"><a class="viewcode-back" href="../../reference.html#vsc.constraints.if_then">[docs]</a><span class="k">class</span> <span class="nc">if_then</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="if_then">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.if_then">[docs]</a>
+<span class="k">class</span> <span class="nc">if_then</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">in_constraint_scope</span><span class="p">():</span>
@@ -255,9 +291,12 @@
         
     <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
         <span class="n">pop_constraint_scope</span><span class="p">()</span></div>
+
         
         
-<div class="viewcode-block" id="else_if"><a class="viewcode-back" href="../../reference.html#vsc.constraints.else_if">[docs]</a><span class="k">class</span> <span class="nc">else_if</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="else_if">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.else_if">[docs]</a>
+<span class="k">class</span> <span class="nc">else_if</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stmt</span> <span class="o">=</span> <span class="kc">None</span>
@@ -286,8 +325,11 @@
         
     <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
         <span class="n">pop_constraint_scope</span><span class="p">()</span></div>
+
         
-<div class="viewcode-block" id="else_then_c"><a class="viewcode-back" href="../../reference.html#vsc.constraints.else_then_c">[docs]</a><span class="k">class</span> <span class="nc">else_then_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="else_then_c">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.else_then_c">[docs]</a>
+<span class="k">class</span> <span class="nc">else_then_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">pass</span>
@@ -314,9 +356,12 @@
     <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
         <span class="n">pop_constraint_scope</span><span class="p">()</span></div>
 
+
 <span class="n">else_then</span> <span class="o">=</span> <span class="n">else_then_c</span><span class="p">()</span>
 
-<div class="viewcode-block" id="implies"><a class="viewcode-back" href="../../reference.html#vsc.constraints.implies">[docs]</a><span class="k">class</span> <span class="nc">implies</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="implies">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.implies">[docs]</a>
+<span class="k">class</span> <span class="nc">implies</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">e</span><span class="p">):</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="n">in_constraint_scope</span><span class="p">():</span>
@@ -333,17 +378,23 @@
         
     <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
         <span class="n">pop_constraint_scope</span><span class="p">()</span></div>
+
         
-<div class="viewcode-block" id="soft"><a class="viewcode-back" href="../../reference.html#vsc.constraints.soft">[docs]</a><span class="k">def</span> <span class="nf">soft</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
+<div class="viewcode-block" id="soft">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.soft">[docs]</a>
+<span class="k">def</span> <span class="nf">soft</span><span class="p">(</span><span class="n">e</span><span class="p">):</span>
     
     <span class="n">to_expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
     <span class="n">em</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
     <span class="n">c</span> <span class="o">=</span> <span class="n">ConstraintSoftModel</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
     <span class="n">c</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">em</span><span class="o">.</span><span class="n">srcinfo</span>
     <span class="n">push_constraint_stmt</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
     
 
-<div class="viewcode-block" id="unique"><a class="viewcode-back" href="../../reference.html#vsc.constraints.unique">[docs]</a><span class="k">def</span> <span class="nf">unique</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+<div class="viewcode-block" id="unique">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.unique">[docs]</a>
+<span class="k">def</span> <span class="nf">unique</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
     <span class="n">expr_l</span> <span class="o">=</span> <span class="p">[]</span>
     <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
         <span class="n">to_expr</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
@@ -353,8 +404,11 @@
     <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
         <span class="n">c</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
     <span class="n">push_constraint_stmt</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
     
-<div class="viewcode-block" id="forall"><a class="viewcode-back" href="../../reference.html#vsc.constraints.forall">[docs]</a><span class="k">class</span> <span class="nc">forall</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="forall">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.forall">[docs]</a>
+<span class="k">class</span> <span class="nc">forall</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">target_type</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target_type</span> <span class="o">=</span> <span class="n">target_type</span>
@@ -365,22 +419,36 @@
     
     <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
         <span class="k">pass</span></div>
+
     
-<div class="viewcode-block" id="foreach"><a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach">[docs]</a><span class="k">class</span> <span class="nc">foreach</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="foreach">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach">[docs]</a>
+<span class="k">class</span> <span class="nc">foreach</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
-<div class="viewcode-block" id="foreach.idx_term_c"><a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.idx_term_c">[docs]</a>    <span class="k">class</span> <span class="nc">idx_term_c</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
+<div class="viewcode-block" id="foreach.idx_term_c">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.idx_term_c">[docs]</a>
+    <span class="k">class</span> <span class="nc">idx_term_c</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
         <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">index</span><span class="p">):</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">index</span> <span class="o">=</span> <span class="n">index</span>
-<div class="viewcode-block" id="foreach.idx_term_c.to_expr"><a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.idx_term_c.to_expr">[docs]</a>        <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-            <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">))</span></div></div>
+<div class="viewcode-block" id="foreach.idx_term_c.to_expr">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.idx_term_c.to_expr">[docs]</a>
+        <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">index</span><span class="p">))</span></div>
+</div>
+
         
-<div class="viewcode-block" id="foreach.it_term_c"><a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.it_term_c">[docs]</a>    <span class="k">class</span> <span class="nc">it_term_c</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
+<div class="viewcode-block" id="foreach.it_term_c">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.it_term_c">[docs]</a>
+    <span class="k">class</span> <span class="nc">it_term_c</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
         <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">em</span><span class="p">):</span>
             <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="kc">False</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">em</span> <span class="o">=</span> <span class="n">em</span>
-<div class="viewcode-block" id="foreach.it_term_c.to_expr"><a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.it_term_c.to_expr">[docs]</a>        <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="foreach.it_term_c.to_expr">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.foreach.it_term_c.to_expr">[docs]</a>
+        <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">em</span><span class="p">)</span></div>
+
         
         <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">aname</span><span class="p">):</span>
             <span class="n">em</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;em&quot;</span><span class="p">)</span>
@@ -410,6 +478,7 @@
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Expression getattribute access on non-subscript&quot;</span><span class="p">)</span>
     
             <span class="k">return</span> <span class="n">ret</span>        </div>
+
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">l</span><span class="p">,</span> <span class="n">it</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">idx</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">stmt</span> <span class="o">=</span> <span class="kc">None</span>
@@ -464,9 +533,12 @@
 
     <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
         <span class="n">pop_constraint_scope</span><span class="p">()</span></div>
+
        
 
-<div class="viewcode-block" id="solve_order"><a class="viewcode-back" href="../../reference.html#vsc.constraints.solve_order">[docs]</a><span class="k">def</span> <span class="nf">solve_order</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">after</span><span class="p">):</span>
+<div class="viewcode-block" id="solve_order">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.solve_order">[docs]</a>
+<span class="k">def</span> <span class="nf">solve_order</span><span class="p">(</span><span class="n">before</span><span class="p">,</span> <span class="n">after</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">constraint_scope_depth</span><span class="p">()</span> <span class="o">!=</span> <span class="mi">1</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;solve_before can only be used at a constraint top level&quot;</span><span class="p">)</span>
 
@@ -506,6 +578,7 @@
     <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
         <span class="n">c</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
     <span class="n">push_constraint_stmt</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
 
 
     

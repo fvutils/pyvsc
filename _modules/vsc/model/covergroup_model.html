@@ -11,10 +11,11 @@
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script data-url_root="../../../" id="documentation_options" src="../../../_static/documentation_options.js"></script>
-        <script src="../../../_static/doctools.js"></script>
-        <script src="../../../_static/sphinx_highlight.js"></script>
+        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -108,7 +109,9 @@
 <span class="kn">from</span> <span class="nn">vsc.model.field_composite_model</span> <span class="kn">import</span> <span class="n">FieldCompositeModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.coverage_options_model</span> <span class="kn">import</span> <span class="n">CoverageOptionsModel</span>
 
-<div class="viewcode-block" id="CovergroupModel"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel">[docs]</a><span class="k">class</span> <span class="nc">CovergroupModel</span><span class="p">(</span><span class="n">FieldCompositeModel</span><span class="p">):</span>
+<div class="viewcode-block" id="CovergroupModel">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel">[docs]</a>
+<span class="k">class</span> <span class="nc">CovergroupModel</span><span class="p">(</span><span class="n">FieldCompositeModel</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                  <span class="n">name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
@@ -136,14 +139,19 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">options</span>
         
         
-<div class="viewcode-block" id="CovergroupModel.finalize"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.finalize">[docs]</a>    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CovergroupModel.finalize">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.finalize">[docs]</a>
+    <span class="k">def</span> <span class="nf">finalize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">:</span>
             <span class="n">cp</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
             
         <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_l</span><span class="p">:</span>
             <span class="n">cp</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="CovergroupModel.sample"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.sample">[docs]</a>    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+
+<div class="viewcode-block" id="CovergroupModel.sample">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.sample">[docs]</a>
+    <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="c1"># First, sample the coverpoints</span>
         <span class="k">for</span> <span class="n">cp</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">:</span>
             <span class="n">cp</span><span class="o">.</span><span class="n">sample</span><span class="p">()</span>
@@ -171,7 +179,10 @@
         <span class="k">for</span> <span class="n">cr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_l</span><span class="p">:</span>
             <span class="n">cr</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span></div>
 
-<div class="viewcode-block" id="CovergroupModel.add_coverpoint"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.add_coverpoint">[docs]</a>    <span class="k">def</span> <span class="nf">add_coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">):</span>
+
+<div class="viewcode-block" id="CovergroupModel.add_coverpoint">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.add_coverpoint">[docs]</a>
+    <span class="k">def</span> <span class="nf">add_coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">):</span>
         <span class="n">cp</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="bp">self</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">cp</span><span class="p">,</span> <span class="n">CoverpointModel</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">cp</span><span class="p">)</span>
@@ -181,17 +192,26 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unsupported model type </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">cp</span><span class="p">))))</span>
         
         <span class="k">return</span> <span class="n">cp</span></div>
+
         
-<div class="viewcode-block" id="CovergroupModel.get_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CovergroupModel.get_coverage">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_coverage">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span></div>
+
         
-<div class="viewcode-block" id="CovergroupModel.coverage_ev"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.coverage_ev">[docs]</a>    <span class="k">def</span> <span class="nf">coverage_ev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
+<div class="viewcode-block" id="CovergroupModel.coverage_ev">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.coverage_ev">[docs]</a>
+    <span class="k">def</span> <span class="nf">coverage_ev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span> <span class="o">=</span> <span class="kc">False</span></div>
+
     
-<div class="viewcode-block" id="CovergroupModel.get_inst_coverage"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_inst_coverage">[docs]</a>    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="CovergroupModel.get_inst_coverage">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.get_inst_coverage">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;get_inst_coverage: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span><span class="p">)</span>
         <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage_calc_valid</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span> <span class="o">=</span> <span class="mf">0.0</span>
@@ -209,19 +229,28 @@
             
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">coverage</span>        </div>
 
-<div class="viewcode-block" id="CovergroupModel.accept"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.accept">[docs]</a>    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+
+<div class="viewcode-block" id="CovergroupModel.accept">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.accept">[docs]</a>
+    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="n">v</span><span class="o">.</span><span class="n">visit_covergroup</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
+
             
-<div class="viewcode-block" id="CovergroupModel.dump"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.dump">[docs]</a>    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+<div class="viewcode-block" id="CovergroupModel.dump">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.dump">[docs]</a>
+    <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
         <span class="c1"># Disabled functionality</span>
         <span class="k">pass</span></div>
+
 <span class="c1">#         print(ind + &quot;Covergroup &quot; + self.name)</span>
 <span class="c1">#         for cp in self.coverpoint_l:</span>
 <span class="c1">#             cp.dump(ind + &quot;    &quot;)</span>
 <span class="c1">#         for cr in self.cross_l:</span>
 <span class="c1">#             cr.dump(ind + &quot;    &quot;)</span>
 
-<div class="viewcode-block" id="CovergroupModel.equals"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.equals">[docs]</a>    <span class="k">def</span> <span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oth</span> <span class="p">:</span> <span class="s1">&#39;CovergroupModel&#39;</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">bool</span><span class="p">:</span>
+<div class="viewcode-block" id="CovergroupModel.equals">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.equals">[docs]</a>
+    <span class="k">def</span> <span class="nf">equals</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">oth</span> <span class="p">:</span> <span class="s1">&#39;CovergroupModel&#39;</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">bool</span><span class="p">:</span>
         <span class="n">eq</span> <span class="o">=</span> <span class="kc">True</span>
         
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">)</span> <span class="o">==</span> <span class="nb">len</span><span class="p">(</span><span class="n">oth</span><span class="o">.</span><span class="n">coverpoint_l</span><span class="p">):</span>
@@ -237,8 +266,11 @@
             <span class="n">eq</span> <span class="o">=</span> <span class="kc">False</span>
             
         <span class="k">return</span> <span class="n">eq</span></div>
+
     
-<div class="viewcode-block" id="CovergroupModel.clone"><a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="s1">&#39;CovergroupModel&#39;</span><span class="p">:</span>
+<div class="viewcode-block" id="CovergroupModel.clone">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.clone">[docs]</a>
+    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="s1">&#39;CovergroupModel&#39;</span><span class="p">:</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="n">CovergroupModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
         
         <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
@@ -256,7 +288,9 @@
         <span class="k">for</span> <span class="n">cr</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_l</span><span class="p">:</span>
             <span class="n">ret</span><span class="o">.</span><span class="n">add_coverpoint</span><span class="p">(</span><span class="n">cr</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">coverpoint_m</span><span class="p">))</span>
             
-        <span class="k">return</span> <span class="n">ret</span></div></div>
+        <span class="k">return</span> <span class="n">ret</span></div>
+</div>
+
         
 </pre></div>
 

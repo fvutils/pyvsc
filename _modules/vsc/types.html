@@ -11,10 +11,11 @@
     <script src="../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
-        <script src="../../_static/doctools.js"></script>
-        <script src="../../_static/sphinx_highlight.js"></script>
+        <script src="../../_static/jquery.js?v=5d32c60e"></script>
+        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -135,22 +136,32 @@
 <span class="kn">from</span> <span class="nn">vsc.model.source_info</span> <span class="kn">import</span> <span class="n">SourceInfo</span>
 
 
-<div class="viewcode-block" id="unsigned"><a class="viewcode-back" href="../../reference.html#vsc.types.unsigned">[docs]</a><span class="k">def</span> <span class="nf">unsigned</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+<div class="viewcode-block" id="unsigned">
+<a class="viewcode-back" href="../../reference.html#vsc.types.unsigned">[docs]</a>
+<span class="k">def</span> <span class="nf">unsigned</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="n">w</span> <span class="o">=</span> <span class="mi">32</span>
     <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprLiteralModel</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">w</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="signed"><a class="viewcode-back" href="../../reference.html#vsc.types.signed">[docs]</a><span class="k">def</span> <span class="nf">signed</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+
+<div class="viewcode-block" id="signed">
+<a class="viewcode-back" href="../../reference.html#vsc.types.signed">[docs]</a>
+<span class="k">def</span> <span class="nf">signed</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="n">w</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
     <span class="k">if</span> <span class="n">w</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
         <span class="n">w</span> <span class="o">=</span> <span class="mi">32</span>
     <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprLiteralModel</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">w</span><span class="p">))</span></div>
 
-<div class="viewcode-block" id="expr"><a class="viewcode-back" href="../../reference.html#vsc.types.expr">[docs]</a><span class="k">class</span> <span class="nc">expr</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+
+<div class="viewcode-block" id="expr">
+<a class="viewcode-back" href="../../reference.html#vsc.types.expr">[docs]</a>
+<span class="k">class</span> <span class="nc">expr</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">em</span><span class="p">):</span>
         <span class="n">push_expr</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">em</span> <span class="o">=</span> <span class="n">em</span>
         
-<div class="viewcode-block" id="expr.bin_expr"><a class="viewcode-back" href="../../reference.html#vsc.types.expr.bin_expr">[docs]</a>    <span class="k">def</span> <span class="nf">bin_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+<div class="viewcode-block" id="expr.bin_expr">
+<a class="viewcode-back" href="../../reference.html#vsc.types.expr.bin_expr">[docs]</a>
+    <span class="k">def</span> <span class="nf">bin_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="n">to_expr</span><span class="p">(</span><span class="n">rhs</span><span class="p">)</span>
 
         <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
@@ -161,6 +172,7 @@
             <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
         
     <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_expr</span><span class="p">(</span><span class="n">BinExprType</span><span class="o">.</span><span class="n">Eq</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
@@ -221,7 +233,9 @@
         
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprUnaryModel</span><span class="p">(</span><span class="n">UnaryExprType</span><span class="o">.</span><span class="n">Not</span><span class="p">,</span> <span class="n">lhs</span><span class="p">))</span>
     
-<div class="viewcode-block" id="expr.inside"><a class="viewcode-back" href="../../reference.html#vsc.types.expr.inside">[docs]</a>    <span class="k">def</span> <span class="nf">inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+<div class="viewcode-block" id="expr.inside">
+<a class="viewcode-back" href="../../reference.html#vsc.types.expr.inside">[docs]</a>
+    <span class="k">def</span> <span class="nf">inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">rangelist</span><span class="p">):</span>
@@ -235,10 +249,16 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unsupported &#39;inside&#39; argument of type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rhs</span><span class="p">))</span> <span class="o">+</span> 
                             <span class="s2">&quot;expect vsc.rangelist or list_t&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="expr.outside"><a class="viewcode-back" href="../../reference.html#vsc.types.expr.outside">[docs]</a>    <span class="k">def</span> <span class="nf">outside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="expr.outside">
+<a class="viewcode-back" href="../../reference.html#vsc.types.expr.outside">[docs]</a>
+    <span class="k">def</span> <span class="nf">outside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">not_inside</span><span class="p">(</span><span class="n">rhs</span><span class="p">)</span></div>
+
             
-<div class="viewcode-block" id="expr.not_inside"><a class="viewcode-back" href="../../reference.html#vsc.types.expr.not_inside">[docs]</a>    <span class="k">def</span> <span class="nf">not_inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+<div class="viewcode-block" id="expr.not_inside">
+<a class="viewcode-back" href="../../reference.html#vsc.types.expr.not_inside">[docs]</a>
+    <span class="k">def</span> <span class="nf">not_inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">rhs</span><span class="p">,</span> <span class="n">rangelist</span><span class="p">):</span>
@@ -253,6 +273,7 @@
                         <span class="p">[</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="n">rhs</span><span class="o">.</span><span class="n">get_model</span><span class="p">())]))))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unsupported &#39;not_inside&#39; argument of type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rhs</span><span class="p">)))</span></div>
+
         
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">is_expr_mode</span><span class="p">():</span>
@@ -278,16 +299,22 @@
                     <span class="n">idx_e</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Calling __getitem__ on an expr on non-expression context&quot;</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="dynamic_constraint_proxy"><a class="viewcode-back" href="../../reference.html#vsc.types.dynamic_constraint_proxy">[docs]</a><span class="k">class</span> <span class="nc">dynamic_constraint_proxy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="dynamic_constraint_proxy">
+<a class="viewcode-back" href="../../reference.html#vsc.types.dynamic_constraint_proxy">[docs]</a>
+<span class="k">class</span> <span class="nc">dynamic_constraint_proxy</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">em</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">em</span> <span class="o">=</span> <span class="n">em</span>
         
     <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">em</span><span class="p">)</span></div>
+
     
-<div class="viewcode-block" id="expr_subscript"><a class="viewcode-back" href="../../reference.html#vsc.types.expr_subscript">[docs]</a><span class="k">class</span> <span class="nc">expr_subscript</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
+<div class="viewcode-block" id="expr_subscript">
+<a class="viewcode-back" href="../../reference.html#vsc.types.expr_subscript">[docs]</a>
+<span class="k">class</span> <span class="nc">expr_subscript</span><span class="p">(</span><span class="n">expr</span><span class="p">):</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">em</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
         
@@ -322,17 +349,23 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Expression getattribute access on non-subscript&quot;</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="n">ret</span></div>
+
     
     
-<div class="viewcode-block" id="rng"><a class="viewcode-back" href="../../reference.html#vsc.types.rng">[docs]</a><span class="k">class</span> <span class="nc">rng</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="rng">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rng">[docs]</a>
+<span class="k">class</span> <span class="nc">rng</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">low</span><span class="p">,</span> <span class="n">high</span><span class="p">):</span>
         <span class="n">to_expr</span><span class="p">(</span><span class="n">low</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">low</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         <span class="n">to_expr</span><span class="p">(</span><span class="n">high</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span></div>
+
         
-<div class="viewcode-block" id="rangelist"><a class="viewcode-back" href="../../reference.html#vsc.types.rangelist">[docs]</a><span class="k">class</span> <span class="nc">rangelist</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="rangelist">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rangelist">[docs]</a>
+<span class="k">class</span> <span class="nc">rangelist</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
@@ -365,14 +398,22 @@
 
                 <span class="c1"># This needs to be convertioble to a</span>
                 
-<div class="viewcode-block" id="rangelist.clear"><a class="viewcode-back" href="../../reference.html#vsc.types.rangelist.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="rangelist.clear">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rangelist.clear">[docs]</a>
+    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">rl</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
                 
-<div class="viewcode-block" id="rangelist.extend"><a class="viewcode-back" href="../../reference.html#vsc.types.rangelist.extend">[docs]</a>    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ranges</span><span class="p">):</span>
+<div class="viewcode-block" id="rangelist.extend">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rangelist.extend">[docs]</a>
+    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ranges</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">a</span> <span class="ow">in</span> <span class="n">ranges</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="rangelist.append"><a class="viewcode-back" href="../../reference.html#vsc.types.rangelist.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+
+<div class="viewcode-block" id="rangelist.append">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rangelist.append">[docs]</a>
+    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
         <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">tuple</span><span class="p">):</span>
             <span class="c1"># This needs to be a two-element array</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
@@ -393,6 +434,7 @@
             <span class="n">to_expr</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
             <span class="n">e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>        </div>
+
                 
     <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
         <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
@@ -401,26 +443,34 @@
     <span class="k">def</span> <span class="fm">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rangelist.__invert__&quot;</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="to_expr"><a class="viewcode-back" href="../../reference.html#vsc.types.to_expr">[docs]</a><span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+
+<div class="viewcode-block" id="to_expr">
+<a class="viewcode-back" href="../../reference.html#vsc.types.to_expr">[docs]</a>
+<span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">expr</span><span class="p">):</span>
         <span class="c1"># This expression is already on the stack</span>
 <span class="c1">#        push_expr(t.em)</span>
         <span class="k">return</span> <span class="n">t</span>
     <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="nb">int</span> <span class="ow">or</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="n">ValueInt</span><span class="p">:</span>
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprLiteralModel</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
+    <span class="k">elif</span> <span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">==</span> <span class="nb">float</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprLiteralModel</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="nb">round</span><span class="p">(</span><span class="n">t</span><span class="p">)),</span> <span class="kc">True</span><span class="p">,</span> <span class="mi">32</span><span class="p">))</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">),</span> <span class="p">(</span><span class="n">EnumMeta</span><span class="p">,</span><span class="n">IntEnum</span><span class="p">)):</span>
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">EnumInfo</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">))</span><span class="o">.</span><span class="n">e2e</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
     <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="nb">type</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Illegal attempt to convert a type (</span><span class="si">%s</span><span class="s2">) to a value&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
     <span class="k">elif</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="s2">&quot;to_expr&quot;</span><span class="p">):</span>
         <span class="k">return</span> <span class="n">t</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
-    <span class="k">elif</span> <span class="n">callable</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
+    <span class="k">elif</span> <span class="nb">callable</span><span class="p">(</span><span class="n">t</span><span class="p">):</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;TODO: support lambda references&quot;</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Element </span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> isn&#39;t recognized, and doesn&#39;t provide to_expr (type=</span><span class="si">%s</span><span class="s2">)&quot;</span> <span class="o">%</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">t</span><span class="p">)))</span></div>
+
     
     
-<div class="viewcode-block" id="field_info"><a class="viewcode-back" href="../../reference.html#vsc.types.field_info">[docs]</a><span class="k">class</span> <span class="nc">field_info</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="field_info">
+<a class="viewcode-back" href="../../reference.html#vsc.types.field_info">[docs]</a>
+<span class="k">class</span> <span class="nc">field_info</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Model-specific information about the field&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_composite</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="c1"># a non-negative id means that this field</span>
@@ -438,12 +488,18 @@
         <span class="c1"># Specifies whether an ExprIndexedFieldRef should be used</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">indexed_ref</span> <span class="o">=</span> <span class="kc">False</span>
         
-<div class="viewcode-block" id="field_info.set_is_rand"><a class="viewcode-back" href="../../reference.html#vsc.types.field_info.set_is_rand">[docs]</a>    <span class="k">def</span> <span class="nf">set_is_rand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_rand</span><span class="p">):</span>
+<div class="viewcode-block" id="field_info.set_is_rand">
+<a class="viewcode-back" href="../../reference.html#vsc.types.field_info.set_is_rand">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_is_rand</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">is_rand</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">is_rand</span> <span class="o">=</span> <span class="n">is_rand</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">is_declared_rand</span> <span class="o">=</span> <span class="n">is_rand</span></div></div>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">is_declared_rand</span> <span class="o">=</span> <span class="n">is_rand</span></div>
+</div>
+
         
-<div class="viewcode-block" id="type_base"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base">[docs]</a><span class="k">class</span> <span class="nc">type_base</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base">[docs]</a>
+<span class="k">class</span> <span class="nc">type_base</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base type for all primitive-type fields that participate in constraints&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">width</span><span class="p">,</span> <span class="n">is_signed</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -452,12 +508,17 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">_init_val</span> <span class="o">=</span> <span class="n">i</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span> <span class="o">=</span> <span class="n">field_info</span><span class="p">()</span>
         
-<div class="viewcode-block" id="type_base.get_model"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.get_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.get_model">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.get_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="s2">&quot;&lt;anonymous&gt;&quot;</span><span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span></div>
+
         
-<div class="viewcode-block" id="type_base.build_field_model"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.build_field_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.build_field_model">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.build_field_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">FieldScalarModel</span><span class="p">(</span>
@@ -471,8 +532,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
             
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span></div>
+
     
-<div class="viewcode-block" id="type_base.to_expr"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.to_expr">[docs]</a>    <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.to_expr">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.to_expr">[docs]</a>
+    <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">id</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
             <span class="c1"># A non-negative id means that this field</span>
             <span class="c1"># should be referenced indirectly. Follow the</span>
@@ -488,6 +552,7 @@
             <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprIndexedFieldRefModel</span><span class="p">(</span><span class="n">fi</span><span class="o">.</span><span class="n">root_e</span><span class="p">,</span> <span class="n">id_l</span><span class="p">))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="p">))</span></div>
+
         
     <span class="nd">@property</span>
     <span class="k">def</span> <span class="nf">rand_mode</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -511,10 +576,15 @@
             <span class="n">v</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">v</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">((</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">ValueScalar</span><span class="p">(</span><span class="n">v</span><span class="p">))</span>
             
-<div class="viewcode-block" id="type_base.get_val"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.get_val">[docs]</a>    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.get_val">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.get_val">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_val</span><span class="p">()</span><span class="o">.</span><span class="n">toInt</span><span class="p">()</span></div>
+
     
-<div class="viewcode-block" id="type_base.set_val"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.set_val">[docs]</a>    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.set_val">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.set_val">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_signed</span><span class="p">:</span>
             <span class="c1"># TODO: handle signed masking</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">ValueScalar</span><span class="p">(</span><span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)))</span>
@@ -522,8 +592,11 @@
             <span class="c1"># Mask the user-specified value</span>
             <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">val</span><span class="p">)</span> <span class="o">&amp;</span> <span class="p">((</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">ValueScalar</span><span class="p">(</span><span class="n">val</span><span class="p">))</span></div>
+
         
-<div class="viewcode-block" id="type_base.bin_expr"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.bin_expr">[docs]</a>    <span class="k">def</span> <span class="nf">bin_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.bin_expr">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.bin_expr">[docs]</a>
+    <span class="k">def</span> <span class="nf">bin_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">op</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="n">to_expr</span><span class="p">(</span><span class="n">rhs</span><span class="p">)</span>
         <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
 
@@ -538,6 +611,7 @@
             <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span></div>
+
 
     <span class="k">def</span> <span class="fm">__eq__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bin_expr</span><span class="p">(</span><span class="n">BinExprType</span><span class="o">.</span><span class="n">Eq</span><span class="p">,</span> <span class="n">rhs</span><span class="p">)</span>
@@ -598,7 +672,9 @@
         <span class="n">lhs</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprUnaryModel</span><span class="p">(</span><span class="n">UnaryExprType</span><span class="o">.</span><span class="n">Not</span><span class="p">,</span> <span class="n">lhs</span><span class="p">))</span>
     
-<div class="viewcode-block" id="type_base.inside"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.inside">[docs]</a>    <span class="k">def</span> <span class="nf">inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.inside">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.inside">[docs]</a>
+    <span class="k">def</span> <span class="nf">inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
         <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         
@@ -616,10 +692,16 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unsupported &#39;inside&#39; argument of type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rhs</span><span class="p">)))</span></div>
 
-<div class="viewcode-block" id="type_base.outside"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.outside">[docs]</a>    <span class="k">def</span> <span class="nf">outside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+
+<div class="viewcode-block" id="type_base.outside">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.outside">[docs]</a>
+    <span class="k">def</span> <span class="nf">outside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">not_inside</span><span class="p">(</span><span class="n">rhs</span><span class="p">)</span></div>
+
             
-<div class="viewcode-block" id="type_base.not_inside"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.not_inside">[docs]</a>    <span class="k">def</span> <span class="nf">not_inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+<div class="viewcode-block" id="type_base.not_inside">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.not_inside">[docs]</a>
+    <span class="k">def</span> <span class="nf">not_inside</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
         <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         
@@ -635,6 +717,7 @@
                         <span class="p">[</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="n">rhs</span><span class="o">.</span><span class="n">get_model</span><span class="p">())]))))</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unsupported &#39;not_inside&#39; argument of type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rhs</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; expect rangelist or list_t&quot;</span><span class="p">)</span></div>
+
         
     
         
@@ -675,16 +758,24 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cannot assign to a part-select within a constraint&quot;</span><span class="p">)</span>
         
-<div class="viewcode-block" id="type_base.clone"><a class="viewcode-back" href="../../reference.html#vsc.types.type_base.clone">[docs]</a>    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">type_base</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_signed</span><span class="p">)</span></div></div>
+<div class="viewcode-block" id="type_base.clone">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_base.clone">[docs]</a>
+    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">type_base</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">width</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_signed</span><span class="p">)</span></div>
+</div>
 
-<div class="viewcode-block" id="type_bool"><a class="viewcode-back" href="../../reference.html#vsc.types.type_bool">[docs]</a><span class="k">class</span> <span class="nc">type_bool</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
+
+<div class="viewcode-block" id="type_bool">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_bool">[docs]</a>
+<span class="k">class</span> <span class="nc">type_bool</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for boolean fields&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">i</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span>
         
-<div class="viewcode-block" id="type_bool.build_field_model"><a class="viewcode-back" href="../../reference.html#vsc.types.type_bool.build_field_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="type_bool.build_field_model">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_bool.build_field_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="c1"># If we have an IntEnum, then collect the values</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">EnumFieldModel</span><span class="p">(</span>
@@ -693,16 +784,26 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>        </div>
+
         
-<div class="viewcode-block" id="type_bool.get_val"><a class="viewcode-back" href="../../reference.html#vsc.types.type_bool.get_val">[docs]</a>    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="type_bool.get_val">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_bool.get_val">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Gets the field value&quot;&quot;&quot;</span>
         <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_val</span><span class="p">())</span></div>
-    
-<div class="viewcode-block" id="type_bool.set_val"><a class="viewcode-back" href="../../reference.html#vsc.types.type_bool.set_val">[docs]</a>    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
-<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets the field value&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">val</span><span class="p">))</span></div></div>
 
-<div class="viewcode-block" id="type_enum"><a class="viewcode-back" href="../../reference.html#vsc.types.type_enum">[docs]</a><span class="k">class</span> <span class="nc">type_enum</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
+    
+<div class="viewcode-block" id="type_bool.set_val">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_bool.set_val">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets the field value&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="nb">bool</span><span class="p">(</span><span class="n">val</span><span class="p">))</span></div>
+</div>
+
+
+<div class="viewcode-block" id="type_enum">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_enum">[docs]</a>
+<span class="k">class</span> <span class="nc">type_enum</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Base class for enumerated-type fields&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
@@ -723,7 +824,9 @@
 <span class="c1">#            self.enum_id = list(t).f</span>
             <span class="k">pass</span>
         
-<div class="viewcode-block" id="type_enum.build_field_model"><a class="viewcode-back" href="../../reference.html#vsc.types.type_enum.build_field_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<div class="viewcode-block" id="type_enum.build_field_model">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_enum.build_field_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="c1"># If we have an IntEnum, then collect the values</span>
                 
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
@@ -733,140 +836,219 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span>
         <span class="p">)</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>        </div>
+
         
-<div class="viewcode-block" id="type_enum.get_val"><a class="viewcode-back" href="../../reference.html#vsc.types.type_enum.get_val">[docs]</a>    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="type_enum.get_val">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_enum.get_val">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Returns the enum id&quot;&quot;&quot;</span>
         <span class="n">val</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_val</span><span class="p">())</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">enum_i</span><span class="o">.</span><span class="n">v2e</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
+
     
-<div class="viewcode-block" id="type_enum.set_val"><a class="viewcode-back" href="../../reference.html#vsc.types.type_enum.set_val">[docs]</a>    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+<div class="viewcode-block" id="type_enum.set_val">
+<a class="viewcode-back" href="../../reference.html#vsc.types.type_enum.set_val">[docs]</a>
+    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;Sets the enum id&quot;&quot;&quot;</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enum_i</span><span class="o">.</span><span class="n">e2v</span><span class="p">(</span><span class="n">val</span><span class="p">))</span></div></div>
+        <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">enum_i</span><span class="o">.</span><span class="n">e2v</span><span class="p">(</span><span class="n">val</span><span class="p">))</span></div>
+</div>
+
     
-<div class="viewcode-block" id="enum_t"><a class="viewcode-back" href="../../reference.html#vsc.types.enum_t">[docs]</a><span class="k">class</span> <span class="nc">enum_t</span><span class="p">(</span><span class="n">type_enum</span><span class="p">):</span>
+<div class="viewcode-block" id="enum_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.enum_t">[docs]</a>
+<span class="k">class</span> <span class="nc">enum_t</span><span class="p">(</span><span class="n">type_enum</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a non-random enumerated-type attribute&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_enum_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_enum_t">[docs]</a><span class="k">class</span> <span class="nc">rand_enum_t</span><span class="p">(</span><span class="n">enum_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_enum_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_enum_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_enum_t</span><span class="p">(</span><span class="n">enum_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random enumerated-type attribute&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span> <span class="o">=</span> <span class="kc">True</span></div>
+
         
-<div class="viewcode-block" id="bit_t"><a class="viewcode-back" href="../../reference.html#vsc.types.bit_t">[docs]</a><span class="k">class</span> <span class="nc">bit_t</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
+<div class="viewcode-block" id="bit_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.bit_t">[docs]</a>
+<span class="k">class</span> <span class="nc">bit_t</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates an unsigned arbitrary-width attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="bool_t"><a class="viewcode-back" href="../../reference.html#vsc.types.bool_t">[docs]</a><span class="k">class</span> <span class="nc">bool_t</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
+<div class="viewcode-block" id="bool_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.bool_t">[docs]</a>
+<span class="k">class</span> <span class="nc">bool_t</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a boolean field&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="kc">False</span><span class="p">,</span> <span class="mi">1</span> <span class="k">if</span> <span class="n">i</span> <span class="k">else</span> <span class="mi">0</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="uint8_t"><a class="viewcode-back" href="../../reference.html#vsc.types.uint8_t">[docs]</a><span class="k">class</span> <span class="nc">uint8_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
+
+<div class="viewcode-block" id="uint8_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.uint8_t">[docs]</a>
+<span class="k">class</span> <span class="nc">uint8_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates an unsigned 8-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="uint16_t"><a class="viewcode-back" href="../../reference.html#vsc.types.uint16_t">[docs]</a><span class="k">class</span> <span class="nc">uint16_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
+<div class="viewcode-block" id="uint16_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.uint16_t">[docs]</a>
+<span class="k">class</span> <span class="nc">uint16_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates an unsigned 16-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="uint32_t"><a class="viewcode-back" href="../../reference.html#vsc.types.uint32_t">[docs]</a><span class="k">class</span> <span class="nc">uint32_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
+<div class="viewcode-block" id="uint32_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.uint32_t">[docs]</a>
+<span class="k">class</span> <span class="nc">uint32_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates an unsigned 32-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="uint64_t"><a class="viewcode-back" href="../../reference.html#vsc.types.uint64_t">[docs]</a><span class="k">class</span> <span class="nc">uint64_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
+<div class="viewcode-block" id="uint64_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.uint64_t">[docs]</a>
+<span class="k">class</span> <span class="nc">uint64_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates an unsigned 64-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
 
-<div class="viewcode-block" id="rand_bit_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_bit_t">[docs]</a><span class="k">class</span> <span class="nc">rand_bit_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
+
+<div class="viewcode-block" id="rand_bit_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_bit_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_bit_t</span><span class="p">(</span><span class="n">bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random unsigned arbitrary-width attribute&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span> <span class="o">=</span> <span class="kc">True</span></div>
+
         
-<div class="viewcode-block" id="rand_uint8_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint8_t">[docs]</a><span class="k">class</span> <span class="nc">rand_uint8_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_uint8_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint8_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_uint8_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random unsigned 8-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_uint16_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint16_t">[docs]</a><span class="k">class</span> <span class="nc">rand_uint16_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_uint16_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint16_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_uint16_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random unsigned 16-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_uint32_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint32_t">[docs]</a><span class="k">class</span> <span class="nc">rand_uint32_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_uint32_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint32_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_uint32_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random unsigned 32-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_uint64_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint64_t">[docs]</a><span class="k">class</span> <span class="nc">rand_uint64_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_uint64_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_uint64_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_uint64_t</span><span class="p">(</span><span class="n">rand_bit_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random unsigned 64-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="int_t"><a class="viewcode-back" href="../../reference.html#vsc.types.int_t">[docs]</a><span class="k">class</span> <span class="nc">int_t</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
+<div class="viewcode-block" id="int_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.int_t">[docs]</a>
+<span class="k">class</span> <span class="nc">int_t</span><span class="p">(</span><span class="n">type_base</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a signed arbitrary-width attribute&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="kc">True</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="int8_t"><a class="viewcode-back" href="../../reference.html#vsc.types.int8_t">[docs]</a><span class="k">class</span> <span class="nc">int8_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="int8_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.int8_t">[docs]</a>
+<span class="k">class</span> <span class="nc">int8_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a signed 8-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="int16_t"><a class="viewcode-back" href="../../reference.html#vsc.types.int16_t">[docs]</a><span class="k">class</span> <span class="nc">int16_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="int16_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.int16_t">[docs]</a>
+<span class="k">class</span> <span class="nc">int16_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a signed 16-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="int32_t"><a class="viewcode-back" href="../../reference.html#vsc.types.int32_t">[docs]</a><span class="k">class</span> <span class="nc">int32_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="int32_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.int32_t">[docs]</a>
+<span class="k">class</span> <span class="nc">int32_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a signed 32-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="int64_t"><a class="viewcode-back" href="../../reference.html#vsc.types.int64_t">[docs]</a><span class="k">class</span> <span class="nc">int64_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="int64_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.int64_t">[docs]</a>
+<span class="k">class</span> <span class="nc">int64_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a signed 64-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_int_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_int_t">[docs]</a><span class="k">class</span> <span class="nc">rand_int_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_int_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_int_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_int_t</span><span class="p">(</span><span class="n">int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random signed arbitrary-width attribute&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">w</span><span class="o">=</span><span class="mi">32</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">w</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span> <span class="o">=</span> <span class="kc">True</span></div>
 
-<div class="viewcode-block" id="rand_int8_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_int8_t">[docs]</a><span class="k">class</span> <span class="nc">rand_int8_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
+
+<div class="viewcode-block" id="rand_int8_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_int8_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_int8_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random signed 8-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_int16_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_int16_t">[docs]</a><span class="k">class</span> <span class="nc">rand_int16_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_int16_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_int16_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_int16_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random signed 16-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_int32_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_int32_t">[docs]</a><span class="k">class</span> <span class="nc">rand_int32_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_int32_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_int32_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_int32_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random signed 32-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="rand_int64_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_int64_t">[docs]</a><span class="k">class</span> <span class="nc">rand_int64_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_int64_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_int64_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_int64_t</span><span class="p">(</span><span class="n">rand_int_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Creates a random signed 64-bit attribute&quot;&quot;&quot;</span>
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="mi">64</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>        </div>
+
         
-<div class="viewcode-block" id="list_t"><a class="viewcode-back" href="../../reference.html#vsc.types.list_t">[docs]</a><span class="k">class</span> <span class="nc">list_t</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<div class="viewcode-block" id="list_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.list_t">[docs]</a>
+<span class="k">class</span> <span class="nc">list_t</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                  <span class="n">t</span><span class="p">,</span> 
@@ -919,7 +1101,9 @@
                 <span class="k">if</span> <span class="n">fi</span><span class="o">.</span><span class="n">is_composite</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_id_fields</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">fi</span><span class="p">)</span>
         
-<div class="viewcode-block" id="list_t.get_model"><a class="viewcode-back" href="../../reference.html#vsc.types.list_t.get_model">[docs]</a>    <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="list_t.get_model">
+<a class="viewcode-back" href="../../reference.html#vsc.types.list_t.get_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">enums</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="ow">not</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_enum</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">enum_i</span><span class="o">.</span><span class="n">enums</span>
             <span class="n">type_t</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">t</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
@@ -955,12 +1139,16 @@
             
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span></div>
 
-<div class="viewcode-block" id="list_t.build_field_model"><a class="viewcode-back" href="../../reference.html#vsc.types.list_t.build_field_model">[docs]</a>    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+
+<div class="viewcode-block" id="list_t.build_field_model">
+<a class="viewcode-back" href="../../reference.html#vsc.types.list_t.build_field_model">[docs]</a>
+    <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
         <span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         
         <span class="k">return</span> <span class="n">model</span></div>
+
 
     <span class="nd">@property</span>    
     <span class="k">def</span> <span class="nf">size</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -1003,7 +1191,9 @@
         <span class="k">else</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">size</span>
         
-<div class="viewcode-block" id="list_t.append"><a class="viewcode-back" href="../../reference.html#vsc.types.list_t.append">[docs]</a>    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<div class="viewcode-block" id="list_t.append">
+<a class="viewcode-back" href="../../reference.html#vsc.types.list_t.append">[docs]</a>
+    <span class="k">def</span> <span class="nf">append</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
         
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">is_enum</span><span class="p">:</span>
@@ -1026,13 +1216,20 @@
             <span class="n">model</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">v</span><span class="o">.</span><span class="n">get_model</span><span class="p">())</span>
             <span class="c1"># Propagate randomization information</span>
             <span class="n">v</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">is_declared_rand</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">is_declared_rand</span></div>
+
             
-<div class="viewcode-block" id="list_t.extend"><a class="viewcode-back" href="../../reference.html#vsc.types.list_t.extend">[docs]</a>    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
+<div class="viewcode-block" id="list_t.extend">
+<a class="viewcode-back" href="../../reference.html#vsc.types.list_t.extend">[docs]</a>
+    <span class="k">def</span> <span class="nf">extend</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">v</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">vi</span> <span class="ow">in</span> <span class="n">v</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">vi</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="list_t.clear"><a class="viewcode-back" href="../../reference.html#vsc.types.list_t.clear">[docs]</a>    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<div class="viewcode-block" id="list_t.clear">
+<a class="viewcode-back" href="../../reference.html#vsc.types.list_t.clear">[docs]</a>
+    <span class="k">def</span> <span class="nf">clear</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span></div>
+
 
     <span class="k">def</span> <span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">get_expr_mode</span><span class="p">():</span>
@@ -1171,21 +1368,31 @@
         
         <span class="k">return</span> <span class="n">ret</span>
 
-<div class="viewcode-block" id="list_t.to_expr"><a class="viewcode-back" href="../../reference.html#vsc.types.list_t.to_expr">[docs]</a>    <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()))</span></div></div>
+<div class="viewcode-block" id="list_t.to_expr">
+<a class="viewcode-back" href="../../reference.html#vsc.types.list_t.to_expr">[docs]</a>
+    <span class="k">def</span> <span class="nf">to_expr</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()))</span></div>
+</div>
+
 
     
-<div class="viewcode-block" id="rand_list_t"><a class="viewcode-back" href="../../reference.html#vsc.types.rand_list_t">[docs]</a><span class="k">class</span> <span class="nc">rand_list_t</span><span class="p">(</span><span class="n">list_t</span><span class="p">):</span>
+<div class="viewcode-block" id="rand_list_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.rand_list_t">[docs]</a>
+<span class="k">class</span> <span class="nc">rand_list_t</span><span class="p">(</span><span class="n">list_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;List of random elements with a non-random size&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">sz</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">sz</span><span class="p">,</span> <span class="n">is_rand</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
         
-<div class="viewcode-block" id="randsz_list_t"><a class="viewcode-back" href="../../reference.html#vsc.types.randsz_list_t">[docs]</a><span class="k">class</span> <span class="nc">randsz_list_t</span><span class="p">(</span><span class="n">list_t</span><span class="p">):</span>
+<div class="viewcode-block" id="randsz_list_t">
+<a class="viewcode-back" href="../../reference.html#vsc.types.randsz_list_t">[docs]</a>
+<span class="k">class</span> <span class="nc">randsz_list_t</span><span class="p">(</span><span class="n">list_t</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;List of random elements with a non-random size&quot;&quot;&quot;</span>
     
     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">is_rand</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">is_randsz</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span></div>
+
         
 
 </pre></div>

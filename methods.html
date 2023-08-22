@@ -12,10 +12,11 @@
     <script src="_static/js/html5shiv.min.js"></script>
   <![endif]-->
   
-        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-        <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-        <script src="_static/doctools.js"></script>
-        <script src="_static/sphinx_highlight.js"></script>
+        <script src="_static/jquery.js?v=5d32c60e"></script>
+        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+        <script src="_static/documentation_options.js?v=d45e8c67"></script>
+        <script src="_static/doctools.js?v=888ff710"></script>
+        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -91,9 +92,9 @@
            <div itemprop="articleBody">
              
   <section id="pyvsc-methods">
-<h1>PyVSC Methods<a class="headerlink" href="#pyvsc-methods" title="Permalink to this heading"></a></h1>
+<h1>PyVSC Methods<a class="headerlink" href="#pyvsc-methods" title="Link to this heading"></a></h1>
 <section id="randomization-methods">
-<h2>Randomization Methods<a class="headerlink" href="#randomization-methods" title="Permalink to this heading"></a></h2>
+<h2>Randomization Methods<a class="headerlink" href="#randomization-methods" title="Link to this heading"></a></h2>
 <p>In addition to the <code class="xref any docutils literal notranslate"><span class="pre">randomize</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">randomize_with</span></code> methods provided by the
 randobj class, PyVSC provides global methods for randomizing variables.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
@@ -116,7 +117,7 @@ scalar and composite.</p>
 both scalar and composite, subject to the inline constraints.</p>
 </section>
 <section id="managing-random-stability">
-<h2>Managing Random Stability<a class="headerlink" href="#managing-random-stability" title="Permalink to this heading"></a></h2>
+<h2>Managing Random Stability<a class="headerlink" href="#managing-random-stability" title="Link to this heading"></a></h2>
 <p>Each PyVSC <a class="reference internal" href="reference.html#module-vsc.rand_obj" title="vsc.rand_obj"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">rand_obj</span></code></a> instance maintains its own random state. The
 random state for each <a class="reference internal" href="reference.html#module-vsc.rand_obj" title="vsc.rand_obj"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">rand_obj</span></code></a> can be established explicitly by
 the user. If the random state has not been initialized at the time
@@ -197,13 +198,13 @@ state objects.</p>
 </div>
 </section>
 <section id="weighted-random-selection-methods">
-<h2>Weighted-Random Selection Methods<a class="headerlink" href="#weighted-random-selection-methods" title="Permalink to this heading"></a></h2>
+<h2>Weighted-Random Selection Methods<a class="headerlink" href="#weighted-random-selection-methods" title="Link to this heading"></a></h2>
 <p>It is often useful to perform a weighted-random selection in procedural
 code. SystemVerilog provides the <code class="xref any docutils literal notranslate"><span class="pre">randcase</span></code> construct for this purpose.
 PyVSC provides two methods for performing a weighted-random selection
 from a set of candidates.</p>
 <section id="distselect">
-<h3>distselect<a class="headerlink" href="#distselect" title="Permalink to this heading"></a></h3>
+<h3>distselect<a class="headerlink" href="#distselect" title="Link to this heading"></a></h3>
 <p>The <code class="xref any docutils literal notranslate"><span class="pre">distselect</span></code> method accepts a list of weights and returns the selected
 index.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">hist</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">4</span>
@@ -218,7 +219,7 @@ index.</p>
 <p>In the example above, the index returned will vary 0..3.</p>
 </section>
 <section id="randselect">
-<h3>randselect<a class="headerlink" href="#randselect" title="Permalink to this heading"></a></h3>
+<h3>randselect<a class="headerlink" href="#randselect" title="Link to this heading"></a></h3>
 <p>The <code class="xref any docutils literal notranslate"><span class="pre">randselect</span></code> method accepts a list of weight/lambda tuples. It performs
 a weighted selection and calls the selected lambda. In most cases, the lambda
 will need to call a function to perform useful work.</p>
