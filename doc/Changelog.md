@@ -1,4 +1,8 @@
 
+## 0.8.5
+- (#189) - Correct an issue with how arrays with constraints on sum are 
+  grouped into rand sets. 
+
 ## 0.8.4
 - (#188) - Automatically convert floating-point numbers used in constraints
   to integers

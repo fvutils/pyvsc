@@ -329,7 +329,12 @@ class RandInfoBuilder(ModelVisitor,RandIF):
 
             if fm in self._field_m.keys():
                 self._field_m.pop(fm)
-       
+
+    def visit_expr_array_sum(self, e):
+        # Summing the array relates all array elements
+        for f in e.arr.field_l:
+            self.process_fieldref(f)
+
     def visit_expr_fieldref(self, e):
         # If the field is already referenced by an existing randset
         # that is not this one, we need to merge the sets
