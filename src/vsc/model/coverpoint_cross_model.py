@@ -93,7 +93,7 @@ class CoverpointCrossModel(CoverItemBase):
     
     def select_unhit_bin(self, r:RandIF)->int:
         if len(self.unhit_s) > 0:
-            return random.sample(self.unhit_s, 1)[0]
+            return random.sample(sorted(self.unhit_s), 1)[0]
         else:
             return -1
 

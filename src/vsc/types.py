@@ -1102,7 +1102,7 @@ class rand_list_t(list_t):
         super().__init__(t, sz, is_rand=True)
         
 class randsz_list_t(list_t):
-    """List of random elements with a non-random size"""
+    """List of random elements with a random size"""
     
     def __init__(self, t):
         super().__init__(t, is_rand=True, is_randsz=True)
