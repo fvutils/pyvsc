@@ -24,7 +24,7 @@ class TestCoverageDrivenConstraints(VscTestCase):
                 return low
     
             def sample(self, s, k):
-                return random.sample(s, k)
+                return random.sample(sorted(s), k)
         
         
         @vsc.randobj

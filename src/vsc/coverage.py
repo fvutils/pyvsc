@@ -820,7 +820,8 @@ class coverpoint(object):
 
                         for v in enum_bins.range_l:                        
                             e = ei.v2e_m[v[0]]
-                            self.model.add_bin_model(CoverpointBinEnumModel(str(e), v[0]))
+                            # IntEnum.__str__ returns the value rather than the name, use Enum.__str__ instead
+                            self.model.add_bin_model(CoverpointBinEnumModel(Enum.__str__(e), v[0]))
                             
                     elif isinstance(self.cp_t, type_base):
                         binspec = RangelistModel()

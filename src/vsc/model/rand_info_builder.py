@@ -159,7 +159,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         return self._rng.randint(low,high)
     
     def sample(self, s, k):
-        return self._rng.sample(s, k)
+        return self._rng.sample(sorted(s), k)
     
     def visit_constraint_block(self, c):
         if RandInfoBuilder.EN_DEBUG:
