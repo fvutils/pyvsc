@@ -70,7 +70,7 @@ class TestConstraintSoft(VscTestCase):
                 it.a == 1 #B
 
     def test_soft_dist_priority(self):
-        """Ensures that dist constraints take priority over soft constraints"""
+        """Ensures that soft constraints take priority over dist constraints"""
         
         @vsc.randobj
         class my_item(object):
@@ -90,7 +90,7 @@ class TestConstraintSoft(VscTestCase):
                     vsc.weight(1,  10),
                     vsc.weight(2,  10),
                     vsc.weight(4,  10),
-                    vsc.weight(8, 10)])
+                    vsc.weight(8,  10)])
 
         hist = [0]*9
         item = my_item()
@@ -98,10 +98,10 @@ class TestConstraintSoft(VscTestCase):
             item.randomize()
             hist[item.a] += 1
 
-        self.assertGreater(hist[0], 0) 
-        self.assertGreater(hist[1], 0) 
-        self.assertGreater(hist[2], 0) 
-        self.assertGreater(hist[4], 0) 
+        self.assertEqual(hist[0], 0)
+        self.assertEqual(hist[1], 0)
+        self.assertEqual(hist[2], 0)
+        self.assertEqual(hist[4], 0)
         self.assertGreater(hist[8], 0) 
 
     def test_compound_array(self):

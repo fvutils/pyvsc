@@ -21,11 +21,13 @@
 # @author: ballance
 
 from builtins import set
-from typing import Set, List
+from typing import Set, List, Dict
+from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 
 from vsc.model.constraint_model import ConstraintModel
 from vsc.model.field_model import FieldModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
@@ -43,7 +45,7 @@ class RandSet(object):
         self.soft_constraint_s : Set[ConstraintModel] = set()
         self.soft_constraint_l : List[ConstraintModel] = []
         self.soft_priority = 0
-        self.dist_field_m = {}
+        self.dist_field_m : Dict[FieldScalarModel, List[ConstraintDistScopeModel]] = {}
 
         # List of fields in each ordered set
         # Only non-none if order constraints impact this randset

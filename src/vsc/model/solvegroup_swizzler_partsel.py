@@ -10,7 +10,10 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
+from vsc.model.field_model import FieldModel
 from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.rand_set import RandSet
+from vsc.model.rand_state import RandState
 from vsc.model.variable_bound_model import VariableBoundModel
 
 
@@ -18,13 +21,13 @@ class SolveGroupSwizzlerPartsel(object):
     
     def __init__(self, randstate, solve_info, debug=0):
         self.debug = debug
-        self.randstate = randstate
+        self.randstate : RandState = randstate
         self.solve_info = solve_info
     
     def swizzle(self, 
-                btor, 
-                rs, 
-                bound_m):
+                btor,
+                rs : RandSet,
+                bound_m : VariableBoundModel):
         if self.debug > 0:
             print("--> swizzle_randvars")
 
@@ -51,7 +54,7 @@ class SolveGroupSwizzlerPartsel(object):
         if self.debug > 0:
             print("<-- swizzle_randvars")    
             
-    def swizzle_field_l(self, field_l, rs, bound_m, btor):
+    def swizzle_field_l(self, field_l, rs : RandSet, bound_m, btor):
         e = None
         if len(field_l) > 0:
             # Make a copy of the field list so we don't
@@ -96,7 +99,10 @@ class SolveGroupSwizzlerPartsel(object):
         else:
             return False            
 
-    def swizzle_field(self, f, rs, bound_m) -> ExprModel:
+    def swizzle_field(self,
+                      f : FieldScalarModel,
+                      rs : RandSet,
+                      bound_m : VariableBoundModel)->ExprModel:
         ret = None
         
         if self.debug > 0:
@@ -106,14 +112,15 @@ class SolveGroupSwizzlerPartsel(object):
             if self.debug > 0:
                 print("Note: field %s is in dist map" % f.name)
                 for d in rs.dist_field_m[f]:
-                    print("  Target interval %d" % d.target_range)
+                    print("  Weight list %s" % d.weight_list)
             if len(rs.dist_field_m[f]) > 1:
                 target_d = self.randstate.randint(0, len(rs.dist_field_m[f])-1)
                 dist_scope_c = rs.dist_field_m[f][target_d]
             else:
                 dist_scope_c = rs.dist_field_m[f][0]
                 
-            target_w = dist_scope_c.dist_c.weights[dist_scope_c.target_range]
+            target_range = dist_scope_c.next_target_range(self.randstate)
+            target_w = dist_scope_c.dist_c.weights[target_range]
             if target_w.rng_rhs is not None:
                 # Dual-bound range
                 val_l = target_w.rng_lhs.val()
@@ -129,6 +136,8 @@ class SolveGroupSwizzlerPartsel(object):
             else:
                 # Single value
                 val = target_w.rng_lhs.val()
+                if self.debug > 0:
+                    print("Select dist-weight value %d" % (int(val)))
                 ret = [ExprBinModel(
                     ExprFieldRefModel(f),
                     BinExprType.Eq,
