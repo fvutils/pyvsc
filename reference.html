@@ -56,7 +56,7 @@
 <li class="toctree-l1"><a class="reference internal" href="debug.html">Debug</a></li>
 <li class="toctree-l1 current"><a class="current reference internal" href="#">API Reference</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#domain-specific-language-api">Domain-Specific Language API</a><ul>
-<li class="toctree-l3"><a class="reference internal" href="#data-and-constraints">Data and Constraints</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-vsc.attrs">Data and Constraints</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#vsc.attrs.attr"><code class="docutils literal notranslate"><span class="pre">attr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#vsc.attrs.rand_attr"><code class="docutils literal notranslate"><span class="pre">rand_attr()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#vsc.constraints.constraint_t"><code class="docutils literal notranslate"><span class="pre">constraint_t</span></code></a></li>
@@ -141,7 +141,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#vsc.model.constraint_unique_model.ConstraintUniqueModel"><code class="docutils literal notranslate"><span class="pre">ConstraintUniqueModel</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#coverage">Coverage</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-vsc.model.covergroup_model">Coverage</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#vsc.model.covergroup_model.CovergroupModel"><code class="docutils literal notranslate"><span class="pre">CovergroupModel</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#vsc.model.covergroup_registry.CovergroupRegistry"><code class="docutils literal notranslate"><span class="pre">CovergroupRegistry</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_bin_array_model.CoverpointBinArrayModel"><code class="docutils literal notranslate"><span class="pre">CoverpointBinArrayModel</span></code></a></li>
@@ -155,7 +155,7 @@
 <li class="toctree-l4"><a class="reference internal" href="#vsc.model.coverpoint_model.CoverpointModel"><code class="docutils literal notranslate"><span class="pre">CoverpointModel</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#expressions">Expressions</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#module-vsc.model.rangelist_model">Expressions</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#vsc.model.rangelist_model.RangelistModel"><code class="docutils literal notranslate"><span class="pre">RangelistModel</span></code></a></li>
 </ul>
 </li>
@@ -193,9 +193,9 @@
 <h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading"></a></h1>
 <section id="domain-specific-language-api">
 <h2>Domain-Specific Language API<a class="headerlink" href="#domain-specific-language-api" title="Link to this heading"></a></h2>
-<section id="data-and-constraints">
-<h3>Data and Constraints<a class="headerlink" href="#data-and-constraints" title="Link to this heading"></a></h3>
-<dl class="py function" id="module-vsc.attrs">
+<section id="module-vsc.attrs">
+<span id="data-and-constraints"></span><h3>Data and Constraints<a class="headerlink" href="#module-vsc.attrs" title="Link to this heading"></a></h3>
+<dl class="py function">
 <dt class="sig sig-object py" id="vsc.attrs.attr">
 <span class="sig-prename descclassname"><span class="pre">vsc.attrs.</span></span><span class="sig-name descname"><span class="pre">attr</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc/attrs.html#attr"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.attrs.attr" title="Link to this definition"></a></dt>
 <dd><p>Wraps a recognized datatype as a non-rand field</p>
@@ -734,7 +734,7 @@
 <dl class="py class">
 <dt class="sig sig-object py" id="vsc.types.randsz_list_t">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vsc.types.</span></span><span class="sig-name descname"><span class="pre">randsz_list_t</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">t</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc/types.html#randsz_list_t"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.types.randsz_list_t" title="Link to this definition"></a></dt>
-<dd><p>List of random elements with a non-random size</p>
+<dd><p>List of random elements with a random size</p>
 </dd></dl>
 
 </section>
@@ -1135,9 +1135,9 @@
 </dd></dl>
 
 </section>
-<section id="coverage">
-<h3>Coverage<a class="headerlink" href="#coverage" title="Link to this heading"></a></h3>
-<dl class="py class" id="module-vsc.model.covergroup_model">
+<section id="module-vsc.model.covergroup_model">
+<span id="coverage"></span><h3>Coverage<a class="headerlink" href="#module-vsc.model.covergroup_model" title="Link to this heading"></a></h3>
+<dl class="py class">
 <dt class="sig sig-object py" id="vsc.model.covergroup_model.CovergroupModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vsc.model.covergroup_model.</span></span><span class="sig-name descname"><span class="pre">CovergroupModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">name</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.11)"><span class="pre">str</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">options</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc/model/covergroup_model.html#CovergroupModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.model.covergroup_model.CovergroupModel" title="Link to this definition"></a></dt>
 <dd><dl class="py method">
@@ -1818,9 +1818,9 @@
 </dd></dl>
 
 </section>
-<section id="expressions">
-<h3>Expressions<a class="headerlink" href="#expressions" title="Link to this heading"></a></h3>
-<dl class="py class" id="module-vsc.model.rangelist_model">
+<section id="module-vsc.model.rangelist_model">
+<span id="expressions"></span><h3>Expressions<a class="headerlink" href="#module-vsc.model.rangelist_model" title="Link to this heading"></a></h3>
+<dl class="py class">
 <dt class="sig sig-object py" id="vsc.model.rangelist_model.RangelistModel">
 <em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">vsc.model.rangelist_model.</span></span><span class="sig-name descname"><span class="pre">RangelistModel</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">rl</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/typing.html#typing.List" title="(in Python v3.11)"><span class="pre">List</span></a><span class="p"><span class="pre">[</span></span><a class="reference external" href="https://docs.python.org/3/library/functions.html#int" title="(in Python v3.11)"><span class="pre">int</span></a><span class="p"><span class="pre">]</span></span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><a class="reference external" href="https://docs.python.org/3/library/constants.html#None" title="(in Python v3.11)"><span class="pre">None</span></a></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/vsc/model/rangelist_model.html#RangelistModel"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.model.rangelist_model.RangelistModel" title="Link to this definition"></a></dt>
 <dd><dl class="py method">
