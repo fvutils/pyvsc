@@ -1,4 +1,8 @@
 
+## 0.8.6
+- (#191) - Fix from @alwilson to ensure proper priority of dist vs soft constraints
+- (exp) - Add experimental covergroup callback
+- 
 ## 0.8.5
 - (#189) - Correct an issue with how arrays with constraints on sum are 
   grouped into rand sets. 

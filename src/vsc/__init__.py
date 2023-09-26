@@ -42,6 +42,8 @@ from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
 from vsc import profile
 from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug
 
+from vsc import util
+
 
 def get_coverage_report(details=False)->str:
     """

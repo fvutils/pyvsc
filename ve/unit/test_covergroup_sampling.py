@@ -7,6 +7,8 @@ from enum import IntEnum, auto, Enum
 
 import vsc
 from vsc_test_case import VscTestCase
+from vsc.model.covergroup_model import CovergroupModel
+from vsc.model.coverpoint_model import CoverpointModel
 
 
 class TestCovergroupSampling(VscTestCase):
@@ -219,4 +221,49 @@ class TestCovergroupSampling(VscTestCase):
         
         vsc.report_coverage(details=True)        
 
+    def test_object_sample_cb_1(self):        
+        import vsc
         
+        @vsc.randobj
+        class BranchInstr:
+            def __init__(self):
+                self.type = vsc.rand_bit_t(1)
+                self.disp = vsc.rand_bit_t(19)
+        
+            @vsc.constraint
+            def short_offset_cnstr(self):
+                self.disp <= 4096
+        
+            def __str__(self):
+                return(f"type = {self.type}, displacement = {self.disp}")
+
+        # Note: Covergroup must inherit from CovergroupCallbackBase
+        @vsc.covergroup
+        class BranchInstr_cg(vsc.util.CovergroupCallbackBase):
+            def __init__(self):
+                super().__init__()
+                self.with_sample(
+                    item = BranchInstr()
+                )
+        
+                self.type = vsc.coverpoint(self.item.type)
+        
+                self.disp_cp = vsc.coverpoint(self.item.disp, bins = {
+                    "small_pos" : vsc.bin_array([4], [0, 4096])
+                })
+
+        branchInstr = BranchInstr()
+        branchInstr_cg = BranchInstr_cg()
+
+        # Note: Callback function accepts bin name and new hit count
+        def callback(bin, hit):
+            print("Hit: %s %d" % (bin, hit))
+
+        # Note: Register the callback with the covergroup 
+        branchInstr_cg.set_cb(callback)
+
+        for i in range(32):
+            branchInstr.randomize()
+            # Note: Call 'sample_cb' instead of 'sample'
+            branchInstr_cg.sample_cb(branchInstr)
+            print(branchInstr)
