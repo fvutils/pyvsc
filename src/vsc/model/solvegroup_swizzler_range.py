@@ -11,6 +11,7 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.rand_set import RandSet
 from vsc.model.variable_bound_model import VariableBoundModel
 
 
@@ -103,7 +104,10 @@ class SolveGroupSwizzlerRange(object):
         else:
             return False            
 
-    def swizzle_field(self, f, rs, bound_m) -> ExprModel:
+    def swizzle_field(self,
+                      f : FieldScalarModel, 
+                      rs : RandSet, 
+                      bound_m : VariableBoundModel)->ExprModel:
         ret = None
         
         if self.debug > 0:

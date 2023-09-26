@@ -29,7 +29,7 @@ class RandState(object):
             
         return val
     
-    def randint(self, low, high):
+    def randint(self, low, high) -> int:
         low = int(low)
         high = int(high)
         

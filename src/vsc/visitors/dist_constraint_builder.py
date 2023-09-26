@@ -96,56 +96,21 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
 
         # Form a list of non-zero weighted tuples of weight/range
         # Sort in ascending order
-        weight_l = []                
-        total_w = 0
+        weight_list = []
+        total_weight = 0
         for i,w in enumerate(c.weights):
             weight = int(w.weight.val())
-            total_w += weight
+            total_weight += weight
             if weight > 0:
-                weight_l.append((weight, i))
-        weight_l.sort(key=lambda w:w[0])
-        
-        seed_v = self.rng.randint(1, total_w)
-        
-        # Find the first range 
-        i = 0
-        while i < len(weight_l):
-            seed_v -= weight_l[i][0]
-            
-            if seed_v <= 0:
-                break
-                
-            i += 1
+                weight_list.append((weight, i))
+        weight_list.sort(key=lambda w:w[0])
 
-        if i >= len(weight_l):
-            i = len(weight_l)-1
+        scope.weight_list = weight_list
+        scope.total_weight = total_weight
 
-        scope.target_range = weight_l[i][1]            
-        target_w = c.weights[weight_l[i][1]]
-        dist_soft_c = None
-        if target_w.rng_rhs is not None:
-            dist_soft_c = ConstraintSoftModel(
-                ExprBinModel(
-                    ExprBinModel(
-                        c.lhs,
-                        BinExprType.Ge,
-                        target_w.rng_lhs),
-                    BinExprType.And,
-                    ExprBinModel(
-                        c.lhs,
-                        BinExprType.Le,
-                        target_w.rng_rhs)))
-        else:
-            dist_soft_c = ConstraintSoftModel(
-                ExprBinModel(
-                    c.lhs,
-                    BinExprType.Eq,
-                    target_w.rng_lhs))
-        # Give dist constraints a high priority to allow
-        # them to override all user-defined soft constraints
-        dist_soft_c.priority = 1000000
-        scope.set_dist_soft_c(dist_soft_c)
-        
+        # Call next_target_range for solvegroup_swizzler_range to use
+        _ = scope.next_target_range(self.rng)
+
         self.override_constraint(scope)
         
         
