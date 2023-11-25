@@ -1,4 +1,8 @@
 
+## 0.8.7
+- (#199) - Correct how the swizzler handles 'not inside'. It was incorrectly treating
+           it the same as 'inside'
+
 ## 0.8.6
 - (#191) - Fix from @alwilson to ensure proper priority of dist vs soft constraints
 - (exp) - Add experimental covergroup callback

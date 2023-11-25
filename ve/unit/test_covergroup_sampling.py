@@ -267,3 +267,48 @@ class TestCovergroupSampling(VscTestCase):
             # Note: Call 'sample_cb' instead of 'sample'
             branchInstr_cg.sample_cb(branchInstr)
             print(branchInstr)
+
+    def test_discussion_196(self):
+        cp_dict = {
+            'cp_a': {'bin_num':7},
+            'cp_b': {'bin_num':7},
+            'cp_op':{'bin_num':8}
+        }
+
+        @vsc.covergroup
+        class my_covergroup(vsc.util.CovergroupCallbackBase):
+            def __init__(self):
+                super().__init__()
+                self.with_sample(
+                    a=vsc.uint32_t(),
+                    b=vsc.uint32_t(),
+                    op=vsc.bit_t(3)
+                )
+                self.cp_a = vsc.coverpoint(self.a, bins={
+                    "bin" : vsc.bin_array([cp_dict['cp_a']['bin_num']],
+                    [1, 866],
+                    [867, 1300000000],
+                    [1300000000, 1456798755],
+                    [1456798756, 2456798755],
+                    [2456798756, 3099999999],
+                    [3100000000, 3294967294],
+                    [3294967295, 4294967295])
+                })
+                self.cp_b = vsc.coverpoint(self.b, bins={
+                    "bin" : vsc.bin_array([cp_dict['cp_b']['bin_num']],
+                    [1, 866],
+                    [867, 1300000000],
+                    [1300000000, 1456798755],
+                    [1456798756, 2456798755],
+                    [2456798756, 3099999999],
+                    [3100000000, 3294967294],
+                    [3294967295, 4294967295])
+                })
+                self.cp_op = vsc.coverpoint(self.op, bins={
+                    "bin" : vsc.bin_array([cp_dict['cp_op']['bin_num']],
+                    [0, 7])
+                })
+
+        cg = my_covergroup()
+        cg.sample(136956257, 4172973468, 5)
+        vsc.report_coverage(details=True)

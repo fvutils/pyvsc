@@ -5,6 +5,7 @@ Created on Jun 1, 2020
 '''
 from vsc_test_case import VscTestCase
 import vsc
+from enum import IntEnum
 
 class TestRandomDist(VscTestCase):
     
@@ -801,4 +802,58 @@ class TestRandomDist(VscTestCase):
             c.randomize(debug=False)
             print("[%d] a=%d b=%d" % (i, c.a, c.b))
         
+    def test_dist_enum_not_inside(self):
+        class TestIntEnum(IntEnum):
+            A = 0 #
+            B = 1 #
+            C = 2 #
+            D = 3 #
+            E = 11 #
+            F = 5 #
+            G = 6 #
+            H = 7 #
+            I = 15 #
+            J = 10 #
+            K = 14 #
+            L = 8 #
+            M = 9 #
+            N = 4 #
+            O = 128 #
+            P = 129 #
+            Q = 0x82 #
+            R = 0x8A #
+            S = 0xff #
+
+        @vsc.randobj
+        class cls(object):
         
+            def __init__(self):
+                self.r_op = vsc.rand_enum_t(TestIntEnum)
+        
+            @vsc.constraint
+            def c_op2(self):
+                self.r_op.not_inside(vsc.rangelist(
+                    TestIntEnum.A,
+                    TestIntEnum.B
+                ))
+        
+        obj = cls()
+        n_iter = 64*10
+
+        hist_v1 = {}
+        for v in TestIntEnum:
+            hist_v1[int(v)] = 0
+
+        for i in range(n_iter):
+            obj.randomize(debug=False)
+            
+            hist_v1[int(obj.r_op)] += 1
+
+#        print("hist_v1: " + str(hist_v1))
+
+        # Check all values
+        for k,v in hist_v1.items():
+            if k in [TestIntEnum.A, TestIntEnum.B]:
+                self.assertEqual(v, 0)
+            else:
+                self.assertNotEqual(v, 0)

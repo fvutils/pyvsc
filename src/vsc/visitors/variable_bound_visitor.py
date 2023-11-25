@@ -371,6 +371,10 @@ class VariableBoundVisitor(ModelVisitor):
 #                bounds.add_propagator(self._propagator)
             else:
                 raise Exception("Field " + e.fm.fullname + " not in map")
+
+    def visit_expr_unary(self, e):
+        # Ignore negated terms
+        pass
             
     def visit_scalar_field(self, f:FieldScalarModel):
         if self.phase == 0:
