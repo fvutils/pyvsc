@@ -28,12 +28,12 @@ class TestCoverageIFF(VscTestCase):
         str_report = vsc.get_coverage_report(details=True)
         print("Report:\n" + str_report)
         
-        self.assertEquals(len(report.covergroups), 1)
-        self.assertEquals(len(report.covergroups[0].coverpoints), 1)
-        self.assertEquals(len(report.covergroups[0].coverpoints[0].bins), 7)
-        self.assertEquals(report.covergroups[0].coverpoints[0].bins[0].count, 0)
-        self.assertEquals(report.covergroups[0].coverpoints[0].bins[1].count, 1)
-        self.assertEquals(report.covergroups[0].coverpoints[0].bins[2].count, 0)
+        self.assertEqual(len(report.covergroups), 1)
+        self.assertEqual(len(report.covergroups[0].coverpoints), 1)
+        self.assertEqual(len(report.covergroups[0].coverpoints[0].bins), 7)
+        self.assertEqual(report.covergroups[0].coverpoints[0].bins[0].count, 0)
+        self.assertEqual(report.covergroups[0].coverpoints[0].bins[1].count, 1)
+        self.assertEqual(report.covergroups[0].coverpoints[0].bins[2].count, 0)
 
     def test_lambda_iff(self):
 
@@ -60,12 +60,12 @@ class TestCoverageIFF(VscTestCase):
         str_report = vsc.get_coverage_report(details=True)
         print("Report:\n" + str_report)
         
-        self.assertEquals(len(report.covergroups), 1)
-        self.assertEquals(len(report.covergroups[0].coverpoints), 1)
-        self.assertEquals(len(report.covergroups[0].coverpoints[0].bins), 7)
-        self.assertEquals(report.covergroups[0].coverpoints[0].bins[0].count, 0)
-        self.assertEquals(report.covergroups[0].coverpoints[0].bins[1].count, 1)
-        self.assertEquals(report.covergroups[0].coverpoints[0].bins[2].count, 0)        
+        self.assertEqual(len(report.covergroups), 1)
+        self.assertEqual(len(report.covergroups[0].coverpoints), 1)
+        self.assertEqual(len(report.covergroups[0].coverpoints[0].bins), 7)
+        self.assertEqual(report.covergroups[0].coverpoints[0].bins[0].count, 0)
+        self.assertEqual(report.covergroups[0].coverpoints[0].bins[1].count, 1)
+        self.assertEqual(report.covergroups[0].coverpoints[0].bins[2].count, 0)        
 
     def test_class_field_cross_iff(self):
 
@@ -95,14 +95,14 @@ class TestCoverageIFF(VscTestCase):
         str_report = vsc.get_coverage_report(details=True)
         print("Report:\n" + str_report)
         
-        self.assertEquals(len(report.covergroups), 1)
-        self.assertEquals(len(report.covergroups[0].coverpoints), 2)
-        self.assertEquals(len(report.covergroups[0].crosses), 1)
+        self.assertEqual(len(report.covergroups), 1)
+        self.assertEqual(len(report.covergroups[0].coverpoints), 2)
+        self.assertEqual(len(report.covergroups[0].crosses), 1)
         for ii,i in enumerate([1,2,4,8]):
             for ji,j in enumerate([1,2,4,8]):
                 if i == j:
-                    self.assertEquals(report.covergroups[0].crosses[0].bins[4*ii+ji].count, 1)
+                    self.assertEqual(report.covergroups[0].crosses[0].bins[4*ii+ji].count, 1)
                 else:
-                    self.assertEquals(report.covergroups[0].crosses[0].bins[4*ii+ji].count, 0)
+                    self.assertEqual(report.covergroups[0].crosses[0].bins[4*ii+ji].count, 0)
         
         

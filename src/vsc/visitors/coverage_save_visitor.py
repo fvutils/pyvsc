@@ -79,11 +79,12 @@ class CoverageSaveVisitor(ModelVisitor):
     def visit_covergroup(self, cg : CovergroupModel):
         from ucis.source_info import SourceInfo
         cg_inst = self.get_cg_inst(cg)
-        
+
         cg_name = cg.name if cg.name is not None else "<unknown>"
         inst_location = None
-        
+
         if cg.type_cg is None:
+            print("cg.typename=%s" % cg.typename)
             if cg.srcinfo_decl is not None:
                 fh = self.get_file_handle(cg.srcinfo_decl.filename)
                 inst_location = SourceInfo(
@@ -98,7 +99,7 @@ class CoverageSaveVisitor(ModelVisitor):
             # TODO: obtain goal from coverpoint and set on cp_scope
             # TODO: obtain comment from coverpoint and set on cp_scope
             self.active_scope_s.append(cg_inst.createCovergroup(
-                cg_name,
+                cg.typename,
                 inst_location,
                 weight, # weight
                 UCIS_OTHER)) # Source type

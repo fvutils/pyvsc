@@ -28,7 +28,7 @@ class TestTypes(VscTestCase):
         c.randomize()
         for ii,i in enumerate(c.x):
             print(i)
-            self.assertEquals(i, ii-27)
+            self.assertEqual(i, ii-27)
             
     def test_nonrand_signed_list_init(self):
 

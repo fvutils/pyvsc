@@ -32,7 +32,7 @@ class CovergroupModel(FieldCompositeModel):
                  name:str,
                  options=None):
         super().__init__(name)
-        
+
         # Handle to the type covergroup this instance is associated with
         self.type_cg : CovergroupModel = None
         
@@ -157,7 +157,7 @@ class CovergroupModel(FieldCompositeModel):
         return eq
     
     def clone(self)->'CovergroupModel':
-        ret = CovergroupModel(self.name)
+        ret = CovergroupModel(self.typename)
         
         ret.srcinfo_decl = None if self.srcinfo_decl is None else self.srcinfo_decl.clone()
         ret.srcinfo_inst = None if self.srcinfo_inst is None else self.srcinfo_inst.clone()

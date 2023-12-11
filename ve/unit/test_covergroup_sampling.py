@@ -43,7 +43,7 @@ class TestCovergroupSampling(VscTestCase):
         inst.b = my_e.B
         cg.sample()
         vsc.report_coverage(details=True)
-        self.assertEquals(cg.cp2.get_coverage(), 100)
+        self.assertEqual(cg.cp2.get_coverage(), 100)
         
 #     def test_sample_nonvsc_object_local_lambda_enum(self):
 #         class my_e(Enum):

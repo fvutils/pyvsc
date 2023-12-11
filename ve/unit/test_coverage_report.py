@@ -79,7 +79,63 @@ class TestCoverageReport(VscTestCase):
         self.assertEqual(100, report.covergroups[0].coverage)
         self.assertEqual(100, report.covergroups[0].covergroups[0].coverage)
         self.assertEqual(0, report.covergroups[0].covergroups[1].coverage)
+
+    def test_single_type_16_inst(self):
         
+        @vsc.covergroup
+        class my_cg(object):
+            
+            def __init__(self, name):
+                self.with_sample(dict(
+                    a=vsc.uint8_t(),
+                    b=vsc.uint8_t()))
+                self.options.name = name
+                
+                self.a_cp = vsc.coverpoint(self.a, bins={
+                    "a" : bin_array([], [0,3])
+                    })
+
+                self.b_cp = vsc.coverpoint(self.b, bins={
+                    "b" : bin_array([], [0,3])
+                    })
+                
+                self.ab_cr = vsc.cross([self.a_cp, self.b_cp])
+
+        cg_l = []
+        for i in range(4):
+            cg_l.append(my_cg("my_cg_%d" % i))
+        
+        for i in range(4):
+            for j in range(4):
+                cg_l[i].sample(i, j)
+            
+#        vsc.report_coverage()
+            
+        report = vsc.get_coverage_report_model()
+        vsc.write_coverage_db("cov.xml")
+        cov_db = XmlFactory.read("cov.xml")
+        cov_model = CoverageReportBuilder.build(cov_db)
+        self.assertEqual(len(cov_model.covergroups), 1)
+        self.assertEqual(len(cov_model.covergroups[0].coverpoints), 2)
+        self.assertEqual(cov_model.covergroups[0].coverpoints[0].coverage, 100.0)
+        self.assertEqual(cov_model.covergroups[0].coverpoints[1].coverage, 100.0)
+        self.assertEqual(len(cov_model.covergroups[0].covergroups), 4)
+        self.assertEqual(len(cov_model.covergroups[0].covergroups[0].coverpoints), 2)
+        self.assertEqual(cov_model.covergroups[0].covergroups[0].coverpoints[0].coverage, 25.0)
+        self.assertEqual(cov_model.covergroups[0].covergroups[0].coverpoints[1].coverage, 100.0)
+        self.assertEqual(cov_model.covergroups[0].covergroups[0].crosses[0].coverage, 25.0)
+        # formatter = TextCoverageReportFormatter(cov_model, sys.stdout)
+        # formatter.details = True
+        # formatter.report()
+
+        
+        
+#        self.assertEqual(1, len(report.covergroups))
+#        self.assertEqual(2, len(report.covergroups[0].covergroups))
+#        self.assertEqual(100, report.covergroups[0].coverage)
+#        self.assertEqual(100, report.covergroups[0].covergroups[0].coverage)
+#        self.assertEqual(0, report.covergroups[0].covergroups[1].coverage)
+
     def test_single_type_two_inst_details(self):
         
         @vsc.covergroup

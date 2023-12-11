@@ -322,10 +322,10 @@ class TestCovergroup(VscTestCase):
         
         report = vsc.get_coverage_report_model()
         self.assertEqual(1, len(report.covergroups))
-        self.assertEquals(2, len(report.covergroups[0].covergroups))
-        self.assertEquals(100, report.covergroups[0].coverage)
-        self.assertEquals(50, report.covergroups[0].covergroups[0].coverage)
-        self.assertEquals(100, report.covergroups[0].covergroups[1].coverage)
+        self.assertEqual(2, len(report.covergroups[0].covergroups))
+        self.assertEqual(100, report.covergroups[0].coverage)
+        self.assertEqual(50, report.covergroups[0].covergroups[0].coverage)
+        self.assertEqual(100, report.covergroups[0].covergroups[1].coverage)
         
     def test_inheritance_not_supported(self):
         caught_exception = False

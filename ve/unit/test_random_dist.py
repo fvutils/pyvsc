@@ -169,13 +169,13 @@ class TestRandomDist(VscTestCase):
             if i < 16:
                 self.assertNotEqual(hist_v1[i], 0)
             else:
-                self.assertEquals(hist_v1[i], 0)
+                self.assertEqual(hist_v1[i], 0)
                 
         for i in range(255):
             if i < 32:
                 self.assertNotEqual(hist_v2[i], 0)
             else:
-                self.assertEquals(hist_v2[i], 0)
+                self.assertEqual(hist_v2[i], 0)
 
     def test_dist_nre_le(self):
         @vsc.randobj
@@ -210,13 +210,13 @@ class TestRandomDist(VscTestCase):
             if i < 16:
                 self.assertNotEqual(hist_v1[i], 0)
             else:
-                self.assertEquals(hist_v1[i], 0)
+                self.assertEqual(hist_v1[i], 0)
                 
         for i in range(255):
             if i < 32:
                 self.assertNotEqual(hist_v2[i], 0)
             else:
-                self.assertEquals(hist_v2[i], 0)
+                self.assertEqual(hist_v2[i], 0)
                 
     def test_dist_var_lt(self):
         @vsc.randobj
@@ -255,13 +255,13 @@ class TestRandomDist(VscTestCase):
             if i < 16:
                 self.assertNotEqual(hist_v1[i], 0)
             else:
-                self.assertEquals(hist_v1[i], 0)
+                self.assertEqual(hist_v1[i], 0)
                 
         for i in range(255):
             if i < 32:
                 self.assertNotEqual(hist_v2[i], 0)
             else:
-                self.assertEquals(hist_v2[i], 0)                
+                self.assertEqual(hist_v2[i], 0)                
 
     def test_dist_var_lte(self):
         @vsc.randobj
@@ -300,13 +300,13 @@ class TestRandomDist(VscTestCase):
             if i < 16:
                 self.assertNotEqual(hist_v1[i], 0)
             else:
-                self.assertEquals(hist_v1[i], 0)
+                self.assertEqual(hist_v1[i], 0)
                 
         for i in range(255):
             if i < 32:
                 self.assertNotEqual(hist_v2[i], 0)
             else:
-                self.assertEquals(hist_v2[i], 0)                                                
+                self.assertEqual(hist_v2[i], 0)                                                
                 
                 
     def test_dist_nre_listsz_lt(self):
@@ -342,13 +342,13 @@ class TestRandomDist(VscTestCase):
             if i < 16:
                 self.assertNotEqual(hist_v1[i], 0)
             else:
-                self.assertEquals(hist_v1[i], 0)
+                self.assertEqual(hist_v1[i], 0)
                 
         for i in range(255):
             if i < 32:
                 self.assertNotEqual(hist_v2[i], 0)
             else:
-                self.assertEquals(hist_v2[i], 0)                                     
+                self.assertEqual(hist_v2[i], 0)                                     
 
     def test_xy_constraint_dist(self):
         

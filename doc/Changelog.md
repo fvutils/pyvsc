@@ -1,4 +1,9 @@
 
+## 0.8.8
+- Ensure covergroup type names are properly reflected in saved coverage data.
+- Test suite updates to adapt to newer Python versions
+- Bump required version of PyUCIS to 0.1.3
+
 ## 0.8.7
 - (#199) - Correct how the swizzler handles 'not inside'. It was incorrectly treating
            it the same as 'inside'

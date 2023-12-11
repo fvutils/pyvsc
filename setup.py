@@ -38,7 +38,7 @@ setup(
   ],
   install_requires=[
     'pyboolector>=3.2.2',
-    'pyucis>=0.1.0',
+    'pyucis>=0.1.3',
     'toposort'
   ],
 )

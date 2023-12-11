@@ -43,6 +43,6 @@ class TestConstraintCopier(VscTestCase):
         ])
         
         copy = ConstraintCopyBuilder.copy(ab_c)
-        self.assertEquals(1, len(copy))
+        self.assertEqual(1, len(copy))
         self.assertIsNot(ab_c, copy[0])
         

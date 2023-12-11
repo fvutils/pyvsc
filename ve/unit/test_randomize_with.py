@@ -62,7 +62,7 @@ class TestRandomizeWith(VscTestCase):
 #            c.randomize()
             with c.randomize_with() as it:
                 it.a == (i%10)
-            self.assertEquals(it.a, (i%10))
+            self.assertEqual(it.a, (i%10))
         
             print("i=" + str(i) + " c.a=" + hex(c.a) + " c.b=" + hex(c.b) + " c.c=" + hex(c.c) + " c.d=" + hex(c.d))
             

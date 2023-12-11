@@ -63,9 +63,8 @@ class CoverageRegistry(object):
                 n_cg = len(self.covergroup_type_m[cg.typename])
 
                 # Base covergroup type is called 'name', while derivatives
-                # are labeled _1, _2, _3                
+                # are labeled _1, _2, _3
                 cg_t.name = cg_t.typename + "_" + str(n_cg)
-                
         else:
             # No, nothing here yet. Create a clone of this instance
             # covergroup to use as a covergroup type
