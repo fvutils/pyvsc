@@ -1,12 +1,14 @@
 <!DOCTYPE html>
-<html class="writer-html5" lang="en" >
+<html class="writer-html5" lang="en" data-content_root="../../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>vsc.model.covergroup_model &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" href="../../../_static/pygments.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/css/theme.css" type="text/css" />
-      <link rel="stylesheet" href="../../../_static/graphviz.css" type="text/css" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=eafc0fe6" />
+
+  
   <!--[if lt IE 9]>
     <script src="../../../_static/js/html5shiv.min.js"></script>
   <![endif]-->
@@ -117,7 +119,7 @@
                  <span class="n">name</span><span class="p">:</span><span class="nb">str</span><span class="p">,</span>
                  <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">(</span><span class="n">name</span><span class="p">)</span>
-        
+
         <span class="c1"># Handle to the type covergroup this instance is associated with</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type_cg</span> <span class="p">:</span> <span class="n">CovergroupModel</span> <span class="o">=</span> <span class="kc">None</span>
         
@@ -271,7 +273,7 @@
 <div class="viewcode-block" id="CovergroupModel.clone">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.covergroup_model.CovergroupModel.clone">[docs]</a>
     <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span><span class="o">-&gt;</span><span class="s1">&#39;CovergroupModel&#39;</span><span class="p">:</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="n">CovergroupModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">name</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">CovergroupModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">typename</span><span class="p">)</span>
         
         <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
         <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_inst</span> <span class="o">=</span> <span class="kc">None</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_inst</span> <span class="ow">is</span> <span class="kc">None</span> <span class="k">else</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_inst</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
