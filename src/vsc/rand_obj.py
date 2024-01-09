@@ -58,6 +58,10 @@ class _randobj:
         class randobj_interposer(T):
             
             def __init__(self, *args, **kwargs):
+                # Used to cache data from inspect.stack() since that is
+                # an expensive call. Saving the frame itself isn't pickle-safe.
+                self.src_info = None
+
                 ro_i = self._get_ro_int()
                 ro_i.srcinfo = srcinfo
                 
@@ -81,7 +85,7 @@ class _randobj:
                 if ro_i.ctor_level == 0:
                     self.build_field_model(None)
                     pop_srcinfo_mode()
-            
+
         # Add the interposer class
         ret = type(T.__name__, (randobj_interposer,), dict())
         
@@ -153,19 +157,23 @@ class _randobj:
             def randomize(self, 
                           debug=0,
                           lint=0,
-                          solve_fail_debug=0):
+                          solve_fail_debug=0,
+                          cache_enabled=True):
                 ro_int = self._get_ro_int()
-                frame = inspect.stack()[1]
+                if self.src_info == None:
+                    frame = inspect.stack()[1]
+                    self.src_info = SourceInfo(frame.filename, frame.lineno)
                 
                 model = self.get_model()
                 try:
                     Randomizer.do_randomize(
                         ro_int.get_randstate(),
-                        SourceInfo(frame.filename, frame.lineno),
+                        self.src_info,
                         [model], 
                         debug=debug,
                         lint=lint,
-                        solve_fail_debug=solve_fail_debug)
+                        solve_fail_debug=solve_fail_debug,
+                        cache_enabled=cache_enabled)
                 except SolveFailure as e:
                     print(e.diagnostics)
                     raise e
@@ -265,7 +273,8 @@ class _randobj:
                         [c], 
                         debug=self.debug,
                         lint=self.lint,
-                        solve_fail_debug=self.solve_fail_debug)
+                        solve_fail_debug=self.solve_fail_debug,
+                        cache_enabled=self.cache_enabled)
                 except SolveFailure as e:
                     print(e.diagnostics)
                     raise e
@@ -273,12 +282,14 @@ class _randobj:
             def randomize_with(self, 
                                debug=0, 
                                lint=0,
-                               solve_fail_debug=0):
+                               solve_fail_debug=0,
+                               cache_enabled=True):
                 # Ensure the 'model' data structures have been built
                 self.get_model()
                 self.debug = debug
                 self.lint = lint
                 self.solve_fail_debug = solve_fail_debug
+                self.cache_enabled=cache_enabled
         
                 return self
             

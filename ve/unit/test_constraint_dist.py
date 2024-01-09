@@ -277,7 +277,7 @@ class TestConstraintDist(VscTestCase):
         for i in range(4):
             hist.append([0]*4)
             
-        for i in range(400):
+        for _ in range(400):
             my.randomize(debug=0)
             for i in range(4):
                 v = my.a[i]
@@ -690,7 +690,7 @@ class TestConstraintDist(VscTestCase):
             print()
         
         def run_obj(obj):
-            cnt = 6
+            cnt = 100
         
             print(f'Using {type(obj).__name__}')
             print('------------------')

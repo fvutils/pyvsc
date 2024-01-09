@@ -9,11 +9,13 @@ class RandState(object):
         
     def __init__(self, seed):
         self.rng = random.Random()
-        self.rng.seed(f"{seed}")
+        self.init_seed = f"{seed}"
+        self.rng.seed(self.init_seed)
     
     def clone(self) -> 'RandState':
         randState = RandState("")
         randState.rng.setstate(self.rng.getstate())
+        randState.init_seed = self.init_seed
         return randState 
     
     def rand_u(self):

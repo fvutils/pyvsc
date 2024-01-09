@@ -142,13 +142,15 @@ class FieldCompositeModel(FieldModel):
     
     def post_randomize(self):
         """Called during the randomization process to propagate `post_randomize` event"""
-        
+
+        # If randomize is called inside post_randomize with caching enabled, which
+        # value should be written? Prioritize writing current field values before re-randomizing.
+        for f in self.field_l:
+            f.post_randomize()
+
         # Perform a phase callback if available
         if self.is_used_rand and self.rand_if is not None:
             self.rand_if.do_post_randomize()
-            
-        for f in self.field_l:
-            f.post_randomize()
 
     def accept(self, v):
         v.visit_composite_field(self)

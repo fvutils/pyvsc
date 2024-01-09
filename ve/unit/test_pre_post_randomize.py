@@ -44,3 +44,34 @@ class TestPreProstRandomize(VscTestCase):
             self.assertEqual(len(my.temp), i+1)
             print("<-- randomize(%d)" % i)
         
+
+    def test_pre_rand(self):
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def a_five_c(self):
+                self.a == 5
+
+            @vsc.constraint
+            def a_not_five_c(self):
+                self.a != 5
+
+            def pre_randomize(self):
+                self.a_not_five_c.constraint_mode(not self.a_not_five_c.constraint_model.enabled)
+                self.a_five_c.constraint_mode(not self.a_five_c.constraint_model.enabled)
+
+        my = my_s()
+
+        # Alternate between constraints in pre_rand to test randomize caching
+        my.a_not_five_c.constraint_mode(False)
+
+        for i in range(5):
+            my.randomize()
+            print(my.a, my.a_five_c.constraint_model.enabled)
+            if my.a_five_c.constraint_model.enabled:
+                self.assertEqual(my.a, 5)
+            else:
+                self.assertNotEqual(my.a, 5)

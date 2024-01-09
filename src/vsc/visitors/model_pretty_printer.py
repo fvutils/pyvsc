@@ -240,7 +240,10 @@ class ModelPrettyPrinter(ModelVisitor):
                 for i, f in enumerate(e.fm.field_l):
                     if i > 0:
                         self.write(", ")
-                    self.write(str(int(f.get_val())))
+                    try:
+                        self.write(str(int(f.get_val())))
+                    except NotImplementedError:
+                        self.write('?')
                 self.write("]")
             else:
                 self.write(e.fm.fullname + "(" + str(int(e.fm.get_val())) + ")")
