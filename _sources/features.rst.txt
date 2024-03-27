@@ -38,8 +38,8 @@ scalar dynamic array       Y       Y              N
 class fixed-size array     Y       Y              Y
 class dynamic array        Y       Y              N
 class (in)equality         N       N              Y
-array sum                  N       Y              Y
-array size                 N       Y              Y
+array sum                  Y       Y              Y
+array size                 Y       Y              Y
 array reduction OR         N       Y              N
 array reduction AND        N       Y              N
 array reduction XOR        N       Y              N
@@ -50,7 +50,7 @@ default                    N       N              Y
 dynamic                    Y       N              Y
 inside (in)                Y       Y              Y
 soft                       Y       Y              N
-solve before               N       Y              N
+solve before               Y       Y              N
 `unique`                   Y       Y              Y
 `foreach`                  Y       Y              Y
 `forall`                   N       Y              Y

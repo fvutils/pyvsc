@@ -56,7 +56,7 @@
 <li class="toctree-l3"><a class="reference internal" href="#installation-from-source">Installation from Source</a></li>
 </ul>
 </li>
-<li class="toctree-l2"><a class="reference internal" href="#running-a-simple-example">Running a Simple Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#a-simple-example">A Simple Example</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="data_types.html">PyVSC Data Types</a></li>
@@ -110,8 +110,19 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 </div>
 </section>
 </section>
-<section id="running-a-simple-example">
-<h2>Running a Simple Example<a class="headerlink" href="#running-a-simple-example" title="Link to this heading"></a></h2>
+<section id="a-simple-example">
+<h2>A Simple Example<a class="headerlink" href="#a-simple-example" title="Link to this heading"></a></h2>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">vsc</span>
+
+<span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+<span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
+
+<span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">):</span>
+    <span class="k">with</span> <span class="n">vsc</span><span class="o">.</span><span class="n">randomize_with</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span>
+        <span class="n">a</span> <span class="o">&lt;</span> <span class="n">b</span>
+    <span class="nb">print</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">get_val</span><span class="p">(),</span> <span class="n">b</span><span class="o">.</span><span class="n">get_val</span><span class="p">())</span>
+</pre></div>
+</div>
 </section>
 </section>
 

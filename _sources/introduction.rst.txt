@@ -40,60 +40,58 @@ coverage, and inline randomization.
 
 .. code-block:: python3
 
+    import vsc
+
     @vsc.randobj
     class my_item_c(object):
         def __init__(self):
             self.a = vsc.rand_bit_t(8)
             self.b = vsc.rand_bit_t(8)
 
-         @vsc.constraint
-         def ab_c(self):
-             self.a != 0
-             self.a <= self.b
-             self.b in vsc.rangelist(1,2,4,8)
+        @vsc.constraint
+        def ab_c(self):
+            self.a != 0
+            self.a <= self.b
+            self.b in vsc.rangelist(1,2,4,8)
 
-      @vsc.covergroup
-      class my_cg(object):
+    @vsc.covergroup
+    class my_cg(object):
 
-          def __init__(self):
-              # Define the parameters accepted by the sample function
-              self.with_sample(dict(
-                  it=my_item_c()
-               ))
+        def __init__(self):
+            # Define the parameters accepted by the sample function
+            self.with_sample(dict(
+                it = my_item_c()
+            ))
 
-               self.a_cp = vsc.coverpoint( self.it.a, bins=dict(
-                  # Create 4 bins across the space 0..255
-                  a_bins = bin_array([4], [0,255])
-               )
-               self.b_cp = vsc.coverpoint(self.it.b, bins=dict(
-                  # Create one bin for each value (1,2,4,8)
-                  b_bins = bin_array([], 1, 2, 4, 8)
-               )
-               self.ab_cross = vsc.cross([self.a_cp, self.b_cp])
+            self.a_cp = vsc.coverpoint(self.it.a, bins=dict(
+                # Create 4 bins across the space 0..255
+                a_bins = vsc.bin_array([4], [0,255])
+            ))
+            self.b_cp = vsc.coverpoint(self.it.b, bins=dict(
+                # Create one bin for each value (1,2,4,8)
+                b_bins = vsc.bin_array([], 1, 2, 4, 8)
+            ))
+            self.ab_cross = vsc.cross([self.a_cp, self.b_cp])
 
-      # Create an instance of the covergroup
-      my_cg_i = my_cg()
+    # Create an instance of the covergroup
+    my_cg_i = my_cg()
 
-      # Create an instance of the item class
-      my_item_i = my_item_c()
+    # Create an instance of the item class
+    my_item_i = my_item_c()
 
-      # Randomize and sample coverage
-      for i in range(16):
-          my_item_i.randomize()
-          my_cg_i.sample(my_item_i)
+    # Randomize and sample coverage
+    for i in range(16):
+        my_item_i.randomize()
+        my_cg_i.sample(my_item_i)
 
-      # Now, randomize keeping b in the range [1,2]
-      for i in range(16):
-          with my_item_i.randomize_with() as it:
-              it.b in vsc.rangelist(1,2)
-          my_cg_i.sample(my_item_i)
+    # Now, randomize keeping b in the range [1,2]
+    for i in range(16):
+        with my_item_i.randomize_with() as it:
+            it.b in vsc.rangelist(1,2)
+        my_cg_i.sample(my_item_i)
 
-      print("Coverage: %f \%" % (my_cg_i.get_coverage()))
-
-
-        
-
-
+    # Print report of type and instance coverage
+    vsc.report_coverage()
 
 
 Contributors
