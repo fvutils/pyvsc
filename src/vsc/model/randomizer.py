@@ -274,7 +274,8 @@ class Randomizer(RandIF):
             while x < rs_i:
                 rs = ri.randsets()[x]
                 for f in rs.all_fields():
-                    f.post_randomize()
+                    visited = []
+                    f.post_randomize(visited)
                     f.set_used_rand(False, 0)
                     f.dispose() # Get rid of the solver var, since we're done with it
                     f.accept(reset_v)
@@ -537,8 +538,9 @@ class Randomizer(RandIF):
                 print("  " + ModelPrettyPrinter.print(fm))
                 
         # First, invoke pre_randomize on all elements
+        visited = []
         for fm in field_model_l:
-            fm.pre_randomize()
+            fm.pre_randomize(visited)
             
         if constraint_l is None:
             constraint_l = []
@@ -601,9 +603,10 @@ class Randomizer(RandIF):
                 randomize_done(srcinfo, solve_info)
             for fm in field_model_l:
                 ConstraintOverrideRollbackVisitor.rollback(fm)
-        
+
+        visited = [] 
         for fm in field_model_l:
-            fm.post_randomize()
+            fm.post_randomize(visited)
         
         
         # Process constraints to identify variable/constraint sets

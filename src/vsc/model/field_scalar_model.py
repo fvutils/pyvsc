@@ -45,7 +45,7 @@ class FieldScalarModel(FieldModel):
         self.var = None
         self.val = ValueScalar(0)
         
-    def set_used_rand(self, is_rand, level=0):
+    def set_used_rand(self, is_rand, level=0, in_set=None):
         # Field is considered rand when
         # - It is a root field, on which 'randomize' is called
         # - It is declared as random, and 'rand_mode' is true
@@ -85,7 +85,7 @@ class FieldScalarModel(FieldModel):
     def get_constraints(self, constraint_l):
         pass
 
-    def pre_randomize(self):
+    def pre_randomize(self, visited):
         if self.rand_if is not None:
             self.rand_if.do_pre_randomize()
     
@@ -95,7 +95,7 @@ class FieldScalarModel(FieldModel):
     def get_val(self):
         return self.val
     
-    def post_randomize(self):
+    def post_randomize(self, visited):
         if self.var is not None:
             # Convert to a Python base-10 integer (unsigned)
             val = int(self.var.assignment, 2)

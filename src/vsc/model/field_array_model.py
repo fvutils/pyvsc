@@ -80,17 +80,17 @@ class FieldArrayModel(FieldCompositeModel):
         for i,f in enumerate(self.field_l):
             f.name = self.name + "[" + str(i) + "]"
         
-    def pre_randomize(self):
+    def pre_randomize(self, visited):
         # Set the size field for arrays that don't
         # have a random size
         if self.is_rand_sz:
             self.size.set_used_rand(True)
         else:
             self._set_size(len(self.field_l))
-        FieldCompositeModel.pre_randomize(self)
+        FieldCompositeModel.pre_randomize(self, visited)
         
-    def post_randomize(self):
-        FieldCompositeModel.post_randomize(self)
+    def post_randomize(self, visited):
+        FieldCompositeModel.post_randomize(self, visited)
         self.sum_expr = None
         self.sum_expr_btor = None
         
@@ -116,13 +116,9 @@ class FieldArrayModel(FieldCompositeModel):
         self._set_size(len(self.field_l))
         super().build(builder)
         
-#    def set_used_rand(self, is_rand, level=0):
-#        if self.is_rand_sz:
-#            self.size.set_used_rand(is_rand)
-#        FieldCompositeModel.set_used_rand(self, is_rand, level=level)
-    def set_used_rand(self, is_rand, level=0):
-        super().set_used_rand(is_rand, level)
-        self.size.set_used_rand(is_rand, level+1)
+    def set_used_rand(self, is_rand, level=0, in_set=None):
+        super().set_used_rand(is_rand, level, in_set)
+        self.size.set_used_rand(is_rand, level+1, in_set)
         
     def get_sum_expr(self):
         if self.sum_expr is None:

@@ -154,3 +154,57 @@ class TestListObject(VscTestCase):
                 else:
                     self.assertGreater(it.a, it.b)
 
+    def test_heterogenous_content(self):
+        @vsc.randobj
+        class base_constraints_class(object):
+            pass
+
+
+        @vsc.randobj
+        class base_rand_class(object):
+            def __init__(self, name):
+                self.name = name
+                self.constraints = vsc.rand_list_t(base_constraints_class(), 0)
+
+            def add_constraints(self, c):
+                self.constraints.append(c)
+
+    
+        @vsc.randobj
+        class user_constraints_class(base_constraints_class):
+            def __init__(self, ptr):
+                self.ptr = vsc.rand_attr(ptr)
+#                self.ptr = ptr
+#                self.ptr = vsc.rand_attr(user_rand_class("user_1"))
+                pass
+
+            @vsc.constraint
+            def my_ptr_c(self):
+                self.ptr.a == 8
+                self.ptr.b == 1999
+
+
+        @vsc.randobj
+        class user_rand_class(base_rand_class):
+            def __init__(self, name):
+                super().__init__(name)
+                self.a = vsc.rand_bit_t(16)
+                self.b = vsc.rand_bit_t(16)
+
+
+            @vsc.constraint
+            def ab_c(self):
+                self.a in vsc.rangelist(vsc.rng(1,1000))
+                self.b in vsc.rangelist(vsc.rng(1000,2000))
+                pass
+
+            def print_fields(self):
+                print(f"{self.name}: a={self.a}, b={self.b}")
+
+
+        usr1 = user_rand_class("user_1")
+        c = user_constraints_class(usr1)
+        usr1.add_constraints(c)
+        usr1.randomize(debug=0, solve_fail_debug=0)
+        print("--------------------\n")
+        usr1.print_fields()

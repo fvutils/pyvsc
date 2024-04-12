@@ -33,6 +33,7 @@ from vsc.model.unary_expr_type import UnaryExprType
 class ModelPrettyPrinter(ModelVisitor):
 
     def __init__(self):
+        super().__init__()
         self.out = StringIO()
         self.ind = ""
         self.print_values = False
@@ -69,6 +70,7 @@ class ModelPrettyPrinter(ModelVisitor):
         self.writeln(name + " {")
         self.inc_indent()
         super().visit_composite_field(f)
+
         self.dec_indent()
         self.writeln("}")
     

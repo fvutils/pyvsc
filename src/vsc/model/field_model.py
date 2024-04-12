@@ -39,10 +39,10 @@ class FieldModel(object):
     def build(self, builder):
         raise Exception("FieldModel::build unimplemented for type " + str(type(self)))
 
-    def pre_randomize(self):
+    def pre_randomize(self, visited):
         pass
 
-    def post_randomize(self):
+    def post_randomize(self, visited):
         pass
     
     def get_val(self) -> Value:
@@ -53,10 +53,12 @@ class FieldModel(object):
     
     @property
     def fullname(self):
+        visited = []
         ret = self.name
         p = self.parent
         
-        while p is not None:
+        while p is not None and p not in visited:
+            visited.append(p)
             if p.name is not None:
                 ret = p.name + "." + ret
             p = p.parent

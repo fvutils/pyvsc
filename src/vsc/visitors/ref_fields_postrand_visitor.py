@@ -11,9 +11,10 @@ class RefFieldsPostRandVisitor(ModelVisitor):
     
     def __init__(self):
         super().__init__()
+        self.in_set = set()
         
     def visit_expr_fieldref(self, e):
         # Capture solving values and mark fields not-used-rand
         e.fm.post_randomize()
-        e.fm.set_used_rand(False)
+        e.fm.set_used_rand(False, in_set=self.in_set)
         

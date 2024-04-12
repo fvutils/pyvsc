@@ -57,12 +57,17 @@ class FieldCompositeModel(FieldModel):
         self.__is_declared_rand = bool(v)
         self.rand_mode = bool(v)
     
-    def set_used_rand(self, is_rand, level=0):
+    def set_used_rand(self, is_rand, level=0, in_set=None):
         self.is_used_rand = (is_rand and 
                              ((self.is_declared_rand and self.rand_mode) or level==0))
+        
+        if in_set is None:
+            in_set = set()
 
         for f in self.field_l:
-            f.set_used_rand(self.is_used_rand, level+1)
+            if f not in in_set:
+                in_set.add(f)
+                f.set_used_rand(self.is_used_rand, level+1, in_set)
             
     def build(self, builder):
         # First, build the fields
@@ -128,7 +133,7 @@ class FieldCompositeModel(FieldModel):
             else:
                 field_l.append(f)
 
-    def pre_randomize(self):
+    def pre_randomize(self, visited):
         """Called during the randomization process to propagate `pre_randomize` event"""
         
         # Perform a phase callback if available. Note,
@@ -136,19 +141,25 @@ class FieldCompositeModel(FieldModel):
         # fields that are actually being used as random
         if self.is_used_rand and self.rand_if is not None:
             self.rand_if.do_pre_randomize()
-            
+
+        visited.append(self)
         for f in self.field_l:
-            f.pre_randomize()
+            if f not in visited:
+                f.pre_randomize(visited)
+        visited.remove(self)
     
-    def post_randomize(self):
+    def post_randomize(self, visited):
         """Called during the randomization process to propagate `post_randomize` event"""
         
         # Perform a phase callback if available
         if self.is_used_rand and self.rand_if is not None:
             self.rand_if.do_post_randomize()
-            
+
+        visited.append(self)
         for f in self.field_l:
-            f.post_randomize()
+            if f not in visited:
+                f.post_randomize(visited)
+        visited.remove(self)
 
     def accept(self, v):
         v.visit_composite_field(self)

@@ -1,4 +1,7 @@
 
+## 0.8.9
+- (#205) - Ensure that recursive references between objects don't cause recursion
+
 ## 0.8.8
 - Ensure covergroup type names are properly reflected in saved coverage data.
 - Test suite updates to adapt to newer Python versions

@@ -53,6 +53,7 @@ from vsc.model.coverpoint_bin_single_bag_model import CoverpointBinSingleBagMode
 class ModelVisitor(object):
     
     def __init__(self):
+        self.field_visited = []
         pass
     
     def visit_rand_obj(self, r):
@@ -60,8 +61,11 @@ class ModelVisitor(object):
         
     def visit_composite_field(self, f : FieldCompositeModel):
         # Visit fields
+        self.field_visited.append(f)
         for fi in f.field_l:
-            fi.accept(self)
+            if fi not in self.field_visited:
+                fi.accept(self)
+        self.field_visited.remove(f)
             
         # Visit constraints
         for c in f.constraint_model_l:
