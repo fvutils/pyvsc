@@ -1,4 +1,7 @@
 
+## 0.9.0
+- (#219) - Add `unique_vec` constraint to support unique-vector constraints
+
 ## 0.8.9
 - (#205) - Ensure that recursive references between objects don't cause recursion
 

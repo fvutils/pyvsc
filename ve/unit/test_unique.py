@@ -200,5 +200,37 @@ class TestUnique(VscTestCase):
             for j in range(len(total_l)):
                 for k in range(j+1, len(total_l)):
                     self.assertNotEqual(total_l[j], total_l[k])
+
+    def test_unique_vec_smoke(self):
+        @vsc.randobj
+        class my_c(object):
+            def __init__(self):
+                self.a = vsc.rand_list_t(vsc.rand_uint16_t(1), 2)
+                self.b = vsc.rand_list_t(vsc.rand_uint16_t(1), 2)
+                self.c = vsc.rand_list_t(vsc.rand_uint16_t(1), 2)
+
+            @vsc.constraint
+            def index_1_constraint(self):
+                self.a[0] < 2
+                self.b[0] < 2
+                self.c[0] < 2
+                self.a[1] < 2
+                self.b[1] < 2
+                self.c[1] < 2
+
+            @vsc.constraint
+            def unique_list_constraint(self):
+                vsc.unique_vec(self.a, self.b, self.c)
+
+        it = my_c()
+        print("A:")
+        for i in range(len(it.a)):
+            print("    %d" % it.a[i])
+        print("B:")
+        for i in range(len(it.b)):
+            print("    %d" % it.b[i])
+        print("C:")
+        for i in range(len(it.c)):
+            print("    %d" % it.c[i])
             
                     

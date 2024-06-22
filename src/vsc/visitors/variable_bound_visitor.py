@@ -14,6 +14,7 @@ from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_inline_scope_model import ConstraintInlineScopeModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
+from vsc.model.constraint_unique_vec_model import ConstraintUniqueVecModel
 from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_bin_model import ExprBinModel
@@ -131,6 +132,11 @@ class VariableBoundVisitor(ModelVisitor):
         pass
     
     def visit_constraint_unique(self, c:ConstraintUniqueModel):
+        # Don't go into an unexpanded unique block. This 
+        # construct is a meta-constraint that will be expanded
+        pass
+
+    def visit_constraint_unique_vec(self, c:ConstraintUniqueModel):
         # Don't go into an unexpanded unique block. This 
         # construct is a meta-constraint that will be expanded
         pass

@@ -30,6 +30,7 @@ from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
+from vsc.model.constraint_unique_vec_model import ConstraintUniqueVecModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_cond_model import ExprCondModel
 from vsc.model.covergroup_model import CovergroupModel
@@ -154,6 +155,12 @@ class ModelVisitor(object):
         pass
             
     def visit_constraint_unique(self, c : ConstraintUniqueModel):
+        self.visit_constraint_stmt_enter(c)
+        for e in c.unique_l:
+            e.accept(self)
+        self.visit_constraint_stmt_leave(c)
+
+    def visit_constraint_unique_vec(self, c : ConstraintUniqueVecModel):
         self.visit_constraint_stmt_enter(c)
         for e in c.unique_l:
             e.accept(self)

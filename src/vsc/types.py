@@ -983,6 +983,9 @@ class list_t(object):
                 self.l = l
                 self.model = l._int_field_info.model
                 self.idx = 0
+
+            def __iter__(self):
+                return self
                 
             def __next__(self):
                 if self.idx >= int(self.model.size.get_val()):
@@ -997,6 +1000,7 @@ class list_t(object):
                         
                     self.idx += 1
                     return int(v)
+
         class list_object_it(object):
             def __init__(self, l):
                 self.l = l

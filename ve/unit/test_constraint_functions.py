@@ -32,3 +32,4 @@ class TestConstraintFunctions(VscTestCase):
             with c.randomize_with():
                 c.b == i
             print("a=%d b=%d" % (c.a, c.b))
+

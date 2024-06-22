@@ -31,10 +31,12 @@ from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_soft_model import ConstraintSoftModel
 from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
+from vsc.model.constraint_unique_vec_model import ConstraintUniqueVecModel
 from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.types import to_expr, expr, type_base, rng
@@ -268,6 +270,23 @@ def unique(*args):
         expr_l.insert(0, pop_expr())
 
     c = ConstraintUniqueModel(expr_l)
+    if in_srcinfo_mode():
+        c.srcinfo = SourceInfo.mk()
+    push_constraint_stmt(c)
+
+def unique_vec(*args):
+    expr_l = []
+    for i in range(-1, -(len(args)+1), -1):
+        to_expr(args[i])
+        e = pop_expr()
+        if not isinstance(e, ExprFieldRefModel) or not isinstance(e.fm, FieldArrayModel):
+            raise Exception("All arguments to unique_vec must be lists")
+        expr_l.insert(0, e)
+
+    if len(expr_l) < 2:
+        raise Exception("Must specify at least two vectors to uniquify")
+
+    c = ConstraintUniqueVecModel(expr_l)
     if in_srcinfo_mode():
         c.srcinfo = SourceInfo.mk()
     push_constraint_stmt(c)
