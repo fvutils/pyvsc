@@ -6,7 +6,7 @@
   <title>vsc.constraints &mdash; pyvsc 0.0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
-      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=eafc0fe6" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
 
   
   <!--[if lt IE 9]>
@@ -16,7 +16,7 @@
         <script src="../../_static/jquery.js?v=5d32c60e"></script>
         <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
         <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
-        <script src="../../_static/doctools.js?v=888ff710"></script>
+        <script src="../../_static/doctools.js?v=9a2dae69"></script>
         <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -116,10 +116,12 @@
 <span class="kn">from</span> <span class="nn">vsc.model.constraint_soft_model</span> <span class="kn">import</span> <span class="n">ConstraintSoftModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.constraint_solve_order_model</span> <span class="kn">import</span> <span class="n">ConstraintSolveOrderModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.constraint_unique_model</span> <span class="kn">import</span> <span class="n">ConstraintUniqueModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.constraint_unique_vec_model</span> <span class="kn">import</span> <span class="n">ConstraintUniqueVecModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.dist_weight_expr_model</span> <span class="kn">import</span> <span class="n">DistWeightExprModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.expr_array_subscript_model</span> <span class="kn">import</span> <span class="n">ExprArraySubscriptModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.expr_dynref_model</span> <span class="kn">import</span> <span class="n">ExprDynRefModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.expr_fieldref_model</span> <span class="kn">import</span> <span class="n">ExprFieldRefModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.field_array_model</span> <span class="kn">import</span> <span class="n">FieldArrayModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.expr_indexed_field_ref_model</span> <span class="kn">import</span> <span class="n">ExprIndexedFieldRefModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.field_scalar_model</span> <span class="kn">import</span> <span class="n">FieldScalarModel</span>
 <span class="kn">from</span> <span class="nn">vsc.types</span> <span class="kn">import</span> <span class="n">to_expr</span><span class="p">,</span> <span class="n">expr</span><span class="p">,</span> <span class="n">type_base</span><span class="p">,</span> <span class="n">rng</span>
@@ -403,6 +405,26 @@
         <span class="n">expr_l</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">pop_expr</span><span class="p">())</span>
 
     <span class="n">c</span> <span class="o">=</span> <span class="n">ConstraintUniqueModel</span><span class="p">(</span><span class="n">expr_l</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+        <span class="n">c</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
+    <span class="n">push_constraint_stmt</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="unique_vec">
+<a class="viewcode-back" href="../../reference.html#vsc.constraints.unique_vec">[docs]</a>
+<span class="k">def</span> <span class="nf">unique_vec</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="n">expr_l</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="o">-</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="p">,</span> <span class="n">ExprFieldRefModel</span><span class="p">)</span> <span class="ow">or</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">fm</span><span class="p">,</span> <span class="n">FieldArrayModel</span><span class="p">):</span>
+            <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;All arguments to unique_vec must be lists&quot;</span><span class="p">)</span>
+        <span class="n">expr_l</span><span class="o">.</span><span class="n">insert</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">e</span><span class="p">)</span>
+
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">expr_l</span><span class="p">)</span> <span class="o">&lt;</span> <span class="mi">2</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Must specify at least two vectors to uniquify&quot;</span><span class="p">)</span>
+
+    <span class="n">c</span> <span class="o">=</span> <span class="n">ConstraintUniqueVecModel</span><span class="p">(</span><span class="n">expr_l</span><span class="p">)</span>
     <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
         <span class="n">c</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
     <span class="n">push_constraint_stmt</span><span class="p">(</span><span class="n">c</span><span class="p">)</span></div>
