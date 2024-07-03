@@ -25,7 +25,7 @@ class SourceInfo(object):
         if len(stack) <= (levels+1):
             raise Exception("requested stack frame %d out-of-bounds (%d)" % (
                 levels, len(stack)))
-        frame = inspect.stack()[levels+1]
+        frame = stack[levels+1]
         
         return cls(frame.filename, frame.lineno)
     
