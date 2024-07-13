@@ -323,3 +323,42 @@ class TestConstraintSolveOrder(VscTestCase):
         self.assertNotEqual(0, num_of_nested_loop_hist[1])
         self.assertNotEqual(0, num_of_nested_loop_hist[2])
 
+
+    def test_toposort_random_stability(self):
+        @vsc.randobj
+        class my_s(object):
+
+            def __init__(self):
+                self.a = vsc.rand_bit_t(8)
+                self.list_0 = vsc.rand_list_t(vsc.rand_bit_t(8), 10)
+                self.list_1 = vsc.rand_list_t(vsc.rand_bit_t(8), 10)
+
+            @vsc.constraint
+            def a_and_lists_c(self):
+                # Excercise rand_order/toposort on lists
+                vsc.solve_order(self.a, self.list_0)
+                vsc.solve_order(self.list_0, self.list_1)
+
+                # Make lists unique to better detect ordering differences
+                vsc.unique(self.list_0)
+                vsc.unique(self.list_1)
+
+                # Tie all variables into single randset
+                self.a > 10
+                self.a < 20
+                with vsc.foreach(self.list_0) as it:
+                    it < self.a
+                with vsc.foreach(self.list_1) as it:
+                    it < self.a
+
+        first = my_s()
+        first.set_randstate(vsc.RandState.mkFromSeed(0))
+        first.randomize()
+
+        for _ in range(20):
+            repeat = my_s()
+            repeat.set_randstate(vsc.RandState.mkFromSeed(0))
+            repeat.randomize()
+            self.assertEqual(first.a, repeat.a, "Mismatch on a")
+            self.assertListEqual(list(first.list_0), list(repeat.list_0), "Mismatch on list_0")
+            self.assertListEqual(list(first.list_1), list(repeat.list_1), "Mismatch on list_1")
