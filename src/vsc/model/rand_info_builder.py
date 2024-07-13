@@ -133,15 +133,14 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                     if f in builder._order_m.keys():
                         rs_deps[f] = builder._order_m[f]
 
-                    if len(rs_deps) > 0:
-                        rs.rand_order_l = []
-                        for fs in list(toposort(rs_deps)):
-                            field_l = []
-                            for fi in fs:
-                                if fi in rs.fields():
-                                    field_l.append(fi)
-                            if len(field_l) > 0:
-                                rs.rand_order_l.append(field_l)
+                if len(rs_deps) > 0:
+                    rs.rand_order_l = []
+                    # Random stability warning: toposort uses sets and is unordered
+                    for fs in list(toposort(rs_deps)):
+                        # Add fields in predictable randset order
+                        field_l = [fi for fi in rs.fields() if fi in fs]
+                        if len(field_l) > 0:
+                            rs.rand_order_l.append(field_l)
                 
         # It's important to maintain a fixed order for the
         # unconstrained fields, since this affects their
