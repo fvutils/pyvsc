@@ -1,4 +1,7 @@
 
+## 0.9.1
+- (#221) - Correct a random-stability issue due to solve-order directives
+- 
 ## 0.9.0
 - (#219) - Add `unique_vec` constraint to support unique-vector constraints
 
