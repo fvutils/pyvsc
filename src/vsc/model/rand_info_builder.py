@@ -98,11 +98,15 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             
         builder = RandInfoBuilder(rng)
 
-        # First, collect all the fields
+        # First, collect all fields and ordering from constraints
         builder._pass = 0
         for fm in field_model_l:
             fm.accept(builder)
-            
+
+        # Collect all fields and ordering from standalone constraints passed to the function
+        for c in constraint_l:
+            c.accept(builder)
+
         builder._randset_m.clear()
         builder._randset_l.clear()
         builder._randset_field_m.clear()
