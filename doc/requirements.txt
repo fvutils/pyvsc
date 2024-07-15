@@ -11,5 +11,4 @@ pyenchant
 sphinx-issues
 sphinx-argparse
 toposort
-jinja2
 
