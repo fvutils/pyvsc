@@ -362,3 +362,45 @@ class TestConstraintSolveOrder(VscTestCase):
             self.assertEqual(first.a, repeat.a, "Mismatch on a")
             self.assertListEqual(list(first.list_0), list(repeat.list_0), "Mismatch on list_0")
             self.assertListEqual(list(first.list_1), list(repeat.list_1), "Mismatch on list_1")
+
+    def test_before_and_after_lists(self):
+
+        @vsc.randobj
+        class my_c(object):
+
+            def __init__(self):
+                self.a = vsc.rand_bit_t(64)
+                self.b = vsc.rand_bit_t(64)
+                self.c = vsc.rand_bit_t(1)
+
+            @vsc.constraint
+            def abc_c(self):
+                # If a or b is solved first then it's extremely likley
+                # that all variables will be non-zero
+                with vsc.implies(self.c == 0):
+                    self.a == 0
+                    self.b == 0
+
+        def test_solve_order(order):
+            a_hist = [0]*2
+            b_hist = [0]*2
+            c_hist = [0]*2
+            samples = 100
+
+            for _ in range(samples):
+                with i.randomize_with():
+                    order()
+                a_hist[i.a > 0] += 1
+                b_hist[i.b > 0] += 1
+                c_hist[i.c > 0] += 1
+            self.assertEqual(a_hist[1], samples)
+            self.assertEqual(b_hist[1], samples)
+            self.assertEqual(c_hist[1], samples)
+
+        i = my_c()
+
+        # Test various combinations of before and after arguments
+        test_solve_order(lambda: vsc.solve_order( i.a      ,  i.c ))
+        test_solve_order(lambda: vsc.solve_order( i.a      , [i.c]))
+        test_solve_order(lambda: vsc.solve_order([i.a, i.b],  i.c ))
+        test_solve_order(lambda: vsc.solve_order([i.a, i.b], [i.c]))
