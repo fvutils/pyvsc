@@ -590,7 +590,7 @@
             <span class="n">a_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a_e</span><span class="p">,</span> <span class="n">ExprFieldRefModel</span><span class="p">):</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Parameter &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; is not a field reference&quot;</span><span class="p">)</span>
-            <span class="n">before_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a_e</span><span class="o">.</span><span class="n">fm</span><span class="p">)</span>
+            <span class="n">after_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">a_e</span><span class="o">.</span><span class="n">fm</span><span class="p">)</span>
     <span class="k">else</span><span class="p">:</span>
         <span class="n">to_expr</span><span class="p">(</span><span class="n">after</span><span class="p">)</span>
         <span class="n">after_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>

@@ -552,9 +552,16 @@ statement corresponds to the SystemVerilog <code class="xref any docutils litera
             <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">!=</span> <span class="mi">4</span>
 </pre></div>
 </div>
-<p>In the example above, te <a class="reference internal" href="reference.html#vsc.constraints.solve_order" title="vsc.constraints.solve_order"><code class="xref any py py-func docutils literal notranslate"><span class="pre">solve_order</span></code></a> statement causes <code class="xref any docutils literal notranslate"><span class="pre">b</span></code> to
+<p>In the example above, the <a class="reference internal" href="reference.html#vsc.constraints.solve_order" title="vsc.constraints.solve_order"><code class="xref any py py-func docutils literal notranslate"><span class="pre">solve_order</span></code></a> statement causes <code class="xref any docutils literal notranslate"><span class="pre">b</span></code> to
 have values evenly distributed between the value sets [4] and
 [0..3,5..255].</p>
+<p>Use lists of variables to create multiple solve-order constraints.
+The example below solves <code class="xref any docutils literal notranslate"><span class="pre">a</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">b</span></code> before <code class="xref any docutils literal notranslate"><span class="pre">c</span></code> and <code class="xref any docutils literal notranslate"><span class="pre">d</span></code>.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
+<span class="k">def</span> <span class="nf">abcd_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="n">vsc</span><span class="o">.</span><span class="n">solve_order</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">],</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">])</span>
+</pre></div>
+</div>
 </section>
 <section id="unique">
 <h3>unique<a class="headerlink" href="#unique" title="Link to this heading"></a></h3>

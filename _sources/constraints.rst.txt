@@ -488,9 +488,18 @@ statement corresponds to the SystemVerilog `solve a before b` statement.
                 with vsc.else_then:
                     self.b != 4
 
-In the example above, te `solve_order` statement causes `b` to
+In the example above, the `solve_order` statement causes `b` to
 have values evenly distributed between the value sets [4] and 
 [0..3,5..255].
+
+Use lists of variables to create multiple solve-order constraints.
+The example below solves `a` and `b` before `c` and `d`.
+
+.. code-block:: python3
+
+            @vsc.constraint
+            def abcd_c(self):
+                vsc.solve_order([self.a, self.b], [self.c, self.d])
 
 unique
 ------
