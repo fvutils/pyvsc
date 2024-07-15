@@ -431,7 +431,7 @@ def solve_order(before, after):
             a_e = pop_expr()
             if not isinstance(a_e, ExprFieldRefModel):
                 raise Exception("Parameter " + str(a) + " is not a field reference")
-            before_l.append(a_e.fm)
+            after_l.append(a_e.fm)
     else:
         to_expr(after)
         after_e = pop_expr()
