@@ -125,6 +125,7 @@
 <span class="kn">from</span> <span class="nn">vsc.model.expr_rangelist_model</span> <span class="kn">import</span> <span class="n">ExprRangelistModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.expr_unary_model</span> <span class="kn">import</span> <span class="n">ExprUnaryModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.field_array_model</span> <span class="kn">import</span> <span class="n">FieldArrayModel</span>
+<span class="kn">from</span> <span class="nn">vsc.model.field_composite_model</span> <span class="kn">import</span> <span class="n">FieldCompositeModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.field_const_array_model</span> <span class="kn">import</span> <span class="n">FieldConstArrayModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.field_scalar_model</span> <span class="kn">import</span> <span class="n">FieldScalarModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.unary_expr_type</span> <span class="kn">import</span> <span class="n">UnaryExprType</span>
@@ -134,6 +135,8 @@
 <span class="kn">from</span> <span class="nn">vsc.impl.expr_mode</span> <span class="kn">import</span> <span class="n">get_expr_mode</span><span class="p">,</span> <span class="n">expr_mode</span><span class="p">,</span> <span class="n">is_expr_mode</span>
 <span class="kn">from</span> <span class="nn">vsc.model.expr_array_product_model</span> <span class="kn">import</span> <span class="n">ExprArrayProductModel</span>
 <span class="kn">from</span> <span class="nn">vsc.visitors.model_pretty_printer</span> <span class="kn">import</span> <span class="n">ModelPrettyPrinter</span>
+<span class="kn">from</span> <span class="nn">vsc.visitors.expr2field_visitor</span> <span class="kn">import</span> <span class="n">Expr2FieldVisitor</span>
+<span class="kn">from</span> <span class="nn">vsc.visitors.expr2fieldtype_visitor</span> <span class="kn">import</span> <span class="n">Expr2FieldTypeVisitor</span>
 <span class="kn">from</span> <span class="nn">vsc.model.expr_indexed_dynref_model</span> <span class="kn">import</span> <span class="n">ExprIndexedDynRefModel</span>
 <span class="kn">from</span> <span class="nn">vsc.model.source_info</span> <span class="kn">import</span> <span class="n">SourceInfo</span>
 
@@ -277,6 +280,29 @@
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unsupported &#39;not_inside&#39; argument of type &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">type</span><span class="p">(</span><span class="n">rhs</span><span class="p">)))</span></div>
 
         
+    <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="n">em</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;em&quot;</span><span class="p">)</span>
+        <span class="n">fm_t</span> <span class="o">=</span> <span class="n">Expr2FieldTypeVisitor</span><span class="p">()</span><span class="o">.</span><span class="n">fieldtype</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">fm_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprIndexedFieldRefModel</span><span class="p">(</span><span class="n">em</span><span class="p">,</span> <span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Field </span><span class="si">%s</span><span class="s2"> not in type </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fm</span> <span class="o">=</span> <span class="n">Expr2FieldVisitor</span><span class="p">()</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
+
+            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fm</span><span class="o">.</span><span class="n">field_id_m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                <span class="n">idx</span> <span class="o">=</span> <span class="n">fm</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                <span class="n">ret</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprIndexedFieldRefModel</span><span class="p">(</span><span class="n">em</span><span class="p">,</span> <span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Composite </span><span class="si">%s</span><span class="s2"> does not contain a field </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                    <span class="n">fm</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+
+        <span class="k">return</span> <span class="n">ret</span>
+
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">is_expr_mode</span><span class="p">():</span>
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">k</span><span class="p">,</span> <span class="nb">slice</span><span class="p">):</span>
