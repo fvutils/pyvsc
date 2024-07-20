@@ -1,4 +1,7 @@
 
+## 0.9.2
+- (#224) - Ensure fields within expressions can be referenced
+
 ## 0.9.1
 - (#221) - Correct a random-stability issue due to solve-order directives
 - 

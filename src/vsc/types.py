@@ -40,6 +40,7 @@ from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
 from vsc.model.expr_unary_model import ExprUnaryModel
 from vsc.model.field_array_model import FieldArrayModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.field_const_array_model import FieldConstArrayModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.unary_expr_type import UnaryExprType
@@ -49,6 +50,8 @@ from vsc.model.value_scalar import ValueScalar, ValueInt
 from vsc.impl.expr_mode import get_expr_mode, expr_mode, is_expr_mode
 from vsc.model.expr_array_product_model import ExprArrayProductModel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
+from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
+from vsc.visitors.expr2fieldtype_visitor import Expr2FieldTypeVisitor
 from vsc.model.expr_indexed_dynref_model import ExprIndexedDynRefModel
 from vsc.model.source_info import SourceInfo
 
@@ -172,6 +175,29 @@ class expr(object):
         else:
             raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
         
+    def __getattr__(self, name):
+        ret = None
+        em = object.__getattribute__(self, "em")
+        fm_t = Expr2FieldTypeVisitor().fieldtype(em)
+
+        if fm_t is not None:
+            if name in fm_t.field_id_m.keys():
+                idx = fm_t.field_id_m[name]
+                ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+            else:
+                raise Exception("Field %s not in type %s" % (name, fm_t.name))
+        else:
+            fm = Expr2FieldVisitor().field(em)
+
+            if name in fm.field_id_m.keys():
+                idx = fm.field_id_m[name]
+                ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+            else:
+                raise Exception("Composite %s does not contain a field \"%s\"" % (
+                    fm.name, name))
+
+        return ret
+
     def __getitem__(self, k):
         if is_expr_mode():
             if isinstance(k, slice):

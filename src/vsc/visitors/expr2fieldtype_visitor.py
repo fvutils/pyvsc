@@ -12,7 +12,7 @@ from vsc.model.model_visitor import ModelVisitor
 class Expr2FieldTypeVisitor(ModelVisitor):
     """Traverses an array-reference expression, returning element-type information"""
     
-    DEBUG_EN = False
+    DEBUG_EN = True
     
     def __init__(self):
         super().__init__()
@@ -39,6 +39,9 @@ class Expr2FieldTypeVisitor(ModelVisitor):
         self.type = f.type_t
         if Expr2FieldTypeVisitor.DEBUG_EN:
             print("--> visit_field_array fm=%s ft=%s" % (str(self.field), str(self.type)))
+
+    def visit_composite_field(self, t):
+        self.type = None
         
     def visit_expr_indexed_fieldref(self, e : ExprIndexedFieldRefModel):
         if Expr2FieldTypeVisitor.DEBUG_EN:
@@ -51,6 +54,14 @@ class Expr2FieldTypeVisitor(ModelVisitor):
         if Expr2FieldTypeVisitor.DEBUG_EN:
             print("--> visit_expr_array_subscript")
         s.lhs.accept(self)
+
+        if Expr2FieldTypeVisitor.DEBUG_EN:
+            print("--> visit_expr_array_subscript(visit_type)")
+        t = self.type
+        self.type = None
+        t.accept(self)
+        if Expr2FieldTypeVisitor.DEBUG_EN:
+            print("<-- visit_expr_array_subscript(visit_type)")
 
         if Expr2FieldTypeVisitor.DEBUG_EN:
             print("<-- visit_expr_array_subscript")

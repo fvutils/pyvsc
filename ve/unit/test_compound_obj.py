@@ -545,4 +545,29 @@ class TestCompoundObj(VscTestCase):
         inst.randomize(debug=0)
         print(inst.c1[0].a[0].value)
         print(inst.c2[0].x[0].value)        
-    
+
+    def test_nested_objects(self):
+
+        @vsc.randobj
+        class Field(object):
+            def __init__(self):
+                self.c = vsc.rand_uint8_t()
+
+
+        @vsc.randobj
+        class Child(object):
+            def __init__(self):
+                self.b = vsc.rand_attr(Field())
+
+
+        @vsc.randobj
+        class Parent(object):
+            def __init__(self):
+                self.a = vsc.rand_list_t(Child(), 2)
+
+            @vsc.constraint
+            def eq_c(self):
+                self.a[0].b.c == self.a[1].b.c
+
+
+        item = Parent()
