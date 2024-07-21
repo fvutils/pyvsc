@@ -180,6 +180,10 @@ class expr(object):
         em = object.__getattribute__(self, "em")
         fm_t = Expr2FieldTypeVisitor().fieldtype(em)
 
+        # This pops 'this expr' off the stack, so we can
+        # replace it with an extended expression
+        pop_expr()
+
         if fm_t is not None:
             if name in fm_t.field_id_m.keys():
                 idx = fm_t.field_id_m[name]

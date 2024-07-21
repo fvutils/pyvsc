@@ -571,3 +571,4 @@ class TestCompoundObj(VscTestCase):
 
 
         item = Parent()
+        item.randomize(debug=False)

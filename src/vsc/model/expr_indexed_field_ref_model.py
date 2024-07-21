@@ -27,18 +27,24 @@ class ExprIndexedFieldRefModel(ExprModel):
             ret = root
         elif isinstance(self.root, ExprArraySubscriptModel):
             ret = self.root.subscript()
+        elif isinstance(self.root, ExprIndexedFieldRefModel):
+            from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
+            fm = Expr2FieldVisitor().field(self.root)
+            ret = fm
         else:
             ret = self.root.fm
 
         for i in self.idx_t:
             ret = ret.get_field(i)
-            
+
         return ret
         
         
     def build(self, btor, ctx_width=-1):
         t = self.get_target()
         ret = t.build(btor)
+        if ret is None:
+            raise Exception("Expression %s produced null node" % str(t))
         return ret
     
     def is_signed(self):

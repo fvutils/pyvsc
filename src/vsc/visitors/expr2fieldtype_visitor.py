@@ -12,7 +12,7 @@ from vsc.model.model_visitor import ModelVisitor
 class Expr2FieldTypeVisitor(ModelVisitor):
     """Traverses an array-reference expression, returning element-type information"""
     
-    DEBUG_EN = True
+    DEBUG_EN = False
     
     def __init__(self):
         super().__init__()
