@@ -285,6 +285,10 @@
         <span class="n">em</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;em&quot;</span><span class="p">)</span>
         <span class="n">fm_t</span> <span class="o">=</span> <span class="n">Expr2FieldTypeVisitor</span><span class="p">()</span><span class="o">.</span><span class="n">fieldtype</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
 
+        <span class="c1"># This pops &#39;this expr&#39; off the stack, so we can</span>
+        <span class="c1"># replace it with an extended expression</span>
+        <span class="n">pop_expr</span><span class="p">()</span>
+
         <span class="k">if</span> <span class="n">fm_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
                 <span class="n">idx</span> <span class="o">=</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
