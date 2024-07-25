@@ -281,31 +281,33 @@
 
         
     <span class="k">def</span> <span class="fm">__getattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
-        <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
-        <span class="n">em</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;em&quot;</span><span class="p">)</span>
-        <span class="n">fm_t</span> <span class="o">=</span> <span class="n">Expr2FieldTypeVisitor</span><span class="p">()</span><span class="o">.</span><span class="n">fieldtype</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
-
-        <span class="c1"># This pops &#39;this expr&#39; off the stack, so we can</span>
-        <span class="c1"># replace it with an extended expression</span>
-        <span class="n">pop_expr</span><span class="p">()</span>
-
-        <span class="k">if</span> <span class="n">fm_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="n">idx</span> <span class="o">=</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-                <span class="n">ret</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprIndexedFieldRefModel</span><span class="p">(</span><span class="n">em</span><span class="p">,</span> <span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
-            <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Field </span><span class="si">%s</span><span class="s2"> not in type </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">expr_mode</span><span class="p">():</span>
+            <span class="k">return</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">fm</span> <span class="o">=</span> <span class="n">Expr2FieldVisitor</span><span class="p">()</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
+            <span class="n">em</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;em&quot;</span><span class="p">)</span>
+            <span class="n">fm_t</span> <span class="o">=</span> <span class="n">Expr2FieldTypeVisitor</span><span class="p">()</span><span class="o">.</span><span class="n">fieldtype</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
 
-            <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fm</span><span class="o">.</span><span class="n">field_id_m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
-                <span class="n">idx</span> <span class="o">=</span> <span class="n">fm</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
-                <span class="n">ret</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprIndexedFieldRefModel</span><span class="p">(</span><span class="n">em</span><span class="p">,</span> <span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+            <span class="c1"># This pops &#39;this expr&#39; off the stack, so we can</span>
+            <span class="c1"># replace it with an extended expression</span>
+            <span class="n">pop_expr</span><span class="p">()</span>
+
+            <span class="k">if</span> <span class="n">fm_t</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                    <span class="n">ret</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprIndexedFieldRefModel</span><span class="p">(</span><span class="n">em</span><span class="p">,</span> <span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Field </span><span class="si">%s</span><span class="s2"> not in type </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">fm_t</span><span class="o">.</span><span class="n">name</span><span class="p">))</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Composite </span><span class="si">%s</span><span class="s2"> does not contain a field </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
-                    <span class="n">fm</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+                <span class="n">fm</span> <span class="o">=</span> <span class="n">Expr2FieldVisitor</span><span class="p">()</span><span class="o">.</span><span class="n">field</span><span class="p">(</span><span class="n">em</span><span class="p">)</span>
 
-        <span class="k">return</span> <span class="n">ret</span>
+                <span class="k">if</span> <span class="n">name</span> <span class="ow">in</span> <span class="n">fm</span><span class="o">.</span><span class="n">field_id_m</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                    <span class="n">idx</span> <span class="o">=</span> <span class="n">fm</span><span class="o">.</span><span class="n">field_id_m</span><span class="p">[</span><span class="n">name</span><span class="p">]</span>
+                    <span class="n">ret</span> <span class="o">=</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprIndexedFieldRefModel</span><span class="p">(</span><span class="n">em</span><span class="p">,</span> <span class="p">[</span><span class="n">idx</span><span class="p">]))</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Composite </span><span class="si">%s</span><span class="s2"> does not contain a field </span><span class="se">\&quot;</span><span class="si">%s</span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="p">(</span>
+                        <span class="n">fm</span><span class="o">.</span><span class="n">name</span><span class="p">,</span> <span class="n">name</span><span class="p">))</span>
+            <span class="k">return</span> <span class="n">ret</span>
 
     <span class="k">def</span> <span class="fm">__getitem__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">k</span><span class="p">):</span>
         <span class="k">if</span> <span class="n">is_expr_mode</span><span class="p">():</span>
@@ -1123,15 +1125,16 @@
 
         <span class="n">fid</span> <span class="o">=</span> <span class="mi">0</span>        
         <span class="k">for</span> <span class="n">fn</span> <span class="ow">in</span> <span class="nb">dir</span><span class="p">(</span><span class="n">it</span><span class="p">):</span>
-            <span class="n">fo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
-            <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="s2">&quot;_int_field_info&quot;</span><span class="p">):</span>
-                <span class="n">fi</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span>
-                <span class="n">fi</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">fid</span>
-                <span class="n">fi</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">it</span><span class="o">.</span><span class="n">_int_field_info</span>
-                <span class="n">fid</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">if</span> <span class="ow">not</span> <span class="n">fn</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s2">&quot;__&quot;</span><span class="p">)</span> <span class="ow">and</span> <span class="n">fn</span> <span class="ow">not</span> <span class="ow">in</span> <span class="p">(</span><span class="s2">&quot;sum&quot;</span><span class="p">,</span><span class="s2">&quot;product&quot;</span><span class="p">,</span><span class="s2">&quot;size&quot;</span><span class="p">):</span>
+                <span class="n">fo</span> <span class="o">=</span> <span class="nb">getattr</span><span class="p">(</span><span class="n">it</span><span class="p">,</span> <span class="n">fn</span><span class="p">)</span>
+                <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="s2">&quot;_int_field_info&quot;</span><span class="p">):</span>
+                    <span class="n">fi</span> <span class="o">=</span> <span class="n">fo</span><span class="o">.</span><span class="n">_int_field_info</span>
+                    <span class="n">fi</span><span class="o">.</span><span class="n">id</span> <span class="o">=</span> <span class="n">fid</span>
+                    <span class="n">fi</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="n">it</span><span class="o">.</span><span class="n">_int_field_info</span>
+                    <span class="n">fid</span> <span class="o">+=</span> <span class="mi">1</span>
                 
-                <span class="k">if</span> <span class="n">fi</span><span class="o">.</span><span class="n">is_composite</span><span class="p">:</span>
-                    <span class="bp">self</span><span class="o">.</span><span class="n">_id_fields</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">fi</span><span class="p">)</span>
+                    <span class="k">if</span> <span class="n">fi</span><span class="o">.</span><span class="n">is_composite</span><span class="p">:</span>
+                        <span class="bp">self</span><span class="o">.</span><span class="n">_id_fields</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">fi</span><span class="p">)</span>
         
 <div class="viewcode-block" id="list_t.get_model">
 <a class="viewcode-back" href="../../reference.html#vsc.types.list_t.get_model">[docs]</a>
