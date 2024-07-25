@@ -176,31 +176,33 @@ class expr(object):
             raise Exception("Unsupported 'not_inside' argument of type " + str(type(rhs)))
         
     def __getattr__(self, name):
-        ret = None
-        em = object.__getattribute__(self, "em")
-        fm_t = Expr2FieldTypeVisitor().fieldtype(em)
-
-        # This pops 'this expr' off the stack, so we can
-        # replace it with an extended expression
-        pop_expr()
-
-        if fm_t is not None:
-            if name in fm_t.field_id_m.keys():
-                idx = fm_t.field_id_m[name]
-                ret = expr(ExprIndexedFieldRefModel(em, [idx]))
-            else:
-                raise Exception("Field %s not in type %s" % (name, fm_t.name))
+        if not expr_mode():
+            return object.__getattribute__(self, name)
         else:
-            fm = Expr2FieldVisitor().field(em)
+            ret = None
+            em = object.__getattribute__(self, "em")
+            fm_t = Expr2FieldTypeVisitor().fieldtype(em)
 
-            if name in fm.field_id_m.keys():
-                idx = fm.field_id_m[name]
-                ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+            # This pops 'this expr' off the stack, so we can
+            # replace it with an extended expression
+            pop_expr()
+
+            if fm_t is not None:
+                if name in fm_t.field_id_m.keys():
+                    idx = fm_t.field_id_m[name]
+                    ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+                else:
+                    raise Exception("Field %s not in type %s" % (name, fm_t.name))
             else:
-                raise Exception("Composite %s does not contain a field \"%s\"" % (
-                    fm.name, name))
+                fm = Expr2FieldVisitor().field(em)
 
-        return ret
+                if name in fm.field_id_m.keys():
+                    idx = fm.field_id_m[name]
+                    ret = expr(ExprIndexedFieldRefModel(em, [idx]))
+                else:
+                    raise Exception("Composite %s does not contain a field \"%s\"" % (
+                        fm.name, name))
+            return ret
 
     def __getitem__(self, k):
         if is_expr_mode():
@@ -859,15 +861,16 @@ class list_t(object):
 
         fid = 0        
         for fn in dir(it):
-            fo = getattr(it, fn)
-            if hasattr(fo, "_int_field_info"):
-                fi = fo._int_field_info
-                fi.id = fid
-                fi.parent = it._int_field_info
-                fid += 1
+            if not fn.startswith("__") and fn not in ("sum","product","size"):
+                fo = getattr(it, fn)
+                if hasattr(fo, "_int_field_info"):
+                    fi = fo._int_field_info
+                    fi.id = fid
+                    fi.parent = it._int_field_info
+                    fid += 1
                 
-                if fi.is_composite:
-                    self._id_fields(fo, fi)
+                    if fi.is_composite:
+                        self._id_fields(fo, fi)
         
     def get_model(self):
         if self._int_field_info.model is None:

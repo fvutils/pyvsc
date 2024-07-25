@@ -57,9 +57,11 @@ class Expr2FieldTypeVisitor(ModelVisitor):
 
         if Expr2FieldTypeVisitor.DEBUG_EN:
             print("--> visit_expr_array_subscript(visit_type)")
-        t = self.type
-        self.type = None
-        t.accept(self)
+        if self.type is not None:
+            t = self.type
+            self.type = None
+            t.accept(self)
+
         if Expr2FieldTypeVisitor.DEBUG_EN:
             print("<-- visit_expr_array_subscript(visit_type)")
 
