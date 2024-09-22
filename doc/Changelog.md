@@ -1,4 +1,7 @@
 
+## 0.9.3
+- () - Properly apply ignore bins to single-value bins
+
 ## 0.9.2
 - (#224) - Ensure fields within expressions can be referenced
 

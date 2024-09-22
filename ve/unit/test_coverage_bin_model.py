@@ -109,3 +109,5 @@ class TestCoverageBinModel(TestCase):
         bins.finalize(0)
         self.assertEqual(4, len(bins.bin_l))
         self.assertEqual(4, bins.get_n_bins())
+
+    

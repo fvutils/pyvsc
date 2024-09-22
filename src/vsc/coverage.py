@@ -358,9 +358,12 @@ class bin(object):
         if exclude_bins is not None and len(exclude_bins.range_l) > 0:
             # Apply exclusions
             range_l.intersect(exclude_bins)
-            
-        ret = CoverpointBinSingleBagModel(name, range_l)
-        ret.srcinfo_decl = self.srcinfo_decl
+
+        if len(range_l.range_l) > 0:
+            ret = CoverpointBinSingleBagModel(name, range_l)
+            ret.srcinfo_decl = self.srcinfo_decl
+        else:
+            ret = None
         
         return ret
         
@@ -847,7 +850,8 @@ class coverpoint(object):
                         if not hasattr(bin_spec, "build_cov_model"):
                             raise Exception("Bin specification doesn't have a build_cov_model method")
                         bin_m = bin_spec.build_cov_model(self.model, bin_name, exclude_bins)
-                        self.model.add_bin_model(bin_m)
+                        if bin_m is not None:
+                            self.model.add_bin_model(bin_m)
                         
                 if self.ignore_bins is not None and len(self.ignore_bins) != 0:
                     # Build dedicated ignore_bins
@@ -855,14 +859,16 @@ class coverpoint(object):
                         if not hasattr(bin_spec, "build_cov_model"):
                             raise Exception("Bin specification doesn't have a build_cov_model method")
                         bin_m = bin_spec.build_cov_model(self.model, bin_name, None)
-                        self.model.add_ignore_bin_model(bin_m)
+                        if bin_m is not None:
+                            self.model.add_ignore_bin_model(bin_m)
                 if self.illegal_bins is not None and len(self.illegal_bins) != 0:
                     # Build dedicated ignore_bins
                     for bin_name,bin_spec in self.illegal_bins.items():
                         if not hasattr(bin_spec, "build_cov_model"):
                             raise Exception("Bin specification doesn't have a build_cov_model method")
                         bin_m = bin_spec.build_cov_model(self.model, bin_name, None)
-                        self.model.add_illegal_bin_model(bin_m)
+                        if bin_m is not None:
+                            self.model.add_illegal_bin_model(bin_m)
 
         return self.model
     

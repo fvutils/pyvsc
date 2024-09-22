@@ -211,4 +211,147 @@ class TestCoverageIgnoreBins(VscTestCase):
         self.assertEqual(coverage_model.covergroups[0].coverpoints[0].ignore_bins[0].count, 1)
         self.assertEqual(coverage_model.covergroups[0].coverpoints[0].illegal_bins[0].count, 1)
 
+    def test_record_ignore(self):
+        import sys
+        import vsc
+        from io import StringIO
+        from ucis.xml.xml_factory import XmlFactory
+        from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
+        from ucis.report.coverage_report_builder import CoverageReportBuilder
+
+        @vsc.covergroup
+        class cg_t(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.int8_t()))
+                self.cp = vsc.coverpoint(self.a, 
+                    bins=dict(rng=vsc.bin_array([], [0,20])),
+                    ignore_bins=dict(ignore=vsc.bin(0)))
+                
+        cg = cg_t()
+        cg.sample(0)
+        cg.sample(1)
+
+        out = StringIO()
+        vsc.write_coverage_db(out)
+#        vsc.report_coverage(details=True)
+        db = XmlFactory.read(StringIO(out.getvalue()))
+        report = CoverageReportBuilder(db).build(db)
+        # Confirm that the ignore bin was properly saved/restored
+        self.assertEqual(
+            len(report.covergroups[0].covergroups[0].coverpoints[0].ignore_bins), 1)
+        reporter = TextCoverageReportFormatter(report, sys.stdout)
+        reporter.details = True
+        reporter.report()
+
+    def test_ignore_single_val_bin(self):
+        import sys
+        import vsc
+        from io import StringIO
+        from ucis.xml.xml_factory import XmlFactory
+        from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
+        from ucis.report.coverage_report_builder import CoverageReportBuilder
+
+        @vsc.covergroup
+        class cg_t(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.int8_t()))
+                self.cp = vsc.coverpoint(self.a, 
+                    bins=dict(
+                        ign=vsc.bin(0),
+                        rng=vsc.bin_array([], [1,20])),
+                    ignore_bins=dict(ignore=vsc.bin(0)))
+                
+        cg = cg_t()
+        cg.sample(0)
+        cg.sample(1)
+
+        out = StringIO()
+        vsc.write_coverage_db(out)
+        vsc.report_coverage(details=True)
+        db = XmlFactory.read(StringIO(out.getvalue()))
+        report = CoverageReportBuilder(db).build(db)
+        # Confirm that the ignore bin was properly saved/restored
+        self.assertEqual(
+            len(report.covergroups[0].covergroups[0].coverpoints[0].bins), 20)
+        self.assertEqual(
+            len(report.covergroups[0].covergroups[0].coverpoints[0].ignore_bins), 1)
+        reporter = TextCoverageReportFormatter(report, sys.stdout)
+        reporter.details = True
+        reporter.report()
+
+    # def test_ignore_full_array_bin(self):
+    #     import sys
+    #     import vsc
+    #     from io import StringIO
+    #     from ucis.xml.xml_factory import XmlFactory
+    #     from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
+    #     from ucis.report.coverage_report_builder import CoverageReportBuilder
+
+    #     @vsc.covergroup
+    #     class cg_t(object):
+    #         def __init__(self):
+    #             self.with_sample(dict(
+    #                 a=vsc.int8_t()))
+    #             self.cp = vsc.coverpoint(self.a, 
+    #                 bins=dict(
+    #                     single=vsc.bin(0),
+    #                     rng=vsc.bin_array([], [1,20])),
+    #                 ignore_bins=dict(ignore=vsc.bin(1,20)))
+                
+    #     cg = cg_t()
+    #     cg.sample(0)
+    #     cg.sample(1)
+
+    #     out = StringIO()
+    #     vsc.write_coverage_db(out)
+    #     vsc.report_coverage(details=True)
+    #     db = XmlFactory.read(StringIO(out.getvalue()))
+    #     report = CoverageReportBuilder(db).build(db)
+    #     # Confirm that the ignore bin was properly saved/restored
+    #     self.assertEqual(
+    #         len(report.covergroups[0].covergroups[0].coverpoints[0].bins), 1)
+    #     self.assertEqual(
+    #         len(report.covergroups[0].covergroups[0].coverpoints[0].ignore_bins), 1)
+    #     reporter = TextCoverageReportFormatter(report, sys.stdout)
+    #     reporter.details = True
+    #     reporter.report()
+
+    # def test_example(self):
+    #     import vsc
+    #     DATA_WIDTH = 4
+
+    #     @vsc.covergroup
+    #     class my_covergroup(object):
+    #         def __init__(self,a,b,op):      
+    #             super().__init__()
+    #             self.options.weight = 1
+    #             self.operation_cvg = vsc.coverpoint(op,
+    #                 bins={"Ops.ADD":vsc.bin(0), "Ops.SUB":vsc.bin(1), "Ops.NOT":vsc.bin(2), "Ops.NOR":vsc.bin(3), "Ops.NAND":vsc.bin(4), "Ops.AND":vsc.bin(5), "Ops.OR":vsc.bin(6), "Ops.XOR":vsc.bin(7)},
+    #                 name="alu_op"
+    #                 )
+        
+    #             self.operanda_cvg = vsc.coverpoint(a,
+    #                 bins = {"illegal/ignore": vsc.bin(0), "low": vsc.bin_array([],[1,int(2**DATA_WIDTH/2)]), "high": vsc.bin_array([],[int(2**DATA_WIDTH/2)+1,2**DATA_WIDTH-1])}, 
+    #                     options=dict(weight=2),
+    #                     ignore_bins=dict(invalid_value=vsc.bin(1,2)),
+    #                     name="alu_operand_a")
+    #             self.operandb_cvg = vsc.coverpoint(b,
+    #                     bins = {"low": vsc.bin_array([],[0,int(2**DATA_WIDTH/2)]), "high": vsc.bin_array([],[int(2**DATA_WIDTH/2)+1,2**DATA_WIDTH-1])}, 
+    #                     name="alu_operand_b")
+    #             self.cross_a_b = vsc.cross([self.operanda_cvg,self.operandb_cvg])
+
+
+    #     a = 0
+    #     b = 0
+    #     op = 0
+    #     cg = my_covergroup(lambda:a, lambda:b, lambda:op)
+    #     for i in range(1,16):
+    #         a = i
+    #         b = i
+    #         cg.sample()
+    #     vsc.report_coverage(details=True)
+    #     vsc.write_coverage_db("pyvsc_coverage_result.xml")
+
         
