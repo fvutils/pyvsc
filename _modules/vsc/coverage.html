@@ -450,9 +450,12 @@
         <span class="k">if</span> <span class="n">exclude_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
             <span class="c1"># Apply exclusions</span>
             <span class="n">range_l</span><span class="o">.</span><span class="n">intersect</span><span class="p">(</span><span class="n">exclude_bins</span><span class="p">)</span>
-            
-        <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinSingleBagModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">range_l</span><span class="p">)</span>
-        <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+
+        <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">range_l</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinSingleBagModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="n">range_l</span><span class="p">)</span>
+            <span class="n">ret</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
         
         <span class="k">return</span> <span class="n">ret</span></div>
 </div>
@@ -975,7 +978,8 @@
                         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bin_spec</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification doesn&#39;t have a build_cov_model method&quot;</span><span class="p">)</span>
                         <span class="n">bin_m</span> <span class="o">=</span> <span class="n">bin_spec</span><span class="o">.</span><span class="n">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">bin_name</span><span class="p">,</span> <span class="n">exclude_bins</span><span class="p">)</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">bin_m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
                         
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="c1"># Build dedicated ignore_bins</span>
@@ -983,14 +987,16 @@
                         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bin_spec</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification doesn&#39;t have a build_cov_model method&quot;</span><span class="p">)</span>
                         <span class="n">bin_m</span> <span class="o">=</span> <span class="n">bin_spec</span><span class="o">.</span><span class="n">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">bin_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_ignore_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">bin_m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_ignore_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">0</span><span class="p">:</span>
                     <span class="c1"># Build dedicated ignore_bins</span>
                     <span class="k">for</span> <span class="n">bin_name</span><span class="p">,</span><span class="n">bin_spec</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">illegal_bins</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
                         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">bin_spec</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
                             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Bin specification doesn&#39;t have a build_cov_model method&quot;</span><span class="p">)</span>
                         <span class="n">bin_m</span> <span class="o">=</span> <span class="n">bin_spec</span><span class="o">.</span><span class="n">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">bin_name</span><span class="p">,</span> <span class="kc">None</span><span class="p">)</span>
-                        <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_illegal_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
+                        <span class="k">if</span> <span class="n">bin_m</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">add_illegal_bin_model</span><span class="p">(</span><span class="n">bin_m</span><span class="p">)</span>
 
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span></div>
 
