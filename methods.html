@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -5,20 +7,16 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PyVSC Methods &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=d45e8c67"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -37,9 +35,6 @@
           <a href="index.html" class="icon icon-home">
             pyvsc
           </a>
-              <div class="version">
-                0.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -124,7 +119,7 @@ both scalar and composite, subject to the inline constraints.</p>
 random state for each <a class="reference internal" href="reference.html#module-vsc.rand_obj" title="vsc.rand_obj"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">rand_obj</span></code></a> can be established explicitly by
 the user. If the random state has not been initialized at the time
 of the first call to <code class="xref any docutils literal notranslate"><span class="pre">randomize</span></code> on a object, the random state
-will be automatically derived using the Python <a class="reference external" href="https://docs.python.org/3/library/random.html#module-random" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">random</span></code></a> package.</p>
+will be automatically derived using the Python <a class="reference external" href="https://docs.python.org/3/library/random.html#module-random" title="(in Python v3.13)"><code class="xref any docutils literal notranslate"><span class="pre">random</span></code></a> package.</p>
 <p>PyVSC uses the <code class="xref any docutils literal notranslate"><span class="pre">RandState</span></code> class to store and manipulate random state.
 The <a class="reference internal" href="reference.html#module-vsc.rand_obj" title="vsc.rand_obj"><code class="xref any py py-mod docutils literal notranslate"><span class="pre">rand_obj</span></code></a> class provides functions for obtaining a copy of the
 current random state, and for setting the current random state to
@@ -132,14 +127,14 @@ that of a previously-obtained random state.</p>
 <p>The example below shows using a RandState object to produce the
 same sequence of random number twice.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
-<span class="k">class</span> <span class="nc">item_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">item_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
 
     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
-    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
 
 <span class="n">ci</span> <span class="o">=</span> <span class="n">item_c</span><span class="p">()</span>
@@ -168,14 +163,14 @@ string. The example below shows producing the same sequence
 of random values based on two independently-created random
 state objects.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">randobj</span>
-<span class="k">class</span> <span class="nc">item_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">item_c</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">rand_uint8_t</span><span class="p">()</span>
 
     <span class="nd">@vsc</span><span class="o">.</span><span class="n">constraint</span>
-    <span class="k">def</span> <span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">ab_c</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">a</span> <span class="o">&lt;</span> <span class="bp">self</span><span class="o">.</span><span class="n">b</span>
 
 <span class="n">ci</span> <span class="o">=</span> <span class="n">item_c</span><span class="p">()</span>
@@ -227,7 +222,7 @@ a weighted selection and calls the selected lambda. In most cases, the lambda
 will need to call a function to perform useful work.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="n">hist</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="mi">4</span>
 
-<span class="k">def</span> <span class="nf">task</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">task</span><span class="p">(</span><span class="n">idx</span><span class="p">):</span>
     <span class="n">hist</span><span class="p">[</span><span class="n">idx</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span>
 
 <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">):</span>
@@ -256,7 +251,7 @@ different arguments. Different methods could be called instead.</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2024, Matthew Ballance and Contributors.</p>
+    <p>&#169; Copyright 2019-2025, Matthew Ballance and Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

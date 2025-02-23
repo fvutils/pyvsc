@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="./">
 <head>
@@ -5,20 +7,16 @@
 
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PyVSC Coverage &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=fa44fd50" />
-      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="_static/graphviz.css?v=fd3f3429" />
 
   
-  <!--[if lt IE 9]>
-    <script src="_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="_static/jquery.js?v=5d32c60e"></script>
-        <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="_static/documentation_options.js?v=d45e8c67"></script>
-        <script src="_static/doctools.js?v=9a2dae69"></script>
-        <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="_static/doctools.js?v=9a2dae69"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -37,9 +35,6 @@
           <a href="index.html" class="icon icon-home">
             pyvsc
           </a>
-              <div class="version">
-                0.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -136,9 +131,9 @@
 <p>With PyVSC, a covergroup is declared as a Python class that is decorated
 with the <a class="reference internal" href="reference.html#vsc.coverage.covergroup" title="vsc.coverage.covergroup"><code class="xref any py py-func docutils literal notranslate"><span class="pre">covergroup</span></code></a> decorator.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
              <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
              <span class="p">)</span>
@@ -221,9 +216,9 @@ and <em>get_inst_coverage</em> return the same value.</p></td>
 They can also be configured after construction, and before the covergroup is sampled
 for the first time, by referencing the options fields directly.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">weight</span><span class="o">=</span><span class="mi">1</span><span class="p">):</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
              <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
              <span class="p">)</span>
@@ -239,9 +234,9 @@ for the first time, by referencing the options fields directly.</p>
 </div>
 <p>The example above sets the weight of the covergroup to the specified weight passed to <code class="xref any docutils literal notranslate"><span class="pre">__init__</span></code></p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
              <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
              <span class="p">)</span>
@@ -269,7 +264,7 @@ an expression involving PyVSC-typed variables, or it can be a simple
 reference to a callable field that returns a value.</p>
 <section id="specifying-bins">
 <h3>Specifying Bins<a class="headerlink" href="#specifying-bins" title="Link to this heading"></a></h3>
-<p>Bins are specified as a Python <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a>, and passed via the <code class="xref any docutils literal notranslate"><span class="pre">bins</span></code> keyword
+<p>Bins are specified as a Python <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a>, and passed via the <code class="xref any docutils literal notranslate"><span class="pre">bins</span></code> keyword
 argument to the coverpoint method. Both individual bins and arrays of
 bins can be specified.</p>
 <section id="individual-bins">
@@ -277,9 +272,9 @@ bins can be specified.</p>
 <p>Individual bins are specified with the <a class="reference internal" href="reference.html#vsc.coverage.bin" title="vsc.coverage.bin"><code class="xref any py py-class docutils literal notranslate"><span class="pre">bin</span></code></a> method. The <a class="reference internal" href="reference.html#vsc.coverage.bin" title="vsc.coverage.bin"><code class="xref any py py-class docutils literal notranslate"><span class="pre">bin</span></code></a> method
 accepts a list of individual values and value ranges that the bin contains.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
 
          <span class="bp">self</span><span class="o">.</span><span class="n">cp1</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span>
              <span class="s2">&quot;a&quot;</span> <span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
@@ -298,9 +293,9 @@ parameter to this method specifies how values are to be partitioned. This
 parameter can be specified either as a number, or a single value in a list.
 The list format is similar to SystemVerilog syntax.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
 
          <span class="bp">self</span><span class="o">.</span><span class="n">cp1</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span>
              <span class="s2">&quot;a&quot;</span> <span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
@@ -321,9 +316,9 @@ When auto-binning is used and the type of the coverpoint isn’t apparent,
 the <code class="xref any docutils literal notranslate"><span class="pre">cp_t</span></code> parameter must be used to specify the type of the value being
 sampled.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
 
          <span class="bp">self</span><span class="o">.</span><span class="n">cp1</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">cp_t</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">())</span>
 </pre></div>
@@ -345,9 +340,9 @@ specification string must start with “0x” (hexadecimal),
 <p>Here is an example showing specification of a wildcard bin that
 matches any value 0x80..0x8F:</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
             <span class="nb">dict</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)))</span>
 
@@ -358,9 +353,9 @@ matches any value 0x80..0x8F:</p>
 <p>Here is the same coverpoint specification using the value/mask
 form:</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
             <span class="nb">dict</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)))</span>
 
@@ -377,9 +372,9 @@ In this case, the wildcard characters specify a location where all
 possibilities must be expanded.</p>
 <p>The example below creates 16 bins for the values 0x80..0x8F:</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
             <span class="nb">dict</span><span class="p">(</span><span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">8</span><span class="p">)))</span>
 
@@ -398,8 +393,8 @@ those bins. Please note that, as in SystemVerilog, bins are
 partitioned <em>after</em> ignore and illegal bin values are removed
 from regular bins.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-   <span class="k">class</span> <span class="nc">val_cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
-       <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+   <span class="k">class</span><span class="w"> </span><span class="nc">val_cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+       <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
            <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
                <span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">()</span>
                <span class="p">))</span>
@@ -429,9 +424,9 @@ applied, the bins in the example above are:
 parameter to the <a class="reference internal" href="reference.html#vsc.coverage.cross" title="vsc.coverage.cross"><code class="xref any py py-class docutils literal notranslate"><span class="pre">cross</span></code></a> method is a list of the coverpoints that
 compose the coverpoint cross.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
             <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span>
             <span class="n">b</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
@@ -453,9 +448,9 @@ compose the coverpoint cross.</p>
 crosses using the <code class="xref any docutils literal notranslate"><span class="pre">iff</span></code> keyword parameter to the <a class="reference internal" href="reference.html#vsc.coverage.coverpoint" title="vsc.coverage.coverpoint"><code class="xref any py py-class docutils literal notranslate"><span class="pre">coverpoint</span></code></a> and <a class="reference internal" href="reference.html#vsc.coverage.cross" title="vsc.coverage.cross"><code class="xref any py py-class docutils literal notranslate"><span class="pre">cross</span></code></a>
 methods.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">,</span> <span class="n">b</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">,</span> <span class="n">b</span> <span class="p">:</span> <span class="nb">callable</span><span class="p">):</span>
 
          <span class="bp">self</span><span class="o">.</span><span class="n">cp1</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">iff</span><span class="o">=</span><span class="n">b</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span>
              <span class="s2">&quot;a&quot;</span> <span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([],</span> <span class="mi">1</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
@@ -501,9 +496,9 @@ not explicitly specified</p></td>
 during construction. The example below shows overriding the
 covergroup-level <code class="docutils literal notranslate"><span class="pre">at_least</span></code> option for one coverpoint.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
             <span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span>
             <span class="n">b</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">()))</span>
@@ -533,7 +528,7 @@ sample-method signature.</p>
 <section id="declaring-a-custom-sample-method">
 <h3>Declaring a Custom Sample Method<a class="headerlink" href="#declaring-a-custom-sample-method" title="Link to this heading"></a></h3>
 <p>Use of a custom <a class="reference internal" href="reference.html#vsc.model.covergroup_model.CovergroupModel.sample" title="vsc.model.covergroup_model.CovergroupModel.sample"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">sample</span></code></a> method that accepts parameters is specified
-by calling the <code class="xref any docutils literal notranslate"><span class="pre">with_sample</span></code> method and passing either a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> of
+by calling the <code class="xref any docutils literal notranslate"><span class="pre">with_sample</span></code> method and passing either a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a> of
 parameter-name/parameter-type pairs or a list of keyword arguments.
 The <code class="xref any docutils literal notranslate"><span class="pre">with_sample</span></code> method declares class members with the same name
 and type as the key/value pairs in the dict passed to the
@@ -542,9 +537,9 @@ The <code class="xref any docutils literal notranslate"><span class="pre">with_s
 method body to ensure that the sample parameters are declared early
 and present when referenced in coverpoints.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
              <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
              <span class="p">))</span>
@@ -555,11 +550,11 @@ and present when referenced in coverpoints.</p>
 </pre></div>
 </div>
 <p>The example above shows specifying the <a class="reference internal" href="reference.html#vsc.model.covergroup_model.CovergroupModel.sample" title="vsc.model.covergroup_model.CovergroupModel.sample"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">sample</span></code></a> method parameter list
-using a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a>.</p>
+using a <a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#dict" title="(in Python v3.13)"><code class="xref any docutils literal notranslate"><span class="pre">dict</span></code></a>.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
              <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
              <span class="p">)</span>
@@ -572,9 +567,9 @@ using a <a class="reference external" href="https://docs.python.org/3/library/st
 <p>The example above shows specifying the <a class="reference internal" href="reference.html#vsc.model.covergroup_model.CovergroupModel.sample" title="vsc.model.covergroup_model.CovergroupModel.sample"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">sample</span></code></a> method parameter list
 using individual keyword arguments.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
             <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
             <span class="p">)</span>
@@ -596,13 +591,13 @@ as shown in the example above.</p>
 <p>PyVSC supports specifying coverage-sampling data when the covergroup
 is instanced, as well as specifying it each time the sample method is
 called. In this case, no parameters are passed to the <a class="reference internal" href="reference.html#vsc.model.covergroup_model.CovergroupModel.sample" title="vsc.model.covergroup_model.CovergroupModel.sample"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">sample</span></code></a> method.</p>
-<p>This mode of specifying coverage-sampling data requires that a <a class="reference external" href="https://docs.python.org/3/glossary.html#term-lambda" title="(in Python v3.12)"><code class="xref any docutils literal notranslate"><span class="pre">lambda</span></code></a>
+<p>This mode of specifying coverage-sampling data requires that a <a class="reference external" href="https://docs.python.org/3/glossary.html#term-lambda" title="(in Python v3.13)"><code class="xref any docutils literal notranslate"><span class="pre">lambda</span></code></a>
 is used to connect the calling context to the data used for coverage
 sampling.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span> <span class="c1"># Need to use lambda for non-reference values</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">,</span> <span class="n">b</span><span class="p">):</span> <span class="c1"># Need to use lambda for non-reference values</span>
          <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
 
          <span class="bp">self</span><span class="o">.</span><span class="n">cp1</span> <span class="o">=</span> <span class="n">coverpoint</span><span class="p">(</span><span class="n">a</span><span class="p">,</span>
@@ -637,9 +632,9 @@ of <code class="xref any docutils literal notranslate"><span class="pre">a</span
 <li><p><a class="reference internal" href="reference.html#vsc.coverage.coverpoint.get_inst_coverage" title="vsc.coverage.coverpoint.get_inst_coverage"><code class="xref any py py-meth docutils literal notranslate"><span class="pre">get_inst_coverage</span></code></a> - Reports coverage by this instance (0..100)</p></li>
 </ul>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
             <span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
             <span class="p">)</span>
@@ -679,11 +674,11 @@ coverage achieved to 50%.</p>
 <p>PyVSC provides three methods for obtaining a coverage report.</p>
 <dl class="py function" id="module-vsc">
 <dt class="sig sig-object py" id="vsc.get_coverage_report">
-<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report" title="Link to this definition"></a></dt>
+<span class="sig-prename descclassname"><span class="pre">vsc.</span></span><span class="sig-name descname"><span class="pre">get_coverage_report</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">details</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><span class="pre">str</span></a></span></span><a class="reference internal" href="_modules/vsc.html#get_coverage_report"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#vsc.get_coverage_report" title="Link to this definition"></a></dt>
 <dd><p>Returns a textual coverage report of all covergroups</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p>
+<dd class="field-odd"><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p>String containin coverage report text</p>
@@ -710,7 +705,7 @@ coverage achieved to 50%.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fp</strong> – Stream to which to write the report</p></li>
-<li><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.12)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p></li>
+<li><p><strong>details</strong> (<a class="reference external" href="https://docs.python.org/3/library/functions.html#bool" title="(in Python v3.13)"><em>bool</em></a>) – Write details, such as the hits in each bin (False)</p></li>
 </ul>
 </dd>
 </dl>
@@ -719,9 +714,9 @@ coverage achieved to 50%.</p>
 <p>Let’s using a derivative of the example show above to see the differences
 between a coverage report with and without details.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
-<span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
             <span class="n">a</span><span class="o">=</span><span class="n">vsc</span><span class="o">.</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
             <span class="p">)</span>
@@ -796,9 +791,9 @@ coverage database using a shared library that implements the UCIS C API.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Destination for coverage data</p></li>
-<li><p><strong>fmt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Format of the coverage data. ‘xml’ and ‘libucis’ supported</p></li>
-<li><p><strong>libucis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.12)"><em>str</em></a>) – Path to a library implementing the UCIS C API (default=None)</p></li>
+<li><p><strong>filename</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Destination for coverage data</p></li>
+<li><p><strong>fmt</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Format of the coverage data. ‘xml’ and ‘libucis’ supported</p></li>
+<li><p><strong>libucis</strong> (<a class="reference external" href="https://docs.python.org/3/library/stdtypes.html#str" title="(in Python v3.13)"><em>str</em></a>) – Path to a library implementing the UCIS C API (default=None)</p></li>
 </ul>
 </dd>
 </dl>
@@ -809,9 +804,9 @@ coverage database using a shared library that implements the UCIS C API.</p>
 <p>By default, the <a class="reference internal" href="#vsc.write_coverage_db" title="vsc.write_coverage_db"><code class="xref any py py-func docutils literal notranslate"><span class="pre">write_coverage_db</span></code></a> method saves coverage data to an
 XML file formatted according to the UCIS interchange-format schema.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
              <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
              <span class="p">)</span>
@@ -840,9 +835,9 @@ implements the UCIS API.</p>
 <p>In the example below, the tool-provided shared library that
 implements the UCIS API is named <code class="xref any docutils literal notranslate"><span class="pre">libucis.so</span></code>.</p>
 <div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span> <span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
- <span class="k">class</span> <span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+ <span class="k">class</span><span class="w"> </span><span class="nc">my_covergroup</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 
-     <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+     <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
          <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span>
              <span class="n">a</span><span class="o">=</span><span class="n">bit_t</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>
              <span class="p">)</span>
@@ -929,7 +924,7 @@ file into a VCS coverage database:</p>
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2024, Matthew Ballance and Contributors.</p>
+    <p>&#169; Copyright 2019-2025, Matthew Ballance and Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

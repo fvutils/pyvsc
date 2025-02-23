@@ -1,23 +1,21 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>vsc.rand_obj &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="../../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
-        <script src="../../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -34,9 +32,6 @@
           <a href="../../index.html" class="icon icon-home">
             pyvsc
           </a>
-              <div class="version">
-                0.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -104,29 +99,29 @@
 <span class="c1">#</span>
 <span class="c1"># @author: ballance</span>
 
-<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 
-<span class="kn">from</span> <span class="nn">vsc.impl.randobj_int</span> <span class="kn">import</span> <span class="n">RandObjInt</span>
-<span class="kn">from</span> <span class="nn">vsc.constraints</span> <span class="kn">import</span> <span class="n">constraint_t</span><span class="p">,</span> <span class="n">dynamic_constraint_t</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.ctor</span> <span class="kn">import</span> <span class="n">push_constraint_scope</span><span class="p">,</span> <span class="n">pop_constraint_scope</span><span class="p">,</span> \
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.randobj_int</span><span class="w"> </span><span class="kn">import</span> <span class="n">RandObjInt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.constraints</span><span class="w"> </span><span class="kn">import</span> <span class="n">constraint_t</span><span class="p">,</span> <span class="n">dynamic_constraint_t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.ctor</span><span class="w"> </span><span class="kn">import</span> <span class="n">push_constraint_scope</span><span class="p">,</span> <span class="n">pop_constraint_scope</span><span class="p">,</span> \
     <span class="n">clear_exprs</span><span class="p">,</span> <span class="n">push_srcinfo_mode</span><span class="p">,</span> <span class="n">pop_srcinfo_mode</span><span class="p">,</span> <span class="n">in_srcinfo_mode</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.generator_int</span> <span class="kn">import</span> <span class="n">GeneratorInt</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.expr_mode</span> <span class="kn">import</span> <span class="n">_expr_mode</span><span class="p">,</span> <span class="n">get_expr_mode</span><span class="p">,</span> <span class="n">expr_mode</span><span class="p">,</span> <span class="n">get_expr_mode_depth</span><span class="p">,</span> \
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.generator_int</span><span class="w"> </span><span class="kn">import</span> <span class="n">GeneratorInt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.expr_mode</span><span class="w"> </span><span class="kn">import</span> <span class="n">_expr_mode</span><span class="p">,</span> <span class="n">get_expr_mode</span><span class="p">,</span> <span class="n">expr_mode</span><span class="p">,</span> <span class="n">get_expr_mode_depth</span><span class="p">,</span> \
     <span class="n">enter_expr_mode</span><span class="p">,</span> <span class="n">leave_expr_mode</span><span class="p">,</span> <span class="n">is_raw_mode</span><span class="p">,</span> <span class="n">is_expr_mode</span>
-<span class="kn">from</span> <span class="nn">vsc.model.field_composite_model</span> <span class="kn">import</span> <span class="n">FieldCompositeModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.constraint_block_model</span> <span class="kn">import</span> <span class="n">ConstraintBlockModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.randomizer</span> <span class="kn">import</span> <span class="n">Randomizer</span>
-<span class="kn">from</span> <span class="nn">vsc.model.field_scalar_model</span> <span class="kn">import</span> <span class="n">FieldScalarModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.source_info</span> <span class="kn">import</span> <span class="n">SourceInfo</span>
-<span class="kn">from</span> <span class="nn">vsc.types</span> <span class="kn">import</span> <span class="n">type_base</span><span class="p">,</span> <span class="n">field_info</span><span class="p">,</span> <span class="n">list_t</span>
-<span class="kn">from</span> <span class="nn">vsc.model.solve_failure</span> <span class="kn">import</span> <span class="n">SolveFailure</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.constraint_proxy</span> <span class="kn">import</span> <span class="n">ConstraintProxy</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.field_composite_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">FieldCompositeModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.constraint_block_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintBlockModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.randomizer</span><span class="w"> </span><span class="kn">import</span> <span class="n">Randomizer</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.field_scalar_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">FieldScalarModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.source_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">SourceInfo</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">type_base</span><span class="p">,</span> <span class="n">field_info</span><span class="p">,</span> <span class="n">list_t</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.solve_failure</span><span class="w"> </span><span class="kn">import</span> <span class="n">SolveFailure</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.constraint_proxy</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintProxy</span>
 
 
-<span class="k">class</span> <span class="nc">_randobj</span><span class="p">:</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">_randobj</span><span class="p">:</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Mark a class as randomizable&quot;&quot;&quot;</span>
 
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="kc">False</span>
         
         <span class="k">for</span> <span class="n">kw</span> <span class="ow">in</span> <span class="n">kwargs</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
@@ -136,13 +131,13 @@
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Unknown randobj kwarg: </span><span class="si">%s</span><span class="s2">&quot;</span> <span class="o">%</span> <span class="n">kw</span><span class="p">)</span>
 
     
-    <span class="k">def</span> <span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__call__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">T</span><span class="p">):</span>
         
         <span class="n">srcinfo</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo</span>
     
-        <span class="k">class</span> <span class="nc">randobj_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+        <span class="k">class</span><span class="w"> </span><span class="nc">randobj_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
             
-            <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
                 <span class="n">ro_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
                 <span class="n">ro_i</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">srcinfo</span>
                 
@@ -171,7 +166,7 @@
         <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="p">(</span><span class="n">randobj_interposer</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">())</span>
         
         <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_ro_init&quot;</span><span class="p">):</span>
-            <span class="k">def</span> <span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
                 <span class="n">ret</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
             
                 <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">type_base</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_raw_mode</span><span class="p">():</span>
@@ -192,7 +187,7 @@
                 
                 <span class="k">return</span> <span class="n">ret</span>
         
-            <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
                 <span class="k">try</span><span class="p">:</span>
                     <span class="c1"># Retrieve the field object so we can check if it&#39;s </span>
                     <span class="c1"># a type_base object. This will throw an exception</span>
@@ -225,17 +220,17 @@
                     <span class="k">else</span><span class="p">:</span>
                         <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
 
-            <span class="k">def</span> <span class="nf">get_randstate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">get_randstate</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
                 <span class="n">ro_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
 
                 <span class="c1"># Return a copy to the user                </span>
                 <span class="k">return</span> <span class="n">ro_int</span><span class="o">.</span><span class="n">get_randstate</span><span class="p">()</span><span class="o">.</span><span class="n">clone</span><span class="p">()</span>
             
-            <span class="k">def</span> <span class="nf">set_randstate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rs</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">set_randstate</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rs</span><span class="p">):</span>
                 <span class="n">ro_int</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
                 <span class="n">ro_int</span><span class="o">.</span><span class="n">set_randstate</span><span class="p">(</span><span class="n">rs</span><span class="p">)</span>
 
-            <span class="k">def</span> <span class="nf">randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+            <span class="k">def</span><span class="w"> </span><span class="nf">randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                           <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                           <span class="n">lint</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                           <span class="n">solve_fail_debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -255,7 +250,7 @@
                     <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">diagnostics</span><span class="p">)</span>
                     <span class="k">raise</span> <span class="n">e</span>
                 
-            <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="n">model</span> <span class="o">=</span> <span class="n">FieldCompositeModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
                     <span class="n">model</span><span class="o">.</span><span class="n">typename</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__qualname__</span>
@@ -315,19 +310,19 @@
                 <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
             
-            <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
                 <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
                     <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                     
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
             
-            <span class="k">def</span> <span class="nf">_get_ro_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">_get_ro_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_ro_int&quot;</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_ro_int</span> <span class="o">=</span> <span class="n">RandObjInt</span><span class="p">()</span>
                 <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_ro_int</span>
             
-            <span class="k">def</span> <span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="fm">__enter__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
                 <span class="n">ro_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
                 <span class="n">enter_expr_mode</span><span class="p">()</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span> <span class="c1"># Ensure model is constructed</span>
@@ -335,7 +330,7 @@
                 <span class="n">push_constraint_scope</span><span class="p">(</span><span class="n">ConstraintBlockModel</span><span class="p">(</span><span class="s2">&quot;inline&quot;</span><span class="p">))</span>
                 <span class="k">return</span> <span class="bp">self</span>
             
-            <span class="k">def</span> <span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="fm">__exit__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">v</span><span class="p">,</span> <span class="n">tb</span><span class="p">):</span>
                 <span class="n">ro_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_ro_int</span><span class="p">()</span>
                 <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
                 <span class="n">c</span> <span class="o">=</span> <span class="n">pop_constraint_scope</span><span class="p">()</span>
@@ -355,7 +350,7 @@
                     <span class="nb">print</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">diagnostics</span><span class="p">)</span>
                     <span class="k">raise</span> <span class="n">e</span>
             
-            <span class="k">def</span> <span class="nf">randomize_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+            <span class="k">def</span><span class="w"> </span><span class="nf">randomize_with</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                                <span class="n">debug</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> 
                                <span class="n">lint</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
                                <span class="n">solve_fail_debug</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span>
@@ -367,15 +362,15 @@
         
                 <span class="k">return</span> <span class="bp">self</span>
             
-            <span class="k">def</span> <span class="nf">do_pre_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> 
+            <span class="k">def</span><span class="w"> </span><span class="nf">do_pre_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span> 
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;pre_randomize&quot;</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">pre_randomize</span><span class="p">()</span>
             
-            <span class="k">def</span> <span class="nf">do_post_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">do_post_randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
                 <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;post_randomize&quot;</span><span class="p">):</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">post_randomize</span><span class="p">()</span>
             
-            <span class="k">def</span> <span class="nf">_id_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">_id_fields</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">it</span><span class="p">,</span> <span class="n">parent</span><span class="p">):</span>
 <span class="w">                </span><span class="sd">&quot;&quot;&quot;Apply an ID to all fields so they can be </span>
 <span class="sd">                referenced using indexed expressions</span>
 <span class="sd">                &quot;&quot;&quot;</span>
@@ -413,7 +408,7 @@
 
 <div class="viewcode-block" id="randobj">
 <a class="viewcode-back" href="../../reference.html#vsc.rand_obj.randobj">[docs]</a>
-<span class="k">def</span> <span class="nf">randobj</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">randobj</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
     <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">len</span><span class="p">(</span><span class="n">kwargs</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span> <span class="ow">and</span> <span class="nb">callable</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]):</span>
         <span class="c1"># Called without arguments</span>
         <span class="n">obj</span> <span class="o">=</span> <span class="n">_randobj</span><span class="p">({})</span>
@@ -428,12 +423,12 @@
 
 <div class="viewcode-block" id="generator">
 <a class="viewcode-back" href="../../reference.html#vsc.rand_obj.generator">[docs]</a>
-<span class="k">def</span> <span class="nf">generator</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">generator</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Mark a class as a generator&quot;&quot;&quot;</span>
     
-    <span class="k">class</span> <span class="nc">generator_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">generator_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
         
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="n">gen_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
             
             <span class="c1"># Capture the instantiation location</span>
@@ -454,7 +449,7 @@
     <span class="n">ret</span> <span class="o">=</span> <span class="nb">type</span><span class="p">(</span><span class="n">T</span><span class="o">.</span><span class="vm">__name__</span><span class="p">,</span> <span class="p">(</span><span class="n">generator_interposer</span><span class="p">,),</span> <span class="nb">dict</span><span class="p">())</span>
 
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_gen_init&quot;</span><span class="p">):</span>
-        <span class="k">def</span> <span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">):</span>
             <span class="n">ret</span> <span class="o">=</span> <span class="nb">object</span><span class="o">.</span><span class="fm">__getattribute__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">a</span><span class="p">)</span>
         
             <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">ret</span><span class="p">,</span> <span class="n">type_base</span><span class="p">)</span> <span class="ow">and</span> <span class="ow">not</span> <span class="n">is_raw_mode</span><span class="p">():</span>
@@ -464,7 +459,7 @@
             
             <span class="k">return</span> <span class="n">ret</span>
     
-        <span class="k">def</span> <span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
             <span class="k">try</span><span class="p">:</span>
                 <span class="c1"># Retrieve the field object so we can check if it&#39;s </span>
                 <span class="c1"># a type_base object. This will throw an exception</span>
@@ -484,11 +479,11 @@
                 <span class="k">else</span><span class="p">:</span>
                     <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>                
                     
-        <span class="k">def</span> <span class="nf">randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">randomize</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
             <span class="n">Randomizer</span><span class="o">.</span><span class="n">do_randomize</span><span class="p">([</span><span class="n">model</span><span class="p">])</span>
             
-        <span class="k">def</span> <span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">build_field_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">model</span> <span class="o">=</span> <span class="n">FieldCompositeModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
                 <span class="n">model</span><span class="o">.</span><span class="n">typename</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__name__</span>
@@ -528,14 +523,14 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
         
-        <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">with</span> <span class="n">expr_mode</span><span class="p">():</span>
                 <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_field_model</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
                 
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span>
         
-        <span class="k">def</span> <span class="nf">_get_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_get_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_gen_int&quot;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_gen_int</span> <span class="o">=</span> <span class="n">GeneratorInt</span><span class="p">()</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_gen_int</span>
@@ -569,7 +564,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2024, Matthew Ballance and Contributors.</p>
+    <p>&#169; Copyright 2019-2025, Matthew Ballance and Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

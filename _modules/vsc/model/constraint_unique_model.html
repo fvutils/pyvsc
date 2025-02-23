@@ -1,23 +1,21 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>vsc.model.constraint_unique_model &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=fa44fd50" />
-      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../../_static/graphviz.css?v=fd3f3429" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="../../../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
-        <script src="../../../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../../genindex.html" />
     <link rel="search" title="Search" href="../../../search.html" /> 
@@ -34,9 +32,6 @@
           <a href="../../../index.html" class="icon icon-home">
             pyvsc
           </a>
-              <div class="version">
-                0.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -105,24 +100,24 @@
 <span class="c1">#</span>
 <span class="c1"># @author: ballance</span>
 
-<span class="kn">from</span> <span class="nn">vsc.model.constraint_model</span> <span class="kn">import</span> <span class="n">ConstraintModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.expr_bin_model</span> <span class="kn">import</span> <span class="n">ExprBinModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.bin_expr_type</span> <span class="kn">import</span> <span class="n">BinExprType</span>
-<span class="kn">from</span> <span class="nn">vsc.model.expr_fieldref_model</span> <span class="kn">import</span> <span class="n">ExprFieldRefModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.field_array_model</span> <span class="kn">import</span> <span class="n">FieldArrayModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.constraint_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ConstraintModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.expr_bin_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExprBinModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.bin_expr_type</span><span class="w"> </span><span class="kn">import</span> <span class="n">BinExprType</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.expr_fieldref_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExprFieldRefModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.field_array_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">FieldArrayModel</span>
 
 <div class="viewcode-block" id="ConstraintUniqueModel">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.constraint_unique_model.ConstraintUniqueModel">[docs]</a>
-<span class="k">class</span> <span class="nc">ConstraintUniqueModel</span><span class="p">(</span><span class="n">ConstraintModel</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">ConstraintUniqueModel</span><span class="p">(</span><span class="n">ConstraintModel</span><span class="p">):</span>
     
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unique_l</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unique_l</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">unique_l</span> <span class="o">=</span> <span class="n">unique_l</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">expr</span> <span class="o">=</span> <span class="kc">None</span> 
         
 <div class="viewcode-block" id="ConstraintUniqueModel.build">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.constraint_unique_model.ConstraintUniqueModel.build">[docs]</a>
-    <span class="k">def</span> <span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">btor</span><span class="p">,</span> <span class="n">soft</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">btor</span><span class="p">,</span> <span class="n">soft</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="c1"># Elements in the unique list might be arrays        </span>
@@ -139,7 +134,7 @@
             <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">unique_l</span><span class="p">)):</span>
                 <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">unique_l</span><span class="p">)):</span>
                     <span class="n">t</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">unique_l</span><span class="p">[</span><span class="n">i</span><span class="p">],</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Ne</span><span class="p">,</span> <span class="n">unique_l</span><span class="p">[</span><span class="n">j</span><span class="p">])</span>
-                    <span class="kn">from</span> <span class="nn">vsc.visitors</span> <span class="kn">import</span> <span class="n">ModelPrettyPrinter</span>
+                    <span class="kn">from</span><span class="w"> </span><span class="nn">vsc.visitors</span><span class="w"> </span><span class="kn">import</span> <span class="n">ModelPrettyPrinter</span>
                         
                     <span class="k">if</span> <span class="n">ret</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
                         <span class="n">ret</span> <span class="o">=</span> <span class="n">t</span><span class="o">.</span><span class="n">build</span><span class="p">(</span><span class="n">btor</span><span class="p">)</span>
@@ -152,26 +147,26 @@
         <span class="k">return</span> <span class="n">ret</span></div>
 
     
-    <span class="k">def</span> <span class="nf">_add_list_elems</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unique_l</span><span class="p">,</span> <span class="n">l</span> <span class="p">:</span> <span class="n">FieldArrayModel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_add_list_elems</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">unique_l</span><span class="p">,</span> <span class="n">l</span> <span class="p">:</span> <span class="n">FieldArrayModel</span><span class="p">):</span>
         <span class="k">for</span> <span class="n">f</span> <span class="ow">in</span> <span class="n">l</span><span class="o">.</span><span class="n">field_l</span><span class="p">:</span>
             <span class="n">unique_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">ExprFieldRefModel</span><span class="p">(</span><span class="n">f</span><span class="p">))</span>
         
 <div class="viewcode-block" id="ConstraintUniqueModel.get_nodes">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.constraint_unique_model.ConstraintUniqueModel.get_nodes">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_l</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_nodes</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_l</span><span class="p">):</span>
         <span class="n">node_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">expr</span><span class="o">.</span><span class="n">get_node</span><span class="p">())</span></div>
 
         
 
 <div class="viewcode-block" id="ConstraintUniqueModel.accept">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.constraint_unique_model.ConstraintUniqueModel.accept">[docs]</a>
-    <span class="k">def</span> <span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visitor</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">accept</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">visitor</span><span class="p">):</span>
         <span class="n">visitor</span><span class="o">.</span><span class="n">visit_constraint_unique</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span></div>
 
         
 <div class="viewcode-block" id="ConstraintUniqueModel.clone">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.constraint_unique_model.ConstraintUniqueModel.clone">[docs]</a>
-    <span class="k">def</span> <span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">-&gt;</span><span class="s1">&#39;ConstraintModel&#39;</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">clone</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">deep</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">-&gt;</span><span class="s1">&#39;ConstraintModel&#39;</span><span class="p">:</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="n">ConstraintUniqueModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">unique_l</span><span class="p">)</span>
         
         <span class="k">return</span> <span class="n">ret</span></div>
@@ -187,7 +182,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2024, Matthew Ballance and Contributors.</p>
+    <p>&#169; Copyright 2019-2025, Matthew Ballance and Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a

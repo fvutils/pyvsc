@@ -1,23 +1,21 @@
+
+
 <!DOCTYPE html>
 <html class="writer-html5" lang="en" data-content_root="../../">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>vsc.coverage &mdash; pyvsc 0.0.1 documentation</title>
-      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=fa44fd50" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=19f00094" />
+      <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
 
   
-  <!--[if lt IE 9]>
-    <script src="../../_static/js/html5shiv.min.js"></script>
-  <![endif]-->
-  
-        <script src="../../_static/jquery.js?v=5d32c60e"></script>
-        <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
-        <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
-        <script src="../../_static/doctools.js?v=9a2dae69"></script>
-        <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
+      <script src="../../_static/jquery.js?v=5d32c60e"></script>
+      <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
+      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
     <link rel="search" title="Search" href="../../search.html" /> 
@@ -34,9 +32,6 @@
           <a href="../../index.html" class="icon icon-home">
             pyvsc
           </a>
-              <div class="version">
-                0.0
-              </div>
 <div role="search">
   <form id="rtd-search-form" class="wy-form" action="../../search.html" method="get">
     <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
@@ -104,51 +99,51 @@
 <span class="c1">#</span>
 <span class="c1"># @author: ballance</span>
 
-<span class="kn">from</span> <span class="nn">enum</span> <span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
-<span class="kn">import</span> <span class="nn">enum</span>
-<span class="kn">import</span> <span class="nn">inspect</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">enum</span><span class="w"> </span><span class="kn">import</span> <span class="n">Enum</span><span class="p">,</span> <span class="n">auto</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">enum</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">inspect</span>
 
-<span class="kn">from</span> <span class="nn">vsc.impl</span> <span class="kn">import</span> <span class="n">ctor</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.coverage_registry</span> <span class="kn">import</span> <span class="n">CoverageRegistry</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.covergroup_int</span> <span class="kn">import</span> <span class="n">CovergroupInt</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.ctor</span> <span class="kn">import</span> <span class="n">pop_expr</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.expr_mode</span> <span class="kn">import</span> <span class="n">expr_mode</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.options</span> <span class="kn">import</span> <span class="n">Options</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.type_options</span> <span class="kn">import</span> <span class="n">TypeOptions</span>
-<span class="kn">from</span> <span class="nn">vsc.model.covergroup_model</span> <span class="kn">import</span> <span class="n">CovergroupModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_array_model</span> <span class="kn">import</span> <span class="n">CoverpointBinArrayModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_collection_model</span> <span class="kn">import</span> <span class="n">CoverpointBinCollectionModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_enum_model</span> <span class="kn">import</span> <span class="n">CoverpointBinEnumModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_bag_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleBagModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_val_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleValModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_cross_model</span> <span class="kn">import</span> <span class="n">CoverpointCrossModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_model</span> <span class="kn">import</span> <span class="n">CoverpointModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.enum_field_model</span> <span class="kn">import</span> <span class="n">EnumFieldModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.expr_fieldref_model</span> <span class="kn">import</span> <span class="n">ExprFieldRefModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.expr_ref_model</span> <span class="kn">import</span> <span class="n">ExprRefModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.field_composite_model</span> <span class="kn">import</span> <span class="n">FieldCompositeModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.field_scalar_model</span> <span class="kn">import</span> <span class="n">FieldScalarModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.rangelist_model</span> <span class="kn">import</span> <span class="n">RangelistModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.source_info</span> <span class="kn">import</span> <span class="n">SourceInfo</span>
-<span class="kn">from</span> <span class="nn">vsc.types</span> <span class="kn">import</span> <span class="n">rangelist</span><span class="p">,</span> <span class="n">bit_t</span><span class="p">,</span> <span class="n">to_expr</span><span class="p">,</span> <span class="n">type_base</span><span class="p">,</span> <span class="n">enum_t</span><span class="p">,</span> <span class="n">type_enum</span><span class="p">,</span> \
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl</span><span class="w"> </span><span class="kn">import</span> <span class="n">ctor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.coverage_registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverageRegistry</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.covergroup_int</span><span class="w"> </span><span class="kn">import</span> <span class="n">CovergroupInt</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.ctor</span><span class="w"> </span><span class="kn">import</span> <span class="n">pop_expr</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.expr_mode</span><span class="w"> </span><span class="kn">import</span> <span class="n">expr_mode</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.options</span><span class="w"> </span><span class="kn">import</span> <span class="n">Options</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.type_options</span><span class="w"> </span><span class="kn">import</span> <span class="n">TypeOptions</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.covergroup_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CovergroupModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_bin_array_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointBinArrayModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_bin_collection_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointBinCollectionModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_bin_enum_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointBinEnumModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_bin_single_bag_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointBinSingleBagModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_bin_single_val_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointBinSingleValModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_cross_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointCrossModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.enum_field_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">EnumFieldModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.expr_fieldref_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExprFieldRefModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.expr_ref_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExprRefModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.field_composite_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">FieldCompositeModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.field_scalar_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">FieldScalarModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.rangelist_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">RangelistModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.source_info</span><span class="w"> </span><span class="kn">import</span> <span class="n">SourceInfo</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.types</span><span class="w"> </span><span class="kn">import</span> <span class="n">rangelist</span><span class="p">,</span> <span class="n">bit_t</span><span class="p">,</span> <span class="n">to_expr</span><span class="p">,</span> <span class="n">type_base</span><span class="p">,</span> <span class="n">enum_t</span><span class="p">,</span> <span class="n">type_enum</span><span class="p">,</span> \
     <span class="n">expr</span><span class="p">,</span> <span class="n">field_info</span>
-<span class="kn">from</span> <span class="nn">vsc.impl.wildcard_bin_factory</span> <span class="kn">import</span> <span class="n">WildcardBinFactory</span>
-<span class="kn">from</span> <span class="nn">vsc.model.coverpoint_bin_single_wildcard_model</span> <span class="kn">import</span> <span class="n">CoverpointBinSingleWildcardModel</span>
-<span class="kn">from</span> <span class="nn">vsc.model.wildcard_binspec</span> <span class="kn">import</span> <span class="n">WildcardBinspec</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.impl.wildcard_bin_factory</span><span class="w"> </span><span class="kn">import</span> <span class="n">WildcardBinFactory</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_bin_single_wildcard_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointBinSingleWildcardModel</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.wildcard_binspec</span><span class="w"> </span><span class="kn">import</span> <span class="n">WildcardBinspec</span>
 
 
 <div class="viewcode-block" id="covergroup">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.covergroup">[docs]</a>
-<span class="k">def</span> <span class="nf">covergroup</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">covergroup</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Covergroup decorator marks as class as being a covergroup&quot;&quot;&quot;</span>
     
     <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;_cg_init&quot;</span><span class="p">):</span>
-        <span class="k">def</span> <span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">dump</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ind</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
             <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
             <span class="n">model</span><span class="o">.</span><span class="n">dump</span><span class="p">(</span><span class="n">ind</span><span class="p">)</span>
             
         <span class="c1"># TODO: Make adding sample parameters additive?</span>
-        <span class="k">def</span> <span class="nf">with_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">with_sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="n">model</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
             <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
@@ -198,7 +193,7 @@
 <span class="c1">#            else:</span>
 <span class="c1">#                raise Exception(&quot;incorrect call to with_sample&quot;)</span>
                 
-        <span class="k">def</span> <span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;Base sampling method that samples all coverpoints and crosses&quot;&quot;&quot;</span>
             <span class="c1"># Build the model if we haven&#39;t yet</span>
             <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
@@ -242,7 +237,7 @@
 
         <span class="k">pass</span>
         
-        <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Queries coverage achieved by all instances of this covergroup type</span>
 <span class="sd">            :return: coverage achieved as percentage (0..100)</span>
@@ -250,14 +245,14 @@
             
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_coverage</span><span class="p">()</span>
         
-        <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 <span class="w">            </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">            Queries coverage achieved by this instances of this covergroup type</span>
 <span class="sd">            :return: coverage achieved as percentage (0..100)</span>
 <span class="sd">            &quot;&quot;&quot;</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span><span class="o">.</span><span class="n">get_inst_coverage</span><span class="p">()</span>
         
-        <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
             
             <span class="k">if</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
@@ -267,7 +262,7 @@
             
             <span class="k">return</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span>
         
-        <span class="k">def</span> <span class="nf">build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">build_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">get_model</span><span class="p">()</span>
 
@@ -308,35 +303,35 @@
             <span class="c1"># Finalize the contents of the covergroup                </span>
             <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">finalize</span><span class="p">()</span>
         
-        <span class="k">def</span> <span class="nf">_get_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_get_int</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;_cg_int&quot;</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_cg_int</span> <span class="o">=</span> <span class="n">CovergroupInt</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">_cg_int</span>
         
-        <span class="k">def</span> <span class="nf">lock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">lock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
             <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
             <span class="n">cg_i</span><span class="o">.</span><span class="n">locked</span> <span class="o">=</span> <span class="kc">True</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">type_options</span><span class="o">.</span><span class="n">_lock</span><span class="p">()</span>
         
-        <span class="k">def</span> <span class="nf">_setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">_setattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s2">&quot;build_cov_model&quot;</span><span class="p">):</span>
                 <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;buildable_l&quot;</span><span class="p">):</span>
                     <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="s2">&quot;buildable_l&quot;</span><span class="p">,</span> <span class="p">[])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">buildable_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">val</span><span class="p">)</span>
             <span class="nb">object</span><span class="o">.</span><span class="fm">__setattr__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">field</span><span class="p">,</span> <span class="n">val</span><span class="p">)</span>
             
-        <span class="k">def</span> <span class="nf">set_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">set_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
            
             <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
             <span class="k">if</span> <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
                 <span class="n">cg_i</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
                 
-        <span class="k">def</span> <span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">get_name</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span><span class="p">:</span>
             <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span>
             
-        <span class="k">def</span> <span class="nf">configure_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">configure_options</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">1</span> <span class="ow">and</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="nb">dict</span><span class="p">):</span>
                 <span class="n">opts</span><span class="o">=</span><span class="n">args</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
             <span class="k">else</span><span class="p">:</span>
@@ -386,9 +381,9 @@
     <span class="c1"># This is the interposer class that wraps a user-defined</span>
     <span class="c1"># covergroup class. It ensures that the coverage model is</span>
     <span class="c1"># created while field refs are treated as expressions</span>
-    <span class="k">class</span> <span class="nc">covergroup_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
+    <span class="k">class</span><span class="w"> </span><span class="nc">covergroup_interposer</span><span class="p">(</span><span class="n">T</span><span class="p">):</span>
         
-        <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+        <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
             <span class="n">cg_i</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_int</span><span class="p">()</span>
 
             <span class="c1"># Capture the instantiation location of this covergroup            </span>
@@ -431,9 +426,9 @@
         
 <div class="viewcode-block" id="bin">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.bin">[docs]</a>
-<span class="k">class</span> <span class="nc">bin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">bin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Specifies a single coverage bin&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span> <span class="o">=</span> <span class="n">args</span>
         
         <span class="c1"># Capture the declaration location of this bin</span>
@@ -442,7 +437,7 @@
         
 <div class="viewcode-block" id="bin.build_cov_model">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.bin.build_cov_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exclude_bins</span> <span class="p">:</span> <span class="n">RangelistModel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exclude_bins</span> <span class="p">:</span> <span class="n">RangelistModel</span><span class="p">):</span>
         <span class="c1"># Construct a range model</span>
         <span class="n">range_l</span> <span class="o">=</span> <span class="n">RangelistModel</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span>
         <span class="n">range_l</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
@@ -464,10 +459,10 @@
 
 <div class="viewcode-block" id="bin_array">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.bin_array">[docs]</a>
-<span class="k">class</span> <span class="nc">bin_array</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">bin_array</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Specifies an array of bins&quot;&quot;&quot;</span>
     
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        args may be one of two formats</span>
 <span class="sd">        - Single list of tuples or lists of values or ranges (eg [[1], [2,4], [8]])</span>
@@ -539,7 +534,7 @@
     
 <div class="viewcode-block" id="bin_array.build_cov_model">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.bin_array.build_cov_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exclude_bins</span> <span class="p">:</span> <span class="n">RangelistModel</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">exclude_bins</span> <span class="p">:</span> <span class="n">RangelistModel</span><span class="p">):</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
 
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">exclude_bins</span><span class="o">.</span><span class="n">range_l</span><span class="p">)</span> <span class="o">&gt;</span> <span class="mi">0</span><span class="p">:</span>
@@ -581,9 +576,9 @@
     
 <div class="viewcode-block" id="wildcard_bin">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin">[docs]</a>
-<span class="k">class</span> <span class="nc">wildcard_bin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">wildcard_bin</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Specifies a single wildcard coverage bin&quot;&quot;&quot;</span>
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
         <span class="c1"># Capture the declaration location of this bin</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">srcinfo_decl</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">()</span>
 
@@ -604,7 +599,7 @@
         
 <div class="viewcode-block" id="wildcard_bin.build_cov_model">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin.build_cov_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">excluded_bins</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">excluded_bins</span><span class="p">):</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="n">CoverpointBinSingleWildcardModel</span><span class="p">(</span>
             <span class="n">name</span><span class="p">,</span> 
             <span class="n">WildcardBinspec</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">))</span>
@@ -616,10 +611,10 @@
 
 <div class="viewcode-block" id="wildcard_bin_array">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin_array">[docs]</a>
-<span class="k">class</span> <span class="nc">wildcard_bin_array</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">wildcard_bin_array</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
 <span class="w">    </span><span class="sd">&quot;&quot;&quot;Specifies an array of bins using wildcard specifications&quot;&quot;&quot;</span>
     
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">nbins</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">):</span>
 <span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
 <span class="sd">        args may be one of two formats</span>
 <span class="sd">        - Single list of wildcard strings (eg &quot;0x82x&quot;)</span>
@@ -686,7 +681,7 @@
     
 <div class="viewcode-block" id="wildcard_bin_array.build_cov_model">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.wildcard_bin_array.build_cov_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">excluded_bins</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">excluded_bins</span><span class="p">):</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="kc">None</span>
         
         <span class="c1"># First, need to determine how many total bins</span>
@@ -730,34 +725,34 @@
         
 <div class="viewcode-block" id="binsof">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.binsof">[docs]</a>
-<span class="k">class</span> <span class="nc">binsof</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">binsof</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     <span class="c1"># TODO: future implementation of the &#39;binsof&#39; operator</span>
     
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp</span><span class="p">):</span>
         <span class="k">pass</span>
     
 
 <div class="viewcode-block" id="binsof.intersect">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.binsof.intersect">[docs]</a>
-    <span class="k">def</span> <span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
 
-    <span class="k">def</span> <span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__and__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="k">pass</span>
     
-    <span class="k">def</span> <span class="nf">__not__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">__not__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="k">pass</span>
     
-    <span class="k">def</span> <span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__or__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="k">pass</span></div>
 
     
 <div class="viewcode-block" id="coverpoint">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint">[docs]</a>
-<span class="k">class</span> <span class="nc">coverpoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">coverpoint</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
    
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
             <span class="n">target</span><span class="p">,</span> 
             <span class="n">cp_t</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>  <span class="c1"># Type of the coverpoint, when it needs to be specified</span>
             <span class="n">iff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
@@ -849,7 +844,7 @@
         
 <div class="viewcode-block" id="coverpoint.get_coverage">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_coverage">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="mf">0.0</span>
         <span class="k">else</span><span class="p">:</span>
@@ -858,7 +853,7 @@
     
 <div class="viewcode-block" id="coverpoint.get_inst_coverage">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_inst_coverage">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_inst_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="mf">0.0</span>
         <span class="k">else</span><span class="p">:</span>
@@ -867,7 +862,7 @@
     
 <div class="viewcode-block" id="coverpoint.build_cov_model">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.build_cov_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">options</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">create_model</span><span class="p">(</span><span class="n">parent</span><span class="o">.</span><span class="n">options</span><span class="p">)</span>
             <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
@@ -1003,39 +998,39 @@
     
 <div class="viewcode-block" id="coverpoint.get_model">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span></div>
 
     
 <div class="viewcode-block" id="coverpoint.get_val">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.get_val">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp_m</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">cp_m</span><span class="p">):</span>
         <span class="n">ret</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">get_val_f</span><span class="p">())</span>
         <span class="k">return</span> <span class="n">ret</span></div>
 
     
 <div class="viewcode-block" id="coverpoint.set_val">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.coverpoint.set_val">[docs]</a>
-    <span class="k">def</span> <span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">set_val</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="o">.</span><span class="n">set_val</span><span class="p">(</span><span class="n">val</span><span class="p">)</span></div>
 
     
-    <span class="k">def</span> <span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__le__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">rhs</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">have_var</span><span class="p">:</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">target</span><span class="p">(</span><span class="n">rhs</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Attempting to set value of non-variable coverpoint&quot;</span><span class="p">)</span>
         
-    <span class="k">def</span> <span class="nf">_lock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">_lock</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">options</span><span class="o">.</span><span class="n">lock</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">type_options</span><span class="o">.</span><span class="n">_lock</span><span class="p">()</span></div>
 
     
 <div class="viewcode-block" id="cross">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.cross">[docs]</a>
-<span class="k">class</span> <span class="nc">cross</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">cross</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
     
-    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> 
                  <span class="n">target_l</span><span class="p">,</span> 
                  <span class="n">bins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> 
                  <span class="n">options</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
@@ -1075,7 +1070,7 @@
         
 <div class="viewcode-block" id="cross.build_cov_model">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.cross.build_cov_model">[docs]</a>
-    <span class="k">def</span> <span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_cov_model</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">parent</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
         <span class="c1"># Let the user-specified name take precedence</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="n">iff</span> <span class="o">=</span> <span class="kc">None</span>
@@ -1104,7 +1099,7 @@
     
 <div class="viewcode-block" id="cross.get_coverage">
 <a class="viewcode-back" href="../../reference.html#vsc.coverage.cross.get_coverage">[docs]</a>
-    <span class="k">def</span> <span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_coverage</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">model</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
             <span class="k">return</span> <span class="mf">0.0</span>
         <span class="k">else</span><span class="p">:</span>
@@ -1120,7 +1115,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2024, Matthew Ballance and Contributors.</p>
+    <p>&#169; Copyright 2019-2025, Matthew Ballance and Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
