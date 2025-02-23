@@ -205,3 +205,31 @@ class TestFieldStandalone(VscTestCase):
         self.assertEqual(field.get_val()[0], 1)
         self.assertEqual(field.get_val()[8], 0)
 
+    def test_width(self):
+        import vsc
+
+        my_bit_field    = vsc.rand_bit_t(16)  # 16-bit wide
+        width           = my_bit_field.width
+        print(f"The width of the bit field is: {width} bits")
+
+
+        @vsc.randobj
+        class my_s(object):
+            def __init__(self):
+                self.x = vsc.rand_bit_t(16)
+
+            @vsc.constraint
+            def ab_c(self):
+                self.x in vsc.rangelist(1, 2, 4, 8)
+
+            def print_width(self):
+                with vsc.raw_mode():
+                    width=self.x.width
+                print(f'{width}')
+
+        obj=my_s()
+
+        for i in range(2):
+            obj.randomize()
+            obj.print_width()
+

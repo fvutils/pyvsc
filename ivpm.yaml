@@ -1,27 +1,29 @@
 package:
-    name: pyvsc
-    version: None
+  name: pyvsc
+   
+  dep-sets:
+  - name: default
     deps:
-        - name: pyboolector
-          type: python
-          src: pypi
-        - name: toposort
-          src: pypi
-        - name: pyucis
-          src: pypi
-    dev-deps:
-        - name: mkdv
-          url: https://github.com/fvutils/mkdv.git
-        - name: pyboolector
-          src: pypi
-        - name: pytest
-          src: pypi
-        - name: pytest-cov
-          src: pypi
-        - name: toposort
-          src: pypi
-        - name: pyucis
-          url: https://github.com/fvutils/pyucis.git
-        - name: riscv-dv
-          url: https://github.com/google/riscv-dv.git
+    - name: pyboolector
+      src: pypi
+    - name: toposort
+      src: pypi
+    - name: pyucis
+      src: pypi
+  - name: default-dev
+    deps:
+#    - name: mkdv
+#      url: https://github.com/fvutils/mkdv.git
+    - name: pyboolector
+      src: pypi
+    - name: pytest
+      src: pypi
+    - name: pytest-cov
+      src: pypi
+    - name: toposort
+      src: pypi
+    - name: pyucis
+      url: https://github.com/fvutils/pyucis.git
+    - name: riscv-dv
+      url: https://github.com/google/riscv-dv.git
 
