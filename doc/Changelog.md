@@ -1,4 +1,7 @@
 
+## 0.9.4
+- (#233) - Propagate docstring and modulename across `randobj` inheritance
+
 ## 0.9.3
 - () - Properly apply ignore bins to single-value bins
 

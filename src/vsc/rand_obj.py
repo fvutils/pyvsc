@@ -84,6 +84,10 @@ class _randobj:
             
         # Add the interposer class
         ret = type(T.__name__, (randobj_interposer,), dict())
+
+        ret.__doc__ = T.__doc__
+        ret.__module__ = T.__module__
+        ret.__qualname__ = T.__qualname__
         
         if not hasattr(T, "_ro_init"):
             def __getattribute__(self, a):
@@ -333,10 +337,10 @@ def randobj(*args, **kwargs):
         # Capture the original module, since our inheritance
         # trick causes the module to not match the user's module
         args[0].original_module = args[0].__module__ 
-        return obj(args[0])
+        ret = obj(args[0])
     else:
-        obj = _randobj(kwargs)
-        return obj
+        ret = _randobj(kwargs)
+    return ret
 
 def generator(T):
     """Mark a class as a generator"""

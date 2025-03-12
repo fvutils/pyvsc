@@ -233,4 +233,18 @@ class TestCoverageReport(VscTestCase):
         print(">================== XML Report =======================")
         reporter.report()
         print("<================== XML Report =======================")
-        
+
+    def test_type_inst_report(self):
+        @vsc.covergroup
+        class PARNET_COV(object):
+            def __init__(self, name, hit_value):
+                self.name = name
+                self.coverpoint = vsc.coverpoint(hit_value,
+                    bins=dict(name=vsc.bin(1)),
+                )
+
+        cg1 = PARNET_COV("CHILD_1", 1)
+        report = vsc.get_coverage_report_model()
+        print(f"instname {report.covergroups[0].instname} == name {report.covergroups[0].name}")
+        print(f"instname {report.covergroups[0].covergroups[0].instname} == name {report.covergroups[0].name}")
+        vsc.report_coverage(details=True)
