@@ -1,22 +1,27 @@
-
 package:
-   name: pyvsc-perf
-   version: None
-   
-   dev-deps:
+    name: pyvsc-perf
+
+    dep-sets:
+    - name: default
+      deps: []
+
+    - name: default-dev
+      deps:
       #**************************************************************
       #* Core tools and dependencies
       #**************************************************************
       - name: pyboolector
+        type: python
         src: pypi
       - name: pyucis
+        type: python
         src: pypi
       - name: toposort
+        type: python
         src: pypi
       - name: mkdv
         url: https://github.com/fvutils/mkdv.git
-
-
+        type: python
 
       #**************************************************************
       #* riscv-dv
@@ -38,26 +43,37 @@ package:
       #* requirements.txt from riscv-dv would pull in mainline PyVSC
       #**************************************************************
       - name: pyyaml
+        type: python
         src: pypi
       - name: bitstring
+        type: python
         src: pypi
       - name: sphinx
+        type: python
         src: pypi
       - name: Pallets-Sphinx-Themes
+        type: python
         src: pypi
       - name: sphinxcontrib-log-cabinet
+        type: python
         src: pypi
       - name: sphinx-issues
+        type: python
         src: pypi
       - name: sphinx_rtd_theme
+        type: python
         src: pypi
       - name: rst2pdf
+        type: python
         src: pypi
       - name: flake8
+        type: python
         src: pypi
       - name: tabulate
+        type: python
         src: pypi
       - name: pandas
+        type: python
         src: pypi
 
       #**************************************************************
@@ -93,4 +109,11 @@ package:
         url: https://github.com/fvutils/pyvsc.git
         branch: v0.5.2
         deps: skip
-        
+
+    paths:
+      export:
+        lib-dirs:
+          - verilog/rtl
+      project:
+        lib-dirs:
+          - verilog/rtl
