@@ -57,7 +57,6 @@ from vsc.profile import randomize_start, randomize_done, profile_on
 from vsc.model.source_info import SourceInfo
 from vsc.profile.solve_info import SolveInfo
 from vsc.visitors.lint_visitor import LintVisitor
-from pip._internal.cli.cmdoptions import src
 from vsc.model.solvegroup_swizzler_range import SolveGroupSwizzlerRange
 from vsc.model.solvegroup_swizzler_partsel import SolveGroupSwizzlerPartsel
 from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug
