@@ -390,6 +390,12 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                     self._randset_field_m[f] = ex_randset
                     ex_randset.add_field(f)
 
+                for f, s in self._active_randset.dist_field_m.items():
+                    if f in ex_randset.dist_field_m.keys():
+                        ex_randset.dist_field_m[f].extend(s)
+                    else:
+                        ex_randset.dist_field_m[f] = s
+
                 for c in self._active_randset.constraints():
                     ex_randset.add_constraint(c)
                     
