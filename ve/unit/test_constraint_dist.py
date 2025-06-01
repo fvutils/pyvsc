@@ -254,6 +254,43 @@ class TestConstraintDist(VscTestCase):
                 self.fail("Value " + str(c.a) + " illegal")
         print("hist: " + str(hist))
 
+    def test_dist_multiple_dists_in_randset(self):
+
+        @vsc.randobj
+        class my_c(object):
+
+            def __init__(self):
+                self.a = vsc.rand_bit_t()
+                self.b = vsc.rand_bit_t()
+                self.en = vsc.rand_bit_t()
+
+            @vsc.constraint
+            def multi_dists(self):
+                vsc.dist(self.a, [
+                    vsc.weight(0, 1),
+                    vsc.weight(1, 99999)])
+                vsc.dist(self.b, [
+                    vsc.weight(0, 1),
+                    vsc.weight(1, 99999)])
+                with vsc.implies(self.en == 0):
+                    self.a == 0
+                    self.b == 0
+
+        c = my_c()
+
+        hist = 2*[0]
+
+        for i in range(100):
+            with c.randomize_with() as it:
+                it.en == 1
+            hist[0] += c.a
+            hist[1] += c.b
+
+        print("hist: " + str(hist))
+        for h in hist:
+            self.assertGreater(h, 95)
+
+
     def test_dist_array_elems(self):
 
         @vsc.randobj 
