@@ -41,6 +41,9 @@ class CoverpointBinSingleRangeModel(CoverpointBinModelBase):
     
     def get_bin_name(self, bin_idx):
         return self.name 
+
+    def get_bin_range(self, bin_idx):
+        return ((self.target_val_low, self.target_val_high),)
     
     def sample(self):
         val = int(self.cp.get_val())

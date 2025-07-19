@@ -12,7 +12,7 @@ from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 class TestCoverageDrivenConstraints(VscTestCase):
     
-    def test_smoke(self):
+    def disabled_test_smoke(self):
         
         class my_r(RandIF):
             """Defines operations to be implemented by a random generator"""

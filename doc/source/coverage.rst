@@ -332,6 +332,41 @@ compose the coverpoint cross.
                 
                 self.cp1X2 = vsc.cross([self.cp1, self.cp2])
 
+Coverpoint Cross Ignore Bins
+............................
+
+Coverpoint cross-bins to ignore may be specified as follows.
+
+.. code-block:: python3
+    def filter(a, b):
+        v_set = (1, 2, 4, 8)
+        for i,v in enumerate(v_set):
+            b_set = v_set[i+1:]
+            if len(b_set) and a.intersect(v) and b.intersect(b_set):
+                print("Intersect: a: %s ; b: %s" % (str(a.range), str(b.range)))
+                return True
+        return False
+
+
+    @vsc.covergroup
+    class cg_t(object):
+        def __init__(self):
+            self.with_sample(dict(
+                a=vsc.int8_t(),
+                b=vsc.int8_t()))
+            self.cp_a = vsc.coverpoint(self.a, 
+                bins=dict(rng=vsc.bin_array([], 1, 2, 4, 8)))
+            self.cp_b = vsc.coverpoint(self.b, 
+                bins=dict(rng=vsc.bin_array([], 1, 2, 4, 8)))
+            self.cr = vsc.cross([self.cp_a, self.cp_b], ignore_bins=dict(b1=filter))
+
+The `ignore_bins` argument must be a dictionary of bin-name and filter-method.
+The filter function is invoked with a bin specification for each coverpoint
+in the cross-point. The function returns `True` if the specified bin 
+combination should be ignored and `False`` otherwise. In this case,
+bins where (b>a) are ignored.
+
+
 Specifying Coverpoint Sampling Conditions
 -----------------------------------------
 A sampling condition can be specified on both coverpoints and coverpoint

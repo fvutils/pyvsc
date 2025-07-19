@@ -19,11 +19,12 @@
 #
 # @author: ballance
 
-
+import dataclasses as dc
 import random
 from typing import Set, Tuple, List
 
 from vsc.model.coveritem_base import CoverItemBase
+from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.rand_if import RandIF
 from vsc.model.expr_bin_model import ExprBinModel
@@ -32,21 +33,24 @@ from vsc.model.bin_expr_type import BinExprType
 
 class CoverpointCrossModel(CoverItemBase):
     
-    def __init__(self, name, options, iff=None):
+    def __init__(self, name, options, iff=None, ignore_bins=None):
         super().__init__()
         self.parent = None
         self.name = name
         self.iff = iff
         self.iff_val_cache = True
         self.iff_val_cache_valid = False
-        self.coverpoint_model_l = []
+        self.ignore_bins = ignore_bins
+        self.coverpoint_model_l : List[CoverpointModel]= []
         self.finalized = False
         self.n_bins = 0
+        self.n_ignore = 0
 
         # Need to map (tuple)->bin_idx (for coverage recording)
         # Need to map bin_idx->(tuple) (for constraint driving)
         # Need to track unhit bin indexes
         self.hit_l : List[int] = []
+        self.ignore_l : List[int] = []
         self.tuple2idx_m : Dict[Tuple,int] = {}
         self.idx2tuple_m : Dict[int,Tuple] = {}
         self.unhit_s : Set[Tuple] = set()
@@ -99,6 +103,12 @@ class CoverpointCrossModel(CoverItemBase):
 
     def get_bin_hits(self, bin_idx):
         return self.hit_l[bin_idx]
+    
+    def get_bin_valid(self, bin_idx):
+        ignore_i = int(bin_idx/32)
+        ignore_o = int(bin_idx % 32)
+        valid = (self.ignore_l[ignore_i] & (1 << ignore_o)) == 0
+        return valid
             
     def get_bin_name(self, bin_idx)->str:
         t = self.idx2tuple_m[bin_idx]
@@ -119,6 +129,11 @@ class CoverpointCrossModel(CoverItemBase):
             self._build_hit_map(0, [])
             
             self.hit_l = [0]*self.n_bins
+
+            self.ignore_l = [0]*int((self.n_bins-1)/32 + 1)
+            bin_l = []
+            self._build_ignore_map(0, [], bin_l, 0)
+
         self.finalized = True
     
     def accept(self, v):
@@ -130,17 +145,71 @@ class CoverpointCrossModel(CoverItemBase):
             
             if i+1 >= len(self.coverpoint_model_l):
                 key = tuple(key_m)
+
                 # Reached the bottom of the list
 #                print("Tuple: " + str(key))
                 self.tuple2idx_m[key] = self.n_bins
                 self.idx2tuple_m[self.n_bins] = key
-                self.unhit_s.add(self.n_bins)
                 self.n_bins += 1
             else:
                 self._build_hit_map(i+1, key_m)
                 
             key_m.pop()
-    
+
+    def _build_ignore_map(self, i, key_m, bin_l, n_bins) -> int:
+        @dc.dataclass
+        class bin_info(object):
+            name : str
+            idx : int
+            range : Tuple
+
+            def intersect(self, val):
+                if not hasattr(val, "__iter__"):
+                    val = (val,)
+                for v in val:
+                    for r in self.range:
+                        if type(r) == tuple:
+                            if (v >= r[0][0] and v <= r[0][1]):
+                                return True
+                        else:
+                            if (v == r):
+                                return True
+                return False
+
+        # Bin needs: name, 
+
+        for bin_i in range(self.coverpoint_model_l[i].get_n_bins()):
+            key_m.append(bin_i)
+            bin_l.append(bin_info(
+                self.coverpoint_model_l[i].get_bin_name(bin_i),
+                bin_i,
+                self.coverpoint_model_l[i].get_bin_range(bin_i)))
+            
+            if i+1 >= len(self.coverpoint_model_l):
+                # Reached the bottom of the list
+                key = tuple(key_m)
+
+                ignore_i = int(n_bins/32)
+                ignore_o = int(n_bins%32)
+
+                ignore = False
+                if self.ignore_bins is not None:
+                    for name,func in self.ignore_bins.items():
+                        if func(*bin_l):
+                            self.ignore_l[ignore_i] |= (1 << ignore_o)
+                            ignore = True
+                if not ignore:
+                    self.unhit_s.add(n_bins)
+                else:
+                    self.n_ignore += 1
+                n_bins += 1
+            else:
+                n_bins = self._build_ignore_map(i+1, key_m, bin_l, n_bins)
+                
+            key_m.pop()
+            bin_l.pop()
+        return n_bins
+
     def sample(self):
         if not self.finalized:
             raise Exception("Cross sampled before finalization")

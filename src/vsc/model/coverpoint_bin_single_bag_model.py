@@ -71,6 +71,9 @@ class CoverpointBinSingleBagModel(CoverpointBinModelBase):
     
     def get_bin_name(self, bin_idx):
         return self.name 
+    
+    def get_bin_range(self, bin_idx):
+        return self.binspec
         
     def sample(self):
         # Query value from the actual coverpoint or expression

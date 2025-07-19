@@ -899,7 +899,8 @@ class cross(object):
                  bins=None, 
                  options=None,
                  name=None,
-                 iff=None):
+                 iff=None,
+                 ignore_bins=None):
         for t in target_l:
             if not isinstance(t, coverpoint):
                 raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint")
@@ -912,6 +913,7 @@ class cross(object):
         
         self.iff_f = None
         self.iff = None
+        self.ignore_bins = ignore_bins
 
         if iff is not None:        
             with expr_mode():
@@ -946,7 +948,8 @@ class cross(object):
             ret = CoverpointCrossModel(
                 name if self.name is None else self.name,
                 options,
-                iff)
+                iff,
+                self.ignore_bins)
         
             ret.srcinfo_decl = self.srcinfo_decl
         

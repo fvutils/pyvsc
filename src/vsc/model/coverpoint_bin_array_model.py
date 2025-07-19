@@ -72,7 +72,7 @@ class CoverpointBinArrayModel(CoverpointBinModelBase):
         pass
     
     def get_bin_range(self, bin_idx):
-        print("get_bin_range: " + str(bin_idx))
+        return (self.low+bin_idx,)
             
     def get_n_bins(self):
         return (self.high-self.low+1)

@@ -281,6 +281,56 @@ class TestCoverageIgnoreBins(VscTestCase):
         reporter.details = True
         reporter.report()
 
+    def test_cross_ignore_1(self):
+        import sys
+        import vsc
+        from io import StringIO
+        from ucis.xml.xml_factory import XmlFactory
+        from ucis.report.text_coverage_report_formatter import TextCoverageReportFormatter
+        from ucis.report.coverage_report_builder import CoverageReportBuilder
+
+        def filter(a, b):
+            v_set = (1, 2, 4, 8)
+            for i,v in enumerate(v_set):
+                b_set = v_set[i+1:]
+                if len(b_set) and a.intersect(v) and b.intersect(b_set):
+                    print("Intersect: a: %s ; b: %s" % (str(a.range), str(b.range)))
+                    return True
+            return False
+
+        @vsc.covergroup
+        class cg_t(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a=vsc.int8_t(),
+                    b=vsc.int8_t()))
+                self.cp_a = vsc.coverpoint(self.a, 
+                    bins=dict(rng=vsc.bin_array([], 1, 2, 4, 8)))
+                self.cp_b = vsc.coverpoint(self.b, 
+                    bins=dict(rng=vsc.bin_array([], 1, 2, 4, 8)))
+                self.cr = vsc.cross([self.cp_a, self.cp_b], ignore_bins=dict(b1=filter))
+                
+        cg = cg_t()
+        i_set = (1, 2, 4, 8)
+        for i,iv in enumerate(i_set):
+            for j,jv in enumerate(i_set):
+                if j <= i:
+                    print("%d,%d" % (i_set[i], i_set[j]))
+                    cg.sample(i_set[i], i_set[j])
+
+        out = StringIO()
+        vsc.write_coverage_db(out)
+#        vsc.report_coverage(details=True)
+        db = XmlFactory.read(StringIO(out.getvalue()))
+        report = CoverageReportBuilder(db).build(db)
+        # Confirm that the ignore bin was properly saved/restored
+        self.assertEqual(report.covergroups[0].covergroups[0].crosses[0].coverage, 100.0)
+#        self.assertEqual(
+#            len(report.covergroups[0].covergroups[0].coverpoints[0].ignore_bins), 1)
+        reporter = TextCoverageReportFormatter(report, sys.stdout)
+        reporter.details = True
+        reporter.report()
+
     # def test_ignore_full_array_bin(self):
     #     import sys
     #     import vsc

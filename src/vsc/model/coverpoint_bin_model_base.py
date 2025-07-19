@@ -56,6 +56,9 @@ class CoverpointBinModelBase(object):
     def get_bin_name(self, bin_idx):
         raise NotImplementedError()
     
+    def get_bin_range(self, bin_idx):
+        raise NotImplementedError()
+    
     def sample(self):
         raise NotImplementedError("sample not implemented for " + str(type(self)))
                 
