@@ -125,7 +125,7 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">name</span> </div>
 
-    
+
 <div class="viewcode-block" id="CoverpointBinSingleValModel.sample">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_single_val_model.CoverpointBinSingleValModel.sample">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
@@ -144,8 +144,7 @@
 <div class="viewcode-block" id="CoverpointBinSingleValModel.get_bin_range">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_bin_single_val_model.CoverpointBinSingleValModel.get_bin_range">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">idx</span><span class="p">):</span>
-        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;get_bin_range: &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">idx</span><span class="p">))</span>
-        <span class="k">return</span> <span class="n">RangelistModel</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">target_val</span><span class="p">])</span></div>
+        <span class="k">return</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">target_val</span><span class="p">,)</span></div>
 
 
 <div class="viewcode-block" id="CoverpointBinSingleValModel.accept">

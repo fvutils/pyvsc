@@ -317,15 +317,6 @@
             <span class="k">return</span> <span class="o">-</span><span class="mi">1</span></div>
 
         
-<div class="viewcode-block" id="CoverpointModel.get_bin_range">
-<a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.get_bin_range">[docs]</a>
-    <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">RangelistModel</span><span class="p">:</span>
-        <span class="n">b</span><span class="p">,</span><span class="n">off</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_target_bin</span><span class="p">(</span><span class="n">bin_idx</span><span class="p">)</span>
-        
-        <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">get_bin_range</span><span class="p">(</span><span class="n">off</span><span class="p">)</span>
-        <span class="k">pass</span></div>
-
-            
 <div class="viewcode-block" id="CoverpointModel.coverage_ev">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.coverage_ev">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">coverage_ev</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">,</span> <span class="n">bin_type</span><span class="p">):</span>
@@ -396,6 +387,7 @@
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_l</span><span class="p">[</span><span class="n">bin_idx</span><span class="p">]</span></div>
 
     
+    
 <div class="viewcode-block" id="CoverpointModel.get_ignore_bin_hits">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.get_ignore_bin_hits">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">get_ignore_bin_hits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
@@ -413,6 +405,14 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_name</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">)</span><span class="o">-&gt;</span><span class="nb">str</span><span class="p">:</span>
         <span class="n">b</span><span class="p">,</span><span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_target_bin</span><span class="p">(</span><span class="n">bin_idx</span><span class="p">)</span>
         <span class="k">return</span> <span class="n">b</span><span class="o">.</span><span class="n">get_bin_name</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span></div>
+
+
+<div class="viewcode-block" id="CoverpointModel.get_bin_range">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_model.CoverpointModel.get_bin_range">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_range</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
+        <span class="n">b</span><span class="p">,</span><span class="n">idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_get_target_bin</span><span class="p">(</span><span class="n">bin_idx</span><span class="p">)</span>
+        <span class="n">ret</span> <span class="o">=</span> <span class="n">b</span><span class="o">.</span><span class="n">get_bin_range</span><span class="p">(</span><span class="n">idx</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">ret</span></div>
 
         
 <div class="viewcode-block" id="CoverpointModel.get_ignore_bin_name">

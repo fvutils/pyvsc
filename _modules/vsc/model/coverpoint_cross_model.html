@@ -99,11 +99,12 @@
 <span class="c1">#</span>
 <span class="c1"># @author: ballance</span>
 
-
+<span class="kn">import</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">dc</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">random</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">Set</span><span class="p">,</span> <span class="n">Tuple</span><span class="p">,</span> <span class="n">List</span>
 
 <span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coveritem_base</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverItemBase</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.coverpoint_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">CoverpointModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.expr_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExprModel</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.rand_if</span><span class="w"> </span><span class="kn">import</span> <span class="n">RandIF</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">vsc.model.expr_bin_model</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExprBinModel</span>
@@ -114,21 +115,24 @@
 <a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_cross_model.CoverpointCrossModel">[docs]</a>
 <span class="k">class</span><span class="w"> </span><span class="nc">CoverpointCrossModel</span><span class="p">(</span><span class="n">CoverItemBase</span><span class="p">):</span>
     
-    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">iff</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">name</span><span class="p">,</span> <span class="n">options</span><span class="p">,</span> <span class="n">iff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">ignore_bins</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
         <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="fm">__init__</span><span class="p">()</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">parent</span> <span class="o">=</span> <span class="kc">None</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="n">name</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iff</span> <span class="o">=</span> <span class="n">iff</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache</span> <span class="o">=</span> <span class="kc">True</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">iff_val_cache_valid</span> <span class="o">=</span> <span class="kc">False</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span> <span class="o">=</span> <span class="n">ignore_bins</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span> <span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="n">CoverpointModel</span><span class="p">]</span><span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">finalized</span> <span class="o">=</span> <span class="kc">False</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_ignore</span> <span class="o">=</span> <span class="mi">0</span>
 
         <span class="c1"># Need to map (tuple)-&gt;bin_idx (for coverage recording)</span>
         <span class="c1"># Need to map bin_idx-&gt;(tuple) (for constraint driving)</span>
         <span class="c1"># Need to track unhit bin indexes</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">hit_l</span> <span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">ignore_l</span> <span class="p">:</span> <span class="n">List</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">[]</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">tuple2idx_m</span> <span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="n">Tuple</span><span class="p">,</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">idx2tuple_m</span> <span class="p">:</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">int</span><span class="p">,</span><span class="n">Tuple</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">unhit_s</span> <span class="p">:</span> <span class="n">Set</span><span class="p">[</span><span class="n">Tuple</span><span class="p">]</span> <span class="o">=</span> <span class="nb">set</span><span class="p">()</span>
@@ -205,6 +209,15 @@
     <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_hits</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
         <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">hit_l</span><span class="p">[</span><span class="n">bin_idx</span><span class="p">]</span></div>
 
+    
+<div class="viewcode-block" id="CoverpointCrossModel.get_bin_valid">
+<a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_cross_model.CoverpointCrossModel.get_bin_valid">[docs]</a>
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_bin_valid</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">bin_idx</span><span class="p">):</span>
+        <span class="n">ignore_i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bin_idx</span><span class="o">/</span><span class="mi">32</span><span class="p">)</span>
+        <span class="n">ignore_o</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">bin_idx</span> <span class="o">%</span> <span class="mi">32</span><span class="p">)</span>
+        <span class="n">valid</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">ignore_l</span><span class="p">[</span><span class="n">ignore_i</span><span class="p">]</span> <span class="o">&amp;</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">ignore_o</span><span class="p">))</span> <span class="o">==</span> <span class="mi">0</span>
+        <span class="k">return</span> <span class="n">valid</span></div>
+
             
 <div class="viewcode-block" id="CoverpointCrossModel.get_bin_name">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_cross_model.CoverpointCrossModel.get_bin_name">[docs]</a>
@@ -233,6 +246,11 @@
             <span class="bp">self</span><span class="o">.</span><span class="n">_build_hit_map</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[])</span>
             
             <span class="bp">self</span><span class="o">.</span><span class="n">hit_l</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span>
+
+            <span class="bp">self</span><span class="o">.</span><span class="n">ignore_l</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">*</span><span class="nb">int</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="mi">32</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span>
+            <span class="n">bin_l</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">_build_ignore_map</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[],</span> <span class="n">bin_l</span><span class="p">,</span> <span class="mi">0</span><span class="p">)</span>
+
         <span class="bp">self</span><span class="o">.</span><span class="n">finalized</span> <span class="o">=</span> <span class="kc">True</span></div>
 
     
@@ -248,17 +266,71 @@
             
             <span class="k">if</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span><span class="p">):</span>
                 <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key_m</span><span class="p">)</span>
+
                 <span class="c1"># Reached the bottom of the list</span>
 <span class="c1">#                print(&quot;Tuple: &quot; + str(key))</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">tuple2idx_m</span><span class="p">[</span><span class="n">key</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">idx2tuple_m</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">]</span> <span class="o">=</span> <span class="n">key</span>
-                <span class="bp">self</span><span class="o">.</span><span class="n">unhit_s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">n_bins</span> <span class="o">+=</span> <span class="mi">1</span>
             <span class="k">else</span><span class="p">:</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_build_hit_map</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">key_m</span><span class="p">)</span>
                 
             <span class="n">key_m</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
-    
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_build_ignore_map</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">i</span><span class="p">,</span> <span class="n">key_m</span><span class="p">,</span> <span class="n">bin_l</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">int</span><span class="p">:</span>
+        <span class="nd">@dc</span><span class="o">.</span><span class="n">dataclass</span>
+        <span class="k">class</span><span class="w"> </span><span class="nc">bin_info</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+            <span class="n">name</span> <span class="p">:</span> <span class="nb">str</span>
+            <span class="n">idx</span> <span class="p">:</span> <span class="nb">int</span>
+            <span class="nb">range</span> <span class="p">:</span> <span class="n">Tuple</span>
+
+            <span class="k">def</span><span class="w"> </span><span class="nf">intersect</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">val</span><span class="p">):</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="nb">hasattr</span><span class="p">(</span><span class="n">val</span><span class="p">,</span> <span class="s2">&quot;__iter__&quot;</span><span class="p">):</span>
+                    <span class="n">val</span> <span class="o">=</span> <span class="p">(</span><span class="n">val</span><span class="p">,)</span>
+                <span class="k">for</span> <span class="n">v</span> <span class="ow">in</span> <span class="n">val</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">r</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">range</span><span class="p">:</span>
+                        <span class="k">if</span> <span class="nb">type</span><span class="p">(</span><span class="n">r</span><span class="p">)</span> <span class="o">==</span> <span class="nb">tuple</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="p">(</span><span class="n">v</span> <span class="o">&gt;=</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">&lt;=</span> <span class="n">r</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">]):</span>
+                                <span class="k">return</span> <span class="kc">True</span>
+                        <span class="k">else</span><span class="p">:</span>
+                            <span class="k">if</span> <span class="p">(</span><span class="n">v</span> <span class="o">==</span> <span class="n">r</span><span class="p">):</span>
+                                <span class="k">return</span> <span class="kc">True</span>
+                <span class="k">return</span> <span class="kc">False</span>
+
+        <span class="c1"># Bin needs: name, </span>
+
+        <span class="k">for</span> <span class="n">bin_i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_n_bins</span><span class="p">()):</span>
+            <span class="n">key_m</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bin_i</span><span class="p">)</span>
+            <span class="n">bin_l</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">bin_info</span><span class="p">(</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_bin_name</span><span class="p">(</span><span class="n">bin_i</span><span class="p">),</span>
+                <span class="n">bin_i</span><span class="p">,</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">get_bin_range</span><span class="p">(</span><span class="n">bin_i</span><span class="p">)))</span>
+            
+            <span class="k">if</span> <span class="n">i</span><span class="o">+</span><span class="mi">1</span> <span class="o">&gt;=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">coverpoint_model_l</span><span class="p">):</span>
+                <span class="c1"># Reached the bottom of the list</span>
+                <span class="n">key</span> <span class="o">=</span> <span class="nb">tuple</span><span class="p">(</span><span class="n">key_m</span><span class="p">)</span>
+
+                <span class="n">ignore_i</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_bins</span><span class="o">/</span><span class="mi">32</span><span class="p">)</span>
+                <span class="n">ignore_o</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">n_bins</span><span class="o">%</span><span class="mi">32</span><span class="p">)</span>
+
+                <span class="n">ignore</span> <span class="o">=</span> <span class="kc">False</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
+                    <span class="k">for</span> <span class="n">name</span><span class="p">,</span><span class="n">func</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">ignore_bins</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+                        <span class="k">if</span> <span class="n">func</span><span class="p">(</span><span class="o">*</span><span class="n">bin_l</span><span class="p">):</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">ignore_l</span><span class="p">[</span><span class="n">ignore_i</span><span class="p">]</span> <span class="o">|=</span> <span class="p">(</span><span class="mi">1</span> <span class="o">&lt;&lt;</span> <span class="n">ignore_o</span><span class="p">)</span>
+                            <span class="n">ignore</span> <span class="o">=</span> <span class="kc">True</span>
+                <span class="k">if</span> <span class="ow">not</span> <span class="n">ignore</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">unhit_s</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">n_bins</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">n_ignore</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">n_bins</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">n_bins</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_build_ignore_map</span><span class="p">(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">key_m</span><span class="p">,</span> <span class="n">bin_l</span><span class="p">,</span> <span class="n">n_bins</span><span class="p">)</span>
+                
+            <span class="n">key_m</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+            <span class="n">bin_l</span><span class="o">.</span><span class="n">pop</span><span class="p">()</span>
+        <span class="k">return</span> <span class="n">n_bins</span>
+
 <div class="viewcode-block" id="CoverpointCrossModel.sample">
 <a class="viewcode-back" href="../../../reference.html#vsc.model.coverpoint_cross_model.CoverpointCrossModel.sample">[docs]</a>
     <span class="k">def</span><span class="w"> </span><span class="nf">sample</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>

@@ -441,6 +441,12 @@ compose the coverpoint cross.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">cp1X2</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cp1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp2</span><span class="p">])</span>
 </pre></div>
 </div>
+<p>Coverpoint cross-bins to ignore may be specified as follows.</p>
+<p>The <code class="xref any docutils literal notranslate"><span class="pre">ignore_bins</span></code> argument must be a dictionary of bin-name and filter-method.
+The filter function is invoked with a bin specification for each coverpoint
+in the cross-point. The function returns <a class="reference external" href="https://docs.python.org/3/library/constants.html#True" title="(in Python v3.13)"><code class="xref any docutils literal notranslate"><span class="pre">True</span></code></a> if the specified bin
+combination should be ignored and <code class="xref any docutils literal notranslate"><span class="pre">False`</span></code> otherwise. In this case,
+bins where (b&gt;a) are ignored.</p>
 </section>
 <section id="specifying-coverpoint-sampling-conditions">
 <h3>Specifying Coverpoint Sampling Conditions<a class="headerlink" href="#specifying-coverpoint-sampling-conditions" title="Link to this heading"></a></h3>
