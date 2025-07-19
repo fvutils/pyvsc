@@ -202,12 +202,6 @@ class CoverpointModel(CoverItemBase):
         else:
             return -1
         
-    def get_bin_range(self, bin_idx) -> RangelistModel:
-        b,off = self._get_target_bin(bin_idx)
-        
-        return b.get_bin_range(off)
-        pass
-            
     def coverage_ev(self, bin_idx, bin_type):
         """Called by a bin to signal that an uncovered bin has been covered"""
         self.coverage_calc_valid = False
@@ -251,6 +245,7 @@ class CoverpointModel(CoverItemBase):
     def get_bin_hits(self, bin_idx):
         return self.hit_l[bin_idx]
     
+    
     def get_ignore_bin_hits(self, bin_idx):
         return self.hit_ignore_l[bin_idx]
     
@@ -260,6 +255,11 @@ class CoverpointModel(CoverItemBase):
     def get_bin_name(self, bin_idx)->str:
         b,idx = self._get_target_bin(bin_idx)
         return b.get_bin_name(idx)
+
+    def get_bin_range(self, bin_idx):
+        b,idx = self._get_target_bin(bin_idx)
+        ret = b.get_bin_range(idx)
+        return ret
         
     def get_ignore_bin_name(self, bin_idx)->str:
         b,idx = self._get_target_ignore_bin(bin_idx)

@@ -242,13 +242,14 @@ class CoverageSaveVisitor(ModelVisitor):
 
         for bi in range(cr.get_n_bins()):
             decl_location = None
-            bn_name = cr.get_bin_name(bi)
-            cr_bin = cr_scope.createBin(
-                bn_name,
-                decl_location,
-                at_least,
-                cr.get_bin_hits(bi),
-                bn_name)        
+            if cr.get_bin_valid(bi):
+                bn_name = cr.get_bin_name(bi)
+                cr_bin = cr_scope.createBin(
+                    bn_name,
+                    decl_location,
+                    at_least,
+                    cr.get_bin_hits(bi),
+                    bn_name)        
             
     def get_cg_instname(self, cg : CovergroupModel)->str:
         iname = None

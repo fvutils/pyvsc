@@ -34,7 +34,7 @@ class CoverpointBinSingleValModel(CoverpointBinModelBase):
     
     def get_bin_name(self, bin_idx):
         return self.name 
-    
+
     def sample(self):
         val = self.cp.get_val()
         if val == self.target_val:
@@ -48,8 +48,7 @@ class CoverpointBinSingleValModel(CoverpointBinModelBase):
         return self.hit_bin_idx
     
     def get_bin_range(self, idx):
-        print("get_bin_range: " + str(idx))
-        return RangelistModel([self.target_val])
+        return (self.target_val,)
 
     def accept(self, v):
         v.visit_coverpoint_bin_single(self)

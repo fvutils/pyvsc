@@ -38,6 +38,9 @@ class CoverpointBinEnumModel(CoverpointBinModelBase):
     
     def get_bin_name(self, bin_idx):
         return self.name 
+    
+    def get_bin_range(self, bin_idx):
+        return (self.target_val,)
 
     def sample(self):
         # Query value from the actual coverpoint or expression

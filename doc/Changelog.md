@@ -1,3 +1,5 @@
+## 0.9.5
+- (#237) - Add support for specifying cross-bins to ignore
 
 ## 0.9.4
 - (#233) - Propagate docstring and modulename across `randobj` inheritance
