@@ -5,6 +5,7 @@ Created on May 25, 2021
 '''
 from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.model_visitor import ModelVisitor
 
 
@@ -27,7 +28,7 @@ class ExpandSolveOrderVisitor(ModelVisitor):
         else:
             b.accept(self)
 
-    def visit_scalar_field(self, f:FieldScalarModel):
+    def visit_field(self, f:list[FieldScalarModel, EnumFieldModel]):
         if self.lhs:
             # Now, visit rhs
             ExpandSolveOrderVisitor(self.order_m, lhs=False).expand(f, self.b)
@@ -35,4 +36,10 @@ class ExpandSolveOrderVisitor(ModelVisitor):
             if not self.a in self.order_m.keys():
                 self.order_m[self.a] = set()
             self.order_m[self.a].add(f)
-        
+
+    def visit_scalar_field(self, f:FieldScalarModel):
+        self.visit_field(f)
+
+    def visit_enum_field(self, f:EnumFieldModel):
+        self.visit_field(f)
+
