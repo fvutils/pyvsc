@@ -44,9 +44,11 @@ class SolveGroupSwizzlerPartsel(object):
             if self.debug > 0: print("  following solve-order constraints")
             for ro_l in rs.rand_order_l:
                 swizzled_field |= self.swizzle_field_l(ro_l, rs, bound_m, btor)
-        else:
-            if self.debug > 0: print("  following random field order")
-            swizzled_field |= self.swizzle_field_l(rs.rand_fields(), rs, bound_m, btor)
+                # Remove swizzled fields from future unordered swizzling
+                field_l = [f for f in field_l if f not in ro_l]
+
+        if self.debug > 0: print("  following random field order")
+        swizzled_field |= self.swizzle_field_l(field_l, rs, bound_m, btor)
                 
         if not swizzled_field:
             if self.solve_info is not None:
