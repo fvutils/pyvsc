@@ -141,8 +141,8 @@ class Randomizer(RandIF):
         while rs_i < len(ri.randsets()):
             btor = Boolector()
             self.btor = btor
-            btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
-            btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
+            btor.Set_opt(pyboolector.BtorOption.BTOR_OPT_INCREMENTAL, True)
+            btor.Set_opt(pyboolector.BtorOption.BTOR_OPT_MODEL_GEN, True)
             
             start_rs_i = rs_i
 
@@ -306,8 +306,8 @@ class Randomizer(RandIF):
         ret = ""
         
         btor = Boolector()
-        btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
-        btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
+        btor.Set_opt(pyboolector.BtorOption.BTOR_OPT_INCREMENTAL, True)
+        btor.Set_opt(pyboolector.BtorOption.BTOR_OPT_MODEL_GEN, True)
         model_valid = False
         
         diagnostic_constraint_l = [] 
@@ -383,8 +383,8 @@ class Randomizer(RandIF):
     def create_diagnostics(self, active_randsets) -> str:
         
         btor = Boolector()
-        btor.Set_opt(pyboolector.BTOR_OPT_INCREMENTAL, True)
-        btor.Set_opt(pyboolector.BTOR_OPT_MODEL_GEN, True)
+        btor.Set_opt(pyboolector.BtorOption.BTOR_OPT_INCREMENTAL, True)
+        btor.Set_opt(pyboolector.BtorOption.BTOR_OPT_MODEL_GEN, True)
         model_valid = False
         
         diagnostic_constraint_l = [] 
