@@ -526,7 +526,11 @@
         <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">args</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
             <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;No bins range specified&quot;</span><span class="p">)</span>
         
-        <span class="bp">self</span><span class="o">.</span><span class="n">ranges</span><span class="o">.</span><span class="n">compact</span><span class="p">()</span>
+        <span class="c1"># NOTE: Do NOT call self.ranges.compact() here!</span>
+        <span class="c1"># According to IEEE 1800-2023 (page 585):</span>
+        <span class="c1"># &quot;Duplicate values are retained; thus the same value can be assigned to multiple bins&quot;</span>
+        <span class="c1"># Calling compact() would merge overlapping ranges and remove duplicates,</span>
+        <span class="c1"># which is incorrect for bin distribution.</span>
         
         <span class="c1"># Capture the declaration location of this bin</span>
         <span class="n">frame</span> <span class="o">=</span> <span class="n">inspect</span><span class="o">.</span><span class="n">stack</span><span class="p">()[</span><span class="mi">1</span><span class="p">]</span>
