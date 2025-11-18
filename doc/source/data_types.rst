@@ -151,6 +151,37 @@ PyVSC also provides operator overloading for `randobj`-decorated classes that
 allows the value of class attributes to be accessed directly.
 
 
+Converting Bit Patterns to Values
+==================================
+
+When interfacing with hardware (DUT), bit patterns often need to be interpreted
+as signed or unsigned values. PyVSC provides the `ValueInt.from_bits()` class method
+to convert bit patterns to properly-interpreted integer values:
+
+.. code-block:: python3
+
+    import vsc
+    
+    # Convert unsigned 8-bit value
+    unsigned_val = vsc.ValueInt.from_bits(0xFF, width=8, signed=False)
+    # Result: 255
+    
+    # Convert signed 8-bit value  
+    signed_val = vsc.ValueInt.from_bits(0xFF, width=8, signed=True)
+    # Result: -1
+    
+    # Practical example: reading from DUT
+    dut_register_value = 0xFFFFFFF0
+    python_value = vsc.ValueInt.from_bits(dut_register_value, width=32, signed=True)
+    # Result: -16
+
+The method properly:
+
+* Masks the value to the specified bit width
+* Detects the sign bit (MSB) when `signed=True`
+* Converts negative values using two's complement representation
+
+
 List-type Attributes
 ================================
 
