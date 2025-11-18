@@ -1,0 +1,191 @@
+<UCIS xmlns:ucis="http://www.w3.org/2001/XMLSchema-instance" writtenBy="runner" writtenTime="2025-11-18T00:00:00" ucisVersion="1.0">
+  <sourceFiles fileName="__null__file__" id="1"/>
+  <sourceFiles fileName="&lt;unknown&gt;" id="2"/>
+  <sourceFiles fileName="/home/runner/work/pyvsc/pyvsc/ve/unit/test_coverage_report.py" id="3"/>
+  <historyNodes historyNodeId="0" logicalName="logicalName" physicalName="foo.ucis" kind="1" testStatus="true" simtime="0.0" timeunit="ns" runCwd="." cpuTime="0.0" seed="0" cmd="" args="" compulsory="0" date="2025-11-18T17:10:16" userName="user" cost="0.0" toolCategory="UCIS:simulator" ucisVersion="1.0" vendorId="unknown" vendorTool="unknown" vendorToolVersion="unknown"/>
+  <instanceCoverages name="cg_inst" key="0">
+    <id file="1" line="1" inlineCount="1"/>
+    <covergroupCoverage>
+      <cgInstance name="my_cg" key="0">
+        <options/>
+        <cgId cgName="my_cg" moduleName="my_cg">
+          <cginstSourceId file="1" line="1" inlineCount="1"/>
+          <cgSourceId file="1" line="1" inlineCount="1"/>
+        </cgId>
+        <coverpoint name="a_cp" key="0">
+          <options/>
+          <coverpointBin name="a[0]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="2"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[1]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[2]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[3]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[4]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="2"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[5]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[6]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[7]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[8]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="2"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[9]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[10]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[11]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[12]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="2"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[13]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[14]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[15]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+        </coverpoint>
+      </cgInstance>
+      <cgInstance name="my_cg_1" key="0">
+        <options/>
+        <cgId cgName="my_cg" moduleName="my_cg">
+          <cginstSourceId file="1" line="1" inlineCount="1"/>
+          <cgSourceId file="1" line="1" inlineCount="1"/>
+        </cgId>
+        <coverpoint name="a_cp" key="0">
+          <options/>
+          <coverpointBin name="a[0]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[1]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="3"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[2]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[3]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[4]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[5]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[6]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[7]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="3"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[8]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[9]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[10]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[11]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[12]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[13]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="3"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[14]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="0"/>
+            </range>
+          </coverpointBin>
+          <coverpointBin name="a[15]" type="bins" key="0">
+            <range from="-1" to="-1">
+              <contents coverageCount="1"/>
+            </range>
+          </coverpointBin>
+        </coverpoint>
+      </cgInstance>
+    </covergroupCoverage>
+  </instanceCoverages>
+</UCIS>

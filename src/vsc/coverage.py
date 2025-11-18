@@ -435,7 +435,11 @@ class bin_array(object):
         if len(args) == 0:
             raise Exception("No bins range specified")
         
-        self.ranges.compact()
+        # NOTE: Do NOT call self.ranges.compact() here!
+        # According to IEEE 1800-2023 (page 585):
+        # "Duplicate values are retained; thus the same value can be assigned to multiple bins"
+        # Calling compact() would merge overlapping ranges and remove duplicates,
+        # which is incorrect for bin distribution.
         
         # Capture the declaration location of this bin
         frame = inspect.stack()[1]
