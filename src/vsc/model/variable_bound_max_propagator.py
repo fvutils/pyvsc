@@ -34,7 +34,8 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
         must_propagate = False
         if i >= 0:
 #            print("i: " + str(i) + " " + str(self.target.domain.range_l[i][0]))
-            if range_l[i][1] > max_v:
+            # Check if range_l is not empty before accessing
+            if len(range_l) > i and range_l[i][1] > max_v:
                 range_l[i][1] = max_v
                 must_propagate = True
                 
@@ -43,6 +44,7 @@ class VariableBoundMaxPropagator(VariableBoundPropagator):
                 must_propagate = True
 #                print("Removing domain element " + str(range_l[i+1]))
                 self.target.domain.range_l = range_l[:i+1]
+                range_l = self.target.domain.range_l  # Update local reference
         else:
 #            print("ran off the end")
             pass
