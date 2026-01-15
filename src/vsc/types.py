@@ -292,6 +292,11 @@ def _safe_to_expr_model(value):
     in case the stack is empty or corrupted (which can happen during constraint
     solving failures).
     
+    Note: to_expr() either:
+      - Creates a new expr object (which pushes to stack in __init__), OR
+      - Returns an existing expr object that's already on the stack
+    In both cases, we need to pop to maintain stack balance.
+    
     Args:
         value: The value to convert to an expression model
         
