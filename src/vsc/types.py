@@ -281,6 +281,32 @@ class rng(object):
         self.low = pop_expr()
         to_expr(high)
         self.high = pop_expr()
+
+def _safe_to_expr_model(value):
+    """
+    Safely convert a value to an expression model.
+    
+    This function creates an expr object via to_expr() and extracts the
+    expression model (.em) directly. It also attempts to pop from the global
+    expression stack to maintain balance, but handles IndexError gracefully
+    in case the stack is empty or corrupted (which can happen during constraint
+    solving failures).
+    
+    Args:
+        value: The value to convert to an expression model
+        
+    Returns:
+        The expression model object
+    """
+    expr_obj = to_expr(value)
+    model = expr_obj.em
+    # Try to maintain stack balance, but don't fail if stack is corrupted
+    try:
+        pop_expr()
+    except IndexError:
+        # Stack was empty or corrupted, but we have the expression model
+        pass
+    return model
         
 class rangelist(object):
     
@@ -295,40 +321,18 @@ class rangelist(object):
                 # This needs to be a two-element array
                 if len(a) != 2:
                     raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
-                # Get expression models directly to avoid relying on stack state
-                e0_expr = to_expr(a[0])
-                e0 = e0_expr.em
-                # Safely pop from stack, handling case where stack may be empty
-                try:
-                    pop_expr()
-                except IndexError:
-                    # Stack was already empty or corrupted, but we have the expr model
-                    pass
-                e1_expr = to_expr(a[1])
-                e1 = e1_expr.em
-                try:
-                    pop_expr()
-                except IndexError:
-                    pass
+                # Use helper to safely get expression models
+                e0 = _safe_to_expr_model(a[0])
+                e1 = _safe_to_expr_model(a[1])
                 self.range_l.add_range(ExprRangeModel(e0, e1))
             elif isinstance(a, rng):
                 self.range_l.add_range(ExprRangeModel(a.low, a.high))
             elif isinstance(a, list):
                 for ai in a:
-                    ai_expr = to_expr(ai)
-                    eai = ai_expr.em
-                    try:
-                        pop_expr()
-                    except IndexError:
-                        pass
+                    eai = _safe_to_expr_model(ai)
                     self.range_l.add_range(eai)
             else:
-                a_expr = to_expr(a)
-                e = a_expr.em
-                try:
-                    pop_expr()
-                except IndexError:
-                    pass
+                e = _safe_to_expr_model(a)
                 self.range_l.add_range(e)
 #            self.range_l.rl.reverse()
 
@@ -346,43 +350,23 @@ class rangelist(object):
             # This needs to be a two-element array
             if len(a) != 2:
                 raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
-            # Get expression models directly to avoid relying on stack state
-            e0_expr = to_expr(a[0])
-            e0 = e0_expr.em
-            try:
-                pop_expr()
-            except IndexError:
-                pass
-            e1_expr = to_expr(a[1])
-            e1 = e1_expr.em
-            try:
-                pop_expr()
-            except IndexError:
-                pass
+            # Use helper to safely get expression models
+            e0 = _safe_to_expr_model(a[0])
+            e1 = _safe_to_expr_model(a[1])
             self.range_l.add_range(ExprRangeModel(e0, e1))
         elif isinstance(a, rng):
             self.range_l.add_range(ExprRangeModel(a.low, a.high))
         elif isinstance(a, list):
             for ai in a:
-                ai_expr = to_expr(ai)
-                eai = ai_expr.em
-                try:
-                    pop_expr()
-                except IndexError:
-                    pass
+                eai = _safe_to_expr_model(ai)
                 self.range_l.add_range(eai)
         else:
-            a_expr = to_expr(a)
-            e = a_expr.em
-            try:
-                pop_expr()
-            except IndexError:
-                pass
+            e = _safe_to_expr_model(a)
             self.range_l.add_range(e)        
                 
     def __contains__(self, lhs):
-        to_expr(lhs)
-        return expr(ExprInModel(pop_expr(), self.range_l))
+        lhs_model = _safe_to_expr_model(lhs)
+        return expr(ExprInModel(lhs_model, self.range_l))
     
     def __invert__(self):
         print("rangelist.__invert__")
