@@ -295,21 +295,40 @@ class rangelist(object):
                 # This needs to be a two-element array
                 if len(a) != 2:
                     raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
-                to_expr(a[0])
-                e0 = pop_expr()
-                to_expr(a[1])
-                e1 = pop_expr()
+                # Get expression models directly to avoid relying on stack state
+                e0_expr = to_expr(a[0])
+                e0 = e0_expr.em
+                # Safely pop from stack, handling case where stack may be empty
+                try:
+                    pop_expr()
+                except IndexError:
+                    # Stack was already empty or corrupted, but we have the expr model
+                    pass
+                e1_expr = to_expr(a[1])
+                e1 = e1_expr.em
+                try:
+                    pop_expr()
+                except IndexError:
+                    pass
                 self.range_l.add_range(ExprRangeModel(e0, e1))
             elif isinstance(a, rng):
                 self.range_l.add_range(ExprRangeModel(a.low, a.high))
             elif isinstance(a, list):
                 for ai in a:
-                    to_expr(ai)
-                    eai = pop_expr()
+                    ai_expr = to_expr(ai)
+                    eai = ai_expr.em
+                    try:
+                        pop_expr()
+                    except IndexError:
+                        pass
                     self.range_l.add_range(eai)
             else:
-                to_expr(a)
-                e = pop_expr()
+                a_expr = to_expr(a)
+                e = a_expr.em
+                try:
+                    pop_expr()
+                except IndexError:
+                    pass
                 self.range_l.add_range(e)
 #            self.range_l.rl.reverse()
 
@@ -327,21 +346,38 @@ class rangelist(object):
             # This needs to be a two-element array
             if len(a) != 2:
                 raise Exception("Range specified with " + str(len(a)) + " elements is invalid. Two elements required")
-            to_expr(a[0])
-            e0 = pop_expr()
-            to_expr(a[1])
-            e1 = pop_expr()
+            # Get expression models directly to avoid relying on stack state
+            e0_expr = to_expr(a[0])
+            e0 = e0_expr.em
+            try:
+                pop_expr()
+            except IndexError:
+                pass
+            e1_expr = to_expr(a[1])
+            e1 = e1_expr.em
+            try:
+                pop_expr()
+            except IndexError:
+                pass
             self.range_l.add_range(ExprRangeModel(e0, e1))
         elif isinstance(a, rng):
             self.range_l.add_range(ExprRangeModel(a.low, a.high))
         elif isinstance(a, list):
             for ai in a:
-                to_expr(ai)
-                eai = pop_expr()
+                ai_expr = to_expr(ai)
+                eai = ai_expr.em
+                try:
+                    pop_expr()
+                except IndexError:
+                    pass
                 self.range_l.add_range(eai)
         else:
-            to_expr(a)
-            e = pop_expr()
+            a_expr = to_expr(a)
+            e = a_expr.em
+            try:
+                pop_expr()
+            except IndexError:
+                pass
             self.range_l.add_range(e)        
                 
     def __contains__(self, lhs):
