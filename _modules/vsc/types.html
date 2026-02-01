@@ -7,7 +7,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>vsc.types &mdash; pyvsc 0.0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
-      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=e59714d7" />
+      <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
       <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
 
   
@@ -391,6 +391,37 @@
         <span class="n">to_expr</span><span class="p">(</span><span class="n">high</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">high</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span></div>
 
+
+<span class="k">def</span><span class="w"> </span><span class="nf">_safe_to_expr_model</span><span class="p">(</span><span class="n">value</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Safely convert a value to an expression model.</span>
+<span class="sd">    </span>
+<span class="sd">    This function creates an expr object via to_expr() and extracts the</span>
+<span class="sd">    expression model (.em) directly. It also attempts to pop from the global</span>
+<span class="sd">    expression stack to maintain balance, but handles IndexError gracefully</span>
+<span class="sd">    in case the stack is empty or corrupted (which can happen during constraint</span>
+<span class="sd">    solving failures).</span>
+<span class="sd">    </span>
+<span class="sd">    Note: to_expr() either:</span>
+<span class="sd">      - Creates a new expr object (which pushes to stack in __init__), OR</span>
+<span class="sd">      - Returns an existing expr object that&#39;s already on the stack</span>
+<span class="sd">    In both cases, we need to pop to maintain stack balance.</span>
+<span class="sd">    </span>
+<span class="sd">    Args:</span>
+<span class="sd">        value: The value to convert to an expression model</span>
+<span class="sd">        </span>
+<span class="sd">    Returns:</span>
+<span class="sd">        The expression model object</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">expr_obj</span> <span class="o">=</span> <span class="n">to_expr</span><span class="p">(</span><span class="n">value</span><span class="p">)</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">expr_obj</span><span class="o">.</span><span class="n">em</span>
+    <span class="c1"># Try to maintain stack balance, but don&#39;t fail if stack is corrupted</span>
+    <span class="k">try</span><span class="p">:</span>
+        <span class="n">pop_expr</span><span class="p">()</span>
+    <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span>
+        <span class="c1"># Stack was empty or corrupted, but we have the expression model</span>
+        <span class="k">pass</span>
+    <span class="k">return</span> <span class="n">model</span>
         
 <div class="viewcode-block" id="rangelist">
 <a class="viewcode-back" href="../../reference.html#vsc.types.rangelist">[docs]</a>
@@ -407,21 +438,18 @@
                 <span class="c1"># This needs to be a two-element array</span>
                 <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
                     <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Range specified with &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; elements is invalid. Two elements required&quot;</span><span class="p">)</span>
-                <span class="n">to_expr</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-                <span class="n">e0</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
-                <span class="n">to_expr</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-                <span class="n">e1</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+                <span class="c1"># Use helper to safely get expression models</span>
+                <span class="n">e0</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+                <span class="n">e1</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">ExprRangeModel</span><span class="p">(</span><span class="n">e0</span><span class="p">,</span> <span class="n">e1</span><span class="p">))</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">ExprRangeModel</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">high</span><span class="p">))</span>
             <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
                 <span class="k">for</span> <span class="n">ai</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
-                    <span class="n">to_expr</span><span class="p">(</span><span class="n">ai</span><span class="p">)</span>
-                    <span class="n">eai</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+                    <span class="n">eai</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">ai</span><span class="p">)</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">eai</span><span class="p">)</span>
             <span class="k">else</span><span class="p">:</span>
-                <span class="n">to_expr</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-                <span class="n">e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+                <span class="n">e</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
 <span class="c1">#            self.range_l.rl.reverse()</span>
 
@@ -447,27 +475,24 @@
             <span class="c1"># This needs to be a two-element array</span>
             <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">)</span> <span class="o">!=</span> <span class="mi">2</span><span class="p">:</span>
                 <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Range specified with &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">a</span><span class="p">))</span> <span class="o">+</span> <span class="s2">&quot; elements is invalid. Two elements required&quot;</span><span class="p">)</span>
-            <span class="n">to_expr</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
-            <span class="n">e0</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
-            <span class="n">to_expr</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
-            <span class="n">e1</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+            <span class="c1"># Use helper to safely get expression models</span>
+            <span class="n">e0</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+            <span class="n">e1</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">a</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">ExprRangeModel</span><span class="p">(</span><span class="n">e0</span><span class="p">,</span> <span class="n">e1</span><span class="p">))</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="n">rng</span><span class="p">):</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">ExprRangeModel</span><span class="p">(</span><span class="n">a</span><span class="o">.</span><span class="n">low</span><span class="p">,</span> <span class="n">a</span><span class="o">.</span><span class="n">high</span><span class="p">))</span>
         <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">a</span><span class="p">,</span> <span class="nb">list</span><span class="p">):</span>
             <span class="k">for</span> <span class="n">ai</span> <span class="ow">in</span> <span class="n">a</span><span class="p">:</span>
-                <span class="n">to_expr</span><span class="p">(</span><span class="n">ai</span><span class="p">)</span>
-                <span class="n">eai</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+                <span class="n">eai</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">ai</span><span class="p">)</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">eai</span><span class="p">)</span>
         <span class="k">else</span><span class="p">:</span>
-            <span class="n">to_expr</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
-            <span class="n">e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+            <span class="n">e</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">a</span><span class="p">)</span>
             <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="o">.</span><span class="n">add_range</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>        </div>
 
                 
     <span class="k">def</span><span class="w"> </span><span class="fm">__contains__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
-        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
-        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprInModel</span><span class="p">(</span><span class="n">pop_expr</span><span class="p">(),</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">))</span>
+        <span class="n">lhs_model</span> <span class="o">=</span> <span class="n">_safe_to_expr_model</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprInModel</span><span class="p">(</span><span class="n">lhs_model</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">range_l</span><span class="p">))</span>
     
     <span class="k">def</span><span class="w"> </span><span class="fm">__invert__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
         <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;rangelist.__invert__&quot;</span><span class="p">)</span></div>
@@ -1438,7 +1463,7 @@
   <hr/>
 
   <div role="contentinfo">
-    <p>&#169; Copyright 2019-2025, Matthew Ballance and Contributors.</p>
+    <p>&#169; Copyright 2019-2026, Matthew Ballance and Contributors.</p>
   </div>
 
   Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
