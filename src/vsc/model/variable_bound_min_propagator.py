@@ -37,8 +37,10 @@ class VariableBoundMinPropagator(VariableBoundPropagator):
                 # Need to trim off full range elements
                 must_propagate = True
                 self.target.domain.range_l = range_l[i:]
+                range_l = self.target.domain.range_l  # Update local reference
 
-            if min_v > range_l[0][0]:
+            # Check if range_l is not empty before accessing
+            if len(range_l) > 0 and min_v > range_l[0][0]:
                 range_l[0][0] = min_v
                 must_propagate = True
         else:
