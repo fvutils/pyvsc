@@ -80,6 +80,83 @@ class ValueScalar(Value):
         v = int(rhs)
         return ValueScalar(self.v - v)
     
+    def __mul__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v * v)
+    
+    def __truediv__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(int(self.v / v))
+    
+    def __floordiv__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v // v)
+    
+    def __mod__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v % v)
+    
+    def __or__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v | v)
+    
+    def __xor__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v ^ v)
+    
+    def __lshift__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v << v)
+    
+    def __rshift__(self, rhs):
+        v = int(rhs)
+        return ValueScalar(self.v >> v)
+    
+    # Reverse operators (for when constant is on the left side)
+    def __radd__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v + self.v)
+    
+    def __rsub__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v - self.v)
+    
+    def __rmul__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v * self.v)
+    
+    def __rtruediv__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(int(v / self.v))
+    
+    def __rfloordiv__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v // self.v)
+    
+    def __rmod__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v % self.v)
+    
+    def __rand__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v & self.v)
+    
+    def __ror__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v | self.v)
+    
+    def __rxor__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v ^ self.v)
+    
+    def __rlshift__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v << self.v)
+    
+    def __rrshift__(self, lhs):
+        v = int(lhs)
+        return ValueScalar(v >> self.v)
+    
     def __getitem__(self, rng):
         print("getitem")
 
