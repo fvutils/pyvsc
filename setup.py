@@ -41,5 +41,6 @@ setup(
     'pyucis>=0.1.4',
     'toposort'
   ],
+  python_requires='>=3.10',
 )
 
