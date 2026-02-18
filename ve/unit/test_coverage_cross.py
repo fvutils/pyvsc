@@ -79,10 +79,10 @@ class TestCoverageCross(VscTestCase):
 
         cg = nested_cross_cg()
         
-        # Sample various combinations
-        cg.sample(a=10, b=20, c=30)
-        cg.sample(a=100, b=150, c=200)
-        cg.sample(a=200, b=100, c=50)
+        # Sample various combinations (positional args match with_sample order)
+        cg.sample(10, 20, 30)
+        cg.sample(100, 150, 200)
+        cg.sample(200, 100, 50)
         
         # Verify that the nested cross was created correctly
         # The cross_abc should have 3 coverpoints (a, b, c) flattened
@@ -119,8 +119,8 @@ class TestCoverageCross(VscTestCase):
         cg = two_cross_cg()
         
         # Sample various combinations
-        cg.sample(a=10, b=20, c=30, d=40)
-        cg.sample(a=200, b=220, c=230, d=240)
+        cg.sample(10, 20, 30, 40)
+        cg.sample(200, 220, 230, 240)
         
         # Verify that the nested cross flattened correctly
         self.assertEqual(len(cg.cross_abcd.target_l), 4)
@@ -155,7 +155,7 @@ class TestCoverageCross(VscTestCase):
         cg = deep_cross_cg()
         
         # Sample
-        cg.sample(a=10, b=20, c=30, d=40)
+        cg.sample(10, 20, 30, 40)
         
         # Verify deep flattening
         self.assertEqual(len(cg.cross_abcd.target_l), 4)
@@ -189,7 +189,7 @@ class TestCoverageCross(VscTestCase):
                 )
 
         cg = nested_cross_options_cg()
-        cg.sample(a=10, b=20, c=30)
+        cg.sample(10, 20, 30)
         
         # Verify structure
         self.assertEqual(len(cg.cross_abc.target_l), 3)
