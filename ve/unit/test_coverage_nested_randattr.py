@@ -25,9 +25,9 @@ class TestCoverageNestedRandAttr(VscTestCase):
     
     def test_nested_randattr_direct_reference_issue(self):
         """
-        Test that demonstrates the issue with direct field references
-        on nested rand_attr objects. This test should FAIL with the current
-        implementation, showing that direct references don't work correctly.
+        Test that verifies direct field references on nested rand_attr objects
+        now work correctly after the fix. Before the fix, direct references would
+        bind to the initial value and only hit the first bin.
         """
         
         @vsc.randobj
@@ -45,7 +45,7 @@ class TestCoverageNestedRandAttr(VscTestCase):
             def __init__(self):
                 self.with_sample(dict(it=MyItem()))
                 
-                # Direct reference - this currently FAILS (binds to initial value)
+                # Direct reference - now works correctly after the fix
                 self.security_cp_direct = vsc.coverpoint(
                     self.it.protection.security,
                     bins={s.name: vsc.bin(s.value) for s in Security}
@@ -77,15 +77,15 @@ class TestCoverageNestedRandAttr(VscTestCase):
             if hit_count > 0:
                 bins_hit += 1
         
-        # With the bug, only the first bin (SEC=0) will be hit
-        # After the fix, all 3 bins should be hit
+        # All 3 bins should be hit with the fix
         self.assertEqual(bins_hit, 3,
                         f"Expected all 3 bins to be hit, but only {bins_hit} were hit")
     
     def test_nested_randattr_lambda_workaround(self):
         """
-        Test that demonstrates the workaround using lambda expressions.
-        This test should PASS even with the current implementation.
+        Test that verifies lambda expressions continue to work correctly
+        for nested rand_attr coverpoints. Lambda expressions were the 
+        workaround before the fix and should continue to work after the fix.
         """
         
         @vsc.randobj
@@ -103,7 +103,7 @@ class TestCoverageNestedRandAttr(VscTestCase):
             def __init__(self):
                 self.with_sample(dict(it=MyItem()))
                 
-                # Lambda reference - this WORKS
+                # Lambda reference - continues to work after the fix
                 self.security_cp_lambda = vsc.coverpoint(
                     lambda: self.it.protection.security,
                     cp_t=vsc.enum_t(Security),
@@ -156,7 +156,7 @@ class TestCoverageNestedRandAttr(VscTestCase):
             def __init__(self):
                 self.with_sample(dict(it=MyItem()))
                 
-                # Direct reference to non-nested field - this WORKS
+                # Direct reference to non-nested field - works correctly
                 self.security_cp = vsc.coverpoint(
                     self.it.security,
                     bins={s.name: vsc.bin(s.value) for s in Security}
