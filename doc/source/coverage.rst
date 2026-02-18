@@ -332,6 +332,69 @@ compose the coverpoint cross.
                 
                 self.cp1X2 = vsc.cross([self.cp1, self.cp2])
 
+Nested Coverpoint Crosses
+..........................
+
+PyVSC supports nested crosses, where a cross can be defined using previously 
+defined crosses as target elements. This enables modular coverage definition
+and prevents redundant code when building multi-dimensional coverage matrices.
+
+When a cross is used as a target element in another cross, its component 
+coverpoints are automatically flattened into the resulting cross. This approach 
+is similar to SystemVerilog's cross-of-crosses functionality.
+
+.. code-block:: python3
+
+        @vsc.covergroup
+        class nested_cross_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a = vsc.uint8_t(),
+                    b = vsc.uint8_t(),
+                    c = vsc.uint8_t()
+                ))
+
+                self.cp_a = vsc.coverpoint(self.a, bins={"a_bins": vsc.bin_array([4], [0, 255])})
+                self.cp_b = vsc.coverpoint(self.b, bins={"b_bins": vsc.bin_array([4], [0, 255])})
+                self.cp_c = vsc.coverpoint(self.c, bins={"c_bins": vsc.bin_array([4], [0, 255])})
+
+                # Standard cross of two coverpoints (2D)
+                self.cross_ab = vsc.cross([self.cp_a, self.cp_b])
+
+                # Nested cross: cross of a cross and a coverpoint (3D)
+                # Automatically flattened to cross([cp_a, cp_b, cp_c])
+                self.cross_abc = vsc.cross([self.cross_ab, self.cp_c])
+
+You can also create a cross from multiple crosses:
+
+.. code-block:: python3
+
+        @vsc.covergroup
+        class multi_cross_cg(object):
+            def __init__(self):
+                self.with_sample(dict(
+                    a = vsc.uint8_t(),
+                    b = vsc.uint8_t(),
+                    c = vsc.uint8_t(),
+                    d = vsc.uint8_t()
+                ))
+
+                self.cp_a = vsc.coverpoint(self.a, bins={"a_bins": vsc.bin_array([2], [0, 255])})
+                self.cp_b = vsc.coverpoint(self.b, bins={"b_bins": vsc.bin_array([2], [0, 255])})
+                self.cp_c = vsc.coverpoint(self.c, bins={"c_bins": vsc.bin_array([2], [0, 255])})
+                self.cp_d = vsc.coverpoint(self.d, bins={"d_bins": vsc.bin_array([2], [0, 255])})
+
+                # Two separate 2D crosses
+                self.cross_ab = vsc.cross([self.cp_a, self.cp_b])
+                self.cross_cd = vsc.cross([self.cp_c, self.cp_d])
+
+                # Cross of two crosses creates a 4D coverage matrix
+                # Automatically flattened to cross([cp_a, cp_b, cp_c, cp_d])
+                self.cross_abcd = vsc.cross([self.cross_ab, self.cross_cd])
+
+Nested crosses can be arbitrarily deep, with each level being automatically
+flattened to its constituent coverpoints.
+
 Coverpoint Cross Ignore Bins
 ............................
 
