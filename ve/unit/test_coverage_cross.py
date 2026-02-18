@@ -193,6 +193,7 @@ class TestCoverageCross(VscTestCase):
         
         # Verify structure
         self.assertEqual(len(cg.cross_abc.target_l), 3)
-        # Verify options were set
+        # Verify options were set correctly
         self.assertIsNotNone(cg.cross_abc.options)
+        self.assertEqual(cg.cross_abc.options.at_least, 2)
 
