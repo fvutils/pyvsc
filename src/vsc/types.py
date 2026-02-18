@@ -142,6 +142,107 @@ class expr(object):
         
         return expr(ExprUnaryModel(UnaryExprType.Not, lhs))
     
+    # Reverse operators (for when constant is on the left side)
+    def __radd__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        # The current expression is on the stack
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Add, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rsub__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Sub, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rmul__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Mul, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rtruediv__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Div, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rfloordiv__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Div, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rmod__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Mod, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rand__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.And, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __ror__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Or, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rxor__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Xor, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rlshift__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Sll, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rrshift__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Srl, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
     def inside(self, rhs):
         lhs_e = pop_expr()
         
@@ -574,6 +675,117 @@ class type_base(object):
         self.to_expr()
         lhs = pop_expr()
         return expr(ExprUnaryModel(UnaryExprType.Not, lhs))
+    
+    # Reverse operators (for when constant is on the left side)
+    def __radd__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Add, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rsub__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Sub, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rmul__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Mul, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rtruediv__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Div, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rfloordiv__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Div, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rmod__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Mod, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rand__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.And, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __ror__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Or, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rxor__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Xor, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rlshift__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Sll, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
+    
+    def __rrshift__(self, lhs):
+        to_expr(lhs)
+        lhs_e = pop_expr()
+        self.to_expr()
+        rhs_e = pop_expr()
+        e = ExprBinModel(lhs_e, BinExprType.Srl, rhs_e)
+        if in_srcinfo_mode():
+            e.srcinfo = SourceInfo.mk(2)
+        return expr(e)
     
     def inside(self, rhs):
         self.to_expr()
