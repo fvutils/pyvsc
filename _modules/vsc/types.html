@@ -8,13 +8,13 @@
   <title>vsc.types &mdash; pyvsc 0.0.1 documentation</title>
       <link rel="stylesheet" type="text/css" href="../../_static/pygments.css?v=03e43079" />
       <link rel="stylesheet" type="text/css" href="../../_static/css/theme.css?v=9edc463e" />
-      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=fd3f3429" />
+      <link rel="stylesheet" type="text/css" href="../../_static/graphviz.css?v=4ae1632d" />
 
   
       <script src="../../_static/jquery.js?v=5d32c60e"></script>
       <script src="../../_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
       <script src="../../_static/documentation_options.js?v=d45e8c67"></script>
-      <script src="../../_static/doctools.js?v=9a2dae69"></script>
+      <script src="../../_static/doctools.js?v=9bcbadda"></script>
       <script src="../../_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="../../_static/js/theme.js"></script>
     <link rel="index" title="Index" href="../../genindex.html" />
@@ -232,6 +232,107 @@
         <span class="n">lhs</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprUnaryModel</span><span class="p">(</span><span class="n">UnaryExprType</span><span class="o">.</span><span class="n">Not</span><span class="p">,</span> <span class="n">lhs</span><span class="p">))</span>
+    
+    <span class="c1"># Reverse operators (for when constant is on the left side)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="c1"># The current expression is on the stack</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Add</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Sub</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Mul</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Div</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rfloordiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Div</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Mod</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rand__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">And</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__ror__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Or</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rxor__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Xor</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rlshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Sll</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rrshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Srl</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
     
 <div class="viewcode-block" id="expr.inside">
 <a class="viewcode-back" href="../../reference.html#vsc.types.expr.inside">[docs]</a>
@@ -725,6 +826,117 @@
         <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
         <span class="n">lhs</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
         <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">ExprUnaryModel</span><span class="p">(</span><span class="n">UnaryExprType</span><span class="o">.</span><span class="n">Not</span><span class="p">,</span> <span class="n">lhs</span><span class="p">))</span>
+    
+    <span class="c1"># Reverse operators (for when constant is on the left side)</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__radd__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Add</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rsub__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Sub</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rmul__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Mul</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rtruediv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Div</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rfloordiv__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Div</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rmod__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Mod</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rand__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">And</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__ror__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Or</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rxor__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Xor</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rlshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Sll</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
+    
+    <span class="k">def</span><span class="w"> </span><span class="fm">__rrshift__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">lhs</span><span class="p">):</span>
+        <span class="n">to_expr</span><span class="p">(</span><span class="n">lhs</span><span class="p">)</span>
+        <span class="n">lhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">to_expr</span><span class="p">()</span>
+        <span class="n">rhs_e</span> <span class="o">=</span> <span class="n">pop_expr</span><span class="p">()</span>
+        <span class="n">e</span> <span class="o">=</span> <span class="n">ExprBinModel</span><span class="p">(</span><span class="n">lhs_e</span><span class="p">,</span> <span class="n">BinExprType</span><span class="o">.</span><span class="n">Srl</span><span class="p">,</span> <span class="n">rhs_e</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">in_srcinfo_mode</span><span class="p">():</span>
+            <span class="n">e</span><span class="o">.</span><span class="n">srcinfo</span> <span class="o">=</span> <span class="n">SourceInfo</span><span class="o">.</span><span class="n">mk</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">expr</span><span class="p">(</span><span class="n">e</span><span class="p">)</span>
     
 <div class="viewcode-block" id="type_base.inside">
 <a class="viewcode-back" href="../../reference.html#vsc.types.type_base.inside">[docs]</a>
