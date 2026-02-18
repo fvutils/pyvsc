@@ -905,10 +905,17 @@ class cross(object):
                  name=None,
                  iff=None,
                  ignore_bins=None):
+        # Flatten nested crosses by extracting their coverpoints
+        flattened_targets = []
         for t in target_l:
-            if not isinstance(t, coverpoint):
-                raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint")
-        self.target_l = target_l
+            if isinstance(t, cross):
+                # Recursively flatten cross objects
+                flattened_targets.extend(t.target_l)
+            elif isinstance(t, coverpoint):
+                flattened_targets.append(t)
+            else:
+                raise Exception("Cross target \"" + str(t) + "\" is not a coverpoint or cross")
+        self.target_l = flattened_targets
         self.bins = bins
         self.options = Options()
         
