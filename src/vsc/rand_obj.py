@@ -179,6 +179,8 @@ class _randobj:
                     model = FieldCompositeModel(name, self._int_field_info.is_rand, self)
                     model.typename = T.__qualname__
                     self._int_field_info.model = model
+                    # Mark this field as composite so nested fields can be indexed correctly
+                    self._int_field_info.is_composite = True
                 
                     # Iterate through the fields and constraints
                     # First, assign IDs to each of the randomized fields
@@ -310,7 +312,9 @@ class _randobj:
                         fid += 1
                     
                         if fi.is_composite:
-                            self._id_fields(fo, fi)
+                            # Recursively process composite fields
+                            # Pass it._int_field_info as the parent, not fi
+                            self._id_fields(fo, it._int_field_info)
     
             setattr(T, "__getattribute__", __getattribute__)
             setattr(T, "__setattr__", __setattr__)
@@ -407,6 +411,8 @@ def generator(T):
                 model = FieldCompositeModel(name, self._int_field_info.is_rand, self)
                 model.typename = T.__name__
                 self._int_field_info.model = model
+                # Mark this field as composite so nested fields can be indexed correctly
+                self._int_field_info.is_composite = True
             
                 # Iterate through the fields and constraints
                 # First, assign IDs to each of the randomized fields
