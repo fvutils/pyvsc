@@ -1041,10 +1041,31 @@
                  <span class="n">name</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">iff</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span>
                  <span class="n">ignore_bins</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
-        <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">target_l</span><span class="p">:</span>
-            <span class="k">if</span> <span class="ow">not</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">coverpoint</span><span class="p">):</span>
-                <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cross target </span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> is not a coverpoint&quot;</span><span class="p">)</span>
-        <span class="bp">self</span><span class="o">.</span><span class="n">target_l</span> <span class="o">=</span> <span class="n">target_l</span>
+        <span class="c1"># Recursively flatten nested crosses by extracting their coverpoints</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">flatten_targets</span><span class="p">(</span><span class="n">targets</span><span class="p">):</span>
+<span class="w">            </span><span class="sd">&quot;&quot;&quot;Recursively flatten a list of coverpoints and crosses.</span>
+<span class="sd">            </span>
+<span class="sd">            Args:</span>
+<span class="sd">                targets: List of coverpoint and/or cross objects</span>
+<span class="sd">                </span>
+<span class="sd">            Returns:</span>
+<span class="sd">                List of coverpoint objects (flat list with all crosses expanded)</span>
+<span class="sd">                </span>
+<span class="sd">            Raises:</span>
+<span class="sd">                Exception: If any target is neither a coverpoint nor a cross</span>
+<span class="sd">            &quot;&quot;&quot;</span>
+            <span class="n">flattened</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">t</span> <span class="ow">in</span> <span class="n">targets</span><span class="p">:</span>
+                <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">cross</span><span class="p">):</span>
+                    <span class="c1"># Recursively flatten cross objects</span>
+                    <span class="n">flattened</span><span class="o">.</span><span class="n">extend</span><span class="p">(</span><span class="n">flatten_targets</span><span class="p">(</span><span class="n">t</span><span class="o">.</span><span class="n">target_l</span><span class="p">))</span>
+                <span class="k">elif</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">t</span><span class="p">,</span> <span class="n">coverpoint</span><span class="p">):</span>
+                    <span class="n">flattened</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">t</span><span class="p">)</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="k">raise</span> <span class="ne">Exception</span><span class="p">(</span><span class="s2">&quot;Cross target </span><span class="se">\&quot;</span><span class="s2">&quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">t</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot;</span><span class="se">\&quot;</span><span class="s2"> is not a coverpoint or cross&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="n">flattened</span>
+        
+        <span class="bp">self</span><span class="o">.</span><span class="n">target_l</span> <span class="o">=</span> <span class="n">flatten_targets</span><span class="p">(</span><span class="n">target_l</span><span class="p">)</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">bins</span> <span class="o">=</span> <span class="n">bins</span>
         <span class="bp">self</span><span class="o">.</span><span class="n">options</span> <span class="o">=</span> <span class="n">Options</span><span class="p">()</span>
         

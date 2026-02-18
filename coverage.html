@@ -441,6 +441,60 @@ compose the coverpoint cross.</p>
         <span class="bp">self</span><span class="o">.</span><span class="n">cp1X2</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cp1</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp2</span><span class="p">])</span>
 </pre></div>
 </div>
+<p>PyVSC supports nested crosses, where a cross can be defined using previously
+defined crosses as target elements. This enables modular coverage definition
+and prevents redundant code when building multi-dimensional coverage matrices.</p>
+<p>When a cross is used as a target element in another cross, its component
+coverpoints are automatically flattened into the resulting cross. This approach
+is similar to SystemVerilog’s cross-of-crosses functionality.</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">nested_cross_cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">()</span>
+        <span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;a_bins&quot;</span><span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">])})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;b_bins&quot;</span><span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">])})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;c_bins&quot;</span><span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([</span><span class="mi">4</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">])})</span>
+
+        <span class="c1"># Standard cross of two coverpoints (2D)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_ab</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_b</span><span class="p">])</span>
+
+        <span class="c1"># Nested cross: cross of a cross and a coverpoint (3D)</span>
+        <span class="c1"># Automatically flattened to cross([cp_a, cp_b, cp_c])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_abc</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cross_ab</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_c</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>You can also create a cross from multiple crosses:</p>
+<div class="highlight-python3 notranslate"><div class="highlight"><pre><span></span><span class="nd">@vsc</span><span class="o">.</span><span class="n">covergroup</span>
+<span class="k">class</span><span class="w"> </span><span class="nc">multi_cross_cg</span><span class="p">(</span><span class="nb">object</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">with_sample</span><span class="p">(</span><span class="nb">dict</span><span class="p">(</span>
+            <span class="n">a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span>
+            <span class="n">b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span>
+            <span class="n">c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">(),</span>
+            <span class="n">d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">uint8_t</span><span class="p">()</span>
+        <span class="p">))</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_a</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">a</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;a_bins&quot;</span><span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">])})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_b</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">b</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;b_bins&quot;</span><span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">])})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_c</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">c</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;c_bins&quot;</span><span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">])})</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cp_d</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">coverpoint</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">d</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;d_bins&quot;</span><span class="p">:</span> <span class="n">vsc</span><span class="o">.</span><span class="n">bin_array</span><span class="p">([</span><span class="mi">2</span><span class="p">],</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span> <span class="mi">255</span><span class="p">])})</span>
+
+        <span class="c1"># Two separate 2D crosses</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_ab</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_a</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_b</span><span class="p">])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_cd</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cp_c</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cp_d</span><span class="p">])</span>
+
+        <span class="c1"># Cross of two crosses creates a 4D coverage matrix</span>
+        <span class="c1"># Automatically flattened to cross([cp_a, cp_b, cp_c, cp_d])</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">cross_abcd</span> <span class="o">=</span> <span class="n">vsc</span><span class="o">.</span><span class="n">cross</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">cross_ab</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">cross_cd</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>Nested crosses can be arbitrarily deep, with each level being automatically
+flattened to its constituent coverpoints.</p>
 <p>Coverpoint cross-bins to ignore may be specified as follows.</p>
 <p>The <code class="xref any docutils literal notranslate"><span class="pre">ignore_bins</span></code> argument must be a dictionary of bin-name and filter-method.
 The filter function is invoked with a bin specification for each coverpoint
