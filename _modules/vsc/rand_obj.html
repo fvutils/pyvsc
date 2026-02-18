@@ -259,6 +259,8 @@
                     <span class="n">model</span> <span class="o">=</span> <span class="n">FieldCompositeModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
                     <span class="n">model</span><span class="o">.</span><span class="n">typename</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__qualname__</span>
                     <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+                    <span class="c1"># Mark this field as composite so nested fields can be indexed correctly</span>
+                    <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_composite</span> <span class="o">=</span> <span class="kc">True</span>
                 
                     <span class="c1"># Iterate through the fields and constraints</span>
                     <span class="c1"># First, assign IDs to each of the randomized fields</span>
@@ -390,7 +392,9 @@
                         <span class="n">fid</span> <span class="o">+=</span> <span class="mi">1</span>
                     
                         <span class="k">if</span> <span class="n">fi</span><span class="o">.</span><span class="n">is_composite</span><span class="p">:</span>
-                            <span class="bp">self</span><span class="o">.</span><span class="n">_id_fields</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">fi</span><span class="p">)</span>
+                            <span class="c1"># Recursively process composite fields</span>
+                            <span class="c1"># Pass it._int_field_info as the parent, not fi</span>
+                            <span class="bp">self</span><span class="o">.</span><span class="n">_id_fields</span><span class="p">(</span><span class="n">fo</span><span class="p">,</span> <span class="n">it</span><span class="o">.</span><span class="n">_int_field_info</span><span class="p">)</span>
     
             <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__getattribute__&quot;</span><span class="p">,</span> <span class="fm">__getattribute__</span><span class="p">)</span>
             <span class="nb">setattr</span><span class="p">(</span><span class="n">T</span><span class="p">,</span> <span class="s2">&quot;__setattr__&quot;</span><span class="p">,</span> <span class="fm">__setattr__</span><span class="p">)</span>
@@ -492,6 +496,8 @@
                 <span class="n">model</span> <span class="o">=</span> <span class="n">FieldCompositeModel</span><span class="p">(</span><span class="n">name</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_rand</span><span class="p">,</span> <span class="bp">self</span><span class="p">)</span>
                 <span class="n">model</span><span class="o">.</span><span class="n">typename</span> <span class="o">=</span> <span class="n">T</span><span class="o">.</span><span class="vm">__name__</span>
                 <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">model</span> <span class="o">=</span> <span class="n">model</span>
+                <span class="c1"># Mark this field as composite so nested fields can be indexed correctly</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">_int_field_info</span><span class="o">.</span><span class="n">is_composite</span> <span class="o">=</span> <span class="kc">True</span>
             
                 <span class="c1"># Iterate through the fields and constraints</span>
                 <span class="c1"># First, assign IDs to each of the randomized fields</span>
