@@ -183,17 +183,33 @@ class TestCoverageCross(VscTestCase):
                 self.cross_ab = vsc.cross([self.cp_a, self.cp_b])
                 
                 # Nested cross with options
-                self.cross_abc = vsc.cross(
+                self.cross_abc_nested = vsc.cross(
                     [self.cross_ab, self.cp_c],
+                    options=dict(at_least=2)
+                )
+                
+                # Non-nested cross with same options for comparison
+                self.cross_abc_flat = vsc.cross(
+                    [self.cp_a, self.cp_b, self.cp_c],
                     options=dict(at_least=2)
                 )
 
         cg = nested_cross_options_cg()
         cg.sample(10, 20, 30)
         
-        # Verify structure
-        self.assertEqual(len(cg.cross_abc.target_l), 3)
-        # Verify options were set correctly
-        self.assertIsNotNone(cg.cross_abc.options)
-        self.assertEqual(cg.cross_abc.options.at_least, 2)
+        # Verify structure of nested cross
+        self.assertEqual(len(cg.cross_abc_nested.target_l), 3)
+        # Verify options were set correctly on nested cross
+        self.assertIsNotNone(cg.cross_abc_nested.options)
+        self.assertEqual(cg.cross_abc_nested.options.at_least, 2)
+        
+        # Verify structure of flat cross
+        self.assertEqual(len(cg.cross_abc_flat.target_l), 3)
+        # Verify options were set correctly on flat cross
+        self.assertIsNotNone(cg.cross_abc_flat.options)
+        self.assertEqual(cg.cross_abc_flat.options.at_least, 2)
+        
+        # Verify both crosses have same structure (proving flattening works correctly)
+        for i in range(3):
+            self.assertEqual(cg.cross_abc_nested.target_l[i], cg.cross_abc_flat.target_l[i])
 

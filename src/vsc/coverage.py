@@ -907,7 +907,17 @@ class cross(object):
                  ignore_bins=None):
         # Recursively flatten nested crosses by extracting their coverpoints
         def flatten_targets(targets):
-            """Recursively flatten a list of coverpoints and crosses."""
+            """Recursively flatten a list of coverpoints and crosses.
+            
+            Args:
+                targets: List of coverpoint and/or cross objects
+                
+            Returns:
+                List of coverpoint objects (flat list with all crosses expanded)
+                
+            Raises:
+                Exception: If any target is neither a coverpoint nor a cross
+            """
             flattened = []
             for t in targets:
                 if isinstance(t, cross):
