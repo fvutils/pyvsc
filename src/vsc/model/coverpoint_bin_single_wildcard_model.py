@@ -5,6 +5,7 @@ Created on Jul 23, 2021
 '''
 from vsc.model.coverpoint_bin_model_base import CoverpointBinModelBase
 from vsc.model.wildcard_binspec import WildcardBinspec
+from vsc.impl.wildcard_bin_factory import WildcardBinFactory
 
 class CoverpointBinSingleWildcardModel(CoverpointBinModelBase):
     
@@ -23,7 +24,13 @@ class CoverpointBinSingleWildcardModel(CoverpointBinModelBase):
     
     def get_bin_name(self, bin_idx):
         return self.name
-    
+
+    def get_bin_range(self, bin_idx):
+        ranges = []
+        for spec in self.wildcard_binspec.specs:
+            ranges.extend(WildcardBinFactory.valmask2binlist(spec[0], spec[1]))
+        return tuple(ranges)
+
     def sample(self):
         val = int(self.cp.get_val())
 

@@ -213,3 +213,51 @@ class TestCoverageCross(VscTestCase):
         for i in range(3):
             self.assertEqual(cg.cross_abc_nested.target_l[i], cg.cross_abc_flat.target_l[i])
 
+
+    def test_cross_with_wildcard_bins(self):
+        """Test that a cross containing a coverpoint with wildcard bins can be constructed"""
+
+        @vsc.randobj
+        class Item(object):
+            def __init__(self):
+                self.x = vsc.rand_uint8_t()
+                self.y = vsc.rand_uint8_t()
+
+        @vsc.covergroup
+        class Cg(object):
+            def __init__(self):
+                self.with_sample(dict(it=Item()))
+
+                self.wildcard_cp = vsc.coverpoint(
+                    self.it.x,
+                    bins={
+                        "low":  vsc.wildcard_bin("0b0???????"),
+                        "high": vsc.wildcard_bin("0b1???????")
+                    }
+                )
+
+                self.plain_cp = vsc.coverpoint(
+                    self.it.y,
+                    bins={
+                        "a": vsc.bin([0, 127]),
+                        "b": vsc.bin([128, 255])
+                    }
+                )
+
+                self.cross = vsc.cross([self.wildcard_cp, self.plain_cp])
+
+        # Should not raise NotImplementedError
+        cg = Cg()
+
+        it = Item()
+        # Sample values to exercise both bins
+        it.x = 10   # low bin (0b0???????)
+        it.y = 50   # a bin [0, 127]
+        cg.sample(it)
+
+        it.x = 200  # high bin (0b1???????)
+        it.y = 200  # b bin [128, 255]
+        cg.sample(it)
+
+        # Cross should have 4 bins (2 wildcard x 2 plain)
+        self.assertEqual(cg.cross.model.get_n_bins(), 4)
