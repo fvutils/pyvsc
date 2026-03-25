@@ -110,3 +110,4 @@ junit/
 
 .venv/
 .venv.bld
+cov.xml
