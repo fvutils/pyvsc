@@ -3,19 +3,9 @@ Created on Nov 8, 2024
 
 Test for ValueInt.from_bits functionality
 '''
-import sys
-import os
-# Add src to path to allow importing vsc modules
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', '..', 'src'))
-
 from unittest import TestCase
 
-# Import ValueInt directly to avoid full vsc package dependencies
-try:
-    from vsc.types import ValueInt
-except ImportError:
-    # Fallback to direct import if vsc package can't be fully loaded
-    from vsc.model.value_scalar import ValueInt
+from vsc.model.value_scalar import ValueInt
 
 
 class TestValueInt(TestCase):
