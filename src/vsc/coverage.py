@@ -337,7 +337,11 @@ def covergroup(T):
                 self.build_model()
                 
     ret = type(T.__name__, (covergroup_interposer,), dict())
-    
+
+    ret.__doc__ = T.__doc__
+    ret.__module__ = T.__module__
+    ret.__qualname__ = T.__qualname__
+
     return ret
 
         

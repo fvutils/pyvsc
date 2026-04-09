@@ -425,4 +425,10 @@ class TestCovergroup(VscTestCase):
         self.assertEqual(report.covergroups[0].covergroups[0].name, "cg1")
         self.assertEqual(report.covergroups[0].covergroups[1].name, "cg2")
 
-    
+    def test_doc_preserved(self):
+        @vsc.covergroup
+        class my_cg(object):
+            """The docstring should survive"""
+            def __init__(self):
+                pass
+        self.assertEqual(my_cg.__doc__, "The docstring should survive")
