@@ -122,7 +122,10 @@ class ExprBinModel(ExprModel):
         elif self.op == BinExprType.Sub:
             ret = btor.Sub(lhs_n, rhs_n)
         elif self.op == BinExprType.Div:
-            ret = btor.Udiv(lhs_n, rhs_n)
+            if not is_signed:
+                ret = btor.Udiv(lhs_n, rhs_n)
+            else:
+                ret = btor.Sdiv(lhs_n, rhs_n)
         elif self.op == BinExprType.Mul:
             ret = btor.Mul(lhs_n, rhs_n)
         elif self.op == BinExprType.Mod:

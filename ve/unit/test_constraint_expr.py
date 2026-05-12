@@ -122,7 +122,7 @@ class TestConstraintExpr(VscTestCase):
             it.c == (it.a - it.b)
         self.assertEqual(my_i.c, (my_i.a-my_i.b))
 
-    def test_div(self):
+    def test_udiv(self):
         @vsc.randobj
         class my_c(object):
             def __init__(self):
@@ -137,6 +137,24 @@ class TestConstraintExpr(VscTestCase):
                 self.b != 0
                 self.b < 128
                 
+        my_i = my_c()
+        with my_i.randomize_with() as it:
+            it.c == (it.a / it.b)
+        self.assertEqual(my_i.c, int(my_i.a/my_i.b))
+
+    def test_sdiv(self):
+        @vsc.randobj
+        class my_c(object):
+            def __init__(self):
+                self.a = vsc.rand_int8_t()
+                self.b = vsc.rand_int8_t()
+                self.c = vsc.rand_int8_t()
+
+            @vsc.constraint
+            def ab_c(self):
+                self.a < 0
+                self.b != 0
+
         my_i = my_c()
         with my_i.randomize_with() as it:
             it.c == (it.a / it.b)
