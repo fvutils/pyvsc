@@ -176,6 +176,12 @@ class SolveGroupSwizzlerPartsel(object):
                     BinExprType.Eq,
                     ExprLiteralModel(int(val), f.is_signed, f.width))
         return ret
+
+    def min_signed_bits(self, n):
+        if n < 0:
+            return (n+1).bit_length() + 1
+        else:
+            return n.bit_length()
     
     def create_rand_domain_constraint(self, 
                 f : FieldScalarModel, 
@@ -205,15 +211,9 @@ class SolveGroupSwizzlerPartsel(object):
                         ExprLiteralModel(t_range[0], False, 32)))
         else:
             # Determine the max width to use for swizzling. 
-            # max value of abs bounds
 
-            maxval = int(max(abs(t_range[0]), abs(t_range[1])))
-
-            d_width = 0
-            
-            while maxval > 0:
-                d_width += 1
-                maxval >>= 1
+            d_width = int(max(self.min_signed_bits(t_range[0]),
+                              self.min_signed_bits(t_range[1])))
     
             if self.debug > 0:
                 print("d_width: %d" % d_width)                
