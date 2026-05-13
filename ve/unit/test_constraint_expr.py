@@ -81,6 +81,34 @@ class TestConstraintExpr(VscTestCase):
             it.a <= it.b
         self.assertLessEqual(my_i.a, my_i.b)        
 
+    def test_eq_rel_sign_ext(self):
+        @vsc.randobj
+        class my_c(object):
+            def __init__(self):
+                self.a = vsc.rand_int8_t()
+                self.eq = vsc.rand_int8_t()
+                self.ne = vsc.rand_int8_t()
+                self.gt = vsc.rand_int8_t()
+                self.ge = vsc.rand_int8_t()
+                self.lt = vsc.rand_int8_t()
+                self.le = vsc.rand_int8_t()
+
+        my_i = my_c()
+        with my_i.randomize_with() as it:
+            it.a == 5
+            it.eq == (it.a == 5)
+            it.ne == (it.a != 6)
+            it.gt == (it.a > 4)
+            it.ge == (it.a >= 4)
+            it.lt == (it.a < 6)
+            it.le == (it.a <= 6)
+        self.assertEqual(my_i.eq, 1)
+        self.assertEqual(my_i.ne, 1)
+        self.assertEqual(my_i.gt, 1)
+        self.assertEqual(my_i.ge, 1)
+        self.assertEqual(my_i.lt, 1)
+        self.assertEqual(my_i.le, 1)
+
     def test_add(self):
         @vsc.randobj
         class my_c(object):
