@@ -691,6 +691,29 @@ class TestRandomDist(VscTestCase):
         for e in a_hist:
             self.assertNotEqual(e, 0)
 
+
+    def test_widevar_signed_small_range(self):
+        @vsc.randobj
+        class Selector:
+            def __init__(self):
+                self.a = vsc.rand_int64_t()
+
+            @vsc.constraint
+            def ab_c(self):
+                self.a.inside(vsc.rangelist(vsc.rng(-7, 7)))
+
+        selector = Selector()
+        a_hist = {}
+        for _ in range(20*20):
+            selector.randomize()
+            if selector.a in a_hist:
+                a_hist[selector.a] += 1
+            else:
+                a_hist[selector.a] = 1
+
+        print("a_hist: %s" % len(a_hist))
+        self.assertEqual(len(a_hist), 15)
+
     def test_widevar_small_range_2(self):
         
         @vsc.randobj

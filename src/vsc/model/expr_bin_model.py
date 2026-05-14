@@ -36,6 +36,8 @@ class ExprBinModel(ExprModel):
         self.is_composite = False
         self._width_valid = False
         self._width = -1
+        self.equality_ops = [BinExprType.Eq, BinExprType.Ne]
+        self.relational_ops = [BinExprType.Gt, BinExprType.Ge, BinExprType.Lt, BinExprType.Le]
         
     def build_composite(self, btor, lhs, rhs):
         if isinstance(lhs, FieldCompositeModel):
@@ -160,12 +162,14 @@ class ExprBinModel(ExprModel):
         return ret        
 
     def is_signed(self):
-        return (self.lhs.is_signed() and self.rhs.is_signed())
+        if self.op in (self.equality_ops + self.relational_ops):
+            return False
+        else:
+            return (self.lhs.is_signed() and self.rhs.is_signed())
     
     def width(self):
         if not self._width_valid:
-            if self.op in (BinExprType.Eq, BinExprType.Ge, BinExprType.Le,
-                           BinExprType.Gt, BinExprType.Lt, BinExprType.Ne):
+            if self.op in (self.equality_ops + self.relational_ops):
                 self._width = 1
             else:
                 lhs_w = self.lhs.width()
