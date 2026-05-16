@@ -23,5 +23,9 @@ class VariableBoundBoundsMaxPropagator(VariableBoundMaxPropagator):
         
     def max(self):
 #        print("max: " + str(self.other.domain.range_l[-1][1]+self.offset))
+        # Guard against empty domain
+        if len(self.other.domain.range_l) == 0:
+            # Return a very small value to force constraint failure
+            return -(2**63)
         return (self.other.domain.range_l[-1][1]+self.offset)
     
