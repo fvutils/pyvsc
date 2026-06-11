@@ -111,3 +111,8 @@ junit/
 .venv/
 .venv.bld
 cov.xml
+
+.agents/
+.claude/
+.codex/
+

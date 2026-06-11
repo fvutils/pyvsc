@@ -234,8 +234,16 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         
     def visit_constraint_dist_scope(self, s : ConstraintDistScopeModel):
         super().visit_constraint_dist_scope(s)
-        
-        # Save information on dist constraints to the 
+
+        # Record whether this dist is enclosed by a conditional (if/else or
+        # implies). A conditional dist applies only when its guard holds, so a
+        # back-end that weights the variable *unconditionally* (e.g. dv-solve's
+        # native add_dist) would wrongly restrict the variable when the guard is
+        # false — such a dist must be deferred. ``_soft_cond_l`` is the active
+        # condition stack maintained by visit_constraint_if_else/_implies.
+        s.is_conditional = len(self._soft_cond_l) > 0
+
+        # Save information on dist constraints to the
         # appropriate randset
         if self._active_randset is not None:
             f = self._expr2fm.field(s.dist_c.lhs)

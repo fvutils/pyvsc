@@ -77,15 +77,22 @@ from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug, get_solver_backend
 _PLAN_CACHE_ENABLED = os.environ.get("VSC_DVSOLVE_PLAN_CACHE", "1") != "0"
 _PLAN_ATTR = "_vsc_rand_plan"
 
+# Strict no-fallback mode (feature-completeness plan, Phase 0). When set, the
+# Randomizer does NOT fall back from the primary back-end to another on
+# BackendIncomplete — it re-raises, so any residual dependence on the fallback
+# back-end (e.g. Boolector) surfaces loudly in CI. Used to enumerate and
+# burn down the remaining defers per phase. Off by default.
+_NO_FALLBACK = os.environ.get("VSC_DVSOLVE_NO_FALLBACK", "0") != "0"
+
 
 class _RandPlan(object):
     """Cached pre-solve plan for one root model object (Tier-A)."""
 
     __slots__ = ("bound_m", "ri", "field_state", "block_state",
-                 "rangelist_state", "_keepalive")
+                 "rangelist_state", "dist_state", "_keepalive")
 
     def __init__(self, bound_m, ri, field_state, block_state, rangelist_state,
-                 keepalive):
+                 dist_state, keepalive):
         self.bound_m = bound_m
         self.ri = ri
         # field_state: list of (field, was_used_rand, value_if_nonrand). Detects
@@ -98,6 +105,10 @@ class _RandPlan(object):
         # rangelist_state: list of (ExprRangelistModel, snapshot). Detects an
         # `inside` rangelist whose contents were mutated between calls.
         self.rangelist_state = rangelist_state
+        # dist_state: list of (ConstraintDistScopeModel, snapshot). Detects a
+        # `dist` weight/range change the back-end bakes into native add_dist
+        # (incl. dynamic weights whose field is absent from field_state).
+        self.dist_state = dist_state
         # Hold strong refs to every object whose identity/state the signature
         # reads, so Python can't recycle an id and cause a false match.
         self._keepalive = keepalive
@@ -113,6 +124,9 @@ class _RandPlan(object):
                 return False
         for rlm, snap in self.rangelist_state:
             if _snapshot_rangelist(rlm) != snap:
+                return False
+        for scope, snap in self.dist_state:
+            if _snapshot_dist(scope) != snap:
                 return False
         return True
 
@@ -185,6 +199,55 @@ def _collect_rangelist_state(blocks):
     return state
 
 
+class _DistScopeCollector(ModelVisitor):
+    """Collect every ConstraintDistScopeModel reachable from a constraint block
+    (the expanded form of a `dist` constraint)."""
+
+    def __init__(self):
+        super().__init__()
+        self.scopes = []
+
+    def visit_constraint_dist_scope(self, s):
+        self.scopes.append(s)
+        super().visit_constraint_dist_scope(s)
+
+
+def _snapshot_dist(scope):
+    """A hashable snapshot of a dist scope's weight entries
+    ``(lo, hi, weight, is_per_value)``, or None if any bound/weight can't be
+    evaluated to an int. dist weights are a mutable input to the *native*
+    compiled problem (the back-end bakes them into ``add_dist``) that
+    ``field_state`` does NOT capture: a dynamic weight like ``weight(1, en_one)``
+    reads ``en_one`` — a field that may not even appear in ``bound_m`` — so a
+    weight change is invisible to the field/rangelist snapshots and must be
+    tracked here for the cached plan to stay correct."""
+    snap = []
+    for w in scope.dist_c.weights:
+        try:
+            lo = int(w.rng_lhs.val())
+            hi = int(w.rng_rhs.val()) if w.rng_rhs is not None else lo
+            wt = int(w.weight.val())
+        except Exception:
+            return None
+        snap.append((lo, hi, wt, bool(getattr(w, "is_per_value", lo == hi))))
+    return tuple(snap)
+
+
+def _collect_dist_state(blocks):
+    """[(ConstraintDistScopeModel, snapshot)] for every dist scope in the
+    blocks, or None if any can't be snapshotted (→ object is ineligible)."""
+    coll = _DistScopeCollector()
+    for b in blocks:
+        b.accept(coll)
+    state = []
+    for scope in coll.scopes:
+        snap = _snapshot_dist(scope)
+        if snap is None:
+            return None
+        state.append((scope, snap))
+    return state
+
+
 def _model_has_array(field_model_l):
     """True if any field (recursively) is an array. Array (`foreach`) constraints
     are expanded via in-place constraint *overrides* — which don't grow
@@ -207,7 +270,7 @@ def _model_has_array(field_model_l):
     return False
 
 
-def _plan_eligible(field_model_l, ri, arrays_expanded):
+def _plan_eligible(field_model_l, ri, arrays_expanded, dist_native=False):
     """Tier-A eligibility: no per-call pipeline behavior. (Inline constraints and
     backend gating are checked by the caller.)"""
     if arrays_expanded:
@@ -218,8 +281,24 @@ def _plan_eligible(field_model_l, ri, arrays_expanded):
         if type(fm).__name__ == "GeneratorModel":
             return False                  # coverage steering is per-call
     for rs in ri.randsets():
-        if getattr(rs, "dist_field_m", None):
-            return False                  # dist target choice is per-call
+        dist_field_m = getattr(rs, "dist_field_m", None)
+        if not dist_field_m:
+            continue
+        if not dist_native:
+            # The Boolector swizzler chooses a dist target per call (consuming
+            # randstate), so a cached plan can't reproduce it. A native back-end
+            # instead does the weighted pick inside solve(seed) from a
+            # per-call-invariant compiled problem, so dist *is* cacheable —
+            # provided is_fresh() re-checks the weight snapshot
+            # (_collect_dist_state).
+            return False
+        for f, scopes in dist_field_m.items():
+            # Only a single, unconditional dist is handled natively and is
+            # per-call-invariant. Conditional dists (re-elaborated each call,
+            # served by the fallback) and multiple dists on one field are NOT
+            # cacheable — leave them Tier-B so their per-call expansion runs.
+            if len(scopes) != 1 or getattr(scopes[0], "is_conditional", False):
+                return False
     return True
 
 
@@ -401,16 +480,25 @@ class Randomizer(RandIF):
                 return
             except BackendIncomplete as e:
                 last_exc = e
+                reason = getattr(e, "reason_code", "incomplete")
+                # Strict mode: surface the would-be fallback loudly instead of
+                # silently serving it from the fallback back-end (Phase 0).
+                if _NO_FALLBACK:
+                    raise BackendIncomplete(
+                        "VSC_DVSOLVE_NO_FALLBACK: back-end '%s' incomplete for "
+                        "RandSet (reason=%s): %s" % (be.name, reason, str(e)),
+                        reason_code=reason)
                 if i + 1 < len(backends):
                     if self.solve_info is not None:
-                        self.solve_info.n_fallbacks += 1
+                        self.solve_info.add_fallback(reason)
                     if self.debug > 0:
-                        print("Note: back-end '%s' incomplete for RandSet (%s); "
-                              "falling back to '%s'" % (
-                                  be.name, str(e), backends[i + 1].name))
+                        print("Note: back-end '%s' incomplete for RandSet "
+                              "(reason=%s; %s); falling back to '%s'" % (
+                                  be.name, reason, str(e), backends[i + 1].name))
                 # else: no further back-end to try; loop ends and we re-raise
         raise BackendIncomplete(
-            "No solver back-end could handle this RandSet: %s" % str(last_exc))
+            "No solver back-end could handle this RandSet: %s" % str(last_exc),
+            reason_code=getattr(last_exc, "reason_code", "incomplete"))
 
     def create_diagnostics_1(self, active_randsets) -> str:
         import pyboolector
@@ -690,19 +778,24 @@ class Randomizer(RandIF):
             bounds_v = VariableBoundVisitor()
             bounds_v.process(field_model_l, constraint_l, False)
 
+            # When the back-end consumes `dist` natively, expand to membership
+            # only (the back-end's own picker handles weighting / zero-weight
+            # exclusion); otherwise expand fully for the Boolector swizzler.
+            dist_native = bool(getattr(backend, "supports_dist_native", False))
+
             # TODO: need to handle inline constraints that impact arrays
             constraints_len = len(constraint_l)
             for fm in field_model_l:
                 constraint_l.extend(ArrayConstraintBuilder.build(
                     fm, bounds_v.bound_m))
                 # Now, handle dist constraints
-                DistConstraintBuilder.build(randstate, fm)
+                DistConstraintBuilder.build(randstate, fm, native=dist_native)
 
             for c in constraint_l:
                 constraint_l.extend(ArrayConstraintBuilder.build(
                     c, bounds_v.bound_m))
                 # Now, handle dist constraints
-                DistConstraintBuilder.build(randstate, c)
+                DistConstraintBuilder.build(randstate, c, native=dist_native)
 
             arrays_expanded = (len(constraint_l) != constraints_len)
 
@@ -721,10 +814,13 @@ class Randomizer(RandIF):
             ri = RandInfoBuilder.build(field_model_l, constraint_l, Randomizer._rng)
 
             # Cache the plan when the object has no per-call pipeline behavior.
-            if root is not None and _plan_eligible(field_model_l, ri, arrays_expanded):
+            if root is not None and _plan_eligible(
+                    field_model_l, ri, arrays_expanded, dist_native=dist_native):
                 blocks = _collect_constraint_blocks(field_model_l)
                 rangelist_state = _collect_rangelist_state(blocks)
-                if rangelist_state is not None:   # all rangelists snapshotable
+                dist_state = _collect_dist_state(blocks)
+                # all rangelists/dist scopes snapshotable
+                if rangelist_state is not None and dist_state is not None:
                     field_state = [
                         (f, f.is_used_rand,
                          (0 if f.is_used_rand else int(f.get_val())))
@@ -732,10 +828,11 @@ class Randomizer(RandIF):
                     block_state = [(b, b.enabled) for b in blocks]
                     keepalive = (list(bound_m.keys()), blocks,
                                  list(ri.randsets()),
-                                 [rlm for rlm, _ in rangelist_state])
+                                 [rlm for rlm, _ in rangelist_state],
+                                 [s for s, _ in dist_state])
                     setattr(root, _PLAN_ATTR,
                             _RandPlan(bound_m, ri, field_state, block_state,
-                                      rangelist_state, keepalive))
+                                      rangelist_state, dist_state, keepalive))
 
         r = Randomizer(
             randstate,

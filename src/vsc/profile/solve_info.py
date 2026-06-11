@@ -26,4 +26,15 @@ class SolveInfo(object):
         # another (e.g. dv-solve -> Boolector) because of BackendIncomplete.
         self.n_fallbacks = 0
 
+        # Per-reason fallback tally keyed by BackendIncomplete.reason_code
+        # (e.g. {"dist": 0, "array": 2, "width": 1}). Drives the per-phase
+        # burn-down (see the feature-completeness plan, Phase 0).
+        self.fallback_reasons = {}
+
         pass
+
+    def add_fallback(self, reason_code):
+        """Record a fallback by its reason code."""
+        self.n_fallbacks += 1
+        self.fallback_reasons[reason_code] = \
+            self.fallback_reasons.get(reason_code, 0) + 1

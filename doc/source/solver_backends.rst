@@ -43,8 +43,58 @@ Available back-ends
    before solving.
 
 ``dv-solve``
-   Native finite-domain (CLP/FD) engine. *(Introduced incrementally; see the
-   integration notes under* ``doc/notes`` *for current coverage.)*
+   Native finite-domain engine. It pairs two solvers internally (see
+   *How dv-solve decides* below). Supports soft constraints and handles
+   distribution (``dist``) **natively** — each ``dist`` becomes one weighted
+   native value-selection (per-value ``:=`` / per-range ``:/`` / zero-weight
+   exclusion) rather than being expanded into ordinary constraints. A few
+   ``dist`` shapes still defer to the fallback: ``dist`` over array elements,
+   conditional/multiple ``dist`` on one field, and ``dist`` on a field wider
+   than 64 bits. *(Introduced incrementally; see the integration notes under*
+   ``doc/notes`` *for current coverage.)*
+
+How dv-solve decides
+====================
+
+The ``dv-solve`` back-end owns **two** solving engines and chooses between them
+per RandSet:
+
+* **Primary — bounds-propagation search.** Fast, and the source of good
+  *stimulus distribution* (uniform marginals via fair value picking, plus
+  weighted ``dist``). This solves the overwhelming majority of RandSets.
+* **Completeness fallback — internal BV-SAT engine** (bit-blasting + a bundled
+  SAT solver). It is *complete*, so it is **authoritative for both SAT and
+  UNSAT**. When the primary engine cannot give a trustworthy answer — a
+  compile-time UNSAT, a construct it cannot compile, or a search that returns no
+  solution — dv-solve runs the *same* problem through the BV-SAT engine.
+
+On that fallback:
+
+* **UNSAT** from BV-SAT is a sound proof, so dv-solve reports a genuine solve
+  failure **without** consulting the external Boolector back-end. dv-solve is
+  now authoritative for unsatisfiability on its own.
+* **SAT** from BV-SAT confirms the problem is solvable, but the BV-SAT engine's
+  *model distribution* is clustered (good for "find a solution", not for
+  coverage stimulus). By default dv-solve therefore defers the actual value
+  selection for such a RandSet to the distribution-preserving fallback rather
+  than emitting BV-SAT's biased model.
+
+Environment toggles (advanced / debugging)
+------------------------------------------
+
+* ``VSC_DVSOLVE_BVSAT=0`` — disable the internal BV-SAT engine entirely
+  (revert to deferring un-decidable RandSets to the external fallback).
+* ``VSC_DVSOLVE_BVSAT_SERVE_SAT=1`` — let BV-SAT also *serve* satisfiable
+  fallback problems (write their values). Off by default because its
+  distribution is not uniform; intended for non-coverage uses or once a uniform
+  sampler is added.
+* ``VSC_DVSOLVE_NO_FALLBACK=1`` — strict mode: the Randomizer raises instead of
+  falling back to another back-end on ``BackendIncomplete``, so any residual
+  dependence on the fallback (e.g. Boolector) surfaces loudly. A diagnostic for
+  enumerating which constructs still defer; off by default.
+* ``VSC_DVSOLVE_PLAN_CACHE=0`` / ``VSC_DVSOLVE_REUSE=0`` — disable the pre-solve
+  plan cache / per-RandSet compiled-problem reuse (e.g. to isolate a suspected
+  stale-cache issue). Both reuse paths are byte-identical to a fresh build.
 
 Behavioral notes
 ================
@@ -52,3 +102,8 @@ Behavioral notes
 * **Random stability is per-engine.** A fixed PyVSC seed reproduces the same
   value stream *within a given back-end*; switching back-ends changes the
   sequence. Cross-engine value equality is not a goal.
+* **Distribution on the BV-SAT path.** A RandSet served by the BV-SAT engine
+  (only when ``VSC_DVSOLVE_BVSAT_SERVE_SAT=1``) has weaker distribution than the
+  primary/Boolector path and does not honor soft-constraint preferences. This is
+  intentional — the BV-SAT engine exists for *completeness* (deciding hard
+  SAT/UNSAT), not for distribution.

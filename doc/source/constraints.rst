@@ -298,6 +298,22 @@ will not be produced.
 
 Ranges for weights are specified as a tuple, as shown above.
 
+By default, the weight of a *range* is divided across the values in the range
+(SystemVerilog ``:/`` semantics): in the example above the range ``(10,15)``
+receives weight 80 *as a whole*, independent of how many values it spans. To
+instead apply the weight to *each* value in the range (SystemVerilog ``:=``
+semantics), pass ``per_value=True``:
+
+.. code-block:: python3
+
+        @vsc.constraint
+        def dist_a(self):
+            vsc.dist(self.a, [
+                vsc.weight((10,15), 80, per_value=True),   # 80 per value (:=)
+                vsc.weight((20,30), 40)])                  # 40 across range (:/)
+
+A single value is always per-value, so ``per_value`` only affects ranges.
+
 
 foreach
 -------

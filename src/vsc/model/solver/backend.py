@@ -32,7 +32,17 @@ class BackendIncomplete(Exception):
     to be UNSAT. The Randomizer responds by retrying the same RandSet on the
     next available back-end (Phase 2). A bare/abstract back-end raises this
     rather than producing a wrong answer.
+
+    ``reason_code`` is a coarse category (e.g. ``"dist"``, ``"array"``,
+    ``"width"``, ``"search-incomplete"``, ``"bvsat-undecided"``) used by the
+    fallback telemetry (SolveInfo.fallback_reasons) to drive the per-phase
+    burn-down. Defaults to ``"incomplete"`` when a raise site doesn't classify
+    itself.
     """
+
+    def __init__(self, *args, reason_code="incomplete"):
+        super().__init__(*args)
+        self.reason_code = reason_code
 
 
 class SolveResult(object):

@@ -110,11 +110,20 @@ def constraint(c):
     return ret
 
 class weight(object):
-    
-    def __init__(self, val, w):
+
+    def __init__(self, val, w, per_value=None):
+        """A single ``dist`` weight entry.
+
+        ``val`` is a single value or a ``(lo, hi)`` / ``vsc.rng`` range.
+        ``per_value`` selects SystemVerilog dist semantics for a *range*:
+        ``True`` is ``:=`` (the weight ``w`` applies to *each* value in the
+        range), ``False`` is ``:/`` (``w`` is *divided across* the range).
+        When unspecified, a single value is per-value and a range defaults to
+        ``:/`` — matching pyvsc's historical behavior.
+        """
         rng_lhs_e = None
         rng_rhs_e = None
-    
+
         if isinstance(val, (list,tuple)):
             if len(val) != 2:
                 raise Exception("Weight range must have two elements")
@@ -124,17 +133,24 @@ class weight(object):
             rng_rhs_e = pop_expr()
         elif isinstance(val, rng):
             rng_lhs_e = val.low
-            rng_rhs_e = val.high 
+            rng_rhs_e = val.high
         else:
             to_expr(val)
             rng_lhs_e = pop_expr()
         to_expr(w)
         w_e = pop_expr()
-    
+
+        # A single value is inherently per-value; an explicit per_value applies
+        # only meaningfully to a range. Leave None -> model default when the
+        # caller did not specify it.
+        if per_value is None and rng_rhs_e is None:
+            per_value = True
+
         self.weight_e = DistWeightExprModel(
             rng_lhs_e,
             rng_rhs_e,
-            w_e)
+            w_e,
+            is_per_value=per_value)
     
 
 def dist(lhs, weights):

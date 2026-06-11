@@ -35,6 +35,37 @@ from vsc.model.solve_failure import SolveFailure
 # VSC_DVSOLVE_REUSE=0 to disable (e.g. to isolate a suspected stale-cache issue).
 _REUSE_ENABLED = os.environ.get("VSC_DVSOLVE_REUSE", "1") != "0"
 
+# Use dv-solve's internal BV-SAT completeness engine (zsp_bbsolver, via BVSatCtx)
+# as the fallback when the primary bounds-propagation engine can't give an
+# authoritative answer (compile-time UNSAT, compile-incomplete, or a search that
+# returned no solution). The BV-SAT engine is complete, so it is authoritative
+# for both SAT and UNSAT — this is what lets dv-solve stop deferring those cases
+# to the external Boolector back-end (Phase A). Set VSC_DVSOLVE_BVSAT=0 to revert
+# to the old behavior (defer to Boolector), e.g. to isolate a suspected encoding
+# issue. On BVSAT_UNKNOWN/ERROR (an A-4 soundness guard tripped, or a timeout) we
+# still defer to the external fallback rather than guess.
+_BVSAT_ENABLED = os.environ.get("VSC_DVSOLVE_BVSAT", "1") != "0"
+
+# Whether the BV-SAT engine also *serves* satisfiable fallback problems (writes
+# their solved values), or only decides SAT-vs-UNSAT and lets the external
+# fallback serve SAT for distribution quality. Default OFF: empirically the
+# BV-SAT model distribution (kissat phase-randomization) is too clustered for
+# coverage-sensitive stimulus — e.g. a uint64 `inside [0..19]` left bins 13-15
+# unhit over 400 draws (test_widevar_small_range_2), where Boolector's swizzler
+# covers them. So we take BV-SAT's authoritative *UNSAT* verdict but defer SAT
+# serving to the distribution-preserving back-end. Revising the plan's §6.1
+# assumption: phase-randomization is NOT sufficient for SAT serving; a uniform
+# sampler (or primary-engine coverage of these constructs) is needed before
+# flipping this on. Set VSC_DVSOLVE_BVSAT_SERVE_SAT=1 to opt in.
+_BVSAT_SERVE_SAT = os.environ.get("VSC_DVSOLVE_BVSAT_SERVE_SAT", "0") != "0"
+
+# When BV-SAT serves SAT, route the model through the XOR/parity-hashing uniform
+# sampler (bvsat_sampler) instead of reading back kissat's clustered model. This
+# is what makes serve-SAT usable for stimulus (see bvsat_sampler.py). On by
+# default whenever serve-SAT is on; set VSC_DVSOLVE_BVSAT_SAMPLER=0 to A/B against
+# the raw clustered readback.
+_BVSAT_SAMPLER = os.environ.get("VSC_DVSOLVE_BVSAT_SAMPLER", "1") != "0"
+
 # Attribute under which a RandSet's compiled plan is cached on its anchor field.
 _PLAN_ATTR = "_dvsolve_plan"
 
@@ -124,12 +155,21 @@ def _make_solve_ctx(buf, problem_sz=0):
 
 class DvSolveBackend(SolverBackendIF):
     """Native dv-solve back-end. Randomizes internally (no swizzler) and honors
-    soft constraints. ``dist`` is handled natively in Phase 2; for now it is
-    expanded upstream like the Boolector path (``supports_dist_native`` False)."""
+    soft constraints.
+
+    ``dist`` is handled natively (Phase B): each ``ConstraintDistModel`` becomes
+    one native ``add_dist`` (weighted, per-value/per-range, zero-weight
+    exclusion) on the distributed var, layered on top of the hard ``inside``
+    membership that the upstream ``DistConstraintBuilder`` expansion already
+    emits (which doubles as the BV-SAT "Domain-Twin" so the completeness engine
+    stays sound). Shapes that can't be encoded natively — non-constant weight,
+    non-constant/wide range, >64-bit field, multiple dist on one field, or dist
+    over array elements — raise ``BackendIncomplete`` and defer to the fallback
+    rather than emit a mis-weighted solve."""
 
     name = "dv-solve"
     supports_soft = True
-    supports_dist_native = False
+    supports_dist_native = True
     randomizes_internally = True
 
     @classmethod
@@ -157,29 +197,42 @@ class DvSolveBackend(SolverBackendIF):
         if len(rand_fields) == 0:
             return SolveResult(status=0)
 
-        # Distribution (`dist`) weighting is applied by the Boolector swizzler,
-        # which this back-end skips (it randomizes internally). Until native
-        # `dist` lands (supports_dist_native), defer any RandSet carrying dist
-        # weights to the fallback so the weighted distribution is honored — the
-        # dv-solve path would otherwise satisfy the ranges but ignore the weights.
-        if getattr(rs, "dist_field_m", None):
-            raise BackendIncomplete(
-                "dv-solve: dist weighting not yet native; deferring to fallback")
+        # Distribution (`dist`) is handled natively: _populate_builder emits a
+        # native add_dist for each distributed field (see _dist_entries). The
+        # un-encodable shapes (§5 of the Phase-B plan) raise BackendIncomplete
+        # from there and defer per-RandSet, rather than deferring every dist.
 
-        # dv-solve's variables (and modular propagators) are 64-bit; its add_var
-        # width is a uint8. Anything wider can't be encoded soundly, so defer the
-        # whole RandSet to the fallback back-end.
+        # Field width vs the engines:
+        #  - <=64 bits: the primary bounds-propagation engine (64-bit) handles it
+        #    — the optimized common path, unchanged.
+        #  - 65..255 bits: the primary engine can't represent it, but the
+        #    width-agnostic BV-SAT engine can (Phase D). add_var carries width as
+        #    a uint8, so 255 is the hard ceiling.
+        #  - >255 bits: not encodable (uint8 width) — defer the whole RandSet.
+        # A RandSet with any wide field is routed straight to BV-SAT serving
+        # (there is no 64-bit primary path for it); see _build_and_solve.
         for f in rand_fields:
-            if f.width > 64:
+            if f.width > 255:
                 raise BackendIncomplete(
-                    "dv-solve: field '%s' width %d exceeds 64 bits" % (
-                        getattr(f, "name", "?"), f.width))
+                    "dv-solve: field '%s' width %d exceeds 255 bits" % (
+                        getattr(f, "name", "?"), f.width),
+                    reason_code="width")
+        has_wide = any(f.width > 64 for f in rand_fields)
 
         # ---- Reuse path: an unchanged RandSet re-solves its cached, already
         #      compiled problem (reset + solve) instead of rebuilding it. The
         #      plan is cached on the RandSet's "anchor" field (the lowest-id
         #      rand field) — a persistent model object, so the cache lifetime is
         #      the object's and there is no id()-reuse hazard. ----
+        # A solve-order directive (`rand_order_l`) shapes the distribution by
+        # solving some fields before others (e.g. solve `a` first, then a value
+        # for `c` consistent with it). The BV-SAT uniform sampler has no notion
+        # of ordering — it draws from the joint feasible set — so it cannot honor
+        # this. When serving SAT for an order-bearing RandSet we therefore defer
+        # the *value serving* to the distribution-preserving fallback (Boolector),
+        # which honors the order; BV-SAT remains the authoritative UNSAT verdict.
+        has_order = bool(getattr(rs, "rand_order_l", None))
+
         anchor = min(rand_fields, key=id) if _REUSE_ENABLED else None
         sig = None
         if anchor is not None:
@@ -188,8 +241,13 @@ class DvSolveBackend(SolverBackendIF):
             if plan is not None:
                 if plan.struct_sig == sig and plan.values_unchanged():
                     plan.ctx.reset()
+                    # The cached SolveCtx keeps its own problem buffer
+                    # (SolveCtx._problem); pass it so a non-OK re-solve can fall
+                    # back to the BV-SAT engine like the build path.
                     self._solve_and_readback(
-                        plan.ctx, plan.readback, randstate, solve_info)
+                        plan.ctx, plan.readback, randstate, solve_info,
+                        problem_buf=getattr(plan.ctx, "_problem", None),
+                        has_order=has_order)
                     return SolveResult(status=0)
                 # Structure or a referenced constant changed: discard and rebuild.
                 setattr(anchor, _PLAN_ATTR, None)
@@ -198,105 +256,184 @@ class DvSolveBackend(SolverBackendIF):
         # ---- Build path: translate + compile, then solve. On success the
         #      compiled problem is cached for later reuse. ----
         return self._build_and_solve(
-            rs, rand_fields, bound_m, randstate, solve_info, anchor, sig)
+            rs, rand_fields, bound_m, randstate, solve_info, anchor, sig,
+            has_order=has_order, has_wide=has_wide)
+
+    def _populate_builder(self, b, idmap, rs, rand_fields, bound_m):
+        """Declare vars + add hard/soft constraints and domain re-assertions into
+        builder ``b`` (using ``idmap`` for var ids). Returns ``(translator,
+        sample_vars)`` where ``sample_vars`` is a list of
+        ``(var_id, width, lo, hi, is_signed)`` describing each rand field's
+        declared domain — consumed by the BV-SAT uniform sampler. Raises
+        ``BackendIncomplete`` if a field's domain is outside its width range."""
+        from vsc.model.solver.dvsolve_translator import DvSolveExprTranslator
+
+        gapped = []
+        sample_vars = []
+
+        # 1. Declare a variable for every rand field, honoring its domain.
+        for f in rand_fields:
+            vid = idmap.add(f)
+            dom = self._domain_of(f, bound_m)
+            if dom is None:
+                # Field's domain is outside its representable range; defer
+                # the authoritative SAT/UNSAT verdict to the fallback.
+                raise BackendIncomplete(
+                    "dv-solve: field '%s' domain is outside its width range" %
+                    getattr(f, "name", "?"),
+                    reason_code="unsat-defer")
+            lo, hi, gap_ranges = dom
+            b.add_var(vid, f.width, bool(f.is_signed), lo, hi)
+            sample_vars.append((vid, int(f.width), lo, hi, bool(f.is_signed)))
+            if gap_ranges is not None:
+                gapped.append((f, gap_ranges))
+
+        tr = DvSolveExprTranslator(b, idmap)
+
+        # Fields carrying a native `dist`: their weighted add_dist (step 4 below)
+        # owns the value picker, so the gap-range *uniform* add_dist must be
+        # skipped for them — two add_dist calls on one var would collide (the
+        # weighted one is what we want). Their hard membership still comes from
+        # the dist's `inside` (in_c) via the normal constraint loop.
+        dist_field_m = getattr(rs, "dist_field_m", None) or {}
+        dist_fields = set(f for f in dist_field_m if idmap.has(f))
+
+        # 1b. Re-assert any gaps a multi-range/enumerated domain leaves open
+        #     (the single [lo,hi] of add_var is only the enclosing range).
+        #     The membership constraint guarantees correctness; a uniform
+        #     native add_dist over the ranges then makes the value picker
+        #     select uniformly *among the feasible values*. Without it,
+        #     dv-solve picks uniformly over [lo,hi] and lets the membership
+        #     reject misses, which converges hard onto the low end (e.g. a
+        #     {0,255} domain came out 0 ~99% of the time).
+        for f, gap_ranges in gapped:
+            if f in dist_fields:
+                continue                     # dist owns this field's add_dist
+            b.add_constraint(tr.translate(self._membership_expr(f, gap_ranges)))
+            b.add_dist(idmap.id_of(f), [
+                {"lo": r[0], "hi": r[1], "weight": 1, "is_per_value": True}
+                for r in gap_ranges])
+
+        # 1c. Native dist weighting. The hard `inside` membership twin is
+        #     already emitted by the normal constraint loop (DistConstraintBuilder
+        #     expansion), satisfying the BV-SAT Domain-Twin Invariant; here we
+        #     add only the weighted selection the swizzler would otherwise
+        #     supply. Un-encodable shapes raise BackendIncomplete (deferral).
+        for f in dist_fields:
+            scopes = dist_field_m[f]
+            if len(scopes) != 1:
+                # Multiple dist on one field: native add_dist composition for
+                # repeated calls on one var is unconfirmed; the swizzler picks
+                # one per call (not per-seed-invariant). Defer (Phase-B §5).
+                raise BackendIncomplete(
+                    "dv-solve: multiple dist constraints on field '%s'" %
+                    getattr(f, "name", "?"),
+                    reason_code="dist")
+            if getattr(scopes[0], "is_conditional", False):
+                # A conditional dist (inside if/else/implies) applies only when
+                # its guard holds. Native add_dist weights the var
+                # unconditionally, which would wrongly restrict it when the
+                # guard is false — defer to the fallback, which honors the
+                # conditional structure (Phase-B §5).
+                raise BackendIncomplete(
+                    "dv-solve: conditional dist on field '%s'" %
+                    getattr(f, "name", "?"),
+                    reason_code="dist")
+            entries = self._dist_entries(f, scopes[0].dist_c)
+            if entries:
+                b.add_dist(idmap.id_of(f), entries)
+
+        # 2. Hard constraints.
+        for c in rs.constraints():
+            b.add_constraint(tr.translate(c))
+
+        # 3. Soft constraints. pyvsc's effective preference is (higher
+        #    .priority first, ties broken by declaration order); dv-solve
+        #    honors *lower* priority numbers first. Assign dv priorities by
+        #    that preference rank so both back-ends relax in the same order.
+        softs = rs.soft_constraints()
+        if len(softs) > 0:
+            order = sorted(range(len(softs)),
+                           key=lambda i: (-softs[i].priority, i))
+            for dv_pri, i in enumerate(order):
+                b.add_soft_constraint(tr.translate(softs[i]), dv_pri)
+
+        return tr, sample_vars
 
     def _build_and_solve(self, rs, rand_fields, bound_m, randstate,
-                         solve_info, anchor, sig) -> SolveResult:
+                         solve_info, anchor, sig, has_order=False,
+                         has_wide=False) -> SolveResult:
         from dv_solve.builder import SolveProblemBuilder
         from dv_solve.ctx import (
             SolveCtx, CompileUnsatError, CompileIncompleteError,
         )
         from vsc.model.solver.var_id_map import VarIdMap
-        from vsc.model.solver.dvsolve_translator import DvSolveExprTranslator
 
         b = SolveProblemBuilder()
         ctx = None
         cached = False
         try:
             idmap = VarIdMap()
-            gapped = []
-
-            # 1. Declare a variable for every rand field, honoring its domain.
-            for f in rand_fields:
-                vid = idmap.add(f)
-                dom = self._domain_of(f, bound_m)
-                if dom is None:
-                    # Field's domain is outside its representable range; defer
-                    # the authoritative SAT/UNSAT verdict to the fallback.
-                    raise BackendIncomplete(
-                        "dv-solve: field '%s' domain is outside its width range" %
-                        getattr(f, "name", "?"))
-                lo, hi, gap_ranges = dom
-                b.add_var(vid, f.width, bool(f.is_signed), lo, hi)
-                if gap_ranges is not None:
-                    gapped.append((f, gap_ranges))
-
-            tr = DvSolveExprTranslator(b, idmap)
-
-            # 1b. Re-assert any gaps a multi-range/enumerated domain leaves open
-            #     (the single [lo,hi] of add_var is only the enclosing range).
-            #     The membership constraint guarantees correctness; a uniform
-            #     native add_dist over the ranges then makes the value picker
-            #     select uniformly *among the feasible values*. Without it,
-            #     dv-solve picks uniformly over [lo,hi] and lets the membership
-            #     reject misses, which converges hard onto the low end (e.g. a
-            #     {0,255} domain came out 0 ~99% of the time).
-            for f, gap_ranges in gapped:
-                b.add_constraint(tr.translate(self._membership_expr(f, gap_ranges)))
-                b.add_dist(idmap.id_of(f), [
-                    {"lo": r[0], "hi": r[1], "weight": 1, "is_per_value": True}
-                    for r in gap_ranges])
-
-            # 2. Hard constraints.
-            for c in rs.constraints():
-                b.add_constraint(tr.translate(c))
-
-            # 3. Soft constraints. pyvsc's effective preference is (higher
-            #    .priority first, ties broken by declaration order); dv-solve
-            #    honors *lower* priority numbers first. Assign dv priorities by
-            #    that preference rank so both back-ends relax in the same order.
-            softs = rs.soft_constraints()
-            if len(softs) > 0:
-                order = sorted(range(len(softs)),
-                               key=lambda i: (-softs[i].priority, i))
-                for dv_pri, i in enumerate(order):
-                    b.add_soft_constraint(tr.translate(softs[i]), dv_pri)
+            tr, sample_vars = self._populate_builder(
+                b, idmap, rs, rand_fields, bound_m)
 
             buf, problem_sz = b.finalize()
 
+            # Factory that rebuilds the *same* base problem into a fresh builder
+            # (same field order → same var ids). The BV-SAT uniform sampler needs
+            # this because kissat is non-incremental: each XOR-hashing attempt
+            # rebuilds the base, appends parity planes, and re-finalizes.
+            def make_base(_rs=rs, _rf=rand_fields, _bm=bound_m):
+                nb = SolveProblemBuilder()
+                self._populate_builder(nb, VarIdMap(), _rs, _rf, _bm)
+                return nb
+
             # 4. Compile + solve.
             #
-            # Robustness posture: dv-solve is authoritative for SAT (a found,
-            # validated solution is trusted) but NOT for UNSAT. A dv-solve UNSAT
-            # verdict — whether compile-time bound tightening (CompileUnsatError)
-            # or search (SOLVE_UNSAT) — depends on the encoding being faithful
-            # and the search being complete, neither of which we fully trust yet
-            # for the dv-solve path. So *every* dv-solve "no solution" outcome
-            # defers to the fallback back-end, which gives the definitive answer
-            # (it reports a genuine SolveFailure only if the problem truly is
-            # UNSAT). This costs an extra solve on the rare UNSAT but prevents a
-            # translator/engine quirk from surfacing as a spurious failure.
+            # Robustness posture: the primary bounds-propagation engine is
+            # authoritative for SAT (a found, validated solution is trusted) but
+            # NOT for UNSAT/incomplete — a compile-time bound-tightening UNSAT
+            # (CompileUnsatError), a construct it can't compile
+            # (CompileIncompleteError), or a search that returns no solution may
+            # not be a sound proof. Instead of deferring those to the external
+            # Boolector back-end, we hand the *same* problem buffer to dv-solve's
+            # internal BV-SAT completeness engine, which is complete and therefore
+            # authoritative for both SAT and UNSAT (Phase A). Only if it returns
+            # UNKNOWN/ERROR do we fall back externally.
+            readback = [(f, idmap.id_of(f)) for f in rand_fields]
+
+            # A RandSet with a >64-bit field has no 64-bit primary path: route it
+            # straight to the width-agnostic BV-SAT engine, forcing it to *serve*
+            # the model (regardless of the serve-SAT default) since there is no
+            # other engine to. The <=64-bit common path below is unchanged.
+            if has_wide:
+                return self._solve_via_bvsat(
+                    buf, readback, randstate, solve_info,
+                    make_base=make_base, sample_vars=sample_vars,
+                    has_order=has_order, force_serve=True)
+
             try:
                 ctx = _make_solve_ctx(buf, problem_sz)
-            except CompileUnsatError:
-                raise BackendIncomplete(
-                    "dv-solve reports compile-time UNSAT; deferring to fallback")
-            except CompileIncompleteError:
-                # A construct the engine can't compile natively; fall back.
-                raise BackendIncomplete("dv-solve could not compile the problem")
-            except RuntimeError:
-                # Even the largest pool buffer couldn't compile it; fall back
-                # rather than surfacing a hard error.
-                raise BackendIncomplete("dv-solve could not size the solver pool")
+            except (CompileUnsatError, CompileIncompleteError, RuntimeError):
+                # Primary can't compile / proves a non-trusted UNSAT -> let the
+                # BV-SAT engine decide authoritatively on the same buffer.
+                return self._solve_via_bvsat(
+                    buf, readback, randstate, solve_info,
+                    make_base=make_base, sample_vars=sample_vars,
+                    has_order=has_order)
 
-            readback = [(f, idmap.id_of(f)) for f in rand_fields]
-            self._solve_and_readback(ctx, readback, randstate, solve_info)
+            solved_by_primary = self._solve_and_readback(
+                ctx, readback, randstate, solve_info, problem_buf=buf,
+                make_base=make_base, sample_vars=sample_vars,
+                has_order=has_order)
 
-            # Solve succeeded → retain the compiled ctx for reuse. The plan owns
+            # Retain the compiled ctx for reuse only when the *primary* engine
+            # produced the solution — a ctx that needed the BV-SAT fallback is
+            # not reusable (it re-solves to the same non-OK result). The plan owns
             # `ctx` (which keeps its own problem buffer alive); it is freed when
             # the plan is evicted (signature change) or its anchor field is
             # garbage-collected.
-            if anchor is not None and sig is not None:
+            if solved_by_primary and anchor is not None and sig is not None:
                 # Keep the constraint objects whose ids are in `sig` alive so
                 # Python can't recycle a freed id into the next RandSet and cause
                 # a false signature match (see _CompiledPlan._keepalive).
@@ -315,11 +452,17 @@ class DvSolveBackend(SolverBackendIF):
                 # Build/compile/solve failed (or caching disabled): free the ctx.
                 ctx.destroy()
 
-    def _solve_and_readback(self, ctx, readback, randstate, solve_info):
+    def _solve_and_readback(self, ctx, readback, randstate, solve_info,
+                            problem_buf=None, make_base=None,
+                            sample_vars=None, has_order=False) -> bool:
         """Solve ``ctx`` with a fresh seed and write the solved values back into
-        the fields. Shared by the build and reuse paths. Raises
-        ``BackendIncomplete`` on any non-OK outcome so the Randomizer falls back
-        (dv-solve is authoritative for SAT only)."""
+        the fields. Shared by the build and reuse paths.
+
+        Returns ``True`` if the primary engine solved it (reusable), ``False`` if
+        the BV-SAT completeness engine produced the solution instead. On a
+        non-OK primary search, falls back to BV-SAT on ``problem_buf`` (when
+        provided); BV-SAT UNSAT raises ``SolveFailure``, UNKNOWN/ERROR raises
+        ``BackendIncomplete`` (external fallback)."""
         from dv_solve.ctx import SOLVE_OK
         seed = randstate.randint(0, (1 << 63) - 1)
         if solve_info is not None:
@@ -327,29 +470,121 @@ class DvSolveBackend(SolverBackendIF):
         # fair_pick=True: uniform marginals / full coverage — the correct
         # distribution for constrained-random stimulus.
         rc = ctx.solve(seed=seed, fair_pick=True)
-        if rc != SOLVE_OK:
-            # The native *search* is incomplete on some feasible sets that are
-            # not simple intervals (e.g. weak backward propagation for
-            # extract/bitwise), so a SOLVE_UNSAT from search is NOT a sound proof
-            # of unsatisfiability — only a compile-time CompileUnsatError is.
-            # Defer to the fallback (it reports a genuine SolveFailure if the
-            # problem really is UNSAT).
+        if rc == SOLVE_OK:
+            # dv-solve returns an int64; for an unsigned field whose value has its
+            # top bit set (only at width 64) that int64 is negative, so reinterpret
+            # as unsigned. Signed fields are already correctly sign-extended.
+            for f, vid in readback:
+                f.set_val(self._as_field_value(
+                    ctx.get_value(vid), int(f.width), bool(f.is_signed)))
+            return True
+        # The native *search* is incomplete on some feasible sets that are not
+        # simple intervals (e.g. weak backward propagation for extract/bitwise),
+        # so a non-OK search result is NOT a sound proof of unsatisfiability.
+        # Hand the same problem to the complete BV-SAT engine for an
+        # authoritative verdict (or, if it can't decide, defer externally).
+        if problem_buf is not None:
+            self._solve_via_bvsat(problem_buf, readback, randstate, solve_info,
+                                  make_base=make_base, sample_vars=sample_vars,
+                                  has_order=has_order)
+            return False
+        raise BackendIncomplete(
+            "dv-solve search did not find a solution "
+            "(rc=%d); deferring to fallback" % rc,
+            reason_code="search-incomplete")
+
+    @staticmethod
+    def _as_field_value(raw, width, signed):
+        """Reinterpret a raw int64 readback for a field's declared width/sign.
+        dv-solve returns an int64; an unsigned field whose value has its top bit
+        set (only at width 64) comes back negative, so mask to width. Signed
+        fields are already correctly sign-extended."""
+        return raw if signed else raw & ((1 << width) - 1)
+
+    @staticmethod
+    def _bb_value(bb, vid, sample_vars):
+        """Read var ``vid`` from a SAT BVSatCtx, picking the wide (limb-based)
+        reader for >64-bit vars and the int64 fast path otherwise, and
+        reinterpreting per the field's width/signedness. ``sample_vars`` supplies
+        each var's ``(width, is_signed)``."""
+        for (svid, width, _lo, _hi, signed) in (sample_vars or ()):
+            if svid == vid:
+                if width > 64:
+                    return bb.value_wide(vid, width, signed)
+                return DvSolveBackend._as_field_value(bb.value(vid), width, signed)
+        return bb.value(vid)
+
+    def _solve_via_bvsat(self, problem_buf, readback, randstate,
+                         solve_info, make_base=None, sample_vars=None,
+                         has_order=False, force_serve=False) -> SolveResult:
+        """Solve ``problem_buf`` with the internal BV-SAT completeness engine and
+        write values back. Authoritative: SAT -> set values & return; UNSAT ->
+        ``SolveFailure``; UNKNOWN/ERROR (A-4 guard / timeout) -> ``BackendIncomplete``
+        so the external fallback decides. Honors ``VSC_DVSOLVE_BVSAT=0``.
+
+        When serving SAT (``VSC_DVSOLVE_BVSAT_SERVE_SAT=1`` or ``force_serve``) and
+        a ``make_base`` factory is available, the model is drawn through the
+        XOR-hashing uniform sampler (``bvsat_sampler``) so the value distribution
+        is usable as stimulus; otherwise the raw (clustered) kissat model is read
+        back. ``force_serve`` is set for >64-bit RandSets, which have no other
+        engine to serve them."""
+        if not _BVSAT_ENABLED:
             raise BackendIncomplete(
-                "dv-solve search did not find a solution "
-                "(rc=%d); deferring to fallback" % rc)
-        # dv-solve returns a signed int64 already adjusted for the variable's
-        # signedness, so no manual sign-extension is needed (unlike Boolector).
-        for f, vid in readback:
-            f.set_val(ctx.get_value(vid))
+                "dv-solve primary could not decide; BV-SAT disabled, deferring",
+                reason_code="bvsat-disabled")
+        from dv_solve.bvsat import BVSatCtx, BVSAT_SAT, BVSAT_UNSAT
+        seed = randstate.randint(0, (1 << 63) - 1)
+        if solve_info is not None:
+            solve_info.n_sat_calls += 1
+        bb = BVSatCtx(problem_buf)
+        try:
+            rc = bb.check(seed=seed)
+            if rc == BVSAT_UNSAT:
+                # Complete engine -> sound UNSAT. dv-solve is now authoritative
+                # for UNSAT without needing the external fallback. The Randomizer
+                # catches this and re-raises with its own (Boolector-built)
+                # diagnostics, so the message here is internal.
+                raise SolveFailure(
+                    "dv-solve BV-SAT engine proved unsatisfiable",
+                    "dv-solve BV-SAT engine proved the constraints unsatisfiable")
+            if rc == BVSAT_SAT and (_BVSAT_SERVE_SAT or force_serve) and not has_order:
+                # Prefer the uniform sampler: kissat's raw model is too clustered
+                # for stimulus. The base SAT verdict above guarantees the sampler
+                # converges (m==0 is this same satisfiable problem).
+                # (An order-bearing RandSet skips serving here and falls through
+                # to the deferral below — the sampler can't honor solve_order.)
+                if _BVSAT_SAMPLER and make_base is not None and sample_vars:
+                    from vsc.model.solver import bvsat_sampler
+                    ok = bvsat_sampler.sample(
+                        make_base, readback, sample_vars, seed,
+                        solve_info=solve_info)
+                    if ok:
+                        return SolveResult(status=0)
+                    # Sampler couldn't serve (shouldn't happen): fall through to
+                    # the raw readback so we still return a valid model.
+                for f, vid in readback:
+                    f.set_val(self._bb_value(bb, vid, sample_vars))
+                return SolveResult(status=0)
+            # rc == BVSAT_SAT (default): the problem IS satisfiable, but BV-SAT's
+            # model distribution is too clustered for stimulus — defer to the
+            # distribution-preserving fallback to actually pick the values.
+            # rc == UNKNOWN/ERROR: an A-4 guard tripped or the engine couldn't
+            # decide — defer as well.
+            raise BackendIncomplete(
+                "dv-solve BV-SAT verdict=%d (sat-not-served / undecided); "
+                "deferring to fallback" % rc,
+                reason_code="bvsat-undecided")
+        finally:
+            bb.destroy()
 
     def _reuse_signature(self, rs, rand_fields, bound_m):
         """A structural fingerprint of the compiled problem. Two RandSets with
         equal signatures (and unchanged referenced non-rand values) compile to
         the same problem, so a cached plan may be reused. Captures: each rand
         field's identity/width/signedness and domain (incl. multi-range gaps),
-        and the identity (and priority) of every hard/soft constraint. Inline
-        ``randomize_with`` builds fresh constraint objects each call → different
-        ids → automatic miss."""
+        the identity (and priority) of every hard/soft constraint, and each
+        ``dist`` scope's weight entries. Inline ``randomize_with`` builds fresh
+        constraint objects each call → different ids → automatic miss."""
         field_sig = tuple((id(f), int(f.width), bool(f.is_signed))
                           for f in rand_fields)
         dom_sig = []
@@ -363,7 +598,37 @@ class DvSolveBackend(SolverBackendIF):
                                 tuple(map(tuple, gaps)) if gaps else None))
         cons_sig = tuple(id(c) for c in rs.constraints())
         soft_sig = tuple((id(c), c.priority) for c in rs.soft_constraints())
-        return (field_sig, tuple(dom_sig), cons_sig, soft_sig)
+        # dist weights bake into the compiled add_dist but aren't expressed as
+        # constraints, so capture each entry's (lo, hi, weight, is_per_value).
+        # A dynamic weight (e.g. weight(1, en_one)) changes the problem without
+        # any constraint id changing; without this a stale compiled problem
+        # would be reused. Mirrors the Tier-A _snapshot_dist signature.
+        dist_sig = self._dist_signature(rs)
+        return (field_sig, tuple(dom_sig), cons_sig, soft_sig, dist_sig)
+
+    @staticmethod
+    def _dist_signature(rs):
+        """Snapshot of every dist scope's weight entries for reuse keying, or a
+        marker that can't compare equal if a weight/range can't be evaluated
+        (forcing a rebuild)."""
+        dist_field_m = getattr(rs, "dist_field_m", None) or {}
+        sig = []
+        for f in dist_field_m:
+            for scope in dist_field_m[f]:
+                entry = []
+                for w in scope.dist_c.weights:
+                    try:
+                        lo = int(w.rng_lhs.val())
+                        hi = int(w.rng_rhs.val()) if w.rng_rhs is not None else lo
+                        wt = int(w.weight.val())
+                        entry.append((lo, hi, wt,
+                                      bool(getattr(w, "is_per_value", lo == hi))))
+                    except Exception:
+                        # Unevaluable -> a unique object so signatures never match
+                        # (always rebuild rather than risk a stale problem).
+                        entry.append(object())
+                sig.append((id(f), tuple(entry)))
+        return tuple(sig)
 
     # ------------------------------------------------------------------ #
     # Domain helpers                                                       #
@@ -391,6 +656,23 @@ class DvSolveBackend(SolverBackendIF):
         else:
             w_lo = 0
             w_hi = (1 << f.width) - 1
+
+        # add_var carries bounds as int64. For width > 64 the width-range
+        # overflows int64, so clamp to the int64 envelope: the BV-SAT engine
+        # treats a wide var's bound == its (int64-capped) natural range as "no
+        # bound asserted" (assert_var_bounds caps natural_hi at INT64_MAX for
+        # width>=64), leaving the var free across its true width — correct for an
+        # unconstrained wide field. A genuine >64-bit sub-range can't round-trip
+        # through int64; its membership constraint would carry a >64-bit literal
+        # and defer (see the translator's literal guard).
+        # For width <= 64 we must NOT clamp: a full-range uint64 [0, 2^64-1] is
+        # passed through as c_int64 wrapping 2^64-1 -> -1, which the engine reads
+        # (unsigned) as the full range. Clamping it to INT64_MAX would halve a
+        # uint64 field's domain.
+        if f.width > 64:
+            _I64_MIN, _I64_MAX = -(1 << 63), (1 << 63) - 1
+            w_lo = max(w_lo, _I64_MIN)
+            w_hi = min(w_hi, _I64_MAX)
 
         bound = bound_m.get(f) if bound_m is not None else None
         range_l = bound.domain.range_l if bound is not None else None
@@ -424,3 +706,59 @@ class DvSolveBackend(SolverBackendIF):
                 ExprLiteralModel(r[1], bool(field.is_signed), field.width))
             for r in range_l])
         return ExprInModel(ExprFieldRefModel(field), rl)
+
+    # int64 / uint32 envelopes for native DistEntry fields (lo/hi int64,
+    # weight uint32). A dist outside these can't be encoded → defer.
+    _I64_MIN = -(1 << 63)
+    _I64_MAX = (1 << 63) - 1
+    _U32_MAX = (1 << 32) - 1
+
+    def _dist_entries(self, field, dist_c):
+        """Translate a ``ConstraintDistModel`` into native ``add_dist``
+        ``DistEntry`` dicts.
+
+        Each ``DistWeightExprModel`` becomes one entry: a single value → a
+        ``[v, v]`` per-value entry; a range → a ``[lo, hi]`` entry whose
+        ``is_per_value`` follows the ``:=``/``:/`` flag. Zero-weight entries are
+        kept so native does the exclusion. Raises ``BackendIncomplete`` for any
+        shape that can't be encoded soundly (Phase-B §5): non-constant
+        weight/range, a bound outside int64, or a >64-bit field (the BV-SAT
+        completeness engine ignores ``add_dist``, so weighting a wide field would
+        be silently lost)."""
+        if field.width > 64:
+            raise BackendIncomplete(
+                "dv-solve: dist on >64-bit field '%s' not supported" %
+                getattr(field, "name", "?"),
+                reason_code="dist")
+        entries = []
+        for w in dist_c.weights:
+            try:
+                lo = int(w.rng_lhs.val())
+                if w.rng_rhs is not None:
+                    hi = int(w.rng_rhs.val())
+                    is_per_value = bool(w.is_per_value)
+                else:
+                    hi = lo
+                    is_per_value = True       # single value: := and :/ coincide
+                weight = int(w.weight.val())
+            except Exception:
+                raise BackendIncomplete(
+                    "dv-solve: dist on '%s' has a non-constant weight or range" %
+                    getattr(field, "name", "?"),
+                    reason_code="dist")
+            if not (self._I64_MIN <= lo <= self._I64_MAX
+                    and self._I64_MIN <= hi <= self._I64_MAX):
+                raise BackendIncomplete(
+                    "dv-solve: dist range on '%s' exceeds int64" %
+                    getattr(field, "name", "?"),
+                    reason_code="dist")
+            if not (0 <= weight <= self._U32_MAX):
+                raise BackendIncomplete(
+                    "dv-solve: dist weight on '%s' out of uint32 range" %
+                    getattr(field, "name", "?"),
+                    reason_code="dist")
+            if hi < lo:
+                lo, hi = hi, lo
+            entries.append({"lo": lo, "hi": hi, "weight": weight,
+                            "is_per_value": is_per_value})
+        return entries

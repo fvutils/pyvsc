@@ -103,7 +103,8 @@ class ConstraintCopyBuilder(ModelVisitor):
             self._expr = DistWeightExprModel(
                 self.expr(w.rng_lhs),
                 None if w.rng_rhs is None else self.expr(w.rng_rhs),
-                self.expr(w.weight))
+                self.expr(w.weight),
+                is_per_value=getattr(w, "is_per_value", None))
         else:
             super().visit_dist_weight(w)
         

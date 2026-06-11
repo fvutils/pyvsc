@@ -27,6 +27,11 @@ class ConstraintDistScopeModel(ConstraintInlineScopeModel):
         # by solvegroup_swizzler_range.
         self.target_range = 0
 
+        # True when this dist is enclosed by a conditional (if/else/implies),
+        # set by RandInfoBuilder. A back-end that weights the variable
+        # unconditionally (dv-solve native add_dist) must defer these.
+        self.is_conditional = False
+
     def next_target_range(self, randstate : RandState) -> int:
         """Select the next target range from the weight list"""
 

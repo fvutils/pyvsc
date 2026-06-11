@@ -44,7 +44,7 @@ from dv_solve.problem import (
     BIN_BAND, BIN_BOR, BIN_BXOR, BIN_LSHIFT, BIN_RSHIFT,
     BIN_EQ, BIN_NEQ, BIN_LT, BIN_LTE, BIN_GT, BIN_GTE,
     BIN_AND, BIN_OR,
-    UN_NOT,
+    UN_NOT, UN_INVERT,
 )
 
 
@@ -281,8 +281,48 @@ class DvSolveExprTranslator(ModelVisitor):
         self._last_simple = True
 
     def visit_expr_literal(self, e):
-        self._result = self._b.expr_const(int(e.val()), bool(e.signed))
+        v = int(e.val())
+        signed = bool(e.signed)
+        if -(1 << 63) <= v <= (1 << 63) - 1:
+            # Fits a signed int64 directly.
+            self._result = self._b.expr_const(v, signed)
+        else:
+            w = int(e.width()) if e.width() else v.bit_length()
+            if w <= 64:
+                # A 64-bit pattern that overflows signed int64 (e.g. a uint64
+                # literal >= 2^63): pass its two's-complement reinterpretation —
+                # the same bit pattern, sized to context by the engine.
+                self._result = self._b.expr_const(v - (1 << 64), signed)
+            else:
+                # >64-bit literal can't be a single int64 const node; lower it to
+                # a concat of <=64-bit const limbs (Phase D).
+                self._result = self._wide_const(v, w)
         self._last_simple = True
+
+    def _wide_const(self, v, w):
+        """Lower a >64-bit constant ``v`` of width ``w`` into a concat of
+        <=64-bit const limbs (``expr_const`` is int64). limb 0 is the low 64
+        bits; the engine's ``concat(hi, lo, lo_width)`` stacks them MSB-first."""
+        v &= (1 << w) - 1                      # unsigned bit pattern
+        limbs = []                             # (value, width), low -> high
+        rem, rest = w, v
+        while rem > 0:
+            lw = 64 if rem >= 64 else rem
+            limbs.append((rest & ((1 << lw) - 1), lw))
+            rest >>= lw
+            rem -= lw
+
+        def const_limb(limb, lw):
+            # Pass the bit pattern; a full 64-bit limb with bit 63 set must go in
+            # as its signed reinterpretation (lw<64 limbs are always < 2^63).
+            sv = limb - (1 << 64) if (lw == 64 and limb >= (1 << 63)) else limb
+            return self._b.expr_const(sv, False)
+
+        acc = const_limb(*limbs[-1])           # highest limb
+        for i in range(len(limbs) - 2, -1, -1):
+            limb, lw = limbs[i]
+            acc = self._b.expr_concat(acc, const_limb(limb, lw), lw)
+        return acc
 
     def visit_expr_bin(self, e):
         is_logical = False
@@ -361,8 +401,24 @@ class DvSolveExprTranslator(ModelVisitor):
     def visit_expr_unary(self, e):
         if e.op != UnaryExprType.Not:
             raise BackendIncomplete("dv-solve: unsupported unary op %s" % str(e.op))
-        operand = self._to_bool(self.translate(e.expr), e.expr)
-        self._result = self._b.expr_unary(UN_NOT, operand)
+        # pyvsc's only unary op (`~`) is a *bitwise* invert (the Boolector path
+        # uses btor.Not, which complements every bit), so it must map to the
+        # bitwise UN_INVERT at the operand's full width — NOT the logical UN_NOT.
+        # (For a 1-bit operand — e.g. ~(a == b) — UN_INVERT degenerates to logical
+        # negation anyway, so boolean-context uses are unaffected.) Mapping it to
+        # UN_NOT made `a == ~b` mean `a == !b`, e.g. a=0 whenever b != 0.
+        ctx_width = self._ctx_width
+        ew = int(e.expr.width())
+        if ew > ctx_width:
+            ctx_width = ew
+        operand = self.translate(e.expr, ctx_width, want_var=True)
+        ref = self._b.expr_unary(UN_INVERT, operand)
+        if self._want_var and self._AUX_MIN_W <= ctx_width <= self._AUX_MAX_W:
+            self._result = self._materialize(ref, ctx_width, e.is_signed())
+            self._last_simple = True
+        else:
+            self._result = ref
+            self._last_simple = False
 
     def visit_expr_cond(self, e):
         cond = self._to_bool(self.translate(e.cond_e), e.cond_e)
