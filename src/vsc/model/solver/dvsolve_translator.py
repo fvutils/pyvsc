@@ -240,6 +240,15 @@ class DvSolveExprTranslator(ModelVisitor):
             # enclosing context needs a var, compilation reports incomplete and
             # the Randomizer falls back.
             return ref
+        aux_ref = self._new_aux(w, is_signed)
+        self._b.add_constraint(self._b.expr_binary(BIN_EQ, aux_ref, ref))
+        return aux_ref
+
+    def _new_aux(self, width, is_signed) -> int:
+        """Declare a fresh auxiliary variable of the given width/sign over its
+        natural width range and return its var ref (no defining constraint —
+        the caller adds one, e.g. ``aux == <op>`` or a native ``expr_sum``)."""
+        w = int(width)
         signed = bool(is_signed)
         if signed:
             lo = -(1 << (w - 1))
@@ -249,9 +258,7 @@ class DvSolveExprTranslator(ModelVisitor):
             hi = (1 << w) - 1
         aux = self._m.alloc_aux()
         self._b.add_var(aux, w, signed, lo, hi)
-        aux_ref = self._b.expr_var(aux)
-        self._b.add_constraint(self._b.expr_binary(BIN_EQ, aux_ref, ref))
-        return aux_ref
+        return self._b.expr_var(aux)
 
     def _conj(self, refs) -> int:
         """Logical-AND-combine a list of boolean refs; empty list -> true."""
@@ -365,13 +372,34 @@ class DvSolveExprTranslator(ModelVisitor):
             self._result = self._b.expr_binary(op, lhs, rhs)
             self._last_simple = False
         elif is_equality:
-            # The compiler handles `var/const == <op>` (one plain side). Keep
-            # both operands raw; only if *neither* is plain do we lift one.
-            lhs = self.translate(e.lhs, ctx_width)
+            # The compiler handles `var/const == <op>` (one plain side). When the
+            # operands are the SAME width, keep both raw and only lift one if
+            # *neither* is plain. When the widths DIFFER, the native equality
+            # reconciles at the *min* width — it truncates the wider operand — so a
+            # wider, non-constant operand that can exceed the narrow one's range is
+            # silently wrapped (e.g. an `arr.sum` aux of value 306 compared to an
+            # 8-bit comparand passes as 306 ≡ 50 mod 256). Boolector zero/sign-
+            # extends the narrow side and compares at the *max* width. So when the
+            # widths differ and neither side is a pure constant, materialize both
+            # to plain operands and extend the narrower to ctx_width before
+            # comparing. A constant operand never wraps (it is a fixed value), so
+            # `var == const` keeps the direct, un-extended form.
+            from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+            extend = (lhs_w != rhs_w
+                      and not IsConstExprVisitor().is_const(e.lhs)
+                      and not IsConstExprVisitor().is_const(e.rhs))
+            lhs = self.translate(e.lhs, ctx_width, want_var=extend)
             lhs_simple = self._last_simple
-            rhs = self.translate(e.rhs, ctx_width)
+            rhs = self.translate(e.rhs, ctx_width, want_var=extend)
             rhs_simple = self._last_simple
-            if not lhs_simple and not rhs_simple:
+            if extend:
+                if lhs_w < ctx_width:
+                    lhs = self._b.expr_extend(
+                        lhs, lhs_w, ctx_width, e.lhs.is_signed())
+                if rhs_w < ctx_width:
+                    rhs = self._b.expr_extend(
+                        rhs, rhs_w, ctx_width, e.rhs.is_signed())
+            elif not lhs_simple and not rhs_simple:
                 rhs = self._materialize(rhs, ctx_width, e.rhs.is_signed())
             self._result = self._b.expr_binary(op, lhs, rhs)
             self._last_simple = False
@@ -451,8 +479,10 @@ class DvSolveExprTranslator(ModelVisitor):
                     BinExprType.And,
                     ExprBinModel(e.lhs, BinExprType.Le, r.rhs))
             elif isinstance(r, ExprFieldRefModel) and isinstance(r.fm, FieldArrayModel):
-                # 'in' over an array's elements -- deferred to Phase 2.
-                raise BackendIncomplete("dv-solve: 'in' over array not yet supported")
+                # 'in' over an array's elements -- not yet expanded natively.
+                raise BackendIncomplete(
+                    "dv-solve: 'in' over array not yet supported",
+                    reason_code="array")
             else:
                 term = ExprBinModel(e.lhs, BinExprType.Eq, r)
             expr = term if expr is None else ExprBinModel(expr, BinExprType.Or, term)
@@ -477,7 +507,40 @@ class DvSolveExprTranslator(ModelVisitor):
     def visit_constraint_block(self, c):
         self.visit_constraint_scope(c)
 
+    def _const_cond(self, cond_e):
+        """If ``cond_e`` is a pure-constant expression (no field references), return
+        its truth value as 0/1; otherwise ``None``.
+
+        Array ``foreach`` expansion substitutes the loop index with a literal, so a
+        guard such as ``i != j`` or ``i < 4`` becomes a comparison of *literals*
+        (e.g. ``0 != 1``). Translating that through the generic implication path
+        yields a disjunction ``(!cond) || body`` whose ``cond`` is a constant the
+        native compiler does not fold — and the bounds-propagation engine cannot
+        propagate through the residual OR, so the search reports incomplete and the
+        whole RandSet defers (the dominant `foreach` idiom). Folding the guard here
+        emits the taken branch directly, keeping the problem in the
+        propagator-friendly conjunctive form. Restricted to pure constants (via
+        ``IsConstExprVisitor``) so the fold is solve-invariant — no plan-cache /
+        reuse staleness, and a guard that genuinely depends on a rand var keeps the
+        disjunction path."""
+        from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+        if not IsConstExprVisitor().is_const(cond_e):
+            return None
+        try:
+            return 1 if int(cond_e.val()) != 0 else 0
+        except Exception:
+            return None
+
     def visit_constraint_implies(self, c):
+        folded = self._const_cond(c.cond)
+        if folded == 0:
+            # Guard is constant-false: the implication is vacuously satisfied.
+            self._result = self._b.expr_const(1)
+            return
+        if folded == 1:
+            # Guard is constant-true: assert the body unconditionally.
+            self._result = self._conj([self.translate(cc) for cc in c.constraint_l])
+            return
         cond = self._to_bool(self.translate(c.cond), c.cond)
         body = self._conj([self.translate(cc) for cc in c.constraint_l])
         # cond -> body  ==  (!cond) || body  (logical OR; the native compiler
@@ -486,6 +549,16 @@ class DvSolveExprTranslator(ModelVisitor):
             BIN_OR, self._b.expr_unary(UN_NOT, cond), body)
 
     def visit_constraint_if_else(self, c):
+        folded = self._const_cond(c.cond)
+        if folded == 1:
+            # Constant-true guard: only the then-branch applies.
+            self._result = self.translate(c.true_c)
+            return
+        if folded == 0:
+            # Constant-false guard: only the else-branch (if any) applies.
+            self._result = (self.translate(c.false_c)
+                            if c.false_c is not None else self._b.expr_const(1))
+            return
         cond = self._to_bool(self.translate(c.cond), c.cond)
         notcond = self._b.expr_unary(UN_NOT, cond)
         true_c = self.translate(c.true_c)
@@ -500,14 +573,33 @@ class DvSolveExprTranslator(ModelVisitor):
             right = self._b.expr_binary(BIN_OR, cond, false_c)
             self._result = self._b.expr_binary(BIN_AND, left, right)
 
+    # Pairwise-!= expansion of `unique` is O(n^2); above this many operands the
+    # term count is impractical for the bounds engine — defer (Phase C §5).
+    _MAX_UNIQUE_ELEMS = 64
+
     def visit_constraint_unique(self, c):
         # Expand to pairwise != (functionally identical to native all_different;
-        # composes cleanly as a returned boolean root). Array operands -> P2.
+        # composes cleanly as a returned boolean root). A fixed-size array operand
+        # is expanded into its element fields (Phase C-4, mirroring Boolector's
+        # ConstraintUniqueModel._add_list_elems); a random-sized array's active
+        # set is solver-chosen and needs size-guarded pairs — deferred to C-3.
+        from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
         elems = []
         for i in c.unique_l:
             if isinstance(i, ExprFieldRefModel) and isinstance(i.fm, FieldArrayModel):
-                raise BackendIncomplete("dv-solve: unique over array not yet supported")
-            elems.append(i)
+                arr = i.fm
+                if getattr(arr, "is_rand_sz", False):
+                    raise BackendIncomplete(
+                        "dv-solve: unique over random-sized array (Phase C-3)",
+                        reason_code="array")
+                for f in arr.field_l:
+                    elems.append(_FR(f))
+            else:
+                elems.append(i)
+        if len(elems) > self._MAX_UNIQUE_ELEMS:
+            raise BackendIncomplete(
+                "dv-solve: unique over %d elements exceeds the pairwise cap"
+                % len(elems), reason_code="array")
         if len(elems) > 1:
             refs = [self.translate(e) for e in elems]
             terms = []
@@ -523,14 +615,163 @@ class DvSolveExprTranslator(ModelVisitor):
         self._result = self._b.expr_const(1)
 
     # ------------------------------------------------------------------ #
-    # Bit-select expression (native via flattening)                        #
+    # Array aggregates (Phase C-2: fixed-size native)                      #
     # ------------------------------------------------------------------ #
     #
-    # NB: array sum/product are deliberately routed to fallback (below). Their
-    # lowered expression depends on the array's size, which for random-sized
-    # arrays is itself a solver variable; translating the (size-at-build-time)
-    # sum mis-encodes that coupling. Boolector's array path handles it, so we
-    # defer array aggregates to the fallback for correctness.
+    # NB: a random-sized array couples the aggregate's active element set to a
+    # solver variable (`arr.size`), so translating the size-at-build-time chain
+    # would mis-encode it (a silent wrong answer). Fixed-size aggregates are
+    # encoded natively here; random-sized arrays defer to the fallback until the
+    # size-guarded encoding lands (Phase C-3).
+
+    # The native n-ary sum propagator (EXPR_SUM) caps the summand count.
+    _MAX_SUM_VARS = 64
+
+    def _array_elem_count(self, arr):
+        """The active element count of ``arr`` for an aggregate.
+
+        Fixed-size: the declared size. Random-sized (Phase C-3): pyvsc partitions
+        the array's ``size`` into its own RandSet, solved (by dependency order)
+        *before* the element RandSet that carries the aggregate — so by the time we
+        translate the aggregate, ``size`` is already resolved to a constant and the
+        active prefix ``field_l[0:size]`` is fixed. We sum over that prefix, exactly
+        as Boolector's ``get_sum_expr`` does (it reads ``size.get_val()``). The
+        guard: if ``size`` is instead *co-solved* in this same RandSet (in the
+        idmap), its value is not yet known here, so the aggregate would need a
+        size-guarded ``ite``-prefix — defer rather than read a stale size."""
+        if getattr(arr, "is_rand_sz", False) and self._m.has(arr.size):
+            raise BackendIncomplete(
+                "dv-solve: aggregate over a co-solved random-sized array "
+                "(size-guarded prefix not yet supported)", reason_code="array")
+        return int(arr.size.get_val())
+
+    def visit_expr_array_sum(self, e):
+        # arr.sum -> a result aux constrained `result == Σ elem[i]` via the native
+        # n-ary sum propagator. The result is returned as a plain var so the
+        # enclosing constraint (`arr.sum == X`, `arr.sum < K`) compiles directly.
+        from vsc.model.expr_fieldref_model import ExprFieldRefModel
+        arr = e.arr
+        n = self._array_elem_count(arr)
+        if n == 0:
+            self._result = self._b.expr_const(0)
+            self._last_simple = True
+            return
+        if n > self._MAX_SUM_VARS:
+            raise BackendIncomplete(
+                "dv-solve: array sum over %d elements exceeds the native "
+                "%d-summand cap" % (n, self._MAX_SUM_VARS), reason_code="array")
+        # Width matches pyvsc's get_sum_width() (elem_w + clog2(size)) so the sum
+        # can't overflow and width reconciliation with the comparison RHS matches.
+        rw = int(e.width())
+        if rw > self._AUX_MAX_W:
+            raise BackendIncomplete(
+                "dv-solve: array sum result width %d exceeds aux range" % rw,
+                reason_code="array")
+        elem_refs = [self.translate(ExprFieldRefModel(arr.field_l[i]),
+                                    ctx_width=rw, want_var=True)
+                     for i in range(n)]
+        result_ref = self._new_aux(rw, e.is_signed())
+        self._b.add_constraint(self._b.expr_sum(result_ref, elem_refs))
+        self._result = result_ref
+        self._last_simple = True
+
+    def visit_expr_array_product(self, e):
+        # arr.product -> a left-folded BIN_MUL chain (decision §6.4; no native
+        # n-ary product). Each partial product is materialized into a plain var so
+        # the modular mul propagator handles it and the enclosing constraint sees a
+        # variable. The fold width follows pyvsc's model (ExprArrayProductModel is
+        # 64-bit); partials are sized to the aux range and wrap-match Boolector
+        # below 2^aux_w (documented caveat for very large products).
+        from vsc.model.expr_fieldref_model import ExprFieldRefModel
+        arr = e.arr
+        n = self._array_elem_count(arr)
+        signed = e.is_signed()
+        if n == 0:
+            self._result = self._b.expr_const(0)
+            self._last_simple = True
+            return
+        # Cap the fold width at the aux range; pyvsc's product is nominally 64-bit
+        # but the modular propagators top out at _AUX_MAX_W. This matches Boolector
+        # for any product that fits — the realistic case for a `product ==`/`<`
+        # constraint — and is the documented §5 caveat otherwise.
+        fw = min(int(e.width()), self._AUX_MAX_W)
+        acc = self.translate(ExprFieldRefModel(arr.field_l[0]),
+                             ctx_width=fw, want_var=True)
+        for i in range(1, n):
+            elem = self.translate(ExprFieldRefModel(arr.field_l[i]),
+                                  ctx_width=fw, want_var=True)
+            prod = self._b.expr_binary(BIN_MUL, acc, elem)
+            acc = self._materialize(prod, fw, signed)
+        self._result = acc
+        self._last_simple = True
+
+    # ------------------------------------------------------------------ #
+    # Array element references (Phase C-1)                                 #
+    # ------------------------------------------------------------------ #
+    #
+    # `foreach` expansion substitutes the loop index with a literal, so most
+    # subscript / indexed-field references that reach the translator resolve to a
+    # *fixed* element field. We translate those directly to the element's var/const
+    # ref. A genuinely variable (rand) index — no constant resolution — defers
+    # (native expr_array_select would handle it but needs contiguous element ids;
+    # no current corpus shape requires it, so it stays a guarded defer).
+
+    def _const_subscript_index(self, sub):
+        """Return an ExprArraySubscriptModel's constant index, or None if its index
+        is not a pure constant (e.g. a rand var)."""
+        from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+        if not IsConstExprVisitor().is_const(sub.rhs):
+            return None
+        try:
+            return int(sub.rhs.val())
+        except Exception:
+            return None
+
+    def _indexed_ref_is_const(self, e):
+        """True iff an indexed/subscript reference chain resolves to a fixed field
+        — every subscript index along the chain is a constant — so ``get_target()``
+        / ``subscript()`` yield the correct element without reading a stale rand
+        value."""
+        from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
+        from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+        node = e
+        while True:
+            if isinstance(node, ExprArraySubscriptModel):
+                if self._const_subscript_index(node) is None:
+                    return False
+                node = node.lhs
+            elif isinstance(node, ExprIndexedFieldRefModel):
+                node = node.root
+            elif isinstance(node, ExprFieldRefModel):
+                return True
+            else:
+                return False
+
+    def visit_expr_array_subscript(self, e):
+        if self._const_subscript_index(e) is not None:
+            # Constant index -> the concrete element field (var if rand, else const).
+            self._result = self._ref_for_field(e.subscript())
+            self._last_simple = True
+            return
+        # Variable (rand) index: would need native expr_array_select over a
+        # contiguous element block. Defer until a corpus shape requires it.
+        raise BackendIncomplete(
+            "dv-solve: variable-indexed array subscript (Phase C-1 select)",
+            reason_code="array")
+
+    def visit_expr_indexed_fieldref(self, e):
+        if self._indexed_ref_is_const(e):
+            # Fixed path -> the concrete target field.
+            self._result = self._ref_for_field(e.get_target())
+            self._last_simple = True
+            return
+        raise BackendIncomplete(
+            "dv-solve: variable-indexed object-array reference (Phase C-1)",
+            reason_code="array")
+
+    # ------------------------------------------------------------------ #
+    # Bit-select expression (native via flattening)                        #
+    # ------------------------------------------------------------------ #
 
     def visit_expr_partselect(self, e):
         # a[hi:lo] -> extract(a, hi, lo). A single-bit select (no lower) extracts
@@ -574,11 +815,7 @@ class DvSolveExprTranslator(ModelVisitor):
     visit_constraint_override = _unsupported
     visit_constraint_dynref = _unsupported
     # Expression forms still routed to fallback
-    visit_expr_array_sum = _unsupported
-    visit_expr_array_product = _unsupported
     visit_expr_dynamic = _unsupported
     visit_expr_indexed_dynref = _unsupported
-    visit_expr_indexed_fieldref = _unsupported
-    visit_expr_array_subscript = _unsupported
     visit_expr_range = _unsupported
     visit_expr_rangelist = _unsupported

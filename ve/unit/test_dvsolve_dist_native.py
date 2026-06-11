@@ -396,12 +396,18 @@ class TestDvSolveDistNative(VscTestCase):
     # T-B7 — fallback safety: dist + unsupported construct stays weighted  #
     # ------------------------------------------------------------------ #
     def test_tb7_fallback_keeps_dist_weighting(self):
-        """When a dist RandSet also carries a construct dv-solve can't handle
-        (here an array ``sum``), the whole RandSet falls back to Boolector. The
-        dist's membership + weighting must survive the native-path de-dup (B-4):
-        Boolector serves it via the swizzler's weight_list. Asserts in-domain +
-        the requested 3:1 bias. (No no-fallback guard — this case *should* fall
-        back.)"""
+        """When a dist RandSet also carries a construct dv-solve can't handle, the
+        whole RandSet falls back to Boolector. The dist's membership + weighting
+        must survive the native-path de-dup (B-4): Boolector serves it via the
+        swizzler's weight_list. Asserts in-domain + the requested 3:1 bias. (No
+        no-fallback guard — this case *should* fall back.)
+
+        NOTE: the trigger must be a construct dv-solve still defers. Phase C keeps
+        making array constructs native (fixed-size ``sum``/``product``/``unique``
+        all became native), so this uses ``a inside arr`` (membership over an
+        array's elements), which stays deferred. When that eventually lands,
+        repoint this at the next still-deferred construct — or retire the test once
+        Boolector is removed (Phase E)."""
         @vsc.randobj
         class C(object):
             def __init__(s):
@@ -409,7 +415,7 @@ class TestDvSolveDistNative(VscTestCase):
                 s.a = vsc.rand_uint8_t()
             @vsc.constraint
             def c(s):
-                s.a == s.arr.sum                       # array sum -> dv-solve defers
+                s.a.inside(s.arr)                      # 'in' over array -> defers
                 vsc.dist(s.a, [vsc.weight((10, 20), 1),
                                vsc.weight((200, 250), 3)])
 
@@ -419,7 +425,9 @@ class TestDvSolveDistNative(VscTestCase):
         for _ in range(300):
             c.randomize()
             v = int(c.a)
-            self.assertEqual(v, sum(int(x) for x in c.arr))
+            self.assertIn(v, [int(x) for x in c.arr],
+                          "fallback dropped 'a inside arr': a=%d arr=%s" %
+                          (v, [int(x) for x in c.arr]))
             self.assertTrue(10 <= v <= 20 or 200 <= v <= 250,
                             "fallback dropped dist membership: a=%d" % v)
             vals.append(v)
