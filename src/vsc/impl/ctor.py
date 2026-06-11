@@ -60,7 +60,35 @@ if "VSC_SOLVEFAIL_DEBUG" in os.environ.keys() and os.environ["VSC_SOLVEFAIL_DEBU
         glbl_solvefail_debug = 0
 else:
     glbl_solvefail_debug = 0
-    
+
+# Solver back-end selection. VSC_SOLVER selects which solver pyvsc uses:
+#   boolector | dv-solve | auto
+# Default is "boolector" during the dv-solve integration (design §10.1).
+if "VSC_SOLVER" in os.environ.keys() and os.environ["VSC_SOLVER"] != "":
+    glbl_solver = os.environ["VSC_SOLVER"]
+else:
+    glbl_solver = "boolector"
+
+# Programmatic override set via set_solver_backend(); takes precedence over
+# the VSC_SOLVER environment default.
+_solver_override = None
+
+
+def set_solver_backend(name):
+    """Override the solver back-end programmatically (precedence over
+    VSC_SOLVER). Pass None to clear the override and fall back to VSC_SOLVER /
+    the default."""
+    global _solver_override
+    _solver_override = name
+
+
+def get_solver_backend():
+    """Return the effective solver back-end name: programmatic override if
+    set, otherwise the VSC_SOLVER / default value."""
+    if _solver_override is not None:
+        return _solver_override
+    return glbl_solver
+
 
 # Tracks whether srcinfo should be collected for a type
 srcinfo_mode_s = []

@@ -131,7 +131,13 @@ class ExprBinModel(ExprModel):
         elif self.op == BinExprType.Mul:
             ret = btor.Mul(lhs_n, rhs_n)
         elif self.op == BinExprType.Mod:
-            ret = btor.Urem(lhs_n, rhs_n)
+            if not is_signed:
+                ret = btor.Urem(lhs_n, rhs_n)
+            else:
+                # SystemVerilog %: remainder takes the sign of the dividend
+                # (truncated). Boolector Srem (SMT bvsrem) matches; Urem would
+                # treat the operands as unsigned.
+                ret = btor.Srem(lhs_n, rhs_n)
         elif self.op == BinExprType.And:
             ret = btor.And(lhs_n, rhs_n)
         elif self.op == BinExprType.Or:
@@ -148,6 +154,23 @@ class ExprBinModel(ExprModel):
             raise Exception("Unsupported binary expression type \"" + str(self.op) + "\"")
         
         return ret
+
+    @staticmethod
+    def _sv_div(a, b):
+        """SystemVerilog integer division: truncate toward zero."""
+        if b == 0:
+            return 0
+        q = abs(a) // abs(b)
+        return -q if (a < 0) != (b < 0) else q
+
+    @staticmethod
+    def _sv_mod(a, b):
+        """SystemVerilog remainder: magnitude is abs(a) % abs(b); sign follows
+        the dividend a (truncated remainder)."""
+        if b == 0:
+            return 0
+        r = abs(a) % abs(b)
+        return -r if a < 0 else r
 
     @staticmethod
     def extend(e1, ctx_width, signed, btor):
@@ -206,11 +229,13 @@ class ExprBinModel(ExprModel):
         elif self.op == BinExprType.Sub:
             ret = (lhs - rhs)
         elif self.op == BinExprType.Div:
-            ret = (lhs / rhs)
+            # SystemVerilog /: integer division truncated toward zero.
+            ret = ExprBinModel._sv_div(int(lhs), int(rhs))
         elif self.op == BinExprType.Mul:
             ret = (lhs * rhs)
         elif self.op == BinExprType.Mod:
-            ret = (lhs % rhs)
+            # SystemVerilog %: remainder takes the sign of the dividend.
+            ret = ExprBinModel._sv_mod(int(lhs), int(rhs))
         elif self.op == BinExprType.And:
             ret = (lhs & rhs)
         elif self.op == BinExprType.Or:

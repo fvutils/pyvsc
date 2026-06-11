@@ -229,6 +229,31 @@ class TestConstraintExpr(VscTestCase):
             it.c == (it.a % it.b)
         self.assertEqual(my_i.c, (my_i.a%my_i.b))
 
+    def test_smod(self):
+        # SystemVerilog signed %: remainder takes the sign of the dividend
+        # (truncated). a<0 forces a negative dividend so the sign matters.
+        @vsc.randobj
+        class my_c(object):
+            def __init__(self):
+                self.a = vsc.rand_int8_t()
+                self.b = vsc.rand_int8_t()
+                self.c = vsc.rand_int8_t()
+
+            @vsc.constraint
+            def ab_c(self):
+                self.a < 0
+                self.b != 0
+
+        def sv_mod(a, b):
+            r = abs(a) % abs(b)
+            return -r if a < 0 else r
+
+        my_i = my_c()
+        for _ in range(20):
+            with my_i.randomize_with() as it:
+                it.c == (it.a % it.b)
+            self.assertEqual(my_i.c, sv_mod(int(my_i.a), int(my_i.b)))
+
     def test_and(self):
         @vsc.randobj
         class my_c(object):

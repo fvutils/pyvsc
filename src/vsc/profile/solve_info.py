@@ -21,6 +21,9 @@ class SolveInfo(object):
         self.rnd_time = 0
         
         self.n_sat_calls = 0
-        
-        
+
+        # Number of RandSets that fell back from the primary back-end to
+        # another (e.g. dv-solve -> Boolector) because of BackendIncomplete.
+        self.n_fallbacks = 0
+
         pass

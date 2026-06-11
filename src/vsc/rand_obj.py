@@ -20,6 +20,7 @@
 # @author: ballance
 
 import inspect
+import sys
 
 from vsc.impl.randobj_int import RandObjInt
 from vsc.constraints import constraint_t, dynamic_constraint_t
@@ -159,13 +160,18 @@ class _randobj:
                           lint=0,
                           solve_fail_debug=0):
                 ro_int = self._get_ro_int()
-                frame = inspect.stack()[1]
-                
+                # Capture only the caller's file/line for diagnostics. Use
+                # sys._getframe (O(1)) rather than inspect.stack()[1], which
+                # builds FrameInfo for the *entire* stack and reads source for
+                # every frame — ~tens of µs/call and the single largest cost on
+                # the cached randomize() hot path.
+                frame = sys._getframe(1)
+
                 model = self.get_model()
                 try:
                     Randomizer.do_randomize(
                         ro_int.get_randstate(),
-                        SourceInfo(frame.filename, frame.lineno),
+                        SourceInfo(frame.f_code.co_filename, frame.f_lineno),
                         [model], 
                         debug=debug,
                         lint=lint,
@@ -258,7 +264,7 @@ class _randobj:
             
             def __exit__(self, t, v, tb):
                 ro_i = self._get_ro_int()
-                frame = inspect.stack()[1]
+                frame = sys._getframe(1)  # O(1); see randomize() note above
                 c = pop_constraint_scope()
                 leave_expr_mode()
                 pop_srcinfo_mode()
@@ -266,7 +272,7 @@ class _randobj:
                 try:
                     Randomizer.do_randomize(
                         ro_i.get_randstate(),
-                        SourceInfo(frame.filename, frame.lineno),
+                        SourceInfo(frame.f_code.co_filename, frame.f_lineno),
                         [model], 
                         [c], 
                         debug=self.debug,

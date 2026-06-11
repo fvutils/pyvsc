@@ -13,6 +13,7 @@ Contents:
    coverage
    methods
    features
+   solver_backends
    debug
    reference
    

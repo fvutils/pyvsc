@@ -138,4 +138,15 @@ def vsc_solvefail_debug(val):
     global glbl_solvefail_debug
     glbl_solvefail_debug = val
 
+def set_solver_backend(name):
+    """Select the constraint-solver back-end ("boolector", "dv-solve", or
+    "auto"). Takes precedence over the VSC_SOLVER environment variable."""
+    from vsc.impl.ctor import set_solver_backend as _set
+    _set(name)
+
+def get_solver_backend():
+    """Return the effective solver back-end name."""
+    from vsc.impl.ctor import get_solver_backend as _get
+    return _get()
+
     
