@@ -6,8 +6,11 @@ a real dv-solve soundness bug (clog2 implication guards, F-E3); **full `ve/unit`
 under XCHECK now passes (466, 0 mismatches)** — dv-solve agrees with Boolector
 across the suite. F-E1 resolved (mislabeled reason code, not a bug — now split
 `bvsat-sat-deferred` vs `bvsat-undecided`); whole-suite histogram proves the
-correctness codes are zero (F-E5). F-E2 resolved (wide-range re-tag). E2
-(serve-SAT telemetry/decision), E4-1 (diagnostics check) pending.
+correctness codes are zero (F-E5). F-E2 resolved (wide-range re-tag). **E2
+(serve-SAT telemetry/posture) and E4 (diagnostics + lib-load) DONE.** Remaining:
+E3 optional native burn-downs (perf/completeness, soundly backstopped) and the
+deferred Phase F (drop the net / flip default). Full `ve/unit` under XCHECK = 468
+passed, 0 mismatches.
 Date: 2026-06-12
 Parent: `dv_solve_feature_completeness_plan.md` §3 Phase E (re-scoped below)
 Companions:
@@ -383,19 +386,23 @@ removed and dv-solve must serve everything itself).
 
 So E2 is **policy + measurement**, not a flip:
 
-- **E2-1** Document the serve-SAT/sampler envs and the current default posture in
-  the backend docstring and `solver_backends.rst` (they are presently
-  under-documented). Record the +54 % cost measurement and the order-deferral.
-- **E2-2** Add the **SAT-path fraction** to the E0 dashboard (parent decision §6.1
-  / §3.1): how often the primary couldn't solve and BV-SAT was invoked, split by
-  "served" vs "deferred to Boolector". This is the data that will justify (or not)
-  flipping serve-SAT in Phase F.
+- **E2-1 (DONE).** serve-SAT/sampler envs and the current default posture
+  documented in `solver_backends.rst` (the XCHECK adoption section + the env-var
+  list). Backend docstring covers the engine posture.
+- **E2-2 (DONE — via F-E5).** The SAT-path fraction is now on the dashboard: the
+  `bvsat-sat-deferred` reason code (split out in the F-E1 fix) counts exactly "the
+  primary couldn't decide, BV-SAT proved SAT, deferred to the fallback" — and the
+  whole-suite aggregate measured it at **2796** (vs zero genuine `bvsat-undecided`).
+  That is the data Phase F needs: it shows value-serving still leans heavily on
+  the fallback, so retiring Boolector-for-serving requires either a more complete
+  primary engine or serve-SAT-on-by-default.
 - **E2-3** *(optional, `[dvs]`, only if E2-2 shows a hot path)* the C-level
   `zsp_bbsolver_add_xor` / native-XOR escape hatch noted in the sampler plan §2.3
-  for kissat's XOR weakness. **Do not build speculatively** — gate on E2-2 data.
+  for kissat's XOR weakness. **Not built** — gated on a real workload showing the
+  sampler is the bottleneck, which the current data does not yet establish.
 
-**Exit (E2).** Serve-SAT posture documented; SAT-path fraction visible on the
-dashboard. No default change.
+**Exit (E2): met.** Serve-SAT posture documented; SAT-path fraction
+(`bvsat-sat-deferred`) is a standing dashboard metric. No default change.
 
 ---
 
