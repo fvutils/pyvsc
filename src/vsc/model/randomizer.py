@@ -56,6 +56,7 @@ from vsc.model.source_info import SourceInfo
 from vsc.profile.solve_info import SolveInfo
 from vsc.visitors.lint_visitor import LintVisitor
 from vsc.model.solver.backend import SolverBackendIF, BackendIncomplete, select_backend
+from vsc.model.solver import xcheck
 from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug, get_solver_backend
 
 
@@ -83,6 +84,46 @@ _PLAN_ATTR = "_vsc_rand_plan"
 # back-end (e.g. Boolector) surfaces loudly in CI. Used to enumerate and
 # burn down the remaining defers per phase. Off by default.
 _NO_FALLBACK = os.environ.get("VSC_DVSOLVE_NO_FALLBACK", "0") != "0"
+
+# Always-on fallback histogram (feature-completeness plan, Phase E / P0-T). The
+# per-call SolveInfo histogram (profile/solve_info.py) only exists when profiling
+# is on; this module-level tally lets a test (or a user) collect the reason-code
+# histogram across an entire run without enabling full profiling. Gated by
+# VSC_DVSOLVE_FALLBACK_TALLY=1 so it is zero-overhead off by default. Each entry
+# is keyed by "<reason_code>" for a defer the next back-end served and
+# "<reason_code>:hard" for a defer no back-end could serve (re-raised).
+_FALLBACK_TALLY_ENABLED = os.environ.get("VSC_DVSOLVE_FALLBACK_TALLY", "0") != "0"
+_FALLBACK_TALLY = {}
+
+
+def record_fallback(reason_code, served=True):
+    """Record one back-end deferral in the process-global tally. ``served``
+    distinguishes a defer the next back-end satisfied from a hard-fail (no
+    back-end could serve → re-raised). No-op unless VSC_DVSOLVE_FALLBACK_TALLY=1
+    (or the tally was force-enabled by a harness via ``set_fallback_tally``)."""
+    if not _FALLBACK_TALLY_ENABLED:
+        return
+    key = reason_code if served else "%s:hard" % reason_code
+    _FALLBACK_TALLY[key] = _FALLBACK_TALLY.get(key, 0) + 1
+
+
+def get_fallback_tally():
+    """Return a copy of the current fallback histogram (reason_code -> count)."""
+    return dict(_FALLBACK_TALLY)
+
+
+def reset_fallback_tally():
+    """Clear the fallback histogram (call before a measured run)."""
+    _FALLBACK_TALLY.clear()
+
+
+def set_fallback_tally(enabled):
+    """Force the always-on tally on/off programmatically (for test harnesses
+    that don't want to rely on the env var). Returns the previous setting."""
+    global _FALLBACK_TALLY_ENABLED
+    prev = _FALLBACK_TALLY_ENABLED
+    _FALLBACK_TALLY_ENABLED = bool(enabled)
+    return prev
 
 
 class _RandPlan(object):
@@ -477,18 +518,27 @@ class Randomizer(RandIF):
                     self.randstate,
                     solve_info=self.solve_info,
                     debug=self.debug)
+                # Phase E / E1: optionally cross-check the model dv-solve just
+                # produced against Boolector (verdict + membership). No-op unless
+                # VSC_DVSOLVE_XCHECK is enabled; consumes no randstate.
+                if xcheck.is_enabled():
+                    xcheck.xcheck_randset(rs, be.name)
                 return
             except BackendIncomplete as e:
                 last_exc = e
                 reason = getattr(e, "reason_code", "incomplete")
                 # Strict mode: surface the would-be fallback loudly instead of
-                # silently serving it from the fallback back-end (Phase 0).
+                # silently serving it from the fallback back-end (Phase 0). Still
+                # tally it (as a hard-fail) so strict-mode runs populate the
+                # Phase-E histogram before raising.
                 if _NO_FALLBACK:
+                    record_fallback(reason, served=False)
                     raise BackendIncomplete(
                         "VSC_DVSOLVE_NO_FALLBACK: back-end '%s' incomplete for "
                         "RandSet (reason=%s): %s" % (be.name, reason, str(e)),
                         reason_code=reason)
                 if i + 1 < len(backends):
+                    record_fallback(reason, served=True)
                     if self.solve_info is not None:
                         self.solve_info.add_fallback(reason)
                     if self.debug > 0:
@@ -496,6 +546,8 @@ class Randomizer(RandIF):
                               "(reason=%s; %s); falling back to '%s'" % (
                                   be.name, reason, str(e), backends[i + 1].name))
                 # else: no further back-end to try; loop ends and we re-raise
+        record_fallback(getattr(last_exc, "reason_code", "incomplete"),
+                        served=False)
         raise BackendIncomplete(
             "No solver back-end could handle this RandSet: %s" % str(last_exc),
             reason_code=getattr(last_exc, "reason_code", "incomplete"))

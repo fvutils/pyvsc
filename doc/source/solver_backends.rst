@@ -92,9 +92,38 @@ Environment toggles (advanced / debugging)
   falling back to another back-end on ``BackendIncomplete``, so any residual
   dependence on the fallback (e.g. Boolector) surfaces loudly. A diagnostic for
   enumerating which constructs still defer; off by default.
+* ``VSC_DVSOLVE_FALLBACK_TALLY=1`` — collect a process-global histogram of
+  fallback reason codes across a run (queryable via
+  ``vsc.model.randomizer.get_fallback_tally()``), without enabling full
+  profiling. The burn-down dashboard for dv-solve self-sufficiency. Off by
+  default (zero overhead).
 * ``VSC_DVSOLVE_PLAN_CACHE=0`` / ``VSC_DVSOLVE_REUSE=0`` — disable the pre-solve
   plan cache / per-RandSet compiled-problem reuse (e.g. to isolate a suspected
   stale-cache issue). Both reuse paths are byte-identical to a fresh build.
+
+Cross-checking against Boolector (recommended during adoption)
+--------------------------------------------------------------
+
+While Boolector remains the default back-end, the surest way to gain confidence
+in (and report bugs against) dv-solve is to run your existing, Boolector-validated
+regression under dv-solve with **XCHECK** enabled — a differential cross-check
+that re-verifies every model dv-solve produces against Boolector::
+
+    VSC_SOLVER=dv-solve VSC_DVSOLVE_XCHECK=1 python -m pytest ...
+
+For each RandSet dv-solve solves, XCHECK confirms the model satisfies the
+constraints (membership) and that the SAT/UNSAT verdict agrees with Boolector. It
+compares *semantic agreement*, never exact values (value streams legitimately
+differ between engines), and consumes no ``randstate`` (it checks the model
+dv-solve already produced — it does not re-solve). A disagreement raises
+``XCheckMismatch`` with the offending model and constraints.
+
+* ``VSC_DVSOLVE_XCHECK=1`` — enable the cross-check (off by default; adds the cost
+  of a Boolector build + solve per RandSet).
+* ``VSC_DVSOLVE_XCHECK_WARN=1`` — log + tally mismatches instead of raising, so a
+  long run surfaces *all* disagreements rather than aborting on the first.
+* ``VSC_DVSOLVE_XCHECK_RATE=p`` — cross-check a strided fraction ``0 < p <= 1`` of
+  RandSets (deterministic / reproducible), to bound the 2× cost on large suites.
 
 Behavioral notes
 ================
