@@ -1,8 +1,10 @@
 # dv-solve Phase E Plan: Self-Sufficiency, Cross-Check, and Fallback Burn-Down
 
 Status: **IN PROGRESS** — E0 (histogram dashboard), E1 (XCHECK), and E4-2 (lib.py
-load fix) landed 2026-06-12; see §0.5/§0.6 build logs. XCHECK already found a real
-dv-solve soundness bug (clog2, F-E3). E2, E3, E4-1 pending.
+load fix) landed 2026-06-12; see §0.5/§0.6 build logs. XCHECK found and we **fixed**
+a real dv-solve soundness bug (clog2 implication guards, F-E3); **full `ve/unit`
+under XCHECK now passes (466, 0 mismatches)** — dv-solve agrees with Boolector
+across the suite. E2, E3 (the remaining F-E1/F-E2 findings), E4-1 pending.
 Date: 2026-06-12
 Parent: `dv_solve_feature_completeness_plan.md` §3 Phase E (re-scoped below)
 Companions:
@@ -146,16 +148,31 @@ surfaced exactly one mismatch — a real bug (below).**
 
 ### Findings surfaced by XCHECK (→ E3)
 
-- **F-E3 (CONFIRMED soundness bug, high priority): implication constraints with
-  arithmetic antecedents are not enforced by dv-solve.** `test_clog2`
+- **F-E3 (soundness bug — FIXED 2026-06-12): implication guards combining
+  comparisons over lifted arithmetic were not enforced.** `test_clog2`
   (`test_constraint_functions.py`) builds `((b-1) >= K) & ((b-1) < M) -> (a == i)`
-  chains. Boolector computes `a = clog2(b)` correctly; **dv-solve produces garbage
-  `a`** (e.g. b=5 → a=80/11/105/… instead of 3) for **18/19** sampled values.
-  Invisible before XCHECK because `test_clog2` has *no assertions* (it only
-  prints). This is a real primary-engine soundness gap in the implication /
-  arithmetic-antecedent path — **the top E3 item.** Direct A/B captured in the
-  build log; reproduce with `VSC_SOLVER=dv-solve` vs `boolector` on the clog2
-  shape.
+  chains. Boolector computes `a = clog2(b)` correctly; **dv-solve produced garbage
+  `a`** (e.g. b=5 → a=80 instead of 3) for 18/19 sampled values. Invisible before
+  XCHECK because `test_clog2` has *no assertions* (it only prints).
+  **Root cause:** an implication lowers to the disjunction `(!cond) || body`; when
+  `cond` is a logical AND/OR of comparisons whose operands are lifted into aux
+  vars (arithmetic in the guard), the bounds engine's propagation through
+  `NOT(AND(…))` over aux-defined operands is unsound and can leave `body`
+  unconstrained even when the guard holds. The failure is **asymmetric** — a
+  lifted operand on the AND's *left* triggers it, the *right* may not (`B` single
+  comparison ✓, `(b>=5)&((b-1)<8)` ✓, `((b-1)>=4)&(b<9)` ✗) — too fragile to
+  exploit. **Fix (translator, sound):** `DvSolveExprTranslator._translate_guarded_cond`
+  counts aux vars allocated while translating an implication/if-else guard; if any
+  were lifted **and** the guard is a logical And/Or combination, it raises
+  `BackendIncomplete(reason_code="implies-aux")` → the RandSet defers to the
+  fallback (correct values). A single arithmetic comparison guard
+  (`implies((b-1)>=4)`) stays native. **Validated:** clog2 values now correct
+  (0/39 wrong); **full `ve/unit` under XCHECK = 466 passed, 0 mismatches**
+  (dv-solve in complete verdict+membership agreement with Boolector across the
+  suite). Regression locked by `test_dvsolve_xcheck.py::test_te1b_clog2_implies_arith`
+  (asserts the values *and* the defer) and a histogram residual entry. **A native
+  fix for the bounds-engine disjunction propagation (so these solve natively
+  instead of deferring) is a possible later C-engine item — non-gating.**
 - **F-E4 (comparator gap, not a confirmed bug): inline `randomize_with` over local
   rand vars.** `test_inline_randomization::test_1` produced empty-model
   verdict-disagreements; the inline rand vars (`addr_`/`offset_`) aren't in the

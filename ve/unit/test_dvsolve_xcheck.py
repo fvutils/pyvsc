@@ -214,6 +214,55 @@ class TestDvSolveXCheck(VscTestCase):
             t = tally()
         self.assertEqual(t["mismatch"], 0, t)
 
+    def test_te1b_clog2_implies_arith(self):
+        # F-E3 regression: an implication whose guard is a logical AND of
+        # comparisons over lifted arithmetic (clog2) must produce CORRECT values
+        # — historically dv-solve left the consequent unconstrained (a = garbage)
+        # because the bounds engine's disjunction propagation is unsound, which
+        # XCHECK caught. The fix defers the shape; this locks the *values*
+        # (catches a future regression to a native-but-wrong encoding) and
+        # confirms it defers with reason_code "implies-aux".
+        import math
+        import vsc.model.randomizer as rndmod
+
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.a = vsc.rand_bit_t(8)
+                s.b = vsc.rand_bit_t(8)
+            @vsc.constraint
+            def clog2_c(s):
+                with vsc.implies((s.b >= 0) & (s.b < 2)):
+                    s.a == 0
+                for i in range(1, 8):
+                    with vsc.implies(((s.b - 1) >= (2 ** (i - 1)))
+                                     & ((s.b - 1) < (2 ** i))):
+                        s.a == i
+
+        c = C()
+        with _xcheck() as tally:
+            for i in range(1, 64):
+                with c.randomize_with():
+                    c.b == i
+                expect = 0 if i < 2 else math.ceil(math.log2(i))
+                self.assertEqual(int(c.a), expect,
+                                 "clog2(%d): a=%d, expected %d" % (i, int(c.a),
+                                                                   expect))
+            self.assertEqual(tally()["mismatch"], 0)
+
+        # Confirm it takes the *defer* path (not a native-but-wrong one).
+        saved = rndmod.set_fallback_tally(True)
+        rndmod.reset_fallback_tally()
+        try:
+            c2 = C()
+            with c2.randomize_with():
+                c2.b == 5
+            self.assertIn("implies-aux", rndmod.get_fallback_tally(),
+                          "clog2 guard should defer with reason 'implies-aux'")
+        finally:
+            rndmod.reset_fallback_tally()
+            rndmod.set_fallback_tally(saved)
+
     # ------------------------------------------------------------------ #
     # T-E1c — strided sampling is deterministic                            #
     # ------------------------------------------------------------------ #

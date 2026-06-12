@@ -50,7 +50,10 @@ Available back-ends
    exclusion) rather than being expanded into ordinary constraints. A few
    ``dist`` shapes still defer to the fallback: ``dist`` over array elements,
    conditional/multiple ``dist`` on one field, and ``dist`` on a field wider
-   than 64 bits. *(Introduced incrementally; see the integration notes under*
+   than 64 bits. An implication/``if`` whose **guard** combines comparisons over
+   lifted arithmetic (e.g. ``((b-1) >= 4) & ((b-1) < 8) -> ...``) also defers, so
+   it is solved correctly by the fallback rather than risk an unsound native
+   model. *(Introduced incrementally; see the integration notes under*
    ``doc/notes`` *for current coverage.)*
 
 How dv-solve decides

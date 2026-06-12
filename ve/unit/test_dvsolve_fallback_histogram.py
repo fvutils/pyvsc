@@ -61,6 +61,8 @@ _RESIDUAL_ALLOWLIST = {
     "dist",         # >64-bit dist / conditional / multiple-dist-on-field
     "array",        # n>64 select, >64 summands, wide aggregate, object randsz
     "unsat-defer",  # width-range UNSAT the primary won't declare authoritatively
+    "implies-aux",  # implication/if guard combines comparisons over lifted
+                    # arithmetic — bounds-engine disjunction prop is unsound (F-E3)
 }
 
 
@@ -171,9 +173,23 @@ def _residual_corpus():
             vsc.dist(s.a, [vsc.weight((1, 3), 1),
                            vsc.weight(((1 << 80), (1 << 80) + 5), 2)])
 
+    @vsc.randobj
+    class ImpliesArithGuard(object):
+        # Implication guard = logical AND of comparisons over lifted arithmetic
+        # (the clog2 idiom). The bounds engine's disjunction propagation is
+        # unsound here, so dv-solve defers rather than emit a wrong model (F-E3).
+        def __init__(s):
+            s.a = vsc.rand_uint8_t()
+            s.b = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            with vsc.implies(((s.b - 1) >= 4) & ((s.b - 1) < 8)):
+                s.a == 3
+
     return [
         ("width256", "width", Width256),
         ("wide_dist", "dist", WideDist),
+        ("implies_arith_guard", "implies-aux", ImpliesArithGuard),
     ]
 
 

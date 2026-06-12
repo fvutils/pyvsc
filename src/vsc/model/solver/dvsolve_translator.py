@@ -137,6 +137,11 @@ class DvSolveExprTranslator(ModelVisitor):
         self._want_var = False
         # Set by each visit: True iff its result is a plain var/const ref.
         self._last_simple = False
+        # Count of auxiliary vars allocated so far (via _new_aux). Used to detect
+        # when translating an implication/if guard had to lift arithmetic into an
+        # aux — an unsound shape for the disjunction encoding (see
+        # _translate_guarded_cond).
+        self._aux_count = 0
         # Non-rand fields referenced as constants, with their value at build
         # time. The backend uses this to invalidate a cached compiled problem
         # when a referenced non-rand field's value changes (the value is baked
@@ -257,8 +262,39 @@ class DvSolveExprTranslator(ModelVisitor):
             lo = 0
             hi = (1 << w) - 1
         aux = self._m.alloc_aux()
+        self._aux_count += 1
         self._b.add_var(aux, w, signed, lo, hi)
         return self._b.expr_var(aux)
+
+    def _translate_guarded_cond(self, cond_e) -> int:
+        """Translate an implication / if-else *guard* (antecedent), deferring if
+        it lowers unsoundly.
+
+        An implication ``cond -> body`` is encoded as the disjunction
+        ``(!cond) || body``. When ``cond`` is a **logical AND/OR of comparisons
+        whose operands had to be lifted into aux variables** (arithmetic in the
+        guard, e.g. ``((b-1) >= 4) & ((b-1) < 8)`` — the clog2 idiom), the
+        bounds-propagation engine's propagation through ``NOT(AND(...))`` over
+        aux-defined comparison operands is **unsound**: it can leave ``body``
+        unconstrained even when the guard is in fact true, producing a model that
+        violates the implication (confirmed by the XCHECK differential check —
+        Phase E / F-E3). The failure is asymmetric and fragile (a lifted operand
+        on the AND's left side triggers it; the right side may not), so rather
+        than rely on that, defer the whole RandSet to the fallback whenever a
+        logical-combination guard lifts an aux. A *single* relational comparison
+        with arithmetic (``implies((b-1) >= 4)``) is sound and kept native."""
+        aux_before = self._aux_count
+        ref = self.translate(cond_e)
+        lifted = self._aux_count > aux_before
+        is_logical_combo = getattr(cond_e, "op", None) in (
+            BinExprType.And, BinExprType.Or)
+        if lifted and is_logical_combo:
+            raise BackendIncomplete(
+                "dv-solve: implication/if guard combines comparisons over "
+                "lifted arithmetic; the bounds engine's disjunction propagation "
+                "is unsound here — deferring to the fallback",
+                reason_code="implies-aux")
+        return self._to_bool(ref, cond_e)
 
     def _conj(self, refs) -> int:
         """Logical-AND-combine a list of boolean refs; empty list -> true."""
@@ -541,7 +577,7 @@ class DvSolveExprTranslator(ModelVisitor):
             # Guard is constant-true: assert the body unconditionally.
             self._result = self._conj([self.translate(cc) for cc in c.constraint_l])
             return
-        cond = self._to_bool(self.translate(c.cond), c.cond)
+        cond = self._translate_guarded_cond(c.cond)
         body = self._conj([self.translate(cc) for cc in c.constraint_l])
         # cond -> body  ==  (!cond) || body  (logical OR; the native compiler
         # does not accept a top-level ite as a constraint).
@@ -559,7 +595,7 @@ class DvSolveExprTranslator(ModelVisitor):
             self._result = (self.translate(c.false_c)
                             if c.false_c is not None else self._b.expr_const(1))
             return
-        cond = self._to_bool(self.translate(c.cond), c.cond)
+        cond = self._translate_guarded_cond(c.cond)
         notcond = self._b.expr_unary(UN_NOT, cond)
         true_c = self.translate(c.true_c)
         if c.false_c is None:
