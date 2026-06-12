@@ -1,16 +1,28 @@
 # dv-solve Phase E Plan: Self-Sufficiency, Cross-Check, and Fallback Burn-Down
 
-Status: **IN PROGRESS** — E0 (histogram dashboard), E1 (XCHECK), and E4-2 (lib.py
-load fix) landed 2026-06-12; see §0.5/§0.6 build logs. XCHECK found and we **fixed**
-a real dv-solve soundness bug (clog2 implication guards, F-E3); **full `ve/unit`
-under XCHECK now passes (466, 0 mismatches)** — dv-solve agrees with Boolector
-across the suite. F-E1 resolved (mislabeled reason code, not a bug — now split
-`bvsat-sat-deferred` vs `bvsat-undecided`); whole-suite histogram proves the
-correctness codes are zero (F-E5). F-E2 resolved (wide-range re-tag). **E2
-(serve-SAT telemetry/posture) and E4 (diagnostics + lib-load) DONE.** Remaining:
-E3 optional native burn-downs (perf/completeness, soundly backstopped) and the
-deferred Phase F (drop the net / flip default). Full `ve/unit` under XCHECK = 468
-passed, 0 mismatches.
+Status: **E0–E2 + E4 DONE; E3 correctness goal MET (optional native burn-downs
+remain); Phase F deferred.** (2026-06-12)
+
+Landed this round (all committed on branch `mballance/dv-solve`, lib fix on nested
+`packages/dv-solve`):
+- **E0** fallback histogram dashboard + always-on tally (§0.5).
+- **E1** XCHECK differential cross-check (§0.6) — found & fixed a real soundness
+  bug (**F-E3**, clog2 implication guards).
+- **E2** serve-SAT posture documented + SAT-path telemetry (`bvsat-sat-deferred`).
+- **E4** diagnostics-under-dv-solve regression (E4-1) + lib auto-load fix (E4-2).
+- Findings: **F-E3** fixed; **F-E1** resolved (mislabeled code → split
+  `bvsat-sat-deferred` vs `bvsat-undecided`); **F-E2** resolved (wide-above-int64
+  re-tagged `wide-range`); **F-E4** abstained (comparator gap, not a bug);
+  **F-E5** telemetry (`bvsat-sat-deferred = 2796` suite-wide).
+
+Headline validation: **full `ve/unit` under `VSC_DVSOLVE_XCHECK=1` = 468 passed,
+0 mismatches** — dv-solve in complete verdict+membership agreement with Boolector
+across the suite — and the **correctness reason codes (`search-incomplete`,
+`bvsat-undecided`) are 0 suite-wide.**
+
+Remaining: **E3 optional native burn-downs** (reduce the 2796 `bvsat-sat-deferred`
+volume — primary-engine completeness; perf, not correctness — see §5/§10) and the
+**deferred Phase F** (drop the internal net / flip the global default).
 Date: 2026-06-12
 Parent: `dv_solve_feature_completeness_plan.md` §3 Phase E (re-scoped below)
 Companions:
@@ -171,13 +183,15 @@ design points:
   destroys the trust it exists to build. The faithful, populated-model path is
   what catches real bugs.
 
-**Tests:** `ve/unit/test_dvsolve_xcheck.py` (9 tests): clean agreement, *catches a
+**Tests:** `ve/unit/test_dvsolve_xcheck.py` (10 tests): clean agreement, *catches a
 deliberately corrupted model*, membership on the historically-buggy shapes (`~`,
-signed/unsigned, dist, randsz, wide), strided-sampling determinism, warn-mode
-tally. **All green.** Default path unaffected (hook is a no-op when XCHECK off).
+signed/unsigned, dist, randsz, wide), the clog2 soundness regression
+(`test_te1b_clog2_implies_arith`), strided-sampling determinism, warn-mode tally.
+**All green.** Default path unaffected (hook is a no-op when XCHECK off).
 
 **Validation: full `ve/unit` under `VSC_SOLVER=dv-solve VSC_DVSOLVE_XCHECK=1`
-surfaced exactly one mismatch — a real bug (below).**
+surfaced exactly one mismatch — a real bug (F-E3 below), now fixed. After all
+Phase-E fixes the suite is fully green under XCHECK (468 passed, 0 mismatches).**
 
 ### Findings surfaced by XCHECK (→ E3)
 
@@ -220,43 +234,55 @@ surfaced exactly one mismatch — a real bug (below).**
 ## 1. Current state — reason codes and where they are raised
 
 dv-solve's deferrals all raise `BackendIncomplete(reason_code=...)`; the
-Randomizer's `_solve_randset` loop (`randomizer.py:464-501`) tallies them via
-`SolveInfo.add_fallback` (`profile/solve_info.py:36`) and, under
-`VSC_DVSOLVE_NO_FALLBACK=1` (`randomizer.py:85,486`), re-raises instead of serving
-from Boolector. The live reason codes and their raise sites:
+Randomizer's `_solve_randset` loop (`randomizer.py`) tallies them via both the
+always-on `record_fallback` (E0) and `SolveInfo.add_fallback`, and under
+`VSC_DVSOLVE_NO_FALLBACK=1` re-raises instead of serving from Boolector.
 
-| `reason_code` | Raised at | Meaning | Phase-E disposition |
+**This table is the CURRENT (post-E0–E2) reason-code taxonomy** — the codes were
+refined during this work (the F-E1/F-E2 splits added `bvsat-sat-deferred` and
+`wide-range`; the F-E3 fix added `implies-aux`). Raise sites are described by
+function rather than line number (line numbers drift):
+
+| `reason_code` | Raised in / when | Class | Status |
 |---|---|---|---|
-| `width` | `dvsolve_backend.py:215` | field width > 255 bits (uint8 width field) | **permanent residual** (document) |
-| `unsat-defer` | `:281`, `:687` | domain outside width range / width-range UNSAT — let oracle decide | burn down (A-class) or document |
-| `dist` | `:328,:338,:728-759` | dist shapes not natively encodable (>64-bit dist, conditional/multiple-dist-on-field, array dist) | burn down per Phase B/C §5 or document |
-| `array` | Phase C §5 set | n>64 select, >64 summands, wide-result aggregate, object randsz, >64-bit elements | burn down per Phase C §5 or document |
-| `search-incomplete` | `:491` | primary bounds search couldn't decide, BV-SAT didn't serve | **must reach zero** (correctness) |
-| `bvsat-undecided` | `:573` | BV-SAT returned UNKNOWN/timeout | **must reach zero** (correctness) |
-| `bvsat-disabled` | `:532` | `VSC_DVSOLVE_BVSAT=0` set | test-only knob; ignore in prod histogram |
-| (serve deferral) | `:413` fall-through when `has_order` / no sampler | order-bearing / sampler-absent SAT *serving* → Boolector serves values | **expected residual** while serve-SAT stays opt-in |
+| `search-incomplete` | primary bounds search couldn't decide and BV-SAT didn't serve | **correctness — must be 0** | **0 across `ve/unit`** ✓ |
+| `bvsat-undecided` | BV-SAT returned a *genuine* UNKNOWN/ERROR (A-4 guard / timeout) | **correctness — must be 0** | **0 across `ve/unit`** ✓ |
+| `bvsat-sat-deferred` | primary couldn't decide, BV-SAT **proved SAT**, deferred for distribution / `solve_order` (serve-SAT off) | residual (expected) | documented; **2796** suite-wide (the E2-2 SAT-path-fraction metric, F-E5) |
+| `dist` | dist shapes not natively encodable (>64-bit dist, conditional/multiple-dist-on-field, array dist) | residual | documented (Phase B/C §5) |
+| `array` | n>64 select, >64 summands, wide-result aggregate, object randsz, >64-bit elements | residual | documented (Phase C §5) |
+| `implies-aux` | implication/if guard is a logical And/Or of comparisons over **lifted arithmetic** (F-E3) | residual (sound defer) | added by the F-E3 fix; locked by test |
+| `wide-range` | >64-bit field whose bound exceeds the int64 `add_var` envelope (often SAT, just unrepresentable) (F-E2) | residual | added by the F-E2 re-tag |
+| `unsat-defer` | **narrow** (≤64-bit) field whose domain is genuinely outside its width range (e.g. `a==500` on uint8) | residual (near-unsat) | documented |
+| `width` | field width > 255 bits (uint8 `add_var` width field) | **permanent residual** | documented |
+| `bvsat-disabled` | `VSC_DVSOLVE_BVSAT=0` set | test-only knob | ignore in prod histogram |
 
-Telemetry/flags that already exist (no new infra needed for A):
-- `VSC_DVSOLVE_NO_FALLBACK` (strict re-raise) — `randomizer.py:85`.
-- `SolveInfo.fallback_reasons` histogram — `solve_info.py:31`.
-- `VSC_DVSOLVE_BVSAT` (engine on/off), `VSC_DVSOLVE_BVSAT_SERVE_SAT` (serve SAT,
-  default **0**), `VSC_DVSOLVE_BVSAT_SAMPLER` (uniform sampler, default 1 *when
-  serving*) — `dvsolve_backend.py:47,60,67`.
-- `Randomizer.fallback_backends` built at `randomizer.py:333-338` (Boolector
-  appended iff primary ≠ boolector).
+The **two correctness codes** (`search-incomplete`, `bvsat-undecided`) are proven
+**zero** across the whole suite by the E0 dashboard — dv-solve never accepts a
+problem it cannot authoritatively decide. Everything else is a documented residual
+served correctly by the fallback.
 
-**Gap:** `solve_info` is only allocated when `profile_on()` is true
-(`randomizer.py:723-728`), so today there is **no always-on, suite-wide** way to
-collect the histogram. That is exactly what E0 builds.
+Telemetry / flags (current):
+- `VSC_DVSOLVE_NO_FALLBACK` — strict re-raise (Phase 0).
+- `VSC_DVSOLVE_FALLBACK_TALLY` — **always-on, profiling-independent** histogram
+  (`randomizer.record_fallback` / `get_fallback_tally` / `reset_fallback_tally` /
+  `set_fallback_tally`). Built by E0 — this *resolved* the original "no suite-wide
+  histogram" gap.
+- `VSC_DVSOLVE_XCHECK` / `_WARN` / `_RATE` — the E1 differential cross-check.
+- `VSC_DVSOLVE_BVSAT` / `_SERVE_SAT` (default **0**) / `_SAMPLER` (default 1 when
+  serving).
+- `VSC_DVSOLVE_PLAN_CACHE` / `VSC_DVSOLVE_REUSE`.
+- `Randomizer.fallback_backends` — Boolector appended iff primary ≠ boolector.
 
-There is also one **orphan bug** noted in the sampler plan §2.10 to fix here:
-`dv_solve/lib.py`'s build-dir search computes `pkg_root` one level too high
-(`packages/` instead of `packages/dv-solve/`), so the native lib only loads via
-`ZSP_SOLVER_PATH`/`LD_LIBRARY_PATH`. Folded into E4.
+The `dv_solve/lib.py` `pkg_root` orphan bug is **fixed** (E4-2): the native lib
+now auto-loads from `packages/dv-solve/build` with no env override.
 
 ---
 
 ## 2. Workstream E0 (= parent P0-T) — the fallback histogram dashboard `[vsc]`
+
+> **STATUS: DONE (2026-06-12, §0.5).** Always-on tally in `randomizer.py`
+> (`VSC_DVSOLVE_FALLBACK_TALLY`) + `ve/unit/test_dvsolve_fallback_histogram.py`
+> (dashboard + regression guard). The spec below is the original design.
 
 The burn-down instrument every other workstream reports against. Two deliverables:
 a **collection hook** (always-on, cheap) and a **standing test** (the dashboard +
@@ -307,6 +333,13 @@ any future regression (new defer, or a zeroed code coming back) breaks CI.
 ---
 
 ## 3. Workstream E1 — XCHECK differential mode `[vsc]` (the trust engine)
+
+> **STATUS: DONE (2026-06-12, §0.6).** `src/vsc/model/solver/xcheck.py` +
+> `_solve_randset` hook + `ve/unit/test_dvsolve_xcheck.py` (10 tests). Implemented
+> as a **model check** (membership + verdict of the model dv-solve already
+> produced) — no re-solve, no randstate consumed — rather than the re-solve the
+> spec below sketches. Found + fixed a real soundness bug (F-E3). The spec below
+> is the original design.
 
 The centerpiece of the dual-running window. When `VSC_DVSOLVE_XCHECK=1`, every
 RandSet solved by dv-solve is **also** solved by Boolector on the same problem and
@@ -408,6 +441,25 @@ So E2 is **policy + measurement**, not a flip:
 
 ## 5. Workstream E3 — residual reason-code burn-down `[vsc]` + `[dvs]`
 
+> **STATUS (2026-06-12): correctness goal MET; remaining items are optional native
+> burn-downs (perf/completeness, soundly backstopped — not correctness).**
+> - ✅ **`search-incomplete` = `bvsat-undecided` = 0** across the whole `ve/unit`
+>   suite (E0 dashboard, whole-suite aggregate). dv-solve never accepts a problem
+>   it can't authoritatively decide.
+> - ✅ The three findings are resolved: **F-E3** (clog2 implication guard — a real
+>   soundness bug, fixed by deferring), **F-E1** (randsz "undecided" was a
+>   mislabeled SAT-deferral — reason code split), **F-E2** (wide-above-int64
+>   mis-tagged `unsat-defer` — re-tagged `wide-range`). See §0.5/§0.6.
+> - ✅ The canonical residual taxonomy is the §1 table; the E0 dashboard's
+>   allowlist mirrors it, so doc and test can't drift.
+> - ⏳ **Remaining (optional, non-gating):** make the heavy residuals solve
+>   *natively* instead of deferring — chiefly the **`bvsat-sat-deferred` = 2796**
+>   volume (improve primary-engine completeness, e.g. gapped/no-zero randsz size
+>   domains) and the `wide-range` / wide-`dist` cases (encode >int64 bounds into
+>   the SolveProblem so BV-SAT serves at true width). These reduce the
+>   Boolector-for-serving dependency (the real path to self-sufficiency, §F) but
+>   change no correctness outcome.
+
 For each live reason code, either land the native encoding (→ count goes to zero in
 the E0 dashboard) or **consciously accept it as a documented permanent residual**
 served by the Boolector net. The split:
@@ -451,6 +503,11 @@ defer exists (E0 enforces).
 ---
 
 ## 6. Workstream E4 — keep diagnostics on Boolector + orphan fixes `[vsc]`
+
+> **STATUS (2026-06-12): DONE.** E4-1 verified + locked by
+> `test_solve_failure.py::test_diagnostics_with_dvsolve_primary` (an UNSAT under
+> dv-solve primary still produces Boolector-backed diagnostics). E4-2 lib-load fix
+> landed (auto-loads from `packages/dv-solve/build`, no env override).
 
 - **E4-1 Diagnostics stays on Boolector (parent §6.5 / E-2).** `create_diagnostics`
   (`randomizer.py:503`) is human-facing failure explanation and **must keep
@@ -553,30 +610,35 @@ noted, in new files mirroring the Phase B/C skeleton (`_dvsolve_available()` ski
 ## 10. Sequencing & gates
 
 ```
-E0 (histogram dashboard) ──┬─> E1 (XCHECK)  ── the trust campaign (runs continuously)
-                           ├─> E2 (serve-SAT policy/measurement, no flip)
-                           ├─> E3 (residual burn-down; corpus codes → 0 / documented)
-                           └─> E4 (diagnostics keep + lib.py fix)
+E0 (histogram dashboard) ✅─┬─> E1 (XCHECK) ✅  ── found+fixed F-E3; suite green under XCHECK
+                           ├─> E2 (serve-SAT posture + SAT-path telemetry) ✅
+                           ├─> E3 (correctness codes → 0 ✅; optional native burn-downs ⏳)
+                           └─> E4 (diagnostics ✅ + lib.py fix ✅)
                                               └─> [Phase F — DEFERRED: drop net, flip default]
 ```
 
-- **E0 first** — it is the measurement everything else reports against, it is the
-  parent's one open Phase-0 item, and it is cheap. Do it now.
-- **E1 in parallel** — highest value during the adoption window; it is what turns
-  user runs into bug reports.
-- **E2/E3/E4** burn down and document against the E0 dashboard.
+- **E0–E2, E4: DONE** (2026-06-12). E3's correctness goal is met (both correctness
+  codes proven 0 suite-wide); only the *optional* native burn-downs remain (reduce
+  `bvsat-sat-deferred`/`wide-range` — perf, not correctness).
 - **Phase F stays out** until the adoption window closes on evidence.
 
-## 11. Open decisions (for review)
+**For a fresh start, the single highest-value remaining thread** is reducing the
+`bvsat-sat-deferred = 2796` volume — i.e. improving primary-engine completeness so
+dv-solve *serves* more itself instead of leaning on Boolector. That is the
+substantive path toward self-sufficiency (and toward making Phase F viable). It is
+a translator/bounds-engine effort, not a correctness fix.
 
-1. **Histogram corpus scope.** Just the Phase B/C/D native corpora, or a full
-   `ve/unit` sweep? (Recommend: full sweep — it is the real-world signal.)
-2. **XCHECK default mismatch policy:** raise vs warn-and-tally. (Recommend: raise in
-   CI/tests, warn in the user-facing adoption mode so a long run surfaces *all*
-   mismatches rather than aborting on the first.)
-3. **Should `VSC_DVSOLVE_FALLBACK_TALLY` be folded into XCHECK** (one "audit mode"
-   env) rather than a separate knob? (Recommend: keep separate — tally is
-   zero-cost, XCHECK is ~2×; users will want tally-always, XCHECK-sometimes.)
-4. **Permanent-residual sign-off:** which §5 shapes are we content to leave on the
-   Boolector net *forever* (e.g. width>255) vs "burn down eventually"? Needs a
-   product call to finalize the residual table.
+## 11. Decisions — resolved during implementation (2026-06-12)
+
+1. **Histogram corpus scope** → **both.** The standing dashboard test uses a
+   curated native+residual corpus (deterministic regression guard); the suite-wide
+   sweep is run on demand via `VSC_DVSOLVE_FALLBACK_TALLY=1` (the F-E5 aggregate).
+2. **XCHECK mismatch policy** → **raise by default, `VSC_DVSOLVE_XCHECK_WARN=1` to
+   warn+tally.** As recommended.
+3. **`VSC_DVSOLVE_FALLBACK_TALLY` vs XCHECK** → **kept separate** (tally is
+   zero-cost always-on; XCHECK is ~2× opt-in).
+4. **Permanent-residual sign-off (still open, product call):** which residuals to
+   accept *forever* vs burn down. Current residual taxonomy is the §1 table;
+   `width` (>255 bits) is the clear permanent one. The rest (`bvsat-sat-deferred`,
+   `wide-range`, `dist`/`array` §5, `implies-aux`) are "burn down eventually,
+   correct on the net meanwhile." No correctness urgency.
