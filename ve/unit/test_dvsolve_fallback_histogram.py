@@ -64,6 +64,8 @@ _RESIDUAL_ALLOWLIST = {
     "dist",         # >64-bit dist / conditional / multiple-dist-on-field
     "array",        # n>64 select, >64 summands, wide aggregate, object randsz
     "unsat-defer",  # width-range UNSAT the primary won't declare authoritatively
+    "wide-range",   # >64-bit field whose bound exceeds the int64 add_var envelope
+                    # (representation limit, possibly SAT — served by fallback) F-E2
     "implies-aux",  # implication/if guard combines comparisons over lifted
                     # arithmetic — bounds-engine disjunction prop is unsound (F-E3)
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
@@ -205,11 +207,24 @@ def _residual_corpus():
         def sc(s):
             s.l.size.inside(vsc.rangelist(1, 2, 4, 8))
 
+    @vsc.randobj
+    class WideAboveInt64(object):
+        # >64-bit field whose bound exceeds the int64 add_var envelope. The
+        # problem is SAT (many 128-bit values exceed 2^63) but the wide bound
+        # can't round-trip through int64, so dv-solve defers — `wide-range`, a
+        # representation limit, not a genuine UNSAT (F-E2).
+        def __init__(s):
+            s.a = vsc.rand_bit_t(128)
+        @vsc.constraint
+        def c(s):
+            s.a > (1 << 63)
+
     return [
         ("width256", "width", Width256),
         ("wide_dist", "dist", WideDist),
         ("implies_arith_guard", "implies-aux", ImpliesArithGuard),
         ("randsz_gapped_size", "bvsat-sat-deferred", RandSzGappedSize),
+        ("wide_above_int64", "wide-range", WideAboveInt64),
     ]
 
 

@@ -276,12 +276,24 @@ class DvSolveBackend(SolverBackendIF):
             vid = idmap.add(f)
             dom = self._domain_of(f, bound_m)
             if dom is None:
-                # Field's domain is outside its representable range; defer
-                # the authoritative SAT/UNSAT verdict to the fallback.
+                # ``_domain_of`` emptied the field's enclosing range. Two distinct
+                # causes — keep them on separate reason codes so the dashboard's
+                # "unsat-defer" stays meaningful:
+                #  * width > 64: the bound exceeded the int64 ``add_var`` envelope
+                #    (a >int64 sub-range can't round-trip through int64). The
+                #    problem may well be SAT — we just can't encode the wide bound,
+                #    so we defer for the value. Tag `wide-range` (a representation
+                #    limit, NOT an unsat).
+                #  * width <= 64: the domain is genuinely outside what the field
+                #    can represent (e.g. ``a == 500`` on a uint8) — a real
+                #    near-unsat the fallback decides authoritatively. Tag
+                #    `unsat-defer`.
+                reason = "wide-range" if f.width > 64 else "unsat-defer"
                 raise BackendIncomplete(
-                    "dv-solve: field '%s' domain is outside its width range" %
-                    getattr(f, "name", "?"),
-                    reason_code="unsat-defer")
+                    "dv-solve: field '%s' domain is outside its %s range" % (
+                        getattr(f, "name", "?"),
+                        "int64-representable" if f.width > 64 else "width"),
+                    reason_code=reason)
             lo, hi, gap_ranges = dom
             b.add_var(vid, f.width, bool(f.is_signed), lo, hi)
             sample_vars.append((vid, int(f.width), lo, hi, bool(f.is_signed)))

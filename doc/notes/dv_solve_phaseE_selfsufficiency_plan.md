@@ -6,7 +6,8 @@ a real dv-solve soundness bug (clog2 implication guards, F-E3); **full `ve/unit`
 under XCHECK now passes (466, 0 mismatches)** — dv-solve agrees with Boolector
 across the suite. F-E1 resolved (mislabeled reason code, not a bug — now split
 `bvsat-sat-deferred` vs `bvsat-undecided`); whole-suite histogram proves the
-correctness codes are zero (F-E5). E2, E3 (F-E2 wide-range), E4-1 pending.
+correctness codes are zero (F-E5). F-E2 resolved (wide-range re-tag). E2
+(serve-SAT telemetry/decision), E4-1 (diagnostics check) pending.
 Date: 2026-06-12
 Parent: `dv_solve_feature_completeness_plan.md` §3 Phase E (re-scoped below)
 Companions:
@@ -126,17 +127,21 @@ the dashboard exists to find.** Both recorded here as E3/§5 input:
   bounds engine (fewer SAT-deferrals) or (b) serve-SAT + the uniform sampler on by
   default — the real content of E2/Phase F. The number is now a standing dashboard
   metric to drive down.
-- **F-E2 (residual-class): constrained wide field above the int64 envelope →
-  `unsat-defer`.** A >64-bit field whose bound exceeds int64 (e.g. `a > (1<<63)`
-  on a 128-bit field) defers — `_domain_of` (`dvsolve_backend.py:660-688`) clamps
-  the width-range to the int64 envelope and empties it, returning None → defer.
-  Sub-int64-bounded wide (`a < 1_000_000`) and unconstrained wide solve natively.
-  So Phase D "native wide" covers unconstrained / sub-int64-bounded fields; a
-  >int64 sub-range still defers. **Tagged `unsat-defer`, but it is a
-  width-representation defer, not a genuine UNSAT — E3 should re-tag it `width`
-  (or a new `wide-range` code) so the histogram doesn't conflate it with real
-  width-range-UNSAT cases**, and decide whether to burn it down (route to BV-SAT
-  at true width) or document it as a permanent residual.
+- **F-E2 (RESOLVED 2026-06-12 — re-tagged; residual documented).** A >64-bit
+  field whose bound exceeds int64 (e.g. `a > (1<<63)` on a 128-bit field) defers —
+  `_domain_of` (`dvsolve_backend.py:660-688`) clamps the width-range to the int64
+  envelope and empties it, returning None → defer. Sub-int64-bounded wide
+  (`a < 1_000_000`) and unconstrained wide solve natively. So Phase D "native
+  wide" covers unconstrained / sub-int64-bounded fields; a >int64 sub-range still
+  defers. It was tagged `unsat-defer`, conflating it with a *genuine* narrow-field
+  width-range UNSAT (`a == 500` on uint8). **Fix:** the var-declaration raise now
+  tags a wide-field (>64-bit) empty-domain defer as **`wide-range`** (a
+  representation limit, possibly SAT, served by the fallback) and keeps
+  `unsat-defer` for the genuine narrow-field case. Dashboard updated:
+  `wide-range` is a documented residual with its own corpus entry. *Optional
+  future burn-down:* encode the >int64 bound into the SolveProblem so the
+  width-agnostic BV-SAT engine serves it at true width (a Phase-D wide-literal
+  item) instead of deferring — not a correctness need (soundly backstopped).
 
 ---
 
