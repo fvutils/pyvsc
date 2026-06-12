@@ -565,14 +565,27 @@ class DvSolveBackend(SolverBackendIF):
                 for f, vid in readback:
                     f.set_val(self._bb_value(bb, vid, sample_vars))
                 return SolveResult(status=0)
-            # rc == BVSAT_SAT (default): the problem IS satisfiable, but BV-SAT's
-            # model distribution is too clustered for stimulus — defer to the
-            # distribution-preserving fallback to actually pick the values.
-            # rc == UNKNOWN/ERROR: an A-4 guard tripped or the engine couldn't
-            # decide — defer as well.
+            # Two distinct deferrals share this exit — keep their reason codes
+            # SEPARATE so the burn-down dashboard's correctness signal is honest:
+            #
+            #  * rc == BVSAT_SAT: the problem IS satisfiable (BV-SAT proved it),
+            #    but we are not serving it here — either serve-SAT is off and
+            #    BV-SAT's model is too clustered for stimulus, or the RandSet is
+            #    order-bearing and the sampler can't honor solve_order. Defer to
+            #    the distribution-preserving fallback to pick the values. This is
+            #    EXPECTED, correct operation of the two-engine architecture, not a
+            #    completeness gap — tag it `bvsat-sat-deferred` (a residual).
+            #  * rc == UNKNOWN/ERROR: an A-4 guard tripped or the engine genuinely
+            #    could not decide. This is the real completeness gap the dashboard
+            #    must drive to zero — tag it `bvsat-undecided`.
+            if rc == BVSAT_SAT:
+                raise BackendIncomplete(
+                    "dv-solve BV-SAT proved SAT but is not serving it "
+                    "(distribution / solve_order); deferring to fallback",
+                    reason_code="bvsat-sat-deferred")
             raise BackendIncomplete(
-                "dv-solve BV-SAT verdict=%d (sat-not-served / undecided); "
-                "deferring to fallback" % rc,
+                "dv-solve BV-SAT verdict=%d (undecided); deferring to fallback"
+                % rc,
                 reason_code="bvsat-undecided")
         finally:
             bb.destroy()

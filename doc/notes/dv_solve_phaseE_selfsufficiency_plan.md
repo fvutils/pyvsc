@@ -4,7 +4,9 @@ Status: **IN PROGRESS** — E0 (histogram dashboard), E1 (XCHECK), and E4-2 (lib
 load fix) landed 2026-06-12; see §0.5/§0.6 build logs. XCHECK found and we **fixed**
 a real dv-solve soundness bug (clog2 implication guards, F-E3); **full `ve/unit`
 under XCHECK now passes (466, 0 mismatches)** — dv-solve agrees with Boolector
-across the suite. E2, E3 (the remaining F-E1/F-E2 findings), E4-1 pending.
+across the suite. F-E1 resolved (mislabeled reason code, not a bug — now split
+`bvsat-sat-deferred` vs `bvsat-undecided`); whole-suite histogram proves the
+correctness codes are zero (F-E5). E2, E3 (F-E2 wide-range), E4-1 pending.
 Date: 2026-06-12
 Parent: `dv_solve_feature_completeness_plan.md` §3 Phase E (re-scoped below)
 Companions:
@@ -92,15 +94,38 @@ The dashboard immediately surfaced two real deferrals in shapes the prior plans
 imply are native. **Neither is an E0 bug — they are exactly the burn-down items
 the dashboard exists to find.** Both recorded here as E3/§5 input:
 
-- **F-E1 (correctness-class): randsz array → `bvsat-undecided` when 0 is excluded
-  from the size set.** A `randsz_list_t` with `foreach l[idx]==idx` and
-  `size.inside({0,1,2,4,8})` solves natively (no defer); the same shape with
-  `size.inside({1,2,4,8})` (size ≥ 1) defers with **`bvsat-undecided`** — a
-  *correctness* code the plan classifies "must reach zero." Deterministic by
-  rangelist content, not seed. So the primary search is incomplete on the
-  no-empty-prefix randsz shape **and** BV-SAT returns UNKNOWN on it. This is the
-  Phase-C "Finding-2" search-incompleteness, now reproduced minimally. **High
-  priority for E3** (correctness code, currently served only by the Boolector net).
+- **F-E1 (RESOLVED 2026-06-12 — NOT a bug; was a mislabeled reason code).**
+  A `randsz_list_t` with `size.inside({1,2,4,8})` (a *gapped* size domain
+  excluding 0) deferred with what the histogram showed as `bvsat-undecided`; the
+  same with `{0,1,2,4,8}`, a contiguous range `1..8`, or a single value solves
+  natively. **Investigation:** the value constraint is irrelevant (even with no
+  value constraint it defers); BV-SAT returns **SAT (rc=10), never UNKNOWN** —
+  the primary bounds search just can't decide a gapped-no-zero size domain, BV-SAT
+  *proves it SAT*, and dv-solve correctly defers to the fallback for distribution
+  (serve-SAT off). **So this is the designed two-engine path, not a soundness
+  gap.** The bug was that `_solve_via_bvsat` used **one** reason code
+  (`bvsat-undecided`) for *both* "BV-SAT proved SAT, deferred for distribution/
+  solve_order" and "BV-SAT genuinely UNKNOWN." **Fix:** split them —
+  `bvsat-sat-deferred` (SAT, deferred — an expected residual) vs `bvsat-undecided`
+  (genuine UNKNOWN — the real must-reach-zero code). Dashboard updated: the
+  gapped-randsz case is a documented `bvsat-sat-deferred` residual; correctness
+  codes stay `search-incomplete`/`bvsat-undecided`. **Whole-suite histogram now
+  proves both correctness codes are ZERO** (see F-E5). *Optional future:* improve
+  the primary bounds engine to decide gapped-no-zero size domains natively (a
+  completeness/perf win, not a correctness need — it's soundly backstopped).
+- **F-E5 (telemetry — the E2-2 SAT-path fraction, surfaced by the split).**
+  The whole-`ve/unit` aggregate histogram under dv-solve (tally on):
+  `bvsat-sat-deferred = 2796`, `array = 48`, `unsat-defer = 2`, `width = 1`, and
+  **`search-incomplete = bvsat-undecided = 0`.** The headline: dv-solve **never**
+  accepts a problem it can't authoritatively decide (zero genuine-undecided), but
+  it leans on the BV-SAT-proves-SAT → Boolector-serves path **very heavily**
+  (~2796 randset-events). That is the E2-2 measurement: while serve-SAT is off,
+  Boolector is doing a large share of *value serving* even though dv-solve owns
+  the *verdict*. **Implication for self-sufficiency:** closing the
+  Boolector-for-serving dependency needs either (a) a more complete primary
+  bounds engine (fewer SAT-deferrals) or (b) serve-SAT + the uniform sampler on by
+  default — the real content of E2/Phase F. The number is now a standing dashboard
+  metric to drive down.
 - **F-E2 (residual-class): constrained wide field above the int64 envelope →
   `unsat-defer`.** A >64-bit field whose bound exceeds int64 (e.g. `a > (1<<63)`
   on a 128-bit field) defers — `_domain_of` (`dvsolve_backend.py:660-688`) clamps

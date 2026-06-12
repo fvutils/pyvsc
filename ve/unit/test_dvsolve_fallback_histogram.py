@@ -50,7 +50,10 @@ def _dvsolve_available():
 
 # Reason codes that signal a *bug*, not a feature gap: dv-solve accepted a
 # problem it could neither solve nor authoritatively decide. These must be zero
-# on the corpus (both the served and ":hard" re-raised variants).
+# on the corpus (both the served and ":hard" re-raised variants). Note
+# `bvsat-undecided` here means a *genuine* BV-SAT UNKNOWN/ERROR — the case where
+# BV-SAT proves SAT but defers for distribution/solve_order is the separate,
+# expected `bvsat-sat-deferred` residual (F-E1), not a correctness signal.
 _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 
 # The documented residual allowlist: reason codes dv-solve may *consciously*
@@ -63,6 +66,9 @@ _RESIDUAL_ALLOWLIST = {
     "unsat-defer",  # width-range UNSAT the primary won't declare authoritatively
     "implies-aux",  # implication/if guard combines comparisons over lifted
                     # arithmetic — bounds-engine disjunction prop is unsound (F-E3)
+    "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
+                    # to the fallback for distribution / solve_order. Expected,
+                    # correct two-engine operation — NOT a completeness gap (F-E1).
 }
 
 
@@ -186,10 +192,24 @@ def _residual_corpus():
             with vsc.implies(((s.b - 1) >= 4) & ((s.b - 1) < 8)):
                 s.a == 3
 
+    @vsc.randobj
+    class RandSzGappedSize(object):
+        # randsz array whose size domain is a gapped set excluding 0
+        # ({1,2,4,8}). The primary bounds search can't decide this shape; BV-SAT
+        # *proves it SAT* and dv-solve defers to the fallback for distribution —
+        # `bvsat-sat-deferred`, the expected two-engine path, NOT a bug (F-E1).
+        # (A contiguous range, a single value, or including 0 all solve natively.)
+        def __init__(s):
+            s.l = vsc.randsz_list_t(vsc.uint16_t())
+        @vsc.constraint
+        def sc(s):
+            s.l.size.inside(vsc.rangelist(1, 2, 4, 8))
+
     return [
         ("width256", "width", Width256),
         ("wide_dist", "dist", WideDist),
         ("implies_arith_guard", "implies-aux", ImpliesArithGuard),
+        ("randsz_gapped_size", "bvsat-sat-deferred", RandSzGappedSize),
     ]
 
 
