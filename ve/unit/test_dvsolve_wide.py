@@ -268,6 +268,25 @@ class TestDvSolveWide(VscTestCase):
         with self.assertRaises(SolveFailure):
             it.randomize()
 
+    def test_wide_bound_above_int64(self):
+        """A bound that exceeds the int64 add_var envelope (``a > 2**63`` on a
+        128-bit field) is served natively by BV-SAT — not deferred (`wide-range`).
+        The real bound comes from the translated constraint's wide literal."""
+        @vsc.randobj
+        class W(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(128)
+
+            @vsc.constraint
+            def cc(self):
+                self.a > (1 << 63)
+
+        it = W()
+        for _ in range(20):
+            it.randomize()
+            self.assertGreater(int(it.a), (1 << 63),
+                               "wide-above-int64 bound not enforced")
+
 
 if __name__ == "__main__":
     unittest.main()

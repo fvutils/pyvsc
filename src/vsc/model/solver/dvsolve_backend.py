@@ -86,6 +86,27 @@ _BVSAT_SAMPLER = os.environ.get("VSC_DVSOLVE_BVSAT_SAMPLER", "1") != "0"
 _PLAN_ATTR = "_dvsolve_plan"
 
 
+def _guard_references_rand(cond_l):
+    """True iff any field referenced by the guard expressions in ``cond_l`` is a
+    rand field — i.e. the guard's truth is NOT a solve-time constant. Used to
+    decide whether a conditional dist's active branch can be resolved now."""
+    from vsc.model.model_visitor import ModelVisitor
+
+    class _Probe(ModelVisitor):
+        def __init__(self):
+            super().__init__()
+            self.has_rand = False
+
+        def visit_expr_fieldref(self, e):
+            if getattr(e.fm, "is_used_rand", False):
+                self.has_rand = True
+
+    p = _Probe()
+    for cond in cond_l:
+        cond.accept(p)
+    return p.has_rand
+
+
 class _CompiledPlan(object):
     """A built+compiled dv-solve problem retained for reuse.
 
@@ -367,27 +388,7 @@ class DvSolveBackend(SolverBackendIF):
         #     supply. Un-encodable shapes raise BackendIncomplete (deferral).
         for f in dist_fields:
             scopes = dist_field_m[f]
-            if len(scopes) != 1:
-                # Multiple dist on one field: native add_dist composition for
-                # repeated calls on one var is unconfirmed; the swizzler picks
-                # one per call (not per-seed-invariant). Defer (Phase-B §5).
-                raise BackendIncomplete(
-                    "dv-solve: multiple dist constraints on field '%s'" %
-                    getattr(f, "name", "?"),
-                    reason_code="dist")
-            if getattr(scopes[0], "is_conditional", False):
-                # A conditional dist (inside if/else/implies) applies only when
-                # its guard holds. Native add_dist weights the var
-                # unconditionally, which would wrongly restrict it when the
-                # guard is false — defer to the fallback, which honors the
-                # conditional structure (Phase-B §5).
-                raise BackendIncomplete(
-                    "dv-solve: conditional dist on field '%s'" %
-                    getattr(f, "name", "?"),
-                    reason_code="dist")
-            entries = self._dist_entries(f, scopes[0].dist_c)
-            if entries:
-                b.add_dist(idmap.id_of(f), entries)
+            self._add_dist_for_field(b, idmap, f, scopes)
 
         # 2. Hard constraints.
         for c in rs.constraints():
@@ -792,8 +793,21 @@ class DvSolveBackend(SolverBackendIF):
         lo = max(min(r[0] for r in range_l), w_lo)
         hi = min(max(r[1] for r in range_l), w_hi)
         if lo > hi:
-            # Domain lies entirely outside what the field can represent ->
-            # unsatisfiable at this width; let the fallback decide.
+            if f.width > 64:
+                # The constraint narrows the field beyond the int64 add_var
+                # envelope (e.g. `a > 2**63` on a 128-bit field). The field is
+                # wide, so it is routed to the width-agnostic BV-SAT engine, which
+                # gets the real bound from the *translated constraint* (which
+                # carries a wide literal). Declare the var free across its
+                # int64-capped natural range — assert_var_bounds reads that as "no
+                # bound asserted" for a wide var — and let the constraint + BV-SAT
+                # decide SAT/UNSAT and the value, instead of deferring
+                # (`wide-range`). No gap re-assertion: the original constraint
+                # already encodes the bound, and its literal can't round-trip
+                # through int64 here anyway.
+                return w_lo, w_hi, None
+            # width <= 64: the domain lies entirely outside what the field can
+            # represent -> unsatisfiable at this width; let the fallback decide.
             return None
         gap_ranges = range_l if len(range_l) > 1 else None
         return lo, hi, gap_ranges
@@ -821,6 +835,91 @@ class DvSolveBackend(SolverBackendIF):
     _I64_MIN = -(1 << 63)
     _I64_MAX = (1 << 63) - 1
     _U32_MAX = (1 << 32) - 1
+
+    def _add_dist_for_field(self, b, idmap, f, scopes):
+        """Emit the native ``add_dist`` weighting for field ``f`` from its dist
+        scope(s), resolving conditional dist (if/else/implies) where possible:
+
+         * One unconditional scope — emit its weighted ``add_dist`` (simple case).
+         * All-conditional scopes with solve-time-*constant* guards (e.g. an
+           if/else on a non-rand selector): evaluate the guards now and emit the
+           *active* branch's ``add_dist``; if no branch is active emit nothing —
+           the guarded ``inside`` membership (already compiled) fully constrains
+           the field.
+         * All-conditional scopes with a *rand* guard (branch not resolvable at
+           build time): emit a uniform ``add_dist`` over the *union* of the
+           branches' ranges so the value picker still covers the feasible set
+           evenly. The conditional *weighting* is dropped (documented
+           reduced-distribution guarantee for rand-guarded dist, Phase-B §5) —
+           correctness is unaffected since the hard membership is guarded.
+         * A plain dist mixed with others, or >1 active constant-guard branch:
+           genuinely ambiguous — defer (``reason_code="dist"``).
+        """
+        conditional = [s for s in scopes if getattr(s, "is_conditional", False)]
+        plain = [s for s in scopes if not getattr(s, "is_conditional", False)]
+
+        # Common path: exactly one unconditional dist.
+        if len(scopes) == 1 and not conditional:
+            entries = self._dist_entries(f, scopes[0].dist_c)
+            if entries:
+                b.add_dist(idmap.id_of(f), entries)
+            return
+
+        # A plain dist mixed with others on one field is ambiguous (which
+        # weighting wins?) — defer, as before.
+        if plain:
+            raise BackendIncomplete(
+                "dv-solve: multiple dist constraints on field '%s'" %
+                getattr(f, "name", "?"),
+                reason_code="dist")
+
+        # All scopes conditional. A rand guard can't be resolved now → serve a
+        # uniform union for coverage (weighting dropped).
+        if any(_guard_references_rand(getattr(s, "cond_l", []))
+               for s in conditional):
+            union = []
+            for s in conditional:
+                for e in self._dist_entries(f, s.dist_c):
+                    union.append({**e, "weight": 1})
+            if union:
+                b.add_dist(idmap.id_of(f), union)
+            return
+
+        # Constant guards: keep the branch(es) whose guard currently holds.
+        active = [s for s in conditional
+                  if self._guard_true(getattr(s, "cond_l", []))]
+        if len(active) == 0:
+            return                       # no active branch -> membership suffices
+        if len(active) > 1:
+            raise BackendIncomplete(
+                "dv-solve: multiple active conditional dist on field '%s'" %
+                getattr(f, "name", "?"),
+                reason_code="dist")
+        entries = self._dist_entries(f, active[0].dist_c)
+        if entries:
+            b.add_dist(idmap.id_of(f), entries)
+
+    @staticmethod
+    def _guard_true(cond_l):
+        """True iff every guard expression in ``cond_l`` currently evaluates true.
+        Only meaningful for solve-time-constant guards (see
+        ``_guard_references_rand``). Handles the ``Not(..)`` wrapper the if/else
+        builder puts on a false branch — ``ExprUnaryModel`` has no ``val()`` — by
+        recursing into the operand."""
+        from vsc.model.expr_unary_model import ExprUnaryModel
+        from vsc.model.unary_expr_type import UnaryExprType
+
+        def _eval(cond):
+            if isinstance(cond, ExprUnaryModel) and cond.op == UnaryExprType.Not:
+                return not _eval(cond.expr)
+            return bool(int(cond.val()))
+
+        try:
+            return all(_eval(c) for c in cond_l)
+        except Exception:
+            # A guard we can't evaluate → treat as not-satisfied so we never
+            # over-apply weighting (the membership still guarantees correctness).
+            return False
 
     def _dist_entries(self, field, dist_c):
         """Translate a ``ConstraintDistModel`` into native ``add_dist``

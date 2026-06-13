@@ -29,8 +29,18 @@ class ConstraintDistScopeModel(ConstraintInlineScopeModel):
 
         # True when this dist is enclosed by a conditional (if/else/implies),
         # set by RandInfoBuilder. A back-end that weights the variable
-        # unconditionally (dv-solve native add_dist) must defer these.
+        # unconditionally (dv-solve native add_dist) must defer these — unless it
+        # can resolve the guard (see cond_l).
         self.is_conditional = False
+
+        # The enclosing guard expressions (the active condition stack at the point
+        # this dist scope was visited), captured by RandInfoBuilder. For an
+        # if/else, the true branch carries its condition and the false branch its
+        # negation. A back-end can evaluate these to decide whether this scope's
+        # weighting applies on a given solve: when every referenced field is
+        # non-rand the guard is a solve-time constant, so the active branch's
+        # add_dist can be emitted natively (dv-solve conditional-dist support).
+        self.cond_l = []
 
     def next_target_range(self, randstate : RandState) -> int:
         """Select the next target range from the weight list"""

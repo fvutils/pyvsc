@@ -64,8 +64,6 @@ _RESIDUAL_ALLOWLIST = {
     "dist",         # >64-bit dist / conditional / multiple-dist-on-field
     "array",        # n>64 select, >64 summands, wide aggregate, object randsz
     "unsat-defer",  # width-range UNSAT the primary won't declare authoritatively
-    "wide-range",   # >64-bit field whose bound exceeds the int64 add_var envelope
-                    # (representation limit, possibly SAT — served by fallback) F-E2
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
                     # to the fallback for distribution / solve_order. Expected,
                     # correct two-engine operation — NOT a completeness gap (F-E1).
@@ -90,8 +88,6 @@ _RESIDUAL_ALLOWLIST = {
 _RESIDUAL_MANIFEST = {
     "width":        ("permanent",
                      "field width > 255 bits — C ABI uint8 add_var width cap"),
-    "wide-range":   ("closable",
-                     ">int64 bound; Phase-D wide-literal encode (non-trivial)"),
     "dist":         ("closable",
                      ">64-bit / conditional / multiple-dist-on-field — [dvs] dist "
                      "composition + wide encode"),
@@ -177,14 +173,35 @@ def _native_corpus():
     @vsc.randobj
     class Wide128(object):
         # Wide field with a sub-int64 bound: representable through add_var's
-        # int64 envelope, so dv-solve handles it natively (Phase D). A wide
-        # field whose bound exceeds int64 (e.g. ``a > (1<<63)``) defers with
-        # ``unsat-defer`` instead — a documented residual, see Phase E §5.
+        # int64 envelope, so dv-solve handles it natively (Phase D).
         def __init__(s):
             s.a = vsc.rand_bit_t(128)
         @vsc.constraint
         def c(s):
             s.a < 1000000
+
+    @vsc.randobj
+    class WideAboveInt64(object):
+        # Wide field whose *bound* exceeds the int64 add_var envelope
+        # (``a > 2**63`` on a 128-bit field). The field is routed to the
+        # width-agnostic BV-SAT engine, which gets the real bound from the
+        # translated constraint (a wide >64-bit literal lowered to a limb concat),
+        # so dv-solve force-serves it natively — no `wide-range` defer (Phase F).
+        def __init__(s):
+            s.a = vsc.rand_bit_t(128)
+        @vsc.constraint
+        def c(s):
+            s.a > (1 << 63)
+
+    @vsc.randobj
+    class WideEqLiteral(object):
+        # Equality against a >64-bit literal, lowered to a concat of limbs and
+        # solved natively by BV-SAT (exercises the wide-literal width fix).
+        def __init__(s):
+            s.a = vsc.rand_bit_t(128)
+        @vsc.constraint
+        def c(s):
+            s.a == 0xDEADBEEFCAFEBABE0123456789ABCDEF
 
     @vsc.randobj
     class NotInside(object):
@@ -224,6 +241,8 @@ def _native_corpus():
         ("fixed_array_sum", FixedArraySum),
         ("randsz_array", RandSzArray),
         ("wide_128", Wide128),
+        ("wide_above_int64", WideAboveInt64),
+        ("wide_eq_literal", WideEqLiteral),
         ("not_inside", NotInside),
         ("implies_arith_guard", ImpliesArithGuard),
     ]
@@ -280,24 +299,11 @@ def _residual_corpus():
             s.idx < 4
             s.arr[s.idx] == s.val
 
-    @vsc.randobj
-    class WideAboveInt64(object):
-        # >64-bit field whose bound exceeds the int64 add_var envelope. The
-        # problem is SAT (many 128-bit values exceed 2^63) but the wide bound
-        # can't round-trip through int64, so dv-solve defers — `wide-range`, a
-        # representation limit, not a genuine UNSAT (F-E2).
-        def __init__(s):
-            s.a = vsc.rand_bit_t(128)
-        @vsc.constraint
-        def c(s):
-            s.a > (1 << 63)
-
     return [
         ("width256", "width", Width256),
         ("wide_dist", "dist", WideDist),
         ("randsz_gapped_size", "bvsat-sat-deferred", RandSzGappedSize),
         ("var_indexed_select", "array", VarIndexedSelect),
-        ("wide_above_int64", "wide-range", WideAboveInt64),
     ]
 
 

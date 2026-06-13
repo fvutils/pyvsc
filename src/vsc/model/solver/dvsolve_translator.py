@@ -340,7 +340,17 @@ class DvSolveExprTranslator(ModelVisitor):
             # Fits a signed int64 directly.
             self._result = self._b.expr_const(v, signed)
         else:
-            w = int(e.width()) if e.width() else v.bit_length()
+            # Size the literal by the *value's* magnitude, not the declared
+            # width: a pyvsc Python-int literal defaults to width 32 regardless
+            # of magnitude (a 128-bit constant reports width() == 32), so trusting
+            # e.width() would route a >64-bit value through the 64-bit path below
+            # and truncate it (expr_const wraps to int64). The value bit-length is
+            # authoritative.
+            if signed:
+                vw = (v if v >= 0 else ~v).bit_length() + 1
+            else:
+                vw = v.bit_length()
+            w = max(int(e.width()) if e.width() else 0, vw, 1)
             if w <= 64:
                 # A 64-bit pattern that overflows signed int64 (e.g. a uint64
                 # literal >= 2^63): pass its two's-complement reinterpretation —
@@ -637,9 +647,14 @@ class DvSolveExprTranslator(ModelVisitor):
         self._result = self._conj([self.translate(cc) for cc in e.c.constraint_l])
         self._last_simple = False
 
-    def _const_cond(self, cond_e):
+    def _const_cond(self, cond_e, allow_field_fold=False):
         """If ``cond_e`` is a pure-constant expression (no field references), return
         its truth value as 0/1; otherwise ``None``.
+
+        ``allow_field_fold`` additionally folds a guard that references only fields
+        *not* solved in this RandSet (a solve-time constant) — enabled only for a
+        guard enclosing a dist, so the broader behavior change stays scoped to
+        conditional dist.
 
         Array ``foreach`` expansion substitutes the loop index with a literal, so a
         guard such as ``i != j`` or ``i < 4`` becomes a comparison of *literals*
@@ -654,15 +669,88 @@ class DvSolveExprTranslator(ModelVisitor):
         reuse staleness, and a guard that genuinely depends on a rand var keeps the
         disjunction path."""
         from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
-        if not IsConstExprVisitor().is_const(cond_e):
+        if IsConstExprVisitor().is_const(cond_e):
+            try:
+                return 1 if int(cond_e.val()) != 0 else 0
+            except Exception:
+                return None
+        if not allow_field_fold:
+            # Without an explicit opt-in, only *pure-literal* guards fold (the
+            # original foreach-index behavior). The extended non-rand-field fold
+            # below is enabled only by callers that need it (a guard enclosing a
+            # dist — see _branch_contains_dist), so it cannot perturb unrelated
+            # conditional constructs.
+            return None
+        # Extended fold: a guard that references only fields *not* solved in this
+        # RandSet (non-rand state, or vars solved in an earlier RandSet) is a
+        # solve-time constant too. Folding it is what lets a *conditional dist*
+        # solve on the primary engine (and thus honor its native add_dist
+        # weighting) rather than leaving a residual disjunction the bounds engine
+        # can't decide — which would route to BV-SAT and drop the weighting. To
+        # stay plan-cache-safe we register every referenced field as a const_field
+        # (mirroring _ref_for_field), so a later randomize with a changed guard
+        # value rebuilds rather than reusing a stale fold.
+        fields = self._collect_guard_fields(cond_e)
+        if fields is None or any(self._m.has(f) for f in fields):
             return None
         try:
-            return 1 if int(cond_e.val()) != 0 else 0
+            v = int(cond_e.val())
         except Exception:
             return None
+        for f in fields:
+            try:
+                self.const_fields[f] = int(f.val)
+            except Exception:
+                return None
+        return 1 if v != 0 else 0
+
+    def _collect_guard_fields(self, cond_e):
+        """Collect every FieldModel referenced by a guard expression, or ``None``
+        if a node type we don't classify is encountered (then we conservatively
+        decline to fold). Used by _const_cond's non-rand-field fold path."""
+        from vsc.model.model_visitor import ModelVisitor
+
+        class _Collect(ModelVisitor):
+            def __init__(self):
+                super().__init__()
+                self.fields = []
+
+            def visit_expr_fieldref(self, e):
+                self.fields.append(e.fm)
+
+        c = _Collect()
+        try:
+            cond_e.accept(c)
+        except Exception:
+            return None
+        return c.fields
+
+    def _branch_contains_dist(self, nodes):
+        """True iff any constraint in ``nodes`` (a constraint or list thereof)
+        contains a dist scope — directly or wrapped in an override. Gates the
+        non-rand-field guard fold (``_const_cond``) so it applies only where it is
+        needed (conditional dist) and cannot perturb unrelated guarded blocks."""
+        from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
+        from vsc.model.constraint_override_model import ConstraintOverrideModel
+
+        if not isinstance(nodes, (list, tuple)):
+            nodes = [nodes]
+        stack = list(nodes)
+        while stack:
+            n = stack.pop()
+            if isinstance(n, ConstraintDistScopeModel):
+                return True
+            if isinstance(n, ConstraintOverrideModel):
+                stack.append(n.new_constraint)
+                continue
+            sub = getattr(n, "constraint_l", None)
+            if sub:
+                stack.extend(sub)
+        return False
 
     def visit_constraint_implies(self, c):
-        folded = self._const_cond(c.cond)
+        folded = self._const_cond(
+            c.cond, allow_field_fold=self._branch_contains_dist(c.constraint_l))
         if folded == 0:
             # Guard is constant-false: the implication is vacuously satisfied.
             self._result = self._b.expr_const(1)
@@ -679,7 +767,9 @@ class DvSolveExprTranslator(ModelVisitor):
             BIN_OR, self._b.expr_unary(UN_NOT, cond), body)
 
     def visit_constraint_if_else(self, c):
-        folded = self._const_cond(c.cond)
+        branches = [c.true_c] + ([c.false_c] if c.false_c is not None else [])
+        folded = self._const_cond(
+            c.cond, allow_field_fold=self._branch_contains_dist(branches))
         if folded == 1:
             # Constant-true guard: only the then-branch applies.
             self._result = self.translate(c.true_c)
@@ -713,6 +803,9 @@ class DvSolveExprTranslator(ModelVisitor):
         # is expanded into its element fields (Phase C-4, mirroring Boolector's
         # ConstraintUniqueModel._add_list_elems); a random-sized array's active
         # set is solver-chosen and needs size-guarded pairs — deferred to C-3.
+        # (A naive field_l[:size] prefix expansion is unsound here — XCHECK proves
+        # dv-solve then produces models Boolector rejects — so randsz unique stays
+        # deferred until the size-guarded encoding lands.)
         from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
         elems = []
         for i in c.unique_l:
@@ -743,6 +836,29 @@ class DvSolveExprTranslator(ModelVisitor):
     def visit_constraint_solve_order(self, c):
         # Ordering metadata only; contributes nothing to satisfiability.
         self._result = self._b.expr_const(1)
+
+    def visit_constraint_override(self, c):
+        # An override replaces orig_constraint with new_constraint (Boolector
+        # builds new_constraint). We translate the replacement *only* for a dist
+        # expansion, whose new_constraint is a ConstraintDistScopeModel carrying
+        # the hard `inside` membership (the weighting is applied separately via
+        # add_dist on dist_field_m). Other overrides — notably ArrayConstraintBuilder's
+        # foreach/array expansion, whose scope may hold *soft* constraints that
+        # must NOT be conjoined as hard — keep deferring (the prior behavior).
+        from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
+        if isinstance(c.new_constraint, ConstraintDistScopeModel):
+            self._result = self.translate(c.new_constraint)
+            self._last_simple = False
+        else:
+            self._unsupported(c)
+
+    def visit_constraint_dist_scope(self, c):
+        # Conjoin the dist scope's constraints. On the native path that scope
+        # holds only its hard `inside` membership (zero-weight exclusion
+        # implications and the swizzler soft are emitted only on the fallback
+        # path), so the conjunction is exactly that membership.
+        self._result = self._conj([self.translate(cc) for cc in c.constraint_l])
+        self._last_simple = False
 
     # ------------------------------------------------------------------ #
     # Array aggregates (Phase C-2: fixed-size native)                      #
@@ -937,13 +1053,14 @@ class DvSolveExprTranslator(ModelVisitor):
     visit_field_scalar_array = _unsupported
     # Dist (native support arrives in Phase 2)
     visit_constraint_dist = _unsupported
-    visit_constraint_dist_scope = _unsupported
     visit_dist_weight = _unsupported
     # Arrays / foreach (pre-expanded; residuals -> Phase 2)
     visit_constraint_foreach = _unsupported
     visit_constraint_unique_vec = _unsupported
+    # General inline scopes still defer (only the dist scope is handled, above,
+    # via visit_constraint_dist_scope) — an array/foreach inline scope may hold
+    # soft constraints that must not be conjoined as hard.
     visit_constraint_inline_scope = _unsupported
-    visit_constraint_override = _unsupported
     # Expression forms still routed to fallback
     visit_expr_dynamic = _unsupported
     visit_expr_range = _unsupported

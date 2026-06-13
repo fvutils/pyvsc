@@ -348,9 +348,11 @@ class TestDvSolveDistNative(VscTestCase):
                 self.assertTrue(1 <= int(c.a) <= 8 or 200 <= int(c.a) <= 255)
 
     def test_b6_deferrals_carry_dist_reason(self):
-        """The §5 dist shapes that genuinely can't be native (conditional,
-        multiple-per-field, >64-bit) defer with reason_code 'dist' under strict
-        mode — the enumerated, expected burn-down residue."""
+        """The §5 dist shapes that genuinely can't be native (multiple
+        *unconditional* dists per field, >64-bit) defer with reason_code 'dist'
+        under strict mode — the enumerated, expected burn-down residue.
+        (Conditional dist is now served natively — see
+        test_conditional_dist_native.)"""
         from vsc.model.solver.backend import BackendIncomplete
 
         def expect_defer(make, label):
@@ -362,16 +364,6 @@ class TestDvSolveDistNative(VscTestCase):
                                      "%s: reason=%r" % (label, getattr(e, "reason_code", None)))
                     return
             self.fail("%s: expected a dist deferral, got none" % label)
-
-        @vsc.randobj
-        class Conditional(object):
-            def __init__(s):
-                s.a = vsc.rand_uint8_t(); s.b = vsc.uint8_t()
-            @vsc.constraint
-            def d(s):
-                with vsc.if_then(s.b == 1):
-                    vsc.dist(s.a, [vsc.weight((10, 20), 1)])
-        expect_defer(lambda: Conditional(), "conditional dist")
 
         @vsc.randobj
         class MultiDist(object):
@@ -391,6 +383,80 @@ class TestDvSolveDistNative(VscTestCase):
             def d(s):
                 vsc.dist(s.a, [vsc.weight((0, 9), 1), vsc.weight((10, 19), 3)])
         expect_defer(lambda: WideDist(), ">64-bit dist")
+
+    # ------------------------------------------------------------------ #
+    # B-F2 — conditional dist (if/else) is served natively                 #
+    # ------------------------------------------------------------------ #
+    def test_conditional_dist_native(self):
+        """A conditional dist (``with if_then(b==1): dist(a, …)``) is served
+        natively, no fallback. When the guard is a solve-time constant (non-rand
+        ``b``) the active branch's native weighting is honored; the inactive
+        branch contributes nothing. Run under strict no-fallback so a regression
+        to deferral fails loudly."""
+        @vsc.randobj
+        class Cond(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+                s.b = vsc.uint8_t()
+            @vsc.constraint
+            def dc(s):
+                with vsc.if_then(s.b == 1):
+                    vsc.dist(s.a, [vsc.weight((10, 15), 80),
+                                   vsc.weight((80, 100), 10)])
+                with vsc.else_then:
+                    vsc.dist(s.a, [vsc.weight((10, 15), 10),
+                                   vsc.weight((80, 100), 80)])
+
+        def run(bval, n=400):
+            c = Cond(); c.b = bval
+            lo = hi = 0
+            with _strict_no_fallback():
+                for _ in range(n):
+                    c.randomize()
+                    a = int(c.a)
+                    self.assertTrue(10 <= a <= 15 or 80 <= a <= 100,
+                                    "conditional dist membership violated: %d" % a)
+                    if a <= 15:
+                        lo += 1
+                    else:
+                        hi += 1
+            return lo, hi
+
+        lo1, hi1 = run(1)
+        self.assertGreater(lo1, hi1,
+                           "b==1 should weight the low range heavier: lo=%d hi=%d"
+                           % (lo1, hi1))
+        lo0, hi0 = run(0)
+        self.assertGreater(hi0, lo0,
+                           "b==0 should weight the high range heavier: lo=%d hi=%d"
+                           % (lo0, hi0))
+
+    def test_conditional_dist_rand_guard_native(self):
+        """A conditional dist whose guard is itself *rand* is served natively too
+        (no fallback): the guarded membership is always honored. The conditional
+        *weighting* is not asserted (the documented reduced-distribution guarantee
+        for rand-guarded dist — the picker covers the feasible union uniformly)."""
+        @vsc.randobj
+        class CondRand(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+                s.b = vsc.rand_bit_t(1)
+            @vsc.constraint
+            def dc(s):
+                with vsc.if_then(s.b == 1):
+                    vsc.dist(s.a, [vsc.weight((10, 15), 80),
+                                   vsc.weight((80, 100), 10)])
+                with vsc.else_then:
+                    vsc.dist(s.a, [vsc.weight((10, 15), 10),
+                                   vsc.weight((80, 100), 80)])
+
+        c = CondRand()
+        with _strict_no_fallback():
+            for _ in range(200):
+                c.randomize()
+                a = int(c.a)
+                self.assertTrue(10 <= a <= 15 or 80 <= a <= 100,
+                                "rand-guard conditional dist membership: %d" % a)
 
     # ------------------------------------------------------------------ #
     # T-B7 — fallback safety: dist + unsupported construct stays weighted  #

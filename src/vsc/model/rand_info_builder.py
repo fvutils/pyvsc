@@ -242,6 +242,11 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         # false — such a dist must be deferred. ``_soft_cond_l`` is the active
         # condition stack maintained by visit_constraint_if_else/_implies.
         s.is_conditional = len(self._soft_cond_l) > 0
+        # Snapshot the active guard stack so a back-end can resolve which branch
+        # of a conditional dist applies (dv-solve evaluates constant guards to
+        # emit the active branch's native weighting). Copy the references — the
+        # condition expressions themselves are stable model nodes.
+        s.cond_l = list(self._soft_cond_l)
 
         # Save information on dist constraints to the
         # appropriate randset
