@@ -365,13 +365,10 @@ class TestDvSolveArrayNative(VscTestCase):
     #       "array" reason code (not a silent superset).                   #
     # ------------------------------------------------------------------ #
 
-    def test_c5_inside_over_array_defers_with_array_reason(self):
-        """``a inside arr`` (membership over array elements) is not yet native; it
-        must defer with reason_code=="array" under strict mode, not pass silently
-        via a mis-encoding."""
-        import vsc.model.randomizer as rnd
-        from vsc.model.solver.backend import BackendIncomplete
-
+    def test_c5_inside_over_array_native(self):
+        """``a inside arr`` (membership over an array's elements) solves natively
+        — expanded to OR_i (a == arr[i]) — with no fall-through to Boolector, and
+        the membership holds on every draw."""
         @vsc.randobj
         class C(object):
             def __init__(s):
@@ -381,6 +378,30 @@ class TestDvSolveArrayNative(VscTestCase):
             @vsc.constraint
             def c(s):
                 s.a.inside(s.arr)
+
+        with _no_fallback():
+            c = C()
+            for _ in range(30):
+                c.randomize()
+                self.assertIn(int(c.a), [int(x) for x in c.arr],
+                              "a inside arr violated: a=%d arr=%s" %
+                              (int(c.a), [int(x) for x in c.arr]))
+
+    def test_c5b_oversized_array_sum_still_defers(self):
+        """A genuinely-unsupported array construct (a ``sum`` over more elements
+        than the native n-ary summand cap) still defers with reason_code=="array"
+        under strict mode — i.e. unsupported shapes fail loudly, not silently."""
+        import vsc.model.randomizer as rnd
+        from vsc.model.solver.backend import BackendIncomplete
+
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), 100)  # > 64-summand cap
+
+            @vsc.constraint
+            def c(s):
+                s.arr.sum < 50
 
         saved = rnd._NO_FALLBACK
         rnd._NO_FALLBACK = True

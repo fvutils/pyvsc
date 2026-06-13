@@ -545,10 +545,26 @@ class DvSolveExprTranslator(ModelVisitor):
                     BinExprType.And,
                     ExprBinModel(e.lhs, BinExprType.Le, r.rhs))
             elif isinstance(r, ExprFieldRefModel) and isinstance(r.fm, FieldArrayModel):
-                # 'in' over an array's elements -- not yet expanded natively.
-                raise BackendIncomplete(
-                    "dv-solve: 'in' over array not yet supported",
-                    reason_code="array")
+                # 'in' over an array's elements: lhs ∈ {arr[0], …, arr[n-1]} ==
+                # OR_i (lhs == arr[i]) over the active elements — the unambiguous
+                # set-membership semantics (matches Boolector's expansion). n is
+                # the fixed size or a resolved randsz size; a co-solved randsz
+                # size defers (reason_code="array") via _array_elem_count, exactly
+                # as the aggregate path does. An empty active set also defers —
+                # its membership is the constant False, which the OR-fold below
+                # can't represent as a model node without spuriously reading as
+                # always-true when it is the sole rangelist entry.
+                from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
+                arr = r.fm
+                n = self._array_elem_count(arr)
+                if n < 1:
+                    raise BackendIncomplete(
+                        "dv-solve: 'in' over empty array", reason_code="array")
+                term = None
+                for i in range(n):
+                    eq = ExprBinModel(e.lhs, BinExprType.Eq, _FR(arr.field_l[i]))
+                    term = eq if term is None \
+                        else ExprBinModel(term, BinExprType.Or, eq)
             else:
                 term = ExprBinModel(e.lhs, BinExprType.Eq, r)
             expr = term if expr is None else ExprBinModel(expr, BinExprType.Or, term)
