@@ -54,3 +54,31 @@ jobs:
         user: __token__
         password: ${{ secrets.PYPI_API_TOKEN }}
 
+  # F-0b — the dv-solve XCHECK soak gate (Phase F). Runs the real-workload
+  # corpus (ve/xcheck_corpus.txt) under VSC_SOLVER=dv-solve VSC_DVSOLVE_XCHECK=1,
+  # so every RandSet dv-solve solves is cross-checked against a Boolector-built
+  # formula (verdict + membership). A mismatch fails the job. F-4 (flip the
+  # global default to dv-solve) is gated on this staying green for the soak
+  # period. Separate from ci-linux so the differential gate is independently
+  # visible and does not block the build/publish path during bring-up.
+  xcheck-soak:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Configure Python
+      run: |
+        python3 -m venv python
+        ./python/bin/python3 -m pip install pip setuptools wheel --upgrade
+        ./python/bin/python3 -m pip install -r requirements_dev.txt
+        # dv-solve is the native back-end under test (mirrors the ivpm
+        # default-dev dep-set); pyboolector — the XCHECK oracle — comes from
+        # requirements_dev.txt. dv-solve builds its native lib via CMake, which
+        # the ubuntu-latest image already provides.
+        ./python/bin/python3 -m pip install git+https://github.com/fvutils/dv-solve.git
+    - name: XCHECK soak corpus
+      run: |
+        PYTHON=./python/bin/python3 ./ve/run_xcheck_soak.sh
+

@@ -1,0 +1,60 @@
+# dv-solve XCHECK soak corpus (Phase F / F-0b)
+# ---------------------------------------------------------------------------
+# The real-workload differential-test corpus for the F-4 default-flip gate.
+# Every test listed here is run under:
+#
+#     VSC_SOLVER=dv-solve VSC_DVSOLVE_XCHECK=1
+#
+# so that every RandSet dv-solve solves is re-checked against a Boolector-built
+# formula for verdict + membership agreement (see src/vsc/model/solver/xcheck.py).
+# A mismatch fails the run. F-4 (flip the global default to dv-solve) is gated on
+# this corpus being XCHECK-clean for a sustained soak period (parent plan §6,
+# F-4c) — "ve/unit clean under XCHECK" alone is necessary but not sufficient.
+#
+# Contents: the flagship example suites plus the constraint/randomization-heavy
+# functional suites that most resemble real constrained-random stimulus. As
+# user-contributed regressions are gathered during the adoption window (F-0b),
+# append their test files here so the soak gate grows to cover them.
+#
+# Deliberately EXCLUDED: the dv-solve meta-tests (test_dvsolve_*) — they toggle
+# env / reset the fallback tally / set backends explicitly and test the machinery
+# itself, so they are not "real workload"; test_dvsolve_xcheck in particular
+# would nest XCHECK inside XCHECK. Pure-infra and statistical suites
+# (test_solver_backend, test_distribution_quality, ...) are likewise out.
+#
+# Format: one pytest target per line; '#' comments and blank lines are ignored.
+# Consumed by the `xcheck-soak` CI job and ve/unit/test_dvsolve_xcheck_corpus.py
+# (which validates that every path here exists, so the manifest can't rot).
+
+# --- flagship example suites ---
+ve/unit/test_examples_ubus.py
+ve/unit/test_cov_examples.py
+
+# --- core randomization ---
+ve/unit/test_randomization.py
+ve/unit/test_randomize_with.py
+ve/unit/test_inline_randomization.py
+ve/unit/test_segmented_randomization.py
+
+# --- constraint constructs ---
+ve/unit/test_constraint_expr.py
+ve/unit/test_constraint_if_else.py
+ve/unit/test_constraint_soft.py
+ve/unit/test_constraint_solve_order.py
+ve/unit/test_constraint_functions.py
+ve/unit/test_constraint_rangelist.py
+ve/unit/test_constraint_dynamic.py
+ve/unit/test_constraint_foreach.py
+
+# --- dist ---
+ve/unit/test_constraint_dist.py
+ve/unit/test_random_dist.py
+
+# --- arrays ---
+ve/unit/test_fixed_size_array.py
+ve/unit/test_randsz_array.py
+ve/unit/test_scalar_array.py
+ve/unit/test_ext_array.py
+
+# --- coverage-driven constraints ---
+ve/unit/test_coverage_driven_constraints.py
