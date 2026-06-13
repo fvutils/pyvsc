@@ -1,7 +1,16 @@
 # dv-solve Phase E Plan: Self-Sufficiency, Cross-Check, and Fallback Burn-Down
 
-Status: **E0–E2 + E4 DONE; E3 correctness goal MET (optional native burn-downs
-remain); Phase F deferred.** (2026-06-12)
+Status: **E0–E2 + E4 DONE; E3 correctness goal MET; first native burn-down landed
+(dynamic constraints, F-E6); Phase F deferred.** (2026-06-12)
+
+**Latest (F-E6, §0.7):** a suite-wide tally sweep found an *untracked* defer
+(`incomplete` = 1022, the default code, never caught by the curated dashboard).
+1021 were dynamic-constraint references (`it.a_small()` in `randomize_with`) — now
+**solved natively** (translator handles `ExprIndexedDynRefModel`/`ExprDynRefModel`);
+the last 1 (constraint override) is re-tagged `translator-unsupported` so every
+translator defer is tracked. Full `ve/unit` under XCHECK = **470 passed, 0
+mismatches**. `bvsat-sat-deferred` (now **3335** suite-wide) remains the open
+primary-engine-completeness thread (§5/§10).
 
 Landed this round (all committed on branch `mballance/dv-solve`, lib fix on nested
 `packages/dv-solve`):
@@ -101,8 +110,10 @@ stdout; runnable standalone (`python …/test_dvsolve_fallback_histogram.py`).
 `…parent×3` → `packages/dv-solve/`, so the native lib now auto-loads from
 `packages/dv-solve/build` without `ZSP_SOLVER_PATH`/`LD_LIBRARY_PATH`. (Note:
 `ZSP_SOLVER_PATH` is treated as a *directory* in `_find_library`, so pointing it
-at the `.so` file silently no-ops — the auto-load is the right path.) **Still TODO
-under E4-2: a regression test that loads with both env vars unset.**
+at the `.so` file silently no-ops — the auto-load is the right path.) **Regression
+locked (T-E4b):** `ve/unit/test_dvsolve_lib_load.py` clears both env vars, resets
+the load cache, and asserts `_find_library()` resolves the `.so` from a package
+build dir (pinning the parent×3 pkg_root) and `_load_lib()` returns a live handle.
 
 ### Findings surfaced by the dashboard (→ E3 burn-down)
 
@@ -231,6 +242,107 @@ Phase-E fixes the suite is fully green under XCHECK (468 passed, 0 mismatches).*
 
 ---
 
+## 0.7 Build log — E3 native burn-down: dynamic constraints + defer-code hygiene (2026-06-12)
+
+**Driven by a fresh suite-wide tally sweep** (`VSC_DVSOLVE_FALLBACK_TALLY=1` over
+all 87 `ve/unit` modules, per-module breakdown), which surfaced a residual the
+F-E5 single-total aggregate had hidden: a reason code **`incomplete` = 1022**, the
+*default* `BackendIncomplete` code — i.e. an **untracked defer** that the standing
+dashboard never caught (it runs a curated corpus, not the whole suite). This
+violated the E3 "no undocumented defer" invariant. Two findings + fixes:
+
+- **F-E6 (native burn-down — dynamic-constraint references). 1021 of the 1022
+  `incomplete` events were `test_constraint_dynamic`** deferring because the
+  translator did not handle `ExprIndexedDynRefModel` / `ExprDynRefModel` — a
+  reference to a named `@vsc.dynamic_constraint` block enabled inside
+  `randomize_with` (`it.a_small()`, `it.a_small() | it.a_large()`). These are
+  *structurally* ordinary constraints (the referenced block is a
+  `ConstraintBlockModel` whose members the translator already encodes), so they are
+  **natively closable**, not a residual. **Fix (translator):** `visit_expr_indexed_dynref`
+  / `visit_constraint_dynref` resolve the block (mirroring `ExprIndexedDynRefModel.build`)
+  and conjoin its constraints into a width-1 boolean root; logical combinations
+  (`|`/`&`) fall out of the existing `visit_expr_bin` width-1 path. **All 4
+  `test_constraint_dynamic` tests now solve natively** (strict `VSC_DVSOLVE_NO_FALLBACK`
+  passes, 0 defers) **and agree with Boolector under XCHECK.** Soft members inside a
+  dynamic block are *not* a hazard: a soft-bearing block is routed through the
+  RandSet-level soft path, never translated as a hard conjunction (verified — the
+  `_dynref_block` translation is not even invoked in that case; the soft is dropped
+  and a valid value served). Locked by `test_dvsolve_fallback_histogram.py::test_dynamic_constraint_native`
+  (native, zero fallback) + `::test_dynamic_constraint_soft_correct` (soft dropped,
+  hard bound honored).
+- **F-E6 (defer-code hygiene). The remaining `incomplete` event** (a constraint
+  *override* whose replacement is a `ConstraintInlineScopeModel`, in
+  `test_constraint_soft`) was the generic default code. It was **deliberately left a
+  residual** — an inline scope can carry a *nested* soft (e.g. `cond -> { soft … }`)
+  that the translator's `visit_constraint_soft` would encode as **hard**, turning
+  SAT into UNSAT (confirmed: enabling inline-scope translation made `test_soft_nested`
+  spuriously UNSAT). So override/inline-scope **stay deferred**, but the four generic
+  translator raises (`_unsupported`, the `translate()` `_UNSET` catch, unsupported
+  binary/unary op) now carry **`reason_code="translator-unsupported"`** instead of
+  the catch-all default, so every translator defer is tracked. Added to the dashboard
+  allowlist.
+
+**Result (suite-wide tally, after):** `incomplete` (default catch-all) is **gone**;
+the only translator residual is **`translator-unsupported` = 1** (the override),
+now a documented, allowlisted code. **`bvsat-sat-deferred` unchanged at 3335**
+(this round did not touch the primary bounds engine). **Full `ve/unit` under
+`VSC_SOLVER=dv-solve VSC_DVSOLVE_XCHECK=1` = 470 passed, 0 mismatches** (468 prior
++ 2 new dashboard tests); full suite under default Boolector unaffected.
+
+> **Note for the next session:** the suite-wide `bvsat-sat-deferred` total is **3335**
+> (not the 2796 the F-E5 entry recorded — it drifted up as corpora grew). The
+> dominant contributors are `test_random_dist` (1113), `test_examples_ubus` (1000),
+> `test_randomization` (500), `test_constraint_solve_order` (400) — value-serving
+> leaning on Boolector for dist / solve_order-bearing RandSets. That remains the
+> primary-engine-completeness thread (§5/§10), untouched here.
+
+---
+
+## 0.8 Build log — E3 native burn-down: negated membership (De Morgan) (2026-06-12)
+
+**Driven by a cause-breakdown of `bvsat-sat-deferred`** (instrumented the deferral
+site to categorize each event). Of the ~3335 suite-wide:
+- **~2869 plain** (no `solve_order`, no `dist`) — the primary bounds engine
+  couldn't decide, all **disjunction-shaped**;
+- **~473 order-bearing** (`rand_order_l`) — the sampler can't honor `solve_order`;
+- ~3 soft-only.
+
+The "plain" mass splits by *why* the bounds engine (a conjunctive technique)
+stalls, and that split decides the layer the fix belongs in:
+
+- **Negated membership `!(x in S)` (`not_inside`) — a TRANSLATION gap.** It is, by
+  De Morgan, a *conjunction* (`x != v` per scalar; `(x<lo)||(x>hi)` per range),
+  which the engine decides natively — verified: the explicit conjunction solves
+  with 0 defers where `not_inside` deferred 20/20. The translator was lowering it
+  as `NOT(OR(x==v...))`, which stalls disjunction propagation. **Fix (translator):**
+  `visit_expr_unary` detects `Not(ExprInModel)` and emits the De Morgan tree via a
+  new `_negated_membership` helper. Lives in the **dv-solve translator on purpose**
+  — it re-expresses the constraint with primitives the engine already has and
+  leaves Boolector's encoding (the XCHECK reference) untouched. Recovered
+  **`test_in` 150 → 0** (contiguous-domain negated membership). Locked by the
+  `not_inside` native-corpus entry in `test_dvsolve_fallback_histogram.py`.
+- **Positive / gapped membership (`x in {gapped set}`, enum domains) — a
+  CAPABILITY gap, NOT a translation trick.** `test_random_dist`'s `!(r_op in [1,0])`
+  is on an **enum** whose own domain is a gapped positive set; the De Morgan rewrite
+  handles the `not_inside`, but the enum domain remains a positive `in` disjunction
+  that still defers. Probed the engine directly: the IR *has* an `expr_in_set`
+  primitive but the bounds-engine compiler **rejects it** ("could not be compiled
+  natively"), so this needs native engine work (implement `expr_in_set` /
+  enumerated-domain propagation in `packages/dv-solve`) **or** serve-SAT — it is not
+  a cheap translator change. Left for a later round.
+
+**Result:** `bvsat-sat-deferred` **3335 → 3185** (−150, all `test_in`). Full
+`ve/unit` under XCHECK = **470 passed, 0 mismatches**; default Boolector
+unaffected. The dominant remaining contributors are unchanged and now understood:
+positive/gapped membership (`test_random_dist` 1040: enum `not_inside` 640 +
+`b in [20-value set]` 400) and genuine disjunction (`test_examples_ubus` OR-of-eq
+1000, `test_randomization` if/else 500) — all the **capability-gap** class, whose
+realistic lever is **serve-SAT + the uniform sampler** (BV-SAT already proves them
+SAT), not bounds-engine case-splitting. The 473 order-bearing need `solve_order` in
+the sampler.
+
+---
+
 ## 1. Current state — reason codes and where they are raised
 
 dv-solve's deferrals all raise `BackendIncomplete(reason_code=...)`; the
@@ -247,12 +359,13 @@ function rather than line number (line numbers drift):
 |---|---|---|---|
 | `search-incomplete` | primary bounds search couldn't decide and BV-SAT didn't serve | **correctness — must be 0** | **0 across `ve/unit`** ✓ |
 | `bvsat-undecided` | BV-SAT returned a *genuine* UNKNOWN/ERROR (A-4 guard / timeout) | **correctness — must be 0** | **0 across `ve/unit`** ✓ |
-| `bvsat-sat-deferred` | primary couldn't decide, BV-SAT **proved SAT**, deferred for distribution / `solve_order` (serve-SAT off) | residual (expected) | documented; **2796** suite-wide (the E2-2 SAT-path-fraction metric, F-E5) |
+| `bvsat-sat-deferred` | primary couldn't decide, BV-SAT **proved SAT**, deferred for distribution (serve-SAT off) — with serve-SAT ON only the rare `>64`-bit-and-order-bearing case remains (Phase F / F-2a made `solve_order` natively served, audit 473 → 0) | residual (expected) | documented; **2796** with serve-SAT off; **0** with serve-SAT on after F-2a (see `dv_solve_phaseF_retirement_plan.md` §12) |
 | `dist` | dist shapes not natively encodable (>64-bit dist, conditional/multiple-dist-on-field, array dist) | residual | documented (Phase B/C §5) |
 | `array` | n>64 select, >64 summands, wide-result aggregate, object randsz, >64-bit elements | residual | documented (Phase C §5) |
-| `implies-aux` | implication/if guard is a logical And/Or of comparisons over **lifted arithmetic** (F-E3) | residual (sound defer) | added by the F-E3 fix; locked by test |
+| `implies-aux` | implication/if guard is a logical And/Or of comparisons over **lifted arithmetic** (F-E3) | ~~residual~~ → **natively served (Phase F / F-2)**: routed to forced BV-SAT serving instead of deferring (the encoding is correct; only the primary's propagation was unsound). Reason code no longer raised. | superseded — see `dv_solve_phaseF_retirement_plan.md` §12 |
 | `wide-range` | >64-bit field whose bound exceeds the int64 `add_var` envelope (often SAT, just unrepresentable) (F-E2) | residual | added by the F-E2 re-tag |
 | `unsat-defer` | **narrow** (≤64-bit) field whose domain is genuinely outside its width range (e.g. `a==500` on uint8) | residual (near-unsat) | documented |
+| `translator-unsupported` | a constraint/expression node the translator does not yet encode (constraint override, inline scope, unsupported op) — replaces the old default `incomplete` so every translator defer is tracked (F-E6) | residual | documented; **1** suite-wide |
 | `width` | field width > 255 bits (uint8 `add_var` width field) | **permanent residual** | documented |
 | `bvsat-disabled` | `VSC_DVSOLVE_BVSAT=0` set | test-only knob | ignore in prod histogram |
 
@@ -452,10 +565,15 @@ So E2 is **policy + measurement**, not a flip:
 >   mis-tagged `unsat-defer` — re-tagged `wide-range`). See §0.5/§0.6.
 > - ✅ The canonical residual taxonomy is the §1 table; the E0 dashboard's
 >   allowlist mirrors it, so doc and test can't drift.
+> - ✅ **First native burn-down landed (F-E6, §0.7):** dynamic-constraint
+>   references (`ExprIndexedDynRefModel`/`ExprDynRefModel`) now solve natively
+>   (−1021 defers); the untracked default `incomplete` code is eliminated and the
+>   lone override residual re-tagged `translator-unsupported`.
 > - ⏳ **Remaining (optional, non-gating):** make the heavy residuals solve
->   *natively* instead of deferring — chiefly the **`bvsat-sat-deferred` = 2796**
+>   *natively* instead of deferring — chiefly the **`bvsat-sat-deferred` = 3335**
 >   volume (improve primary-engine completeness, e.g. gapped/no-zero randsz size
->   domains) and the `wide-range` / wide-`dist` cases (encode >int64 bounds into
+>   domains; biggest contributors are dist / solve_order-bearing RandSets — see the
+>   §0.7 note) and the `wide-range` / wide-`dist` cases (encode >int64 bounds into
 >   the SolveProblem so BV-SAT serves at true width). These reduce the
 >   Boolector-for-serving dependency (the real path to self-sufficiency, §F) but
 >   change no correctness outcome.
@@ -507,7 +625,8 @@ defer exists (E0 enforces).
 > **STATUS (2026-06-12): DONE.** E4-1 verified + locked by
 > `test_solve_failure.py::test_diagnostics_with_dvsolve_primary` (an UNSAT under
 > dv-solve primary still produces Boolector-backed diagnostics). E4-2 lib-load fix
-> landed (auto-loads from `packages/dv-solve/build`, no env override).
+> landed (auto-loads from `packages/dv-solve/build`, no env override) and is locked
+> by `test_dvsolve_lib_load.py` (T-E4b — loads with both env vars unset).
 
 - **E4-1 Diagnostics stays on Boolector (parent §6.5 / E-2).** `create_diagnostics`
   (`randomizer.py:503`) is human-facing failure explanation and **must keep
@@ -525,6 +644,13 @@ loads from its installed location with no env override; regression tests lock bo
 ---
 
 ## 7. Phase F (DEFERRED — explicitly not scheduled here)
+
+> **Now expanded into a full implementation/test/doc spec:
+> `dv_solve_phaseF_retirement_plan.md`.** The stub below is the summary; that plan
+> stages the work (F-0 audit → F-1 serve-SAT default-on → F-2 close serving
+> dependencies → F-3 fallback off → F-4 flip default → F-5 keep Boolector as
+> oracle) and surfaces the key finding: serve-SAT-on does **not** by itself retire
+> Boolector — order-bearing / dist RandSets still require it to *serve* values.
 
 Written down so the eventual exit is unambiguous, but **gated on the adoption
 window closing and on E0–E3 holding green for a sustained period**:
@@ -575,8 +701,10 @@ noted, in new files mirroring the Phase B/C skeleton (`_dvsolve_available()` ski
   (no silent extra defer) and not a subset (no claimed-native-but-actually-deferred).
 - **T-E4a (diagnostics).** Force an UNSAT randomize with dv-solve primary; assert
   `create_diagnostics` still produces a Boolector-backed explanation.
-- **T-E4b (lib load).** Import + load `libdv_solve` with `ZSP_SOLVER_PATH` and
-  `LD_LIBRARY_PATH` unset; assert it loads from the package location.
+- **T-E4b (lib load) — `test_dvsolve_lib_load.py` (DONE).** Import + load
+  `libdv_solve` with `ZSP_SOLVER_PATH` and `LD_LIBRARY_PATH` unset; assert
+  `_find_library()` resolves from a package build dir and `_load_lib()` returns a
+  live handle. Skips when the lib was not built in-place under the package root.
 - **Differential fuzz (cross-cutting).** Extend the existing constraint-system
   fuzzer to run under XCHECK so random systems assert verdict+membership agreement
   — the same net XCHECK gives users, in CI.
@@ -623,10 +751,18 @@ E0 (histogram dashboard) ✅─┬─> E1 (XCHECK) ✅  ── found+fixed F-E3;
 - **Phase F stays out** until the adoption window closes on evidence.
 
 **For a fresh start, the single highest-value remaining thread** is reducing the
-`bvsat-sat-deferred = 2796` volume — i.e. improving primary-engine completeness so
-dv-solve *serves* more itself instead of leaning on Boolector. That is the
-substantive path toward self-sufficiency (and toward making Phase F viable). It is
-a translator/bounds-engine effort, not a correctness fix.
+`bvsat-sat-deferred` volume (**3185** suite-wide as of §0.8). The cheap
+translation-gap wins are now taken (dynamic constraints §0.7, negated membership
+§0.8). The remaining mass is the **capability-gap** class — positive/gapped
+membership and genuine disjunction (`test_random_dist` ~1040, `test_examples_ubus`
+1000, `test_randomization` 500) plus order-bearing RandSets
+(`test_constraint_solve_order` 400) — see the §0.8 breakdown. Bounds propagation
+can't decide these by construction, so the realistic lever is **serve-SAT + the
+uniform sampler** (BV-SAT already proves them SAT) gated on distribution-quality
+validation, *not* teaching the bounds engine to case-split. That is the substantive
+self-sufficiency path (and what makes Phase F viable). The two narrower native
+options, if pursued: implement `expr_in_set` propagation in the C++ engine (recovers
+positive/gapped membership) and `solve_order` honoring in the sampler.
 
 ## 11. Decisions — resolved during implementation (2026-06-12)
 

@@ -218,10 +218,12 @@ class TestDvSolveXCheck(VscTestCase):
         # F-E3 regression: an implication whose guard is a logical AND of
         # comparisons over lifted arithmetic (clog2) must produce CORRECT values
         # — historically dv-solve left the consequent unconstrained (a = garbage)
-        # because the bounds engine's disjunction propagation is unsound, which
-        # XCHECK caught. The fix defers the shape; this locks the *values*
-        # (catches a future regression to a native-but-wrong encoding) and
-        # confirms it defers with reason_code "implies-aux".
+        # because the *primary* bounds engine's disjunction propagation is
+        # unsound, which XCHECK caught. F-E3 deferred the shape; Phase F / F-2 now
+        # serves it natively by routing such RandSets to the complete BV-SAT
+        # engine (force-serve) instead of the fallback. This locks the *values*
+        # (catches a future regression to a native-but-wrong encoding) AND
+        # confirms it is now served natively (no `implies-aux` fallback).
         import math
         import vsc.model.randomizer as rndmod
 
@@ -250,18 +252,21 @@ class TestDvSolveXCheck(VscTestCase):
                                                                    expect))
             self.assertEqual(tally()["mismatch"], 0)
 
-        # Confirm it takes the *defer* path (not a native-but-wrong one).
-        saved = rndmod.set_fallback_tally(True)
+        # Confirm it is now SERVED NATIVELY (force-served via BV-SAT), not
+        # deferred — no `implies-aux` fallback — while still correct (a==clog2).
+        snap = rndmod.snapshot_fallback_tally()
+        rndmod.set_fallback_tally(True)
         rndmod.reset_fallback_tally()
         try:
             c2 = C()
             with c2.randomize_with():
                 c2.b == 5
-            self.assertIn("implies-aux", rndmod.get_fallback_tally(),
-                          "clog2 guard should defer with reason 'implies-aux'")
+            self.assertEqual(int(c2.a), 3, "clog2(5) should be 3")
+            self.assertNotIn(
+                "implies-aux", rndmod.get_fallback_tally(),
+                "clog2 guard should be served natively (BV-SAT), not deferred")
         finally:
-            rndmod.reset_fallback_tally()
-            rndmod.set_fallback_tally(saved)
+            rndmod.restore_fallback_tally(snap)
 
     # ------------------------------------------------------------------ #
     # T-E1c — strided sampling is deterministic                            #

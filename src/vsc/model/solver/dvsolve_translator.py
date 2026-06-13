@@ -139,9 +139,16 @@ class DvSolveExprTranslator(ModelVisitor):
         self._last_simple = False
         # Count of auxiliary vars allocated so far (via _new_aux). Used to detect
         # when translating an implication/if guard had to lift arithmetic into an
-        # aux — an unsound shape for the disjunction encoding (see
-        # _translate_guarded_cond).
+        # aux — an unsound shape for the *primary* engine's disjunction encoding
+        # (see _translate_guarded_cond).
         self._aux_count = 0
+        # Set True when a constraint was emitted that the primary bounds engine
+        # cannot solve soundly (an aux-lifted logical-combination guard — F-E3),
+        # so the backend must route this RandSet straight to the BV-SAT engine
+        # (force-serve), exactly like a >64-bit field. The encoding emitted *is*
+        # correct; only the primary's propagation over it is unsound, and BV-SAT
+        # is complete, so serving via BV-SAT is sound (Phase F / F-2 burn-down).
+        self.requires_bvsat = False
         # Non-rand fields referenced as constants, with their value at build
         # time. The backend uses this to invalidate a cached compiled problem
         # when a referenced non-rand field's value changes (the value is baked
@@ -175,7 +182,8 @@ class DvSolveExprTranslator(ModelVisitor):
         self._result = saved_res
         if r is _UNSET:
             raise BackendIncomplete(
-                "dv-solve translator does not handle node %s" % type(node).__name__)
+                "dv-solve translator does not handle node %s" % type(node).__name__,
+                reason_code="translator-unsupported")
         self._memo[key] = (r, simple)
         self._last_simple = simple
         return r
@@ -279,21 +287,23 @@ class DvSolveExprTranslator(ModelVisitor):
         unconstrained even when the guard is in fact true, producing a model that
         violates the implication (confirmed by the XCHECK differential check —
         Phase E / F-E3). The failure is asymmetric and fragile (a lifted operand
-        on the AND's left side triggers it; the right side may not), so rather
-        than rely on that, defer the whole RandSet to the fallback whenever a
-        logical-combination guard lifts an aux. A *single* relational comparison
-        with arithmetic (``implies((b-1) >= 4)``) is sound and kept native."""
+        on the AND's left side triggers it; the right side may not).
+
+        The encoding itself is correct — only the *primary* engine's reasoning
+        over it is unsound — and the BV-SAT engine is complete, so rather than
+        deferring the whole RandSet to the external fallback we emit the encoding
+        and flag ``requires_bvsat`` so the backend force-serves it via BV-SAT
+        (the same route a >64-bit field takes). A *single* relational comparison
+        with arithmetic (``implies((b-1) >= 4)``) is sound on the primary and
+        stays on the fast path (no flag). (Phase F / F-2: native implies-aux
+        serving — previously a `bvsat`-deferred `implies-aux` residual.)"""
         aux_before = self._aux_count
         ref = self.translate(cond_e)
         lifted = self._aux_count > aux_before
         is_logical_combo = getattr(cond_e, "op", None) in (
             BinExprType.And, BinExprType.Or)
         if lifted and is_logical_combo:
-            raise BackendIncomplete(
-                "dv-solve: implication/if guard combines comparisons over "
-                "lifted arithmetic; the bounds engine's disjunction propagation "
-                "is unsound here — deferring to the fallback",
-                reason_code="implies-aux")
+            self.requires_bvsat = True
         return self._to_bool(ref, cond_e)
 
     def _conj(self, refs) -> int:
@@ -381,7 +391,8 @@ class DvSolveExprTranslator(ModelVisitor):
         else:
             op = _BIN_OP.get(e.op)
             if op is None:
-                raise BackendIncomplete("dv-solve: unsupported binary op %s" % str(e.op))
+                raise BackendIncomplete("dv-solve: unsupported binary op %s" % str(e.op),
+                                        reason_code="translator-unsupported")
 
         # Context width = max(inherited, operand widths) — Boolector's rule. The
         # operands are translated at this width and an arithmetic result is
@@ -464,7 +475,26 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def visit_expr_unary(self, e):
         if e.op != UnaryExprType.Not:
-            raise BackendIncomplete("dv-solve: unsupported unary op %s" % str(e.op))
+            raise BackendIncomplete("dv-solve: unsupported unary op %s" % str(e.op),
+                                    reason_code="translator-unsupported")
+        # De Morgan rewrite for negated membership `!(x in S)` (`not_inside`).
+        # By De Morgan it is a *conjunction* of per-entry negations — `x != v` for
+        # each scalar, `(x < lo) || (x > hi)` for each range. The bounds engine
+        # decides that conjunctive form natively (each `x != v` simply punches a
+        # hole in x's domain), whereas the literal `NOT(OR(x == v ...))` this would
+        # otherwise lower to stalls its disjunction propagation and defers to
+        # BV-SAT (`bvsat-sat-deferred`). The rewrite is semantics-preserving
+        # (verified against Boolector by XCHECK) and lives here, in the dv-solve
+        # translator, on purpose: it re-expresses the constraint using primitives
+        # the dv-solve engine already has, and leaves Boolector's own encoding
+        # (the XCHECK reference) untouched.
+        from vsc.model.expr_in_model import ExprInModel
+        if isinstance(e.expr, ExprInModel):
+            dm = self._negated_membership(e.expr)
+            if dm is not None:
+                self._result = self.translate(dm)
+                self._last_simple = False
+                return
         # pyvsc's only unary op (`~`) is a *bitwise* invert (the Boolector path
         # uses btor.Not, which complements every bit), so it must map to the
         # bitwise UN_INVERT at the operand's full width — NOT the logical UN_NOT.
@@ -527,6 +557,31 @@ class DvSolveExprTranslator(ModelVisitor):
         else:
             self._result = self.translate(expr)
 
+    def _negated_membership(self, e_in):
+        """Build the De Morgan ExprModel tree for ``!(lhs in S)`` — a conjunction
+        of per-entry negations — or ``None`` if it cannot be lowered this way:
+
+          * empty set (``!(x in {})``): leave to the generic NOT path so the
+            existing (degenerate) semantics are preserved, and
+          * membership over an array's elements: leave to ``visit_expr_in`` so it
+            raises the documented ``array`` deferral.
+        """
+        from vsc.model.expr_bin_model import ExprBinModel
+        expr = None
+        for r in e_in.rhs.rl:
+            if isinstance(r, ExprRangeModel):
+                # !(lo <= x <= hi) == (x < lo) || (x > hi)
+                term = ExprBinModel(
+                    ExprBinModel(e_in.lhs, BinExprType.Lt, r.lhs),
+                    BinExprType.Or,
+                    ExprBinModel(e_in.lhs, BinExprType.Gt, r.rhs))
+            elif isinstance(r, ExprFieldRefModel) and isinstance(r.fm, FieldArrayModel):
+                return None
+            else:
+                term = ExprBinModel(e_in.lhs, BinExprType.Ne, r)
+            expr = term if expr is None else ExprBinModel(expr, BinExprType.And, term)
+        return expr
+
     # ------------------------------------------------------------------ #
     # Constraint nodes (translate to boolean roots)                        #
     # ------------------------------------------------------------------ #
@@ -542,6 +597,29 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def visit_constraint_block(self, c):
         self.visit_constraint_scope(c)
+
+    def visit_expr_indexed_dynref(self, e):
+        # A reference to a named ``@vsc.dynamic_constraint`` block, enabled inside
+        # ``randomize_with`` (e.g. ``it.a_small()`` or ``it.a_small() | it.a_large()``).
+        # Mirror ``ExprIndexedDynRefModel.build``: resolve the owning field, index
+        # the dynamic-constraint block, and conjoin its constraints into a single
+        # width-1 boolean root. ``width() == 1`` so the enclosing ``visit_constraint_expr``
+        # keeps it boolean, and a logical combination (``|``/``&`` of two refs) is
+        # handled by ``visit_expr_bin`` on the width-1 results.
+        from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
+        fm = Expr2FieldVisitor().field(e.root, True)
+        block = fm.constraint_dynamic_model_l[e.idx]
+        self._result = self._conj([self.translate(cc) for cc in block.constraint_l])
+        self._last_simple = False
+
+    def visit_constraint_dynref(self, e):
+        # ``ExprDynRefModel`` — the non-indexed sibling of ``ExprIndexedDynRefModel``;
+        # ``dynamic_constraint_t.__call__`` yields one holding the block model
+        # directly. Same encoding: conjoin the block's constraints to a width-1 root.
+        # (Soft members never reach here — a soft-bearing dynamic block is routed
+        # through the RandSet-level soft path, not translated as a hard conjunction.)
+        self._result = self._conj([self.translate(cc) for cc in e.c.constraint_l])
+        self._last_simple = False
 
     def _const_cond(self, cond_e):
         """If ``cond_e`` is a pure-constant expression (no field references), return
@@ -834,7 +912,8 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def _unsupported(self, node):
         raise BackendIncomplete(
-            "dv-solve translator does not yet handle %s" % type(node).__name__)
+            "dv-solve translator does not yet handle %s" % type(node).__name__,
+            reason_code="translator-unsupported")
 
     # Composite / structural
     visit_composite_field = _unsupported
@@ -849,9 +928,7 @@ class DvSolveExprTranslator(ModelVisitor):
     visit_constraint_unique_vec = _unsupported
     visit_constraint_inline_scope = _unsupported
     visit_constraint_override = _unsupported
-    visit_constraint_dynref = _unsupported
     # Expression forms still routed to fallback
     visit_expr_dynamic = _unsupported
-    visit_expr_indexed_dynref = _unsupported
     visit_expr_range = _unsupported
     visit_expr_rangelist = _unsupported

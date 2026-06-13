@@ -231,7 +231,8 @@ class DvSolveBackend(SolverBackendIF):
         # this. When serving SAT for an order-bearing RandSet we therefore defer
         # the *value serving* to the distribution-preserving fallback (Boolector),
         # which honors the order; BV-SAT remains the authoritative UNSAT verdict.
-        has_order = bool(getattr(rs, "rand_order_l", None))
+        rand_order_l = getattr(rs, "rand_order_l", None)
+        has_order = bool(rand_order_l)
 
         anchor = min(rand_fields, key=id) if _REUSE_ENABLED else None
         sig = None
@@ -247,7 +248,7 @@ class DvSolveBackend(SolverBackendIF):
                     self._solve_and_readback(
                         plan.ctx, plan.readback, randstate, solve_info,
                         problem_buf=getattr(plan.ctx, "_problem", None),
-                        has_order=has_order)
+                        has_order=has_order, rand_order_l=rand_order_l)
                     return SolveResult(status=0)
                 # Structure or a referenced constant changed: discard and rebuild.
                 setattr(anchor, _PLAN_ATTR, None)
@@ -257,7 +258,7 @@ class DvSolveBackend(SolverBackendIF):
         #      compiled problem is cached for later reuse. ----
         return self._build_and_solve(
             rs, rand_fields, bound_m, randstate, solve_info, anchor, sig,
-            has_order=has_order, has_wide=has_wide)
+            has_order=has_order, has_wide=has_wide, rand_order_l=rand_order_l)
 
     def _populate_builder(self, b, idmap, rs, rand_fields, bound_m):
         """Declare vars + add hard/soft constraints and domain re-assertions into
@@ -374,7 +375,7 @@ class DvSolveBackend(SolverBackendIF):
 
     def _build_and_solve(self, rs, rand_fields, bound_m, randstate,
                          solve_info, anchor, sig, has_order=False,
-                         has_wide=False) -> SolveResult:
+                         has_wide=False, rand_order_l=None) -> SolveResult:
         from dv_solve.builder import SolveProblemBuilder
         from dv_solve.ctx import (
             SolveCtx, CompileUnsatError, CompileIncompleteError,
@@ -414,15 +415,20 @@ class DvSolveBackend(SolverBackendIF):
             # UNKNOWN/ERROR do we fall back externally.
             readback = [(f, idmap.id_of(f)) for f in rand_fields]
 
-            # A RandSet with a >64-bit field has no 64-bit primary path: route it
-            # straight to the width-agnostic BV-SAT engine, forcing it to *serve*
-            # the model (regardless of the serve-SAT default) since there is no
-            # other engine to. The <=64-bit common path below is unchanged.
-            if has_wide:
+            # A RandSet the primary engine cannot solve soundly must be served by
+            # the complete BV-SAT engine, forced (regardless of the serve-SAT
+            # default) since the primary is not an option:
+            #  - a >64-bit field has no 64-bit primary path at all (Phase D);
+            #  - an aux-lifted logical-combination implication guard makes the
+            #    primary's disjunction propagation unsound (F-E3), but the emitted
+            #    encoding is correct and BV-SAT is complete (Phase F / F-2).
+            # The <=64-bit, primary-sound common path below is unchanged.
+            if has_wide or tr.requires_bvsat:
                 return self._solve_via_bvsat(
                     buf, readback, randstate, solve_info,
                     make_base=make_base, sample_vars=sample_vars,
-                    has_order=has_order, force_serve=True)
+                    has_order=has_order, force_serve=True,
+                    rand_order_l=rand_order_l)
 
             try:
                 ctx = _make_solve_ctx(buf, problem_sz)
@@ -432,12 +438,12 @@ class DvSolveBackend(SolverBackendIF):
                 return self._solve_via_bvsat(
                     buf, readback, randstate, solve_info,
                     make_base=make_base, sample_vars=sample_vars,
-                    has_order=has_order)
+                    has_order=has_order, rand_order_l=rand_order_l)
 
             solved_by_primary = self._solve_and_readback(
                 ctx, readback, randstate, solve_info, problem_buf=buf,
                 make_base=make_base, sample_vars=sample_vars,
-                has_order=has_order)
+                has_order=has_order, rand_order_l=rand_order_l)
 
             # Retain the compiled ctx for reuse only when the *primary* engine
             # produced the solution — a ctx that needed the BV-SAT fallback is
@@ -466,7 +472,8 @@ class DvSolveBackend(SolverBackendIF):
 
     def _solve_and_readback(self, ctx, readback, randstate, solve_info,
                             problem_buf=None, make_base=None,
-                            sample_vars=None, has_order=False) -> bool:
+                            sample_vars=None, has_order=False,
+                            rand_order_l=None) -> bool:
         """Solve ``ctx`` with a fresh seed and write the solved values back into
         the fields. Shared by the build and reuse paths.
 
@@ -498,7 +505,7 @@ class DvSolveBackend(SolverBackendIF):
         if problem_buf is not None:
             self._solve_via_bvsat(problem_buf, readback, randstate, solve_info,
                                   make_base=make_base, sample_vars=sample_vars,
-                                  has_order=has_order)
+                                  has_order=has_order, rand_order_l=rand_order_l)
             return False
         raise BackendIncomplete(
             "dv-solve search did not find a solution "
@@ -526,9 +533,33 @@ class DvSolveBackend(SolverBackendIF):
                 return DvSolveBackend._as_field_value(bb.value(vid), width, signed)
         return bb.value(vid)
 
+    @staticmethod
+    def _order_stages(readback, rand_order_l):
+        """Group ``readback`` ``[(field, vid)]`` into solve-order stages from
+        ``rand_order_l`` (a list of field lists, earliest-solved first), appending
+        a final stage for any rand fields not named in an order group. Returns the
+        list of ``[(field, vid)]`` stages (partitioning every rand field exactly
+        once), or ``None`` when there is no usable ordering. A single resulting
+        stage is fine — ``sample_ordered`` degrades to a plain uniform sample."""
+        if not rand_order_l:
+            return None
+        f2vid = {f: vid for (f, vid) in readback}
+        stages = []
+        seen = set()
+        for grp in rand_order_l:
+            stage = [(f, f2vid[f]) for f in grp if f in f2vid]
+            if stage:
+                stages.append(stage)
+                seen.update(f for (f, _v) in stage)
+        rest = [(f, vid) for (f, vid) in readback if f not in seen]
+        if rest:
+            stages.append(rest)
+        return stages or None
+
     def _solve_via_bvsat(self, problem_buf, readback, randstate,
                          solve_info, make_base=None, sample_vars=None,
-                         has_order=False, force_serve=False) -> SolveResult:
+                         has_order=False, force_serve=False,
+                         rand_order_l=None) -> SolveResult:
         """Solve ``problem_buf`` with the internal BV-SAT completeness engine and
         write values back. Authoritative: SAT -> set values & return; UNSAT ->
         ``SolveFailure``; UNKNOWN/ERROR (A-4 guard / timeout) -> ``BackendIncomplete``
@@ -559,34 +590,53 @@ class DvSolveBackend(SolverBackendIF):
                 raise SolveFailure(
                     "dv-solve BV-SAT engine proved unsatisfiable",
                     "dv-solve BV-SAT engine proved the constraints unsatisfiable")
-            if rc == BVSAT_SAT and (_BVSAT_SERVE_SAT or force_serve) and not has_order:
+            if rc == BVSAT_SAT and (_BVSAT_SERVE_SAT or force_serve):
                 # Prefer the uniform sampler: kissat's raw model is too clustered
                 # for stimulus. The base SAT verdict above guarantees the sampler
                 # converges (m==0 is this same satisfiable problem).
-                # (An order-bearing RandSet skips serving here and falls through
-                # to the deferral below — the sampler can't honor solve_order.)
-                if _BVSAT_SAMPLER and make_base is not None and sample_vars:
-                    from vsc.model.solver import bvsat_sampler
-                    ok = bvsat_sampler.sample(
-                        make_base, readback, sample_vars, seed,
-                        solve_info=solve_info)
-                    if ok:
-                        return SolveResult(status=0)
-                    # Sampler couldn't serve (shouldn't happen): fall through to
-                    # the raw readback so we still return a valid model.
-                for f, vid in readback:
-                    f.set_val(self._bb_value(bb, vid, sample_vars))
-                return SolveResult(status=0)
+                from vsc.model.solver import bvsat_sampler
+                if has_order:
+                    # Honor `solve_order` natively via *staged* sampling: freeze
+                    # each order stage's values before sampling the next, matching
+                    # the Boolector swizzler's per-stage assume/assert. Only when
+                    # we can serve it natively — sampler available and every
+                    # ordered field's domain fits the int64 freeze carrier;
+                    # otherwise fall through to the distribution-preserving
+                    # fallback (the prior behavior for order-bearing RandSets).
+                    stages = self._order_stages(readback, rand_order_l)
+                    if (_BVSAT_SAMPLER and make_base is not None and sample_vars
+                            and stages is not None
+                            and bvsat_sampler.stage_sampleable(sample_vars)):
+                        ok = bvsat_sampler.sample_ordered(
+                            make_base, stages, sample_vars, seed,
+                            solve_info=solve_info)
+                        if ok:
+                            return SolveResult(status=0)
+                    # Not natively serveable in order → defer (raise below).
+                else:
+                    if _BVSAT_SAMPLER and make_base is not None and sample_vars:
+                        ok = bvsat_sampler.sample(
+                            make_base, readback, sample_vars, seed,
+                            solve_info=solve_info)
+                        if ok:
+                            return SolveResult(status=0)
+                        # Sampler couldn't serve (shouldn't happen): fall through
+                        # to the raw readback so we still return a valid model.
+                    for f, vid in readback:
+                        f.set_val(self._bb_value(bb, vid, sample_vars))
+                    return SolveResult(status=0)
             # Two distinct deferrals share this exit — keep their reason codes
             # SEPARATE so the burn-down dashboard's correctness signal is honest:
             #
             #  * rc == BVSAT_SAT: the problem IS satisfiable (BV-SAT proved it),
             #    but we are not serving it here — either serve-SAT is off and
             #    BV-SAT's model is too clustered for stimulus, or the RandSet is
-            #    order-bearing and the sampler can't honor solve_order. Defer to
-            #    the distribution-preserving fallback to pick the values. This is
-            #    EXPECTED, correct operation of the two-engine architecture, not a
-            #    completeness gap — tag it `bvsat-sat-deferred` (a residual).
+            #    order-bearing AND not natively stage-sampleable (a wide /
+            #    unsigned-64 ordered field whose domain overflows the int64 freeze
+            #    carrier — staged serving handles the common narrow case above).
+            #    Defer to the distribution-preserving fallback to pick the values.
+            #    This is EXPECTED, correct operation of the two-engine
+            #    architecture, not a completeness gap — tag `bvsat-sat-deferred`.
             #  * rc == UNKNOWN/ERROR: an A-4 guard tripped or the engine genuinely
             #    could not decide. This is the real completeness gap the dashboard
             #    must drive to zero — tag it `bvsat-undecided`.

@@ -217,3 +217,148 @@ def sample(make_base, readback, sample_vars, seed,
     for f, val in best:
         f.set_val(val)
     return True
+
+
+# --------------------------------------------------------------------------- #
+# Staged (solve-order-honoring) sampling                                        #
+# --------------------------------------------------------------------------- #
+# A plain uniform sample draws from the *joint* feasible set and so has no notion
+# of `solve_order` — and the joint distribution is the WRONG one. `solve_order(a,
+# c)` means "pick a value for `a` from its own domain first, commit, then solve
+# the rest", NOT "uniform over {(a,c)}". The distinction is the whole point of the
+# canary `test_before_and_after_lists`: with `c==0 -> a==0`, a joint-uniform draw
+# sets `a==0` whenever `c==0` (~half the draws), but solving `a` first picks a
+# (almost surely non-zero) value and *forces* `c!=0` — so `a>0` on every draw.
+#
+# The Boolector swizzler gets this by, per order stage, ASSUMING a random value
+# from each field's domain, checking SAT, and ASSERTING it (retrying on UNSAT) —
+# `solvegroup_swizzler_partsel.swizzle_field`. `sample_ordered` mirrors that: each
+# non-final stage pins its fields to random domain targets (validated SAT against
+# the prior pins + the still-free later stages), and the final/unordered stage is
+# served by the ordinary uniform `sample` with the earlier stages pinned. This
+# reproduces the per-stage "choose from own domain, then constrain downstream"
+# marginal, not the joint.
+
+_INT64_MIN = -(1 << 63)
+_INT64_MAX = (1 << 63) - 1
+
+
+def stage_sampleable(sample_vars):
+    """Return ``True`` iff every field is ``<=64`` bits, so each chosen value can
+    be frozen as a single ``expr_const`` (an int64 carrier; a 64-bit unsigned
+    value that overflows int64 goes in as its two's-complement reinterpretation,
+    exactly as the translator packs a wide literal — see ``_pack_const64``). A
+    ``>64``-bit ordered field would need a limb-concat constant; that rarer
+    wide-and-order case keeps deferring its *serving* to the fallback (a
+    documented residual)."""
+    for (_vid, width, _lo, _hi, _signed) in sample_vars:
+        if width > 64:
+            return False
+    return True
+
+
+def _pack_const64(v, width, signed):
+    """Pack a chosen field value into the int64 carrier ``expr_const`` takes,
+    mirroring ``dvsolve_translator.visit_expr_literal``: a value that fits a
+    signed int64 goes in directly; a ``<=64``-bit pattern that overflows signed
+    int64 (a uint64 ``>= 2^63``) goes in as its two's-complement reinterpretation
+    (the same bit pattern). Width is ``<=64`` here (gated by ``stage_sampleable``)."""
+    v &= (1 << width) - 1                       # unsigned bit pattern at width
+    if v > _INT64_MAX:
+        v -= (1 << 64)
+    return v
+
+
+# Per-stage attempts at a random domain target before giving up and serving that
+# stage with a constrained uniform sample (mirrors the swizzler's bounded retry).
+_STAGE_PIN_ATTEMPTS = 8
+
+
+def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None):
+    """Staged sampling that honors ``solve_order`` (see the section comment).
+
+    ``make_base``    — the same zero-arg base-problem factory ``sample`` takes.
+    ``order_stages`` — list of stages, each a list of ``(field, var_id)``, in
+                       solve order (earliest-solved first); the last stage may be
+                       the unordered remainder. Every rand field appears once.
+    ``sample_vars``  — full ``[(vid,width,lo,hi,is_signed)]`` for all rand fields.
+    ``seed``         — per-call seed; same seed → same value stream.
+
+    Each *non-final* stage pins its fields to random values drawn from their
+    declared domains, validated SAT against the prior pins (the later stages are
+    still free), retrying a bounded number of times; if no random target is SAT it
+    falls back to a constrained uniform ``sample`` of that stage. The final stage
+    is served by the ordinary uniform ``sample`` with all prior stages pinned.
+    Every step's base is SAT by induction — we only pin values that completed to a
+    full model — so a model is always available.
+
+    Returns ``True`` on success (all fields written) or ``None`` if a stage found
+    no model (caller should fall back — should not happen, base is SAT)."""
+    from dv_solve.problem import BIN_EQ
+    from dv_solve.bvsat import BVSatCtx, BVSAT_SAT
+
+    sv_by_vid = {vid: (width, lo, hi, signed)
+                 for (vid, width, lo, hi, signed) in sample_vars}
+    rng = random.Random(seed & _U64)
+    pinned = []  # list of (vid, int64_const, is_signed) accumulated across stages
+
+    def _make_base_pinned(extra):
+        """Fresh base with ``pinned + extra`` applied as ``var == const``."""
+        b = make_base()
+        for (vid, val, signed) in pinned + extra:
+            b.add_constraint(b.expr_binary(
+                BIN_EQ, b.expr_var(vid), b.expr_const(val, signed)))
+        return b
+
+    def _is_sat(extra):
+        b = _make_base_pinned(extra)
+        buf, _sz = b.finalize()
+        b.destroy()
+        bb = BVSatCtx(buf)
+        try:
+            if solve_info is not None:
+                solve_info.n_sat_calls += 1
+            return bb.check(seed=rng.randint(0, (1 << 63) - 1)) == BVSAT_SAT
+        finally:
+            bb.destroy()
+
+    stages = [s for s in order_stages if s]
+    for si, stage in enumerate(stages):
+        is_final = (si == len(stages) - 1)
+
+        if not is_final:
+            # Try to assert a random domain target for this stage's fields
+            # (the swizzler's assume-random-then-assert).
+            pinned_ok = False
+            for _ in range(_STAGE_PIN_ATTEMPTS):
+                trial = []
+                for (f, vid) in stage:
+                    width, lo, hi, signed = sv_by_vid[vid]
+                    t = rng.randint(lo, hi)
+                    trial.append((f, vid, t, width, signed))
+                extra = [(vid, _pack_const64(t, width, signed), signed)
+                         for (_f, vid, t, width, signed) in trial]
+                if _is_sat(extra):
+                    for (f, vid, t, _w, _s) in trial:
+                        f.set_val(t)
+                    pinned.extend(extra)
+                    pinned_ok = True
+                    break
+            if pinned_ok:
+                continue
+            # No random target landed SAT (heavily inter-field-constrained stage):
+            # fall through to a constrained sample of just this stage.
+
+        stage_vars = [sv for sv in sample_vars
+                      if sv[0] in {vid for (_f, vid) in stage}]
+        ok = sample(lambda: _make_base_pinned([]), stage, stage_vars,
+                    rng.randint(0, (1 << 63) - 1), solve_info=solve_info)
+        if not ok:
+            return None
+        if not is_final:
+            for (f, vid) in stage:
+                width, _lo, _hi, signed = sv_by_vid[vid]
+                pinned.append(
+                    (vid, _pack_const64(int(f.get_val()), width, signed), signed))
+
+    return True

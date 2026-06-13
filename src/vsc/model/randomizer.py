@@ -126,6 +126,25 @@ def set_fallback_tally(enabled):
     return prev
 
 
+def snapshot_fallback_tally():
+    """Capture the full tally state — ``(enabled, counts)`` — so a test that needs
+    to measure its *own* corpus (reset + accumulate) can restore the prior state
+    afterward via ``restore_fallback_tally``. Without this a per-test measurement
+    clears the process-global accumulator and corrupts a suite-wide audit run
+    (the F-0a self-sufficiency audit). Good citizens snapshot on entry, restore on
+    exit, so their synthetic deferrals never pollute the suite-wide number."""
+    return (_FALLBACK_TALLY_ENABLED, dict(_FALLBACK_TALLY))
+
+
+def restore_fallback_tally(snap):
+    """Restore a state captured by ``snapshot_fallback_tally``."""
+    global _FALLBACK_TALLY_ENABLED
+    enabled, counts = snap
+    _FALLBACK_TALLY_ENABLED = bool(enabled)
+    _FALLBACK_TALLY.clear()
+    _FALLBACK_TALLY.update(counts)
+
+
 class _RandPlan(object):
     """Cached pre-solve plan for one root model object (Tier-A)."""
 

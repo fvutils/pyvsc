@@ -66,25 +66,29 @@ _RESIDUAL_ALLOWLIST = {
     "unsat-defer",  # width-range UNSAT the primary won't declare authoritatively
     "wide-range",   # >64-bit field whose bound exceeds the int64 add_var envelope
                     # (representation limit, possibly SAT — served by fallback) F-E2
-    "implies-aux",  # implication/if guard combines comparisons over lifted
-                    # arithmetic — bounds-engine disjunction prop is unsound (F-E3)
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
                     # to the fallback for distribution / solve_order. Expected,
                     # correct two-engine operation — NOT a completeness gap (F-E1).
+    "translator-unsupported",  # a constraint/expression node the translator does
+                    # not yet encode (e.g. constraint override / inline scope).
+                    # Replaces the old default `incomplete` code so every
+                    # translator defer is tracked, not catch-all (F-E6).
 }
 
 
 @contextmanager
 def _tally():
     """Enable the always-on fallback tally for the duration of the block and
-    yield a function that returns the accumulated histogram."""
-    saved = rnd.set_fallback_tally(True)
+    yield a function that returns the accumulated histogram. Snapshots and
+    restores the process-global tally so this test's synthetic corpus does not
+    corrupt a concurrent suite-wide audit run (F-0a)."""
+    snap = rnd.snapshot_fallback_tally()
+    rnd.set_fallback_tally(True)
     rnd.reset_fallback_tally()
     try:
         yield rnd.get_fallback_tally
     finally:
-        rnd.reset_fallback_tally()
-        rnd.set_fallback_tally(saved)
+        rnd.restore_fallback_tally(snap)
 
 
 # --------------------------------------------------------------------------- #
@@ -148,12 +152,46 @@ def _native_corpus():
         def c(s):
             s.a < 1000000
 
+    @vsc.randobj
+    class NotInside(object):
+        # Negated membership over a contiguous-domain var. The translator lowers
+        # `!(x in S)` by De Morgan to a conjunction `x != v` (scalars) / `(x<lo)||
+        # (x>hi)` (ranges) — both of which the bounds engine decides natively —
+        # instead of `NOT(OR(x==v...))`, which would stall and defer
+        # `bvsat-sat-deferred` (the negated-membership burn-down). NB: over an
+        # *enum* (gapped) domain it would still defer — that's the separate
+        # positive-gapped-membership capability gap, not this.
+        def __init__(s):
+            s.x = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            s.x.not_inside(vsc.rangelist(0, 1, 2, 3, 5, 6, 7, 8, vsc.rng(100, 120)))
+
+    @vsc.randobj
+    class ImpliesArithGuard(object):
+        # Implication guard = logical AND of comparisons over lifted arithmetic
+        # (the clog2 idiom). The *primary* bounds engine's disjunction propagation
+        # is unsound here, so dv-solve routes the RandSet straight to the complete
+        # BV-SAT engine (force-serve) — the encoding is correct and BV-SAT is
+        # authoritative — instead of deferring to the fallback. So it defers
+        # NOTHING even with serve-SAT off (Phase F / F-2; was an `implies-aux`
+        # residual under F-E3).
+        def __init__(s):
+            s.a = vsc.rand_uint8_t()
+            s.b = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            with vsc.implies(((s.b - 1) >= 4) & ((s.b - 1) < 8)):
+                s.a == 3
+
     return [
         ("scalar", Scalar),
         ("dist", Dist),
         ("fixed_array_sum", FixedArraySum),
         ("randsz_array", RandSzArray),
         ("wide_128", Wide128),
+        ("not_inside", NotInside),
+        ("implies_arith_guard", ImpliesArithGuard),
     ]
 
 
@@ -180,19 +218,6 @@ def _residual_corpus():
         def c(s):
             vsc.dist(s.a, [vsc.weight((1, 3), 1),
                            vsc.weight(((1 << 80), (1 << 80) + 5), 2)])
-
-    @vsc.randobj
-    class ImpliesArithGuard(object):
-        # Implication guard = logical AND of comparisons over lifted arithmetic
-        # (the clog2 idiom). The bounds engine's disjunction propagation is
-        # unsound here, so dv-solve defers rather than emit a wrong model (F-E3).
-        def __init__(s):
-            s.a = vsc.rand_uint8_t()
-            s.b = vsc.rand_uint8_t()
-        @vsc.constraint
-        def c(s):
-            with vsc.implies(((s.b - 1) >= 4) & ((s.b - 1) < 8)):
-                s.a == 3
 
     @vsc.randobj
     class RandSzGappedSize(object):
@@ -222,7 +247,6 @@ def _residual_corpus():
     return [
         ("width256", "width", Width256),
         ("wide_dist", "dist", WideDist),
-        ("implies_arith_guard", "implies-aux", ImpliesArithGuard),
         ("randsz_gapped_size", "bvsat-sat-deferred", RandSzGappedSize),
         ("wide_above_int64", "wide-range", WideAboveInt64),
     ]
@@ -234,8 +258,19 @@ class TestDvSolveFallbackHistogram(VscTestCase):
     def setUp(self):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
+        # The documented residual taxonomy is the *default-config* one (serve-SAT
+        # off). Pin it so the dashboard is deterministic even when the ambient env
+        # forces serve-SAT on (e.g. a suite-wide audit run): with serve-SAT on,
+        # `randsz_gapped_size` would be *served* by the sampler instead of
+        # deferring `bvsat-sat-deferred`, which is correct behavior but not what
+        # this dashboard documents.
+        import vsc.model.solver.dvsolve_backend as _dvb
+        self._saved_serve = _dvb._BVSAT_SERVE_SAT
+        _dvb._BVSAT_SERVE_SAT = False
 
     def tearDown(self):
+        import vsc.model.solver.dvsolve_backend as _dvb
+        _dvb._BVSAT_SERVE_SAT = self._saved_serve
         ctor.set_solver_backend(None)
         super().tearDown()
 
@@ -256,6 +291,66 @@ class TestDvSolveFallbackHistogram(VscTestCase):
         self.assertEqual(
             hist, {},
             "native corpus produced fallbacks (should be zero): %s" % hist)
+
+    # ------------------------------------------------------------------ #
+    # T-E0a' — dynamic-constraint references solve natively (F-E6).         #
+    # Exercised via randomize_with (the generic corpus runner only calls    #
+    # randomize()), covering the indexed enable, the non-indexed sibling    #
+    # combined with `|`, and a dist inside a dynamic block.                 #
+    # ------------------------------------------------------------------ #
+    def test_dynamic_constraint_native(self):
+        @vsc.randobj
+        class Dyn(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+            @vsc.constraint
+            def a_c(s):
+                s.a <= 100
+            @vsc.dynamic_constraint
+            def a_small(s):
+                s.a.inside(vsc.rangelist(vsc.rng(1, 10)))
+            @vsc.dynamic_constraint
+            def a_large(s):
+                s.a.inside(vsc.rangelist(vsc.rng(90, 100)))
+
+        obj = Dyn()
+        with _tally() as tally:
+            random.seed(0)
+            for _ in range(8):
+                with obj.randomize_with() as it:
+                    it.a_small()
+                self.assertTrue(1 <= obj.a <= 10)
+                with obj.randomize_with() as it:
+                    it.a_small() | it.a_large()
+                self.assertTrue(1 <= obj.a <= 10 or 90 <= obj.a <= 100)
+            hist = tally()
+        self.assertEqual(
+            hist, {},
+            "dynamic-constraint references produced fallbacks "
+            "(should solve natively): %s" % hist)
+
+    def test_dynamic_constraint_soft_correct(self):
+        # A `soft` member inside a dynamic block is routed through the RandSet-level
+        # soft path (not translated as a hard conjunction), so it is dropped when it
+        # conflicts and a valid value is still served. Here soft `a == 5` conflicts
+        # with hard `a >= 50`; the result must honor the hard bound, never wrongly
+        # force a == 5 or report UNSAT.
+        @vsc.randobj
+        class DynSoft(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+            @vsc.dynamic_constraint
+            def hi_pref5(s):
+                s.a >= 50
+                s.a <= 100
+                vsc.soft(s.a == 5)
+
+        obj = DynSoft()
+        for _ in range(4):
+            with obj.randomize_with() as it:
+                it.hi_pref5()
+            self.assertTrue(50 <= obj.a <= 100,
+                            "soft-in-dynamic-block over-constrained: a=%d" % int(obj.a))
 
     # ------------------------------------------------------------------ #
     # T-E0b — each residual shape defers with its documented reason code   #
