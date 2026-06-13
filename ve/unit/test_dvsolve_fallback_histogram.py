@@ -75,6 +75,40 @@ _RESIDUAL_ALLOWLIST = {
                     # translator defer is tracked, not catch-all (F-E6).
 }
 
+# F-2c — the residual manifest: for each allowlisted reason code, the *product
+# sign-off disposition* that gates F-3 (dropping Boolector from the default
+# chain). Two dispositions:
+#   "permanent" — cannot be made fallback-free with reasonable effort; F-3 keeps
+#                 the retained opt-in Boolector fallback reachable for it
+#                 (F-3b `_RETAINED_RESIDUAL_CODES`).
+#   "closable"  — a known native / wide-encoding path exists (`[dvs]` C-engine or
+#                 translator work); tracked for burn-down, served by the net until
+#                 then. NOT a correctness gap — see _CORRECTNESS_CODES.
+# The keys MUST equal _RESIDUAL_ALLOWLIST (asserted by test_residual_manifest_in_sync)
+# so this catalog, the allowlist, the §5 Phase-E residual table, and the F-2c plan
+# table cannot drift.
+_RESIDUAL_MANIFEST = {
+    "width":        ("permanent",
+                     "field width > 255 bits — C ABI uint8 add_var width cap"),
+    "wide-range":   ("closable",
+                     ">int64 bound; Phase-D wide-literal encode (non-trivial)"),
+    "dist":         ("closable",
+                     ">64-bit / conditional / multiple-dist-on-field — [dvs] dist "
+                     "composition + wide encode"),
+    "array":        ("closable",
+                     "Phase C §5 shapes (var-indexed select, randsz/co-solved "
+                     "aggregate, >64 element/summand caps) — [dvs] C work"),
+    "unsat-defer":  ("closable",
+                     "near-unsat width-range the primary won't authoritatively "
+                     "declare — primary-authority refinement"),
+    "translator-unsupported": ("closable",
+                     "constraint override / inline-scope nested-soft — translator "
+                     "coverage"),
+    "bvsat-sat-deferred": ("closable",
+                     "SAT-proved but not served: sampler dist-weighting (F-2b) or "
+                     ">64-bit ordered-field freeze (the F-2a wide-order residual)"),
+}
+
 
 @contextmanager
 def _tally():
@@ -233,6 +267,20 @@ def _residual_corpus():
             s.l.size.inside(vsc.rangelist(1, 2, 4, 8))
 
     @vsc.randobj
+    class VarIndexedSelect(object):
+        # arr[idx] with a *rand* index → variable-indexed array select, the
+        # largest `array` residual class (Phase C-1). The translator defers it
+        # ("array"); served by the net. Not a correctness gap — the net solves it.
+        def __init__(s):
+            s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), 4)
+            s.idx = vsc.rand_uint8_t()
+            s.val = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            s.idx < 4
+            s.arr[s.idx] == s.val
+
+    @vsc.randobj
     class WideAboveInt64(object):
         # >64-bit field whose bound exceeds the int64 add_var envelope. The
         # problem is SAT (many 128-bit values exceed 2^63) but the wide bound
@@ -248,6 +296,7 @@ def _residual_corpus():
         ("width256", "width", Width256),
         ("wide_dist", "dist", WideDist),
         ("randsz_gapped_size", "bvsat-sat-deferred", RandSzGappedSize),
+        ("var_indexed_select", "array", VarIndexedSelect),
         ("wide_above_int64", "wide-range", WideAboveInt64),
     ]
 
@@ -370,6 +419,37 @@ class TestDvSolveFallbackHistogram(VscTestCase):
                 "residual shape '%s' deferred with an undocumented reason code: "
                 "%s (allowed: %s)" % (label, codes - _RESIDUAL_ALLOWLIST,
                                       _RESIDUAL_ALLOWLIST))
+
+    # ------------------------------------------------------------------ #
+    # T-F0a / F-2c — the residual manifest is the single source of truth   #
+    # ------------------------------------------------------------------ #
+    def test_residual_manifest_in_sync(self):
+        """The F-2c manifest (reason code → sign-off disposition) must enumerate
+        exactly the allowlisted codes — so the catalog, the allowlist, and the
+        plan's F-2c table cannot drift. A new defer code with no manifest row (or
+        a manifest row for a retired code) breaks here, forcing a conscious
+        product decision rather than a silent serving dependency."""
+        self.assertEqual(
+            set(_RESIDUAL_MANIFEST), _RESIDUAL_ALLOWLIST,
+            "residual manifest keys must equal the allowlist; diff: %s"
+            % (set(_RESIDUAL_MANIFEST) ^ _RESIDUAL_ALLOWLIST))
+        for code, (disp, note) in _RESIDUAL_MANIFEST.items():
+            self.assertIn(disp, ("permanent", "closable"),
+                          "code %r: unknown disposition %r" % (code, disp))
+            self.assertTrue(note, "code %r: missing a sign-off note" % code)
+        # No correctness code may ever be classed a residual.
+        self.assertEqual(
+            set(_RESIDUAL_MANIFEST) & set(_CORRECTNESS_CODES), set(),
+            "a correctness code must never appear in the residual manifest")
+
+    def test_residual_corpus_codes_in_manifest(self):
+        """Every residual-corpus shape's expected code is catalogued in the
+        manifest (the corpus exercises a representative slice of the manifest)."""
+        for label, expect_code, _factory in _residual_corpus():
+            self.assertIn(
+                expect_code, _RESIDUAL_MANIFEST,
+                "residual shape '%s' expects code %r with no manifest row"
+                % (label, expect_code))
 
     # ------------------------------------------------------------------ #
     # T-E0c — the dashboard: full corpus histogram vs the allowlist        #
