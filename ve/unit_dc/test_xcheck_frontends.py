@@ -142,6 +142,55 @@ class TestXCheckFrontends(DcTestCase):
             self.assertTrue(all(2 < int(e) < 10 for e in ci.arr))
             self.assertTrue(all(2 < e < 10 for e in di.arr))
 
+    # --- scenario: nested composite rand objects -----------------------------
+
+    def test_nested_composite(self):
+        @vsc.randobj
+        class ClassicSub(object):
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def c(self):
+                self.a < 8
+
+        @vsc.randobj
+        class Classic(object):
+            def __init__(self):
+                self.s1 = vsc.rand_attr(ClassicSub())
+                self.s2 = vsc.rand_attr(ClassicSub())
+
+            @vsc.constraint
+            def c(self):
+                self.s1.a == self.s2.a
+
+        @vdc.dataclass
+        class DcSub(vdc.RandClass):
+            a: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                self.a < 8
+
+        @vdc.dataclass
+        class Dc(vdc.RandClass):
+            s1: DcSub = vdc.rand()
+            s2: DcSub = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                self.s1.a == self.s2.a
+
+        def oracle(o):
+            return o.s1.a < 8 and o.s2.a < 8 and o.s1.a == o.s2.a
+
+        ci, di = Classic(), Dc()
+        for _ in range(N):
+            ci.randomize()
+            di.randomize()
+            self.assertTrue(oracle(ci), "classic nested oracle violated")
+            self.assertTrue(oracle(di), "dc nested oracle violated")
+
     # --- helpers -------------------------------------------------------------
 
     def _compare(self, Classic, Dc, oracle, fields):

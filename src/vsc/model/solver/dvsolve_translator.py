@@ -568,8 +568,12 @@ class DvSolveExprTranslator(ModelVisitor):
                 arr = r.fm
                 n = self._array_elem_count(arr)
                 if n < 1:
-                    raise BackendIncomplete(
-                        "dv-solve: 'in' over empty array", reason_code="array")
+                    # An empty array is the empty set for this entry, i.e. the
+                    # constant False as a membership-OR leaf — skip it; it changes
+                    # nothing, so `a in {<empty list>, 10, 12, 14}` reduces to
+                    # `a in {10, 12, 14}`. If it is the *sole* entry the whole `in`
+                    # is empty-set membership, handled after the loop.
+                    continue
                 term = None
                 for i in range(n):
                     eq = ExprBinModel(e.lhs, BinExprType.Eq, _FR(arr.field_l[i]))
@@ -579,6 +583,12 @@ class DvSolveExprTranslator(ModelVisitor):
                 term = ExprBinModel(e.lhs, BinExprType.Eq, r)
             expr = term if expr is None else ExprBinModel(expr, BinExprType.Or, term)
         if expr is None:
+            if e.rhs.rl:
+                # Every rangelist entry reduced away (all empty arrays): this is
+                # membership over the empty set. Defer for the degenerate semantics
+                # rather than fabricate a constant (the prior conservative path).
+                raise BackendIncomplete(
+                    "dv-solve: 'in' over empty set", reason_code="array")
             self._result = self._b.expr_const(1)
         else:
             self._result = self.translate(expr)
@@ -801,19 +811,26 @@ class DvSolveExprTranslator(ModelVisitor):
         # Expand to pairwise != (functionally identical to native all_different;
         # composes cleanly as a returned boolean root). A fixed-size array operand
         # is expanded into its element fields (Phase C-4, mirroring Boolector's
-        # ConstraintUniqueModel._add_list_elems); a random-sized array's active
-        # set is solver-chosen and needs size-guarded pairs — deferred to C-3.
-        # (A naive field_l[:size] prefix expansion is unsound here — XCHECK proves
-        # dv-solve then produces models Boolector rejects — so randsz unique stays
-        # deferred until the size-guarded encoding lands.)
+        # ConstraintUniqueModel._add_list_elems); a random-sized array is served by
+        # the size-guarded encoding in `_unique_randsz` (Phase F arrays burn-down).
         from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
+        # A lone `unique(arr)` over a random-sized array is served size-guarded.
+        # Mixing a randsz array with other operands is not a corpus shape — defer.
+        if len(c.unique_l) == 1:
+            only = c.unique_l[0]
+            if isinstance(only, ExprFieldRefModel) \
+                    and isinstance(only.fm, FieldArrayModel) \
+                    and getattr(only.fm, "is_rand_sz", False):
+                self._result = self._unique_randsz(only.fm)
+                return
         elems = []
         for i in c.unique_l:
             if isinstance(i, ExprFieldRefModel) and isinstance(i.fm, FieldArrayModel):
                 arr = i.fm
                 if getattr(arr, "is_rand_sz", False):
                     raise BackendIncomplete(
-                        "dv-solve: unique over random-sized array (Phase C-3)",
+                        "dv-solve: unique mixing a random-sized array with other "
+                        "operands (size-guarded mix not supported)",
                         reason_code="array")
                 for f in arr.field_l:
                     elems.append(_FR(f))
@@ -832,6 +849,51 @@ class DvSolveExprTranslator(ModelVisitor):
             self._result = self._conj(terms)
         else:
             self._result = self._b.expr_const(1)
+
+    def _unique_randsz(self, arr):
+        """Size-guarded `unique` over a random-sized array — the active set is
+        ``field_l[0:size]`` and only active elements must be distinct.
+
+        Two cases (mirroring `_array_elem_count`):
+          * `size` resolved earlier (not co-solved in this RandSet) — the active
+            prefix is fixed, so we pairwise-`!=` the resolved prefix directly
+            (sound because we only read `size.get_val()` when `size` is NOT in the
+            idmap, so its value is committed by a prior RandSet, never stale).
+          * `size` co-solved in this RandSet — its value is solver-chosen, so each
+            pair is guarded: ``(j < size) -> elem[i] != elem[j]`` for i<j, encoded
+            as ``(j >= size) || (elem[i] != elem[j])`` (j is the larger index, and
+            j<size implies i<size, so guarding the larger index alone is exact)."""
+        from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
+        from vsc.model.expr_bin_model import ExprBinModel
+        from vsc.model.expr_literal_model import ExprLiteralModel
+        if not self._m.has(arr.size):
+            # Resolved size: fixed active prefix.
+            n = int(arr.size.get_val())
+            if n > self._MAX_UNIQUE_ELEMS:
+                raise BackendIncomplete(
+                    "dv-solve: unique over %d elements exceeds the pairwise cap"
+                    % n, reason_code="array")
+            refs = [self.translate(_FR(arr.field_l[k])) for k in range(n)]
+            terms = [self._b.expr_binary(BIN_NEQ, refs[i], refs[j])
+                     for i in range(len(refs)) for j in range(i + 1, len(refs))]
+            return self._conj(terms)
+        # Co-solved size: guard each max-size pair on the active prefix.
+        M = len(arr.field_l)
+        if M > self._MAX_UNIQUE_ELEMS:
+            raise BackendIncomplete(
+                "dv-solve: unique over %d elements exceeds the pairwise cap"
+                % M, reason_code="array")
+        sw = int(arr.size.width())
+        terms = []
+        for i in range(M):
+            for j in range(i + 1, M):
+                guard = ExprBinModel(ExprLiteralModel(j, False, sw),
+                                     BinExprType.Ge, _FR(arr.size))
+                neq = ExprBinModel(_FR(arr.field_l[i]), BinExprType.Ne,
+                                   _FR(arr.field_l[j]))
+                terms.append(self.translate(
+                    ExprBinModel(guard, BinExprType.Or, neq)))
+        return self._conj(terms)
 
     def visit_constraint_solve_order(self, c):
         # Ordering metadata only; contributes nothing to satisfiability.

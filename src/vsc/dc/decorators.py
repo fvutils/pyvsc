@@ -11,6 +11,7 @@ understand the synthesized ``__init__``.
 See ``doc/notes/dataclass_pyvsc_impl_test_doc_plan.md`` §2.3.
 """
 import dataclasses
+import typing
 
 try:
     from typing import dataclass_transform
@@ -32,10 +33,36 @@ def constraint(func):
     return func
 
 
+def _fixup_composite_defaults(cls):
+    """A field typed as another ``RandClass`` (a nested composite) needs a
+    ``default_factory`` that constructs a fresh nested instance — a plain
+    ``vdc.rand()`` only supplies a scalar default of 0. Rewrite each such field's
+    class attribute before the dataclass transform runs, preserving its metadata
+    (so rand-ness from ``vdc.rand()``/``vdc.field()`` is retained)."""
+    try:
+        hints = typing.get_type_hints(cls, include_extras=True)
+    except Exception:
+        return
+    for name in list(getattr(cls, "__annotations__", {})):
+        hint = hints.get(name)
+        if not (isinstance(hint, type) and issubclass(hint, RandClass)):
+            continue
+        cur = cls.__dict__.get(name, dataclasses.MISSING)
+        meta = dict(cur.metadata) if isinstance(cur, dataclasses.Field) else {}
+        # If the user already supplied a default_factory, leave it alone.
+        if (isinstance(cur, dataclasses.Field)
+                and cur.default_factory is not dataclasses.MISSING):
+            continue
+        setattr(cls, name,
+                dataclasses.field(default_factory=hint, metadata=meta))
+
+
 @dataclass_transform(kw_only_default=True,
                      field_specifiers=(_rand, _randc, _field, dataclasses.field))
 def dataclass(cls):
     """Transform ``cls`` into a vdc dataclass and attach its per-type model."""
+    if issubclass(cls, RandClass):
+        _fixup_composite_defaults(cls)
     cls = dataclasses.dataclass(kw_only=True)(cls)
 
     if issubclass(cls, RandClass):

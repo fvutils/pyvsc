@@ -26,60 +26,83 @@ from vsc.model.value_scalar import ValueScalar
 from . import ir_lower
 
 
-# Per-instance cache attribute holding (composite, field_models). Reusing the
+# Per-instance cache attribute holding the root solve :class:`_Node`. Reusing the
 # model object across randomize() calls both skips the rebuild/re-lower below and
 # lets the Randomizer's per-object Tier-A plan cache (keyed on the root model
 # object) hit across calls — a strict superset of today's per-object caching.
 _SOLVE_MODEL_ATTR = "_vsc_solve_model"
 
 
+class _Node:
+    """One level of the solve tree: a ``FieldCompositeModel`` plus the bookkeeping
+    needed to refresh inputs and write solved values back. Composite (nested
+    ``RandClass``) fields get a child ``_Node`` so apply/writeback recurse."""
+    __slots__ = ("obj", "tm", "composite", "field_models", "children")
+
+    def __init__(self, obj, tm, composite, field_models, children):
+        self.obj = obj
+        self.tm = tm
+        self.composite = composite
+        self.field_models = field_models   # name -> leaf/array/enum/child-composite model
+        self.children = children           # name -> child _Node (composite fields)
+
+
 def get_solve_model(obj, type_model):
     """Return a cached-or-freshly-built (composite, field_models) for ``obj``,
     with field values + rand_mode refreshed from the current instance state."""
-    cached = getattr(obj, _SOLVE_MODEL_ATTR, None)
-    if cached is not None:
-        composite, field_models = cached
-        _apply_inputs(obj, type_model, field_models)
-        return composite, field_models
-    composite, field_models = build_solve_model(obj, type_model)
-    object.__setattr__(obj, _SOLVE_MODEL_ATTR, (composite, field_models))
-    return composite, field_models
+    node = getattr(obj, _SOLVE_MODEL_ATTR, None)
+    if node is not None:
+        _apply_node(node, obj)
+        return node.composite, node.field_models
+    node = build_solve_node(obj, type_model)
+    object.__setattr__(obj, _SOLVE_MODEL_ATTR, node)
+    return node.composite, node.field_models
 
 
 class _RandIf:
-    """Bridges the model's pre/post-randomize callbacks to the instance.
+    """Bridges one composite's pre/post-randomize callbacks to its instance.
 
-    ``do_post_randomize`` runs *during* ``do_randomize`` (after the solve), so it
-    writes solved values back onto the instance *before* invoking the user's
-    ``post_randomize`` — which then sees the randomized values (matching classic
-    pyvsc, where the object and the model are the same thing)."""
+    ``do_post_randomize`` runs *during* ``do_randomize`` (after the solve). Each
+    level writes back only *its own* leaf fields; ``FieldCompositeModel`` walks the
+    nested composites so every level's ``_RandIf`` fires. Writeback precedes the
+    user hook so ``post_randomize`` sees randomized values and its edits stick."""
 
-    def __init__(self, obj, type_model, field_models):
-        self._obj = obj
-        self._tm = type_model
-        self._fm = field_models
+    def __init__(self, node):
+        self._node = node
 
     def do_pre_randomize(self):
-        hook = getattr(self._obj, "pre_randomize", None)
+        hook = getattr(self._node.obj, "pre_randomize", None)
         if callable(hook):
             hook()
 
     def do_post_randomize(self):
-        writeback(self._obj, self._tm, self._fm)
-        hook = getattr(self._obj, "post_randomize", None)
+        _writeback_level(self._node)
+        hook = getattr(self._node.obj, "post_randomize", None)
         if callable(hook):
             hook()
 
 
-def build_solve_model(obj, type_model):
-    """Build a fresh (composite_model, field_models) for ``obj``."""
+def build_solve_node(obj, type_model):
+    """Build a fresh solve :class:`_Node` for ``obj`` (recursing into composites)."""
     composite = FieldCompositeModel(type_model.cls_name, True, None)
     composite.typename = type_model.cls_name
 
     field_models = {}
+    children = {}
     for fd in type_model.fields:
         if fd.is_opaque:
             continue   # plain Python state — never enters the solve model
+        if fd.is_composite:
+            child_obj = getattr(obj, fd.name)
+            child_node = build_solve_node(child_obj, fd.comp_type_model())
+            # Re-name the child composite to the field name so cross-references
+            # (self.sub.x) and fullnames read naturally in the parent's tree.
+            child_node.composite.name = fd.name
+            child_node.composite.is_declared_rand = fd.is_rand
+            composite.add_field(child_node.composite)
+            field_models[fd.name] = child_node.composite
+            children[fd.name] = child_node
+            continue
         if fd.enum_cls is not None:
             fm = EnumFieldModel(fd.name, EnumInfo.get(fd.enum_cls).enums, fd.is_rand)
         elif fd.is_array:
@@ -98,11 +121,12 @@ def build_solve_model(obj, type_model):
     if dom is not None:
         composite.add_constraint(dom)
 
-    # Bridge pre/post_randomize hooks (and writeback) to the instance.
-    composite.rand_if = _RandIf(obj, type_model, field_models)
+    node = _Node(obj, type_model, composite, field_models, children)
+    # Bridge this level's pre/post_randomize hooks (and writeback) to the instance.
+    composite.rand_if = _RandIf(node)
 
-    _apply_inputs(obj, type_model, field_models)
-    return composite, field_models
+    _apply_node(node, obj)
+    return node
 
 
 def _build_array(fd):
@@ -124,12 +148,19 @@ def _coerce(fd, v):
     return v if fd.signed else (v & ((1 << fd.bits) - 1))
 
 
-def _apply_inputs(obj, type_model, field_models):
-    """Set each field model's current value (from the instance) and rand_mode
-    (from any per-instance override). Run on every solve so reuse is correct."""
+def _apply_node(node, obj):
+    """Set each field model's current value (from ``obj``) and rand_mode (from any
+    per-instance override), recursing into composite children. Run on every solve
+    so model reuse stays correct (and tracks a replaced nested instance)."""
+    node.obj = obj
+    type_model = node.tm
+    field_models = node.field_models
     rand_mode = getattr(obj, "_vsc_rand_mode", None)
     for fd in type_model.fields:
         if fd.is_opaque:
+            continue
+        if fd.is_composite:
+            _apply_node(node.children[fd.name], getattr(obj, fd.name))
             continue
         fm = field_models[fd.name]
         enabled = True
@@ -178,10 +209,14 @@ def _domain_block(type_model, field_models):
     return block
 
 
-def writeback(obj, type_model, field_models):
-    """Copy solved values from the field models back onto the instance."""
-    for fd in type_model.fields:
-        if not fd.is_rand:
+def _writeback_level(node):
+    """Copy solved values from this level's leaf field models back onto its
+    instance. Nested composites are written by their own ``_RandIf`` (driven by
+    ``FieldCompositeModel.post_randomize``), so this never recurses."""
+    obj = node.obj
+    field_models = node.field_models
+    for fd in node.tm.fields:
+        if fd.is_composite or not fd.is_rand:
             continue
         fm = field_models[fd.name]
         if fd.enum_cls is not None:

@@ -14,6 +14,9 @@ Coverage (filled in as Phase C lands):
   * T-C3  ``sum`` width parity vs Boolector + the mixed-width equality fix that
           C-2 surfaced (a wide aggregate compared to a narrow comparand must not
           wrap at the narrow width).
+  * T-C4  ``unique`` over a fixed-size array (pairwise ``!=``) and over a
+          *random-sized* array (size-guarded active prefix — Phase F arrays
+          burn-down, the dominant remaining ``array`` residual).
 
 See doc/notes/dv_solve_phaseC_arrays_plan.md. Skipped when the dv-solve native
 library is unavailable.
@@ -320,6 +323,42 @@ class TestDvSolveArrayNative(VscTestCase):
                 v = [int(x) for x in c.arr]
                 self.assertEqual(len(set(v)), len(v), "not unique: %s" % v)
                 self.assertTrue(all(x < 20 for x in v), "out of range: %s" % v)
+
+    def test_tc4_unique_over_randsz_array(self):
+        """``unique`` over a *random-sized* array is served natively by the
+        size-guarded encoding (Phase F arrays burn-down): only the active prefix
+        ``[0:size]`` must be distinct. This was the dominant remaining ``array``
+        residual (the ``test_list_scalar`` transitive idiom). serve-SAT is forced
+        on so the co-solved-size guarded form (which routes to BV-SAT) serves in
+        process; the resolved-size form serves from the primary regardless."""
+        import vsc.model.solver.dvsolve_backend as dvb
+
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.l = vsc.randsz_list_t(vsc.rand_uint8_t())
+
+            @vsc.constraint
+            def c(s):
+                s.l.size == 4
+                with vsc.foreach(s.l, idx=True, it=False) as i:
+                    s.l[i] < 6
+                vsc.unique(s.l)
+
+        saved = dvb._BVSAT_SERVE_SAT_MODE
+        dvb._BVSAT_SERVE_SAT_MODE = "on"
+        try:
+            with _no_fallback():
+                c = C()
+                for _ in range(40):
+                    c.randomize()
+                    v = [int(x) for x in c.l]
+                    self.assertEqual(len(v), 4, "active size != 4: %s" % v)
+                    self.assertEqual(len(set(v)), len(v),
+                                     "active prefix not unique: %s" % v)
+                    self.assertTrue(all(x < 6 for x in v), "out of range: %s" % v)
+        finally:
+            dvb._BVSAT_SERVE_SAT_MODE = saved
 
 
     # ------------------------------------------------------------------ #

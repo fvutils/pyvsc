@@ -26,11 +26,13 @@ class FieldDecl:
     ``signed`` describe the *element* type."""
     __slots__ = ("name", "bits", "signed", "is_rand", "rand_kind",
                  "domain", "size", "max_size", "soft", "role",
-                 "is_array", "is_rand_sz", "enum_cls", "is_opaque")
+                 "is_array", "is_rand_sz", "enum_cls", "is_opaque",
+                 "is_composite", "comp_cls")
 
     def __init__(self, name, bits, signed, is_rand, rand_kind,
                  domain=None, size=None, max_size=None, soft=None, role="",
-                 is_array=False, is_rand_sz=False, enum_cls=None, is_opaque=False):
+                 is_array=False, is_rand_sz=False, enum_cls=None, is_opaque=False,
+                 is_composite=False, comp_cls=None):
         self.name = name
         self.bits = bits
         self.signed = signed
@@ -47,6 +49,19 @@ class FieldDecl:
         # Opaque = plain Python state (lists, objects, ...) the solver ignores
         # entirely: not in the model, not constrainable, not written back.
         self.is_opaque = is_opaque
+        # Composite = a field typed as another @vdc.dataclass RandClass; its model
+        # is a nested FieldCompositeModel stitched into the parent's solve tree.
+        self.is_composite = is_composite
+        self.comp_cls = comp_cls        # the nested RandClass, or None
+
+    def comp_type_model(self):
+        """Return the nested :class:`TypeModel` for a composite field (built and
+        cached lazily on the nested class if the decorator was skipped)."""
+        tm = self.comp_cls.__dict__.get("_vsc_type_model")
+        if tm is None:
+            tm = build_type_model(self.comp_cls)
+            self.comp_cls._vsc_type_model = tm
+        return tm
 
     def __repr__(self):
         if self.is_array:
@@ -165,6 +180,13 @@ def _collect_constraints(cls):
     return progs
 
 
+def _is_rand_class(ann):
+    """True if ``ann`` is a class deriving from ``RandClass`` (a nested composite).
+    Imported lazily to avoid an import cycle (rand_class -> solve_view -> type_model)."""
+    from .rand_class import RandClass
+    return isinstance(ann, type) and issubclass(ann, RandClass)
+
+
 def build_type_model(cls):
     """Build (and return) the :class:`TypeModel` for a dataclass ``RandClass``."""
     hints = typing.get_type_hints(cls, include_extras=True)
@@ -172,6 +194,16 @@ def build_type_model(cls):
     for f in dataclasses.fields(cls):
         meta = get_field_meta(f)
         ann = hints.get(f.name)
+        if _is_rand_class(ann):
+            # Nested composite: a field typed as another RandClass. rand-ness comes
+            # from the field factory (vdc.rand() -> rand, vdc.field()/bare -> not).
+            fields.append(FieldDecl(
+                f.name, 0, False,
+                is_rand=(meta.is_rand if meta is not None else False),
+                rand_kind=(meta.role if (meta is not None and meta.is_rand) else ""),
+                role=(meta.role if meta is not None else ""),
+                is_composite=True, comp_cls=ann))
+            continue
         if isinstance(ann, EnumMeta):
             # Enum field: annotation is an IntEnum class.
             fields.append(FieldDecl(

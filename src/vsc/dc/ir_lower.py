@@ -31,6 +31,7 @@ from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_rangelist_model import ExprRangelistModel
 from vsc.model.expr_unary_model import ExprUnaryModel
 from vsc.model.field_array_model import FieldArrayModel
+from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.unary_expr_type import UnaryExprType
 
 from . import constraint_ir as ir
@@ -172,25 +173,33 @@ def _expr(node, ctx):
 
 def _field(node, ctx):
     path = node.path
-    if len(path) == 1:
-        name = path[0]
-        if name in ctx.locals:
-            return ctx.locals[name]()
-        model = ctx.model(name)
-        if model is None:
-            raise KeyError("constraint references unknown field %r" % name)
-        return ExprFieldRefModel(model)
-    if len(path) == 2:
-        # array attribute access: arr.size / arr.sum
-        arr = ctx.model(path[0])
-        if isinstance(arr, FieldArrayModel):
-            if path[1] == "size":
-                return ExprFieldRefModel(arr.size)
-            if path[1] == "sum":
-                return ExprArraySumModel(arr)
-        raise NotImplementedError(
-            "dotted field path %r (nested objects land with composites)" % (path,))
-    raise NotImplementedError("deep field path %r" % (path,))
+    if path[0] in ctx.locals:
+        # foreach loop variable (idx/it); descent through it lands with
+        # array-of-composite support.
+        if len(path) == 1:
+            return ctx.locals[path[0]]()
+        raise NotImplementedError("descent through foreach var %r" % (path,))
+    model = ctx.model(path[0])
+    if model is None:
+        raise KeyError("constraint references unknown field %r" % path[0])
+    # Walk the remaining path segments, descending through nested composites and
+    # resolving array pseudo-attributes (arr.size / arr.sum).
+    for seg in path[1:]:
+        if isinstance(model, FieldArrayModel):
+            if seg == "size":
+                model = model.size
+                continue
+            if seg == "sum":
+                return ExprArraySumModel(model)
+            raise NotImplementedError("array attribute %r" % seg)
+        if isinstance(model, FieldCompositeModel):
+            child = model.find_field(seg)
+            if child is None:
+                raise KeyError("composite %r has no field %r" % (model.name, seg))
+            model = child
+            continue
+        raise NotImplementedError("cannot descend into %r at %r" % (seg, model.name))
+    return ExprFieldRefModel(model)
 
 
 def _index(node, ctx):
