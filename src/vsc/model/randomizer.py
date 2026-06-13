@@ -396,6 +396,11 @@ class Randomizer(RandIF):
                 self.fallback_backends.append(select_backend("boolector"))
             except Exception:
                 pass
+
+        # Tell the primary whether an external fallback will serve what it can't,
+        # so its `auto` serve-SAT mode serves SAT itself only when nothing else
+        # will (F-1a). Harmless on back-ends that ignore the attribute.
+        self.backend._external_fallback_available = bool(self.fallback_backends)
     
     _state_p = [0,1]
     _rng = None

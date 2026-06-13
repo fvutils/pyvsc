@@ -265,12 +265,12 @@ class TestDvSolveFallbackHistogram(VscTestCase):
         # deferring `bvsat-sat-deferred`, which is correct behavior but not what
         # this dashboard documents.
         import vsc.model.solver.dvsolve_backend as _dvb
-        self._saved_serve = _dvb._BVSAT_SERVE_SAT
-        _dvb._BVSAT_SERVE_SAT = False
+        self._saved_serve = _dvb._BVSAT_SERVE_SAT_MODE
+        _dvb._BVSAT_SERVE_SAT_MODE = "off"
 
     def tearDown(self):
         import vsc.model.solver.dvsolve_backend as _dvb
-        _dvb._BVSAT_SERVE_SAT = self._saved_serve
+        _dvb._BVSAT_SERVE_SAT_MODE = self._saved_serve
         ctor.set_solver_backend(None)
         super().tearDown()
 

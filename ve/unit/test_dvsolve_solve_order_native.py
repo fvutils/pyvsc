@@ -40,13 +40,14 @@ class TestDvSolveSolveOrderNative(VscTestCase):
     def setUp(self):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
-        # Force serve-SAT on (default is off): the path under test only serves
-        # SAT models when serve-SAT is enabled.
-        self._saved_serve = dvb._BVSAT_SERVE_SAT
-        dvb._BVSAT_SERVE_SAT = True
+        # Force serve-SAT on (default is `auto`, which defers while a Boolector
+        # fallback is present): the path under test only serves SAT models when
+        # serve-SAT is enabled.
+        self._saved_serve = dvb._BVSAT_SERVE_SAT_MODE
+        dvb._BVSAT_SERVE_SAT_MODE = "on"
 
     def tearDown(self):
-        dvb._BVSAT_SERVE_SAT = self._saved_serve
+        dvb._BVSAT_SERVE_SAT_MODE = self._saved_serve
         ctor.set_solver_backend(None)
         super().tearDown()
 

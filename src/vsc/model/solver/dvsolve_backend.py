@@ -47,17 +47,33 @@ _REUSE_ENABLED = os.environ.get("VSC_DVSOLVE_REUSE", "1") != "0"
 _BVSAT_ENABLED = os.environ.get("VSC_DVSOLVE_BVSAT", "1") != "0"
 
 # Whether the BV-SAT engine also *serves* satisfiable fallback problems (writes
-# their solved values), or only decides SAT-vs-UNSAT and lets the external
-# fallback serve SAT for distribution quality. Default OFF: empirically the
-# BV-SAT model distribution (kissat phase-randomization) is too clustered for
-# coverage-sensitive stimulus — e.g. a uint64 `inside [0..19]` left bins 13-15
-# unhit over 400 draws (test_widevar_small_range_2), where Boolector's swizzler
-# covers them. So we take BV-SAT's authoritative *UNSAT* verdict but defer SAT
-# serving to the distribution-preserving back-end. Revising the plan's §6.1
-# assumption: phase-randomization is NOT sufficient for SAT serving; a uniform
-# sampler (or primary-engine coverage of these constructs) is needed before
-# flipping this on. Set VSC_DVSOLVE_BVSAT_SERVE_SAT=1 to opt in.
-_BVSAT_SERVE_SAT = os.environ.get("VSC_DVSOLVE_BVSAT_SERVE_SAT", "0") != "0"
+# their solved values) — via the uniform sampler (see _BVSAT_SAMPLER) — or only
+# decides SAT-vs-UNSAT and lets the external fallback serve SAT for distribution
+# quality. Tri-state (VSC_DVSOLVE_BVSAT_SERVE_SAT), F-1a:
+#   "0"    — never serve from BV-SAT; defer SAT to the external fallback (the
+#            original Phase-A posture, kept as the A/B opt-out).
+#   "1"    — always serve SAT from BV-SAT.
+#   "auto" — (default) serve SAT from BV-SAT only when there is NO external
+#            fallback to serve it (the Randomizer sets _external_fallback_available
+#            per-instance from its fallback chain). While Boolector is still the
+#            default fallback this is behaviorally identical to "0"; once the
+#            fallback is dropped (F-3) dv-solve serves SAT itself with no second
+#            flip — so the serve-SAT cost is paid exactly when it buys
+#            self-sufficiency (decision §11.2 / F-1a).
+# Raw kissat models are too clustered for stimulus (e.g. a uint64 `inside [0..19]`
+# left bins 13-15 unhit over 400 draws), which is why serving routes through the
+# uniform sampler rather than the raw readback. `force_serve` paths (>64-bit,
+# implies-aux) serve regardless of this mode — the primary is not an option there.
+def _serve_sat_mode():
+    raw = os.environ.get("VSC_DVSOLVE_BVSAT_SERVE_SAT", "auto").lower()
+    if raw == "0":
+        return "off"
+    if raw == "auto":
+        return "auto"
+    return "on"
+
+
+_BVSAT_SERVE_SAT_MODE = _serve_sat_mode()
 
 # When BV-SAT serves SAT, route the model through the XOR/parity-hashing uniform
 # sampler (bvsat_sampler) instead of reading back kissat's clustered model. This
@@ -171,6 +187,23 @@ class DvSolveBackend(SolverBackendIF):
     supports_soft = True
     supports_dist_native = True
     randomizes_internally = True
+
+    # Whether the Randomizer has an external fallback back-end (Boolector) after
+    # this primary. Set per-instance by Randomizer.__init__ once the fallback
+    # chain is built; governs the `auto` serve-SAT mode (F-1a). Defaults True so a
+    # direct construction (no Randomizer) keeps today's defer-to-fallback posture.
+    _external_fallback_available = True
+
+    def _serve_sat_enabled(self) -> bool:
+        """Effective serve-SAT decision for this backend instance (F-1a):
+        ``"1"`` → always; ``"0"`` → never; ``"auto"`` → only when no external
+        fallback is available to serve SAT for distribution. Read at solve time
+        so a mid-run mode change (tests) and the per-instance chain both apply."""
+        if _BVSAT_SERVE_SAT_MODE == "on":
+            return True
+        if _BVSAT_SERVE_SAT_MODE == "off":
+            return False
+        return not self._external_fallback_available  # "auto"
 
     @classmethod
     def available(cls) -> bool:
@@ -565,8 +598,9 @@ class DvSolveBackend(SolverBackendIF):
         ``SolveFailure``; UNKNOWN/ERROR (A-4 guard / timeout) -> ``BackendIncomplete``
         so the external fallback decides. Honors ``VSC_DVSOLVE_BVSAT=0``.
 
-        When serving SAT (``VSC_DVSOLVE_BVSAT_SERVE_SAT=1`` or ``force_serve``) and
-        a ``make_base`` factory is available, the model is drawn through the
+        When serving SAT (``_serve_sat_enabled()`` — i.e. mode ``1``/``auto``
+        with no external fallback — or ``force_serve``) and a ``make_base``
+        factory is available, the model is drawn through the
         XOR-hashing uniform sampler (``bvsat_sampler``) so the value distribution
         is usable as stimulus; otherwise the raw (clustered) kissat model is read
         back. ``force_serve`` is set for >64-bit RandSets, which have no other
@@ -590,7 +624,7 @@ class DvSolveBackend(SolverBackendIF):
                 raise SolveFailure(
                     "dv-solve BV-SAT engine proved unsatisfiable",
                     "dv-solve BV-SAT engine proved the constraints unsatisfiable")
-            if rc == BVSAT_SAT and (_BVSAT_SERVE_SAT or force_serve):
+            if rc == BVSAT_SAT and (self._serve_sat_enabled() or force_serve):
                 # Prefer the uniform sampler: kissat's raw model is too clustered
                 # for stimulus. The base SAT verdict above guarantees the sampler
                 # converges (m==0 is this same satisfiable problem).
