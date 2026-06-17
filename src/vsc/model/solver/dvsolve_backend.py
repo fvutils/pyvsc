@@ -302,7 +302,8 @@ class DvSolveBackend(SolverBackendIF):
                     self._solve_and_readback(
                         plan.ctx, plan.readback, randstate, solve_info,
                         problem_buf=getattr(plan.ctx, "_problem", None),
-                        has_order=has_order, rand_order_l=rand_order_l)
+                        has_order=has_order, rand_order_l=rand_order_l,
+                        n_softs=len(rs.soft_constraints()))
                     return SolveResult(status=0)
                 # Structure or a referenced constant changed: discard and rebuild.
                 setattr(anchor, _PLAN_ATTR, None)
@@ -327,28 +328,32 @@ class DvSolveBackend(SolverBackendIF):
         sample_vars = []
 
         # 1. Declare a variable for every rand field, honoring its domain.
+        near_unsat = False
         for f in rand_fields:
             vid = idmap.add(f)
             dom = self._domain_of(f, bound_m)
             if dom is None:
-                # ``_domain_of`` emptied the field's enclosing range. Two distinct
-                # causes — keep them on separate reason codes so the dashboard's
-                # "unsat-defer" stays meaningful:
-                #  * width > 64: the bound exceeded the int64 ``add_var`` envelope
-                #    (a >int64 sub-range can't round-trip through int64). The
-                #    problem may well be SAT — we just can't encode the wide bound,
-                #    so we defer for the value. Tag `wide-range` (a representation
-                #    limit, NOT an unsat).
-                #  * width <= 64: the domain is genuinely outside what the field
-                #    can represent (e.g. ``a == 500`` on a uint8) — a real
-                #    near-unsat the fallback decides authoritatively. Tag
-                #    `unsat-defer`.
-                reason = "wide-range" if f.width > 64 else "unsat-defer"
-                raise BackendIncomplete(
-                    "dv-solve: field '%s' domain is outside its %s range" % (
-                        getattr(f, "name", "?"),
-                        "int64-representable" if f.width > 64 else "width"),
-                    reason_code=reason)
+                # ``_domain_of`` emptied the field's enclosing range at width <= 64
+                # (the width>64 wide case instead returns a *free* range and routes
+                # to BV-SAT). The constraint-narrowed domain is empty at this width
+                # — e.g. ``a == 500`` on a uint8 — a near-unsat the primary's
+                # bound-tightening cannot soundly *declare*. Rather than defer the
+                # verdict to Boolector (the old ``unsat-defer``), declare the var
+                # free across its width and route the whole RandSet to the complete
+                # internal BV-SAT engine, which IS the UNSAT authority (Phase A): it
+                # decides SAT/UNSAT itself (and serves a value if the empty bound
+                # was a spurious tightening). The original constraints still narrow
+                # the var inside BV-SAT, so this never "solves" an impossible value
+                # — the over-wide literal stays full-width (translator literal
+                # sizing) and the equality is UNSAT exactly as Boolector reports.
+                if f.is_signed:
+                    lo, hi = -(1 << (f.width - 1)), (1 << (f.width - 1)) - 1
+                else:
+                    lo, hi = 0, (1 << f.width) - 1
+                b.add_var(vid, f.width, bool(f.is_signed), lo, hi)
+                sample_vars.append((vid, int(f.width), lo, hi, bool(f.is_signed)))
+                near_unsat = True
+                continue
             lo, hi, gap_ranges = dom
             b.add_var(vid, f.width, bool(f.is_signed), lo, hi)
             sample_vars.append((vid, int(f.width), lo, hi, bool(f.is_signed)))
@@ -356,6 +361,11 @@ class DvSolveBackend(SolverBackendIF):
                 gapped.append((f, gap_ranges))
 
         tr = DvSolveExprTranslator(b, idmap)
+        if near_unsat:
+            # A field's domain emptied at its width: the primary can neither serve
+            # nor authoritatively reject this RandSet, so force the complete BV-SAT
+            # engine (UNSAT authority + width-agnostic serving).
+            tr.requires_bvsat = True
 
         # Fields carrying a native `dist`: their weighted add_dist (step 4 below)
         # owns the value picker, so the gap-range *uniform* add_dist must be
@@ -364,6 +374,9 @@ class DvSolveBackend(SolverBackendIF):
         # the dist's `inside` (in_c) via the normal constraint loop.
         dist_field_m = getattr(rs, "dist_field_m", None) or {}
         dist_fields = set(f for f in dist_field_m if idmap.has(f))
+        # The native EXPR_IN_RANGES membership shortcut must not fire for dist
+        # fields (their membership is owned by the dist encoding).
+        tr.dist_fields = dist_fields
 
         # 1b. Re-assert any gaps a multi-range/enumerated domain leaves open
         #     (the single [lo,hi] of add_var is only the enclosing range).
@@ -376,7 +389,14 @@ class DvSolveBackend(SolverBackendIF):
         for f, gap_ranges in gapped:
             if f in dist_fields:
                 continue                     # dist owns this field's add_dist
-            b.add_constraint(tr.translate(self._membership_expr(f, gap_ranges)))
+            membership = self._membership_expr(f, gap_ranges)
+            # Prefer the native multi-range membership propagator (G-2); fall
+            # back to the OR encoding for shapes it can't take (which then route
+            # to BV-SAT as before).
+            mref = tr.try_native_in_ranges(membership)
+            if mref is None:
+                mref = tr.translate(membership)
+            b.add_constraint(mref)
             b.add_dist(idmap.id_of(f), [
                 {"lo": r[0], "hi": r[1], "weight": 1, "is_per_value": True}
                 for r in gap_ranges])
@@ -386,9 +406,31 @@ class DvSolveBackend(SolverBackendIF):
         #     expansion), satisfying the BV-SAT Domain-Twin Invariant; here we
         #     add only the weighted selection the swizzler would otherwise
         #     supply. Un-encodable shapes raise BackendIncomplete (deferral).
+        # vid -> weighted DistEntry list, captured so the BV-SAT serving path
+        # (sample_dist) can honor the same weighting the primary's add_dist
+        # applies, for a dist-bearing RandSet that force-serves via BV-SAT.
+        tr.dist_targets = {}
         for f in dist_fields:
             scopes = dist_field_m[f]
-            self._add_dist_for_field(b, idmap, f, scopes)
+            entries = self._add_dist_for_field(b, idmap, f, scopes)
+            if entries:
+                tr.dist_targets[idmap.id_of(f)] = entries
+
+        # Soft serving posture (soft-constraints engine plan, DSE-0/DSE-2). The
+        # dv-solve *primary* engine honors softs correctly — including *guarded*
+        # (conditional) softs, which lower to the disjunction soft `(!cond)||expr`:
+        # the relaxation loop keeps the maximal priority-respecting soft set and
+        # bound-propagation enforces a kept disjunction (verified natively, DSE-0;
+        # the earlier "0/20" was a pyvsc translator memo-key bug, since fixed —
+        # see dvsolve_translator.translate). So a primary-served soft RandSet needs
+        # NO gate here. The *BV-SAT serve path* was historically soft-less (a
+        # soft-bearing RandSet that force-serves via requires_bvsat / wide, or falls
+        # to BV-SAT on primary-incomplete, dropped its softs silently). DSE-2 closed
+        # that: `_solve_via_bvsat` now runs the engine's soft-aware MaxSAT
+        # (`maxsat_keepset` -> `zsp_bbsolver_check_maxsat`) to fix the maximal
+        # priority-respecting kept-soft set and enforces it as hard on every sampler
+        # draw, so both guarded and unconditional softs are honored natively on the
+        # serve path too. No soft RandSet is deferred or silently dropped here.
 
         # 2. Hard constraints.
         for c in rs.constraints():
@@ -403,7 +445,11 @@ class DvSolveBackend(SolverBackendIF):
             order = sorted(range(len(softs)),
                            key=lambda i: (-softs[i].priority, i))
             for dv_pri, i in enumerate(order):
-                b.add_soft_constraint(tr.translate(softs[i]), dv_pri)
+                # translate_soft materializes the soft's expr (a bare soft, or the
+                # guarded `(!cond)||soft` of a priority-bearing implies); the engine
+                # owns the relaxation via add_soft_constraint. A soft translated in
+                # the *hard* tree drops to nothing (see visit_constraint_soft).
+                b.add_soft_constraint(tr.translate_soft(softs[i]), dv_pri)
 
         return tr, sample_vars
 
@@ -448,6 +494,7 @@ class DvSolveBackend(SolverBackendIF):
             # authoritative for both SAT and UNSAT (Phase A). Only if it returns
             # UNKNOWN/ERROR do we fall back externally.
             readback = [(f, idmap.id_of(f)) for f in rand_fields]
+            n_softs = len(rs.soft_constraints())
 
             # A RandSet the primary engine cannot solve soundly must be served by
             # the complete BV-SAT engine, forced (regardless of the serve-SAT
@@ -462,7 +509,8 @@ class DvSolveBackend(SolverBackendIF):
                     buf, readback, randstate, solve_info,
                     make_base=make_base, sample_vars=sample_vars,
                     has_order=has_order, force_serve=True,
-                    rand_order_l=rand_order_l)
+                    rand_order_l=rand_order_l, dist_targets=tr.dist_targets,
+                    n_softs=n_softs)
 
             try:
                 ctx = _make_solve_ctx(buf, problem_sz)
@@ -472,12 +520,14 @@ class DvSolveBackend(SolverBackendIF):
                 return self._solve_via_bvsat(
                     buf, readback, randstate, solve_info,
                     make_base=make_base, sample_vars=sample_vars,
-                    has_order=has_order, rand_order_l=rand_order_l)
+                    has_order=has_order, rand_order_l=rand_order_l,
+                    dist_targets=tr.dist_targets, n_softs=n_softs)
 
             solved_by_primary = self._solve_and_readback(
                 ctx, readback, randstate, solve_info, problem_buf=buf,
                 make_base=make_base, sample_vars=sample_vars,
-                has_order=has_order, rand_order_l=rand_order_l)
+                has_order=has_order, rand_order_l=rand_order_l,
+                dist_targets=tr.dist_targets, n_softs=n_softs)
 
             # Retain the compiled ctx for reuse only when the *primary* engine
             # produced the solution — a ctx that needed the BV-SAT fallback is
@@ -507,7 +557,8 @@ class DvSolveBackend(SolverBackendIF):
     def _solve_and_readback(self, ctx, readback, randstate, solve_info,
                             problem_buf=None, make_base=None,
                             sample_vars=None, has_order=False,
-                            rand_order_l=None) -> bool:
+                            rand_order_l=None, dist_targets=None,
+                            n_softs=0) -> bool:
         """Solve ``ctx`` with a fresh seed and write the solved values back into
         the fields. Shared by the build and reuse paths.
 
@@ -539,7 +590,8 @@ class DvSolveBackend(SolverBackendIF):
         if problem_buf is not None:
             self._solve_via_bvsat(problem_buf, readback, randstate, solve_info,
                                   make_base=make_base, sample_vars=sample_vars,
-                                  has_order=has_order, rand_order_l=rand_order_l)
+                                  has_order=has_order, rand_order_l=rand_order_l,
+                                  dist_targets=dist_targets, n_softs=n_softs)
             return False
         raise BackendIncomplete(
             "dv-solve search did not find a solution "
@@ -593,7 +645,8 @@ class DvSolveBackend(SolverBackendIF):
     def _solve_via_bvsat(self, problem_buf, readback, randstate,
                          solve_info, make_base=None, sample_vars=None,
                          has_order=False, force_serve=False,
-                         rand_order_l=None) -> SolveResult:
+                         rand_order_l=None, dist_targets=None,
+                         n_softs=0) -> SolveResult:
         """Solve ``problem_buf`` with the internal BV-SAT completeness engine and
         write values back. Authoritative: SAT -> set values & return; UNSAT ->
         ``SolveFailure``; UNKNOWN/ERROR (A-4 guard / timeout) -> ``BackendIncomplete``
@@ -610,13 +663,31 @@ class DvSolveBackend(SolverBackendIF):
             raise BackendIncomplete(
                 "dv-solve primary could not decide; BV-SAT disabled, deferring",
                 reason_code="bvsat-disabled")
-        from dv_solve.bvsat import BVSatCtx, BVSAT_SAT, BVSAT_UNSAT
+        from dv_solve.bvsat import (
+            BVSatCtx, BVSAT_SAT, BVSAT_UNSAT, maxsat_keepset)
         seed = randstate.randint(0, (1 << 63) - 1)
         if solve_info is not None:
             solve_info.n_sat_calls += 1
+        # DSE-2 soft-aware serve. The plain BV-SAT path ignores `softs_head`. For a
+        # soft-bearing RandSet, first run the engine's MaxSAT relaxation to fix the
+        # maximal priority-respecting kept-soft set (mirroring the primary engine's
+        # policy), then enforce exactly that set as hard (`soft_keep`) on the main
+        # check AND every sampler draw — so the served model and its distribution
+        # honor the kept softs. The kept mask is in `softs_head` walk order and the
+        # sampler's `make_base` rebuilds are deterministic, so one mask stays valid
+        # across rebuilds (no Python-side soft-index mapping). A soft that conflicts
+        # is relaxed by the engine, never dropped silently or enforced as hard.
+        soft_keep = None
         bb = BVSatCtx(problem_buf)
         try:
-            rc = bb.check(seed=seed)
+            if n_softs > 0:
+                rc, soft_keep = maxsat_keepset(problem_buf, seed, n_softs)
+                if rc == BVSAT_SAT:
+                    # Re-solve the retained bb under the kept set so its readback
+                    # model (raw-readback / non-serve paths) honors the kept softs.
+                    rc = bb.check(seed=seed, soft_keep=soft_keep)
+            else:
+                rc = bb.check(seed=seed)
             if rc == BVSAT_UNSAT:
                 # Complete engine -> sound UNSAT. dv-solve is now authoritative
                 # for UNSAT without needing the external fallback. The Randomizer
@@ -644,15 +715,27 @@ class DvSolveBackend(SolverBackendIF):
                             and bvsat_sampler.stage_sampleable(sample_vars)):
                         ok = bvsat_sampler.sample_ordered(
                             make_base, stages, sample_vars, seed,
-                            solve_info=solve_info)
+                            solve_info=solve_info, soft_keep=soft_keep)
                         if ok:
                             return SolveResult(status=0)
                     # Not natively serveable in order → defer (raise below).
                 else:
                     if _BVSAT_SAMPLER and make_base is not None and sample_vars:
-                        ok = bvsat_sampler.sample(
-                            make_base, readback, sample_vars, seed,
-                            solve_info=solve_info)
+                        # A dist-bearing RandSet force-served via BV-SAT (the
+                        # primary's add_dist is ignored here): honor the dist
+                        # weighting via a weighted assume-then-assert pre-stage
+                        # (EF-1b), then uniform-sample the rest. Otherwise the
+                        # plain uniform sampler.
+                        if (dist_targets
+                                and bvsat_sampler.stage_sampleable(sample_vars)):
+                            ok = bvsat_sampler.sample_dist(
+                                make_base, readback, sample_vars, seed,
+                                dist_targets, solve_info=solve_info,
+                                soft_keep=soft_keep)
+                        else:
+                            ok = bvsat_sampler.sample(
+                                make_base, readback, sample_vars, seed,
+                                solve_info=solve_info, soft_keep=soft_keep)
                         if ok:
                             return SolveResult(status=0)
                         # Sampler couldn't serve (shouldn't happen): fall through
@@ -854,6 +937,15 @@ class DvSolveBackend(SolverBackendIF):
            correctness is unaffected since the hard membership is guarded.
          * A plain dist mixed with others, or >1 active constant-guard branch:
            genuinely ambiguous — defer (``reason_code="dist"``).
+
+        Returns the weighted ``DistEntry`` list applied to the primary's value
+        picker, or ``None`` when no *weighted* selection was emitted (no active
+        branch, or the rand-guard uniform-union case where weighting is
+        intentionally dropped). The backend captures the returned entries so the
+        BV-SAT serving path (``sample_dist``) can honor the same weighting when a
+        dist-bearing RandSet is force-served via BV-SAT (which ignores the
+        primary's ``add_dist``) — e.g. a dist combined with a conjunctive-body
+        implication that routes to BV-SAT (EF-1b).
         """
         conditional = [s for s in scopes if getattr(s, "is_conditional", False)]
         plain = [s for s in scopes if not getattr(s, "is_conditional", False)]
@@ -863,7 +955,8 @@ class DvSolveBackend(SolverBackendIF):
             entries = self._dist_entries(f, scopes[0].dist_c)
             if entries:
                 b.add_dist(idmap.id_of(f), entries)
-            return
+                return entries
+            return None
 
         # A plain dist mixed with others on one field is ambiguous (which
         # weighting wins?) — defer, as before.
@@ -883,13 +976,13 @@ class DvSolveBackend(SolverBackendIF):
                     union.append({**e, "weight": 1})
             if union:
                 b.add_dist(idmap.id_of(f), union)
-            return
+            return None                  # weighting dropped → no weighted target
 
         # Constant guards: keep the branch(es) whose guard currently holds.
         active = [s for s in conditional
                   if self._guard_true(getattr(s, "cond_l", []))]
         if len(active) == 0:
-            return                       # no active branch -> membership suffices
+            return None                  # no active branch -> membership suffices
         if len(active) > 1:
             raise BackendIncomplete(
                 "dv-solve: multiple active conditional dist on field '%s'" %
@@ -898,6 +991,8 @@ class DvSolveBackend(SolverBackendIF):
         entries = self._dist_entries(f, active[0].dist_c)
         if entries:
             b.add_dist(idmap.id_of(f), entries)
+            return entries
+        return None
 
     @staticmethod
     def _guard_true(cond_l):

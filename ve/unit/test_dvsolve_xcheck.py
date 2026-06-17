@@ -269,6 +269,64 @@ class TestDvSolveXCheck(VscTestCase):
             rndmod.restore_fallback_tally(snap)
 
     # ------------------------------------------------------------------ #
+    # Native UNSAT authority — the near-unsat (empty width-domain) defer    #
+    # is decided by the internal BV-SAT engine, not Boolector (Phase F).    #
+    # ------------------------------------------------------------------ #
+    def test_unsat_native_authority(self):
+        """A field whose constraint empties its width-domain (`a(8) == 500`) or
+        whose bounds are jointly infeasible (`a > 200 & a < 100`) used to defer
+        the UNSAT verdict to Boolector (`unsat-defer`). dv-solve now declares it
+        free and routes the RandSet to the complete BV-SAT engine, which is the
+        UNSAT authority — so dv-solve proves UNSAT *itself*, XCHECK-clean (Boolector
+        agrees) and with NO `unsat-defer` fallback. Soundness hinge: the over-wide
+        literal must stay full-width so `a(8) == 500` is UNSAT, not a truncated
+        `a == 244` (a wrong SAT)."""
+        import vsc.model.randomizer as rndmod
+
+        @vsc.randobj
+        class OverWide(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+            @vsc.constraint
+            def c(s):
+                s.a == 500                      # 500 not 8-bit representable
+
+        @vsc.randobj
+        class Infeasible(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+            @vsc.constraint
+            def c(s):
+                s.a > 200
+                s.a < 100
+
+        # XCHECK-clean: dv-solve's UNSAT verdict agrees with Boolector.
+        with _xcheck() as tally:
+            for Cls in (OverWide, Infeasible):
+                try:
+                    Cls().randomize()
+                    self.fail("%s should be UNSAT" % Cls.__name__)
+                except vsc.SolveFailure:
+                    pass
+            self.assertEqual(tally()["mismatch"], 0)
+
+        # Decided NATIVELY: no `unsat-defer` fallback — dv-solve is the authority.
+        snap = rndmod.snapshot_fallback_tally()
+        rndmod.set_fallback_tally(True)
+        rndmod.reset_fallback_tally()
+        try:
+            for Cls in (OverWide, Infeasible):
+                try:
+                    Cls().randomize()
+                except vsc.SolveFailure:
+                    pass
+            self.assertNotIn(
+                "unsat-defer", rndmod.get_fallback_tally(),
+                "near-unsat should be decided by BV-SAT, not deferred")
+        finally:
+            rndmod.restore_fallback_tally(snap)
+
+    # ------------------------------------------------------------------ #
     # T-E1c — strided sampling is deterministic                            #
     # ------------------------------------------------------------------ #
     def test_te1c_sampling_deterministic(self):

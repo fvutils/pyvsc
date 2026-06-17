@@ -22,6 +22,8 @@ See ``doc/notes/dataclass-pyvsc-design.md`` and
 ``doc/notes/dataclass_pyvsc_impl_test_doc_plan.md``.
 """
 from .api import randomize, randomize_with
+from .coverage import (Coverpoint, Covergroup, Cross, bin, bin_array,  # noqa: F401
+                       coverpoint, cross, wildcard_bin)
 from .decorators import constraint, dataclass
 from .fields import cg_arg, field, rand, randc, sample_arg
 from .rand_class import RandClass
@@ -46,6 +48,8 @@ __all__ = [
     "dataclass", "constraint",
     "rand", "randc", "field", "cg_arg", "sample_arg",
     "RandClass", "randomize", "randomize_with",
+    "Covergroup", "Coverpoint", "Cross", "coverpoint", "cross",
+    "bin", "bin_array", "wildcard_bin",
     "bitv",
     "if_then", "else_if", "else_then", "implies", "foreach",
     "soft", "unique", "unique_vec", "solve_order", "weight", "dist", "rangelist",

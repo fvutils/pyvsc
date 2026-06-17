@@ -82,6 +82,36 @@ On that fallback:
   selection for such a RandSet to the distribution-preserving fallback rather
   than emitting BV-SAT's biased model.
 
+Soft constraints
+================
+
+dv-solve serves ``soft`` constraints **natively on both engines** — no Boolector
+is required for soft.
+
+* **Semantics.** A ``soft`` constraint is a *preference*: it is satisfied when
+  possible and **relaxed** (dropped) when it conflicts with the hard constraints
+  or with a higher-priority soft. Relaxation is engine-owned (dv-solve decides
+  which softs to drop); pyvsc never enforces a soft as a hard constraint. Soft
+  preference follows **declaration order**: a soft declared *later* is preferred
+  over (kept harder than) one declared earlier, so among mutually-conflicting
+  softs the last-declared survives — the standard SystemVerilog ``soft`` override
+  rule. Both the primary and the BV-SAT serve paths use the same
+  priority-respecting *greedy* relaxation, in the same order, matching the
+  Boolector back-end — including its one well-known limitation: when several
+  equally-preferred softs participate in a conflict, greedy relaxation may drop
+  more of them than the theoretical optimum. The relaxation order is stable across
+  repeated ``randomize()`` calls (incl. the plan-cache / problem-reuse fast paths).
+
+* **Guarded / conditional softs.** ``with if_then(g): soft(e)`` (and the
+  ``implies`` / ``if/else`` forms) are honored natively: the soft is preferred
+  only when its guard holds.
+
+* **Force-served RandSets.** A soft-bearing RandSet that routes to the BV-SAT
+  engine (e.g. a conjunctive guarded body, or a field wider than 64 bits) is
+  served by dv-solve's soft-aware MaxSAT — the kept soft set is enforced while
+  the well-distributed sampler draws the remaining free fields. Softs are never
+  silently dropped on this path.
+
 Environment toggles (advanced / debugging)
 ------------------------------------------
 

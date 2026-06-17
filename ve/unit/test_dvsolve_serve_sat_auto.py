@@ -35,16 +35,20 @@ def _dvsolve_available():
 
 
 @vsc.randobj
-class _RandSzGappedSize(object):
-    # randsz array whose size domain is a gapped set excluding 0 ({1,2,4,8}).
-    # The primary bounds search can't decide this; BV-SAT *proves it SAT*, so it
-    # is exactly the `bvsat-sat-deferred` (serve / defer) decision point.
+class _UpperHalfConstBound(object):
+    # `x > 2**63` on an unsigned u64: a constant bound in the unsigned upper half.
+    # The literal is inferred signed (width 65) and lowered to a concat wide-const
+    # the comparison compiler can't fold, so the constraint is left uncompiled and
+    # BV-SAT *proves it SAT* — exactly the `bvsat-sat-deferred` (serve / defer)
+    # decision point, and deterministic. (A gapped value-set / multi-range
+    # membership is no longer a valid example — Phase G's native EXPR_IN_RANGES
+    # membership solves those directly.)
     def __init__(s):
-        s.l = vsc.randsz_list_t(vsc.uint16_t())
+        s.x = vsc.rand_bit_t(64)
 
     @vsc.constraint
     def sc(s):
-        s.l.size.inside(vsc.rangelist(1, 2, 4, 8))
+        s.x > (1 << 63)
 
 
 @unittest.skipUnless(_dvsolve_available(), "dv-solve native library not available")
@@ -105,13 +109,13 @@ class TestDvSolveServeSatAuto(VscTestCase):
     # End-to-end: the SAT-deferring shape, per mode                        #
     # ------------------------------------------------------------------ #
     def _deferred_codes(self, n=8):
-        """Run the gapped-randsz shape `n` times and return the set of
-        `bvsat-sat-deferred` tally keys it produced."""
+        """Run the upper-half const-bound SAT shape `n` times and return the set
+        of `bvsat-sat-deferred` tally keys it produced."""
         snap = rnd.snapshot_fallback_tally()
         rnd.set_fallback_tally(True)
         rnd.reset_fallback_tally()
         try:
-            obj = _RandSzGappedSize()
+            obj = _UpperHalfConstBound()
             for _ in range(n):
                 obj.randomize()
             hist = rnd.get_fallback_tally()

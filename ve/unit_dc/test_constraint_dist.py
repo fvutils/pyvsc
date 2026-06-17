@@ -1,10 +1,9 @@
 '''
 Dataclass-front-end parallel of ve/unit/test_constraint_dist.py.
 
-P2 static-weight subset: in_range, static_zero_weight, static_weights,
-static_weight_ranges. Dynamic-weight dist (weight value is a field, e.g.
-vsc.weight(1, self.en_one)) is a follow-on (the dc parser currently takes constant
-weights), as are the conditional-weight cases.
+Static-weight cases (in_range, static_zero_weight, static_weights,
+static_weight_ranges) plus dynamic-weight dist, where a weight value is a non-rand
+field read at solve time (vdc.weight(1, self.en_one)).
 '''
 from dc_test_case import DcTestCase
 import vsc.dc as vdc
@@ -49,6 +48,42 @@ class TestConstraintDist(DcTestCase):
         for i in range(100):
             c.randomize()
             self.assertIn(c.a, [1, 4, 8])
+
+    def test_dist_dynamic_zero_weight(self):
+        # Weight values are non-rand fields read at solve time; setting one to 0
+        # excludes that value. Mirrors classic test_dist_dynamic_zero_weight.
+
+        @vdc.dataclass
+        class my_c(vdc.RandClass):
+            en_one: vdc.u8 = vdc.field()
+            en_two: vdc.u8 = vdc.field()
+            a: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def dist_a(self):
+                vdc.dist(self.a, [
+                    vdc.weight(1, self.en_one),
+                    vdc.weight(2, self.en_two)])
+
+        c = my_c()
+
+        c.en_one = 1
+        c.en_two = 0
+        for _ in range(10):
+            c.randomize()
+            self.assertEqual(c.a, 1)
+
+        c.en_one = 0
+        c.en_two = 1
+        for _ in range(10):
+            c.randomize()
+            self.assertEqual(c.a, 2)
+
+        c.en_one = 1
+        c.en_two = 1
+        for _ in range(10):
+            c.randomize()
+            self.assertIn(c.a, [1, 2])
 
     def test_dist_static_weights(self):
 

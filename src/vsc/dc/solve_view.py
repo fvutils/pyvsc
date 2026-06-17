@@ -26,10 +26,18 @@ from vsc.model.value_scalar import ValueScalar
 from . import ir_lower
 
 
-# Per-instance cache attribute holding the root solve :class:`_Node`. Reusing the
-# model object across randomize() calls both skips the rebuild/re-lower below and
-# lets the Randomizer's per-object Tier-A plan cache (keyed on the root model
-# object) hit across calls — a strict superset of today's per-object caching.
+# Per-TYPE cache attribute holding the root solve :class:`_Node`. The dc constraint
+# model is type-stable (same structure for every instance), so we build it ONCE per
+# type and rebind the current instance's values/rand_mode/writeback-target per call.
+# Because the root model *object* is then shared across all instances, the
+# Randomizer's Tier-A plan cache (keyed on the root object) — and the dv-solve
+# per-RandSet compiled-problem cache below it — hit for every instance, not just for
+# repeated randomize() of one object. This skips VariableBoundVisitor /
+# ArrayConstraintBuilder / RandInfoBuilder and the native translation per instance.
+#
+# Caveat: the shared model carries the "current" instance's values, so randomize()
+# is not re-entrant across instances of the same type (interleaving two instances'
+# solves, or threading) — pyvsc is single-threaded/sequential by design.
 _SOLVE_MODEL_ATTR = "_vsc_solve_model"
 
 
@@ -48,14 +56,18 @@ class _Node:
 
 
 def get_solve_model(obj, type_model):
-    """Return a cached-or-freshly-built (composite, field_models) for ``obj``,
-    with field values + rand_mode refreshed from the current instance state."""
-    node = getattr(obj, _SOLVE_MODEL_ATTR, None)
+    """Return the type's shared (composite, field_models), rebound to ``obj``'s
+    current field values + rand_mode + writeback target. Built once per type and
+    cached on the class; subsequent instances reuse the model object (so the
+    plan/translation caches hit)."""
+    cls = type(obj)
+    # cls.__dict__ (not getattr) so a subclass doesn't inherit a base's model.
+    node = cls.__dict__.get(_SOLVE_MODEL_ATTR)
     if node is not None:
         _apply_node(node, obj)
         return node.composite, node.field_models
-    node = build_solve_node(obj, type_model)
-    object.__setattr__(obj, _SOLVE_MODEL_ATTR, node)
+    node = build_solve_node(obj, type_model)   # applies obj's inputs as it builds
+    setattr(cls, _SOLVE_MODEL_ATTR, node)
     return node.composite, node.field_models
 
 
@@ -103,10 +115,20 @@ def build_solve_node(obj, type_model):
             field_models[fd.name] = child_node.composite
             children[fd.name] = child_node
             continue
-        if fd.enum_cls is not None:
-            fm = EnumFieldModel(fd.name, EnumInfo.get(fd.enum_cls).enums, fd.is_rand)
-        elif fd.is_array:
+        if fd.is_array and fd.elem_comp_cls is not None:
+            arr, elem_nodes = _build_composite_array(obj, fd)
+            composite.add_field(arr)
+            field_models[fd.name] = arr
+            children[fd.name] = elem_nodes
+            if fd.is_rand_sz:
+                composite.add_constraint(
+                    _composite_array_size_bound(arr, fd.max_size))
+            continue
+        if fd.is_array:
+            # Regular (scalar or enum-element) array — enum arrays carry enum_cls.
             fm = _build_array(fd)
+        elif fd.enum_cls is not None:
+            fm = EnumFieldModel(fd.name, EnumInfo.get(fd.enum_cls).enums, fd.is_rand)
         else:
             fm = FieldScalarModel(fd.name, fd.bits, fd.signed, fd.is_rand)
         composite.add_field(fm)
@@ -130,17 +152,56 @@ def build_solve_node(obj, type_model):
 
 
 def _build_array(fd):
-    """Build a scalar FieldArrayModel. Fixed-size arrays (``size=N``) are
-    pre-populated with N elements; random-size arrays start empty and are extended
-    by the array-constraint builder up to the size field's solved bound (so the
-    user must constrain ``arr.size``)."""
+    """Build a scalar- or enum-element FieldArrayModel. Fixed-size arrays
+    (``size=N``) are pre-populated with N elements; random-size arrays start empty
+    and are extended by the array-constraint builder up to the size field's solved
+    bound (so the user must constrain ``arr.size``). For enum arrays, ``enums``
+    makes ``add_field`` build EnumFieldModels constrained to the enum's values."""
     type_t = FieldScalarModel("<primitive>", fd.bits, fd.signed, fd.is_rand)
-    arr = FieldArrayModel(fd.name, type_t, True, None,
+    enums = EnumInfo.get(fd.enum_cls).enums if fd.enum_cls is not None else None
+    arr = FieldArrayModel(fd.name, type_t, True, enums,
                           fd.bits, fd.signed, fd.is_rand, fd.is_rand_sz)
     if not fd.is_rand_sz:
         for _ in range(fd.size):
             arr.add_field()
     return arr
+
+
+def _build_composite_array(obj, fd):
+    """Build a composite-element FieldArrayModel + a child _Node per element.
+
+    Mirrors the classic ``rand_list_t(Sub())`` path: each element's
+    FieldCompositeModel is appended to a non-scalar FieldArrayModel, so the
+    backend sees the same model shape. Random-size arrays (``max_size=M``,
+    rand ``size``) pre-allocate M element composites — the solver picks ``size``
+    within [0, M] (the user constrains it) and writeback exposes ``size`` of
+    them — matching classic, which pre-appends the elements then constrains size."""
+    if fd.is_rand_sz and fd.max_size is None:
+        raise NotImplementedError(
+            "random-size composite array %r needs max_size= (the pre-allocation "
+            "bound); fixed-size needs size=" % fd.name)
+    elem_objs = getattr(obj, fd.name)
+    elem_tm = fd.elem_type_model()
+    arr = FieldArrayModel(fd.name, None, False, None, -1, -1, fd.is_rand,
+                          fd.is_rand_sz)
+    elem_nodes = []
+    for elem_obj in elem_objs:
+        elem_node = build_solve_node(elem_obj, elem_tm)
+        arr.append(elem_node.composite)   # sets size, names elem, propagates rand
+        elem_nodes.append(elem_node)
+    return arr, elem_nodes
+
+
+def _composite_array_size_bound(arr, max_size):
+    """A 0 <= size <= max_size constraint pinning a random-size composite array's
+    size to its pre-allocated element count (the user constrains it further)."""
+    block = ConstraintBlockModel("__arrsz_%s__" % arr.name)
+    size_ref = ExprFieldRefModel(arr.size)
+    block.constraint_l.append(ConstraintExprModel(ExprBinModel(
+        ExprFieldRefModel(arr.size), BinExprType.Ge, ExprLiteralModel(0, True, 32))))
+    block.constraint_l.append(ConstraintExprModel(ExprBinModel(
+        size_ref, BinExprType.Le, ExprLiteralModel(max_size, True, 32))))
+    return block
 
 
 def _coerce(fd, v):
@@ -162,10 +223,34 @@ def _apply_node(node, obj):
         if fd.is_composite:
             _apply_node(node.children[fd.name], getattr(obj, fd.name))
             continue
+        if fd.is_array and fd.elem_comp_cls is not None:
+            if fd.is_rand_sz:
+                # Random-size: obj.<arr> may have been truncated to the last
+                # solved size, so refresh every pre-allocated element from the
+                # instance the cached node already holds (not the truncated list).
+                for en in node.children[fd.name]:
+                    _apply_node(en, en.obj)
+            else:
+                for en, eo in zip(node.children[fd.name], getattr(obj, fd.name)):
+                    _apply_node(en, eo)
+            continue
         fm = field_models[fd.name]
         enabled = True
         if fd.is_rand and rand_mode is not None and rand_mode.get(fd.name) is False:
             enabled = False
+        if fd.is_array:
+            cur = getattr(obj, fd.name, None) or []
+            ei = EnumInfo.get(fd.enum_cls) if fd.enum_cls is not None else None
+            for i, e in enumerate(fm.field_l):
+                v = cur[i] if i < len(cur) else 0
+                if ei is not None:
+                    # Enum element: member -> value via EnumInfo, else raw int.
+                    e.set_val(ei.e2v(v) if isinstance(v, _Enum) else int(v))
+                else:
+                    e.set_val(ValueScalar(_coerce(fd, v)))
+                if fd.is_rand:
+                    e.rand_mode = enabled
+            continue
         if fd.enum_cls is not None:
             if fd.is_rand:
                 fm.rand_mode = enabled
@@ -179,18 +264,19 @@ def _apply_node(node, obj):
             else:
                 fm.set_val(fm.enums[0])
             continue
-        if fd.is_array:
-            cur = getattr(obj, fd.name, None) or []
-            for i, e in enumerate(fm.field_l):
-                e.set_val(ValueScalar(_coerce(fd, cur[i] if i < len(cur) else 0)))
-                if fd.is_rand:
-                    e.rand_mode = enabled
-            continue
         if fd.is_rand:
             # Per-instance rand_mode override: a disabled rand field becomes a
             # constant at its current value (set_used_rand honors rand_mode level>0).
             fm.rand_mode = enabled
         fm.set_val(ValueScalar(_coerce(fd, getattr(obj, fd.name, 0))))
+
+    # Per-instance constraint_mode: flip enabled on the named block models. The
+    # plan-cache signature reads block.enabled, so a toggle forces a re-solve.
+    cmode = getattr(obj, "_vsc_constraint_mode", None)
+    if cmode:
+        for blk in node.composite.constraint_model_l:
+            if blk.name in cmode:
+                blk.enabled = cmode[blk.name]
 
 
 def _domain_block(type_model, field_models):
@@ -218,17 +304,34 @@ def _writeback_level(node):
     for fd in node.tm.fields:
         if fd.is_composite or not fd.is_rand:
             continue
+        # Composite-array elements write themselves back via their own _RandIf
+        # (FieldArrayModel.post_randomize walks the element composites). For a
+        # random-size array, expose exactly the solved-``size`` element instances.
+        if fd.is_array and fd.elem_comp_cls is not None:
+            if fd.is_rand_sz:
+                arr = field_models[fd.name]
+                n = int(arr.size.get_val())
+                instances = [en.obj for en in node.children[fd.name]]
+                object.__setattr__(obj, fd.name, instances[:n])
+            continue
         fm = field_models[fd.name]
-        if fd.enum_cls is not None:
+        if fd.is_array:
+            # The visible length is the (solved) size field — for random-size
+            # arrays field_l is over-allocated to the max bound. Enum arrays write
+            # back enum members.
+            n = int(fm.size.get_val())
+            if fd.enum_cls is not None:
+                ei = EnumInfo.get(fd.enum_cls)
+                object.__setattr__(obj, fd.name,
+                                   [ei.v2e(int(fm.field_l[i].get_val().v))
+                                    for i in range(n)])
+            else:
+                object.__setattr__(obj, fd.name,
+                                   [int(fm.field_l[i].get_val().v) for i in range(n)])
+        elif fd.enum_cls is not None:
             # Store the enum member (matches classic type_enum.get_val).
             object.__setattr__(obj, fd.name,
                                EnumInfo.get(fd.enum_cls).v2e(int(fm.get_val().v)))
-        elif fd.is_array:
-            # The visible length is the (solved) size field — for random-size
-            # arrays field_l is over-allocated to the max bound.
-            n = int(fm.size.get_val())
-            object.__setattr__(obj, fd.name,
-                               [int(fm.field_l[i].get_val().v) for i in range(n)])
         else:
             # .v is the raw Python int (avoids the ValueInt __int__ deprecation path).
             object.__setattr__(obj, fd.name, int(fm.get_val().v))

@@ -7,7 +7,6 @@ See ``doc/notes/dataclass_pyvsc_impl_test_doc_plan.md`` §2.3.
 """
 import dataclasses
 import typing
-import warnings
 from enum import EnumMeta
 
 from .constraint_parser import parse_constraint
@@ -27,12 +26,12 @@ class FieldDecl:
     __slots__ = ("name", "bits", "signed", "is_rand", "rand_kind",
                  "domain", "size", "max_size", "soft", "role",
                  "is_array", "is_rand_sz", "enum_cls", "is_opaque",
-                 "is_composite", "comp_cls")
+                 "is_composite", "comp_cls", "elem_comp_cls")
 
     def __init__(self, name, bits, signed, is_rand, rand_kind,
                  domain=None, size=None, max_size=None, soft=None, role="",
                  is_array=False, is_rand_sz=False, enum_cls=None, is_opaque=False,
-                 is_composite=False, comp_cls=None):
+                 is_composite=False, comp_cls=None, elem_comp_cls=None):
         self.name = name
         self.bits = bits
         self.signed = signed
@@ -53,15 +52,18 @@ class FieldDecl:
         # is a nested FieldCompositeModel stitched into the parent's solve tree.
         self.is_composite = is_composite
         self.comp_cls = comp_cls        # the nested RandClass, or None
+        # For an array of composites (list[Sub] where Sub is a RandClass): the
+        # element RandClass. Paired with is_array=True.
+        self.elem_comp_cls = elem_comp_cls
 
     def comp_type_model(self):
         """Return the nested :class:`TypeModel` for a composite field (built and
         cached lazily on the nested class if the decorator was skipped)."""
-        tm = self.comp_cls.__dict__.get("_vsc_type_model")
-        if tm is None:
-            tm = build_type_model(self.comp_cls)
-            self.comp_cls._vsc_type_model = tm
-        return tm
+        return _type_model_of(self.comp_cls)
+
+    def elem_type_model(self):
+        """Return the element :class:`TypeModel` for a composite array field."""
+        return _type_model_of(self.elem_comp_cls)
 
     def __repr__(self):
         if self.is_array:
@@ -154,6 +156,32 @@ def _array_decl(name, meta, elem_ann):
         is_array=True, is_rand_sz=is_rand_sz)
 
 
+def _enum_array_decl(name, meta, enum_cls):
+    """Build a FieldDecl for a ``list[MyEnum]`` enum-array field."""
+    size = meta.size if meta is not None else None
+    is_rand = meta.is_rand if meta is not None else False
+    return FieldDecl(
+        name=name, bits=_DEFAULT_WIDTH, signed=False, is_rand=is_rand,
+        rand_kind=(meta.role if (meta is not None and meta.is_rand) else ""),
+        role=(meta.role if meta is not None else ""),
+        size=size, max_size=(meta.max_size if meta is not None else None),
+        is_array=True, is_rand_sz=(size is None), enum_cls=enum_cls)
+
+
+def _composite_array_decl(name, meta, elem_cls):
+    """Build a FieldDecl for a ``list[Sub]`` composite-array field (Sub a RandClass)."""
+    size = meta.size if meta is not None else None
+    is_rand = meta.is_rand if meta is not None else False
+    # Random-size composite arrays (no size=) are a follow-on; the solve view
+    # rejects them clearly for now.
+    return FieldDecl(
+        name=name, bits=0, signed=False, is_rand=is_rand,
+        rand_kind=(meta.role if (meta is not None and meta.is_rand) else ""),
+        role=(meta.role if meta is not None else ""),
+        size=size, max_size=(meta.max_size if meta is not None else None),
+        is_array=True, is_rand_sz=(size is None), elem_comp_cls=elem_cls)
+
+
 def _collect_constraints(cls):
     """Gather constraint methods across the MRO (subclass overrides win),
     preserving declaration order within each class."""
@@ -165,18 +193,10 @@ def _collect_constraints(cls):
                 continue
             if callable(member) and getattr(member, CONSTRAINT_ATTR, False):
                 seen.add(name)
-                prog = parse_constraint(name, member)
-                if prog is not None:
-                    progs.append(prog)
-                else:
-                    # Source unavailable (REPL/exec). Dropping the constraint
-                    # silently would produce wrong results, so warn loudly. The
-                    # Strategy-B template-eval fallback (plan §6 risk 2) lands later.
-                    warnings.warn(
-                        "vsc.dc: cannot read source for constraint %r on %s "
-                        "(defined in a REPL/exec?); the constraint is NOT applied"
-                        % (name, cls.__qualname__),
-                        RuntimeWarning, stacklevel=3)
+                # parse_constraint raises ConstraintParseError if the source is
+                # unavailable (REPL/exec/python -c) — a hard failure, because a
+                # dropped constraint would silently randomize fields unconstrained.
+                progs.append(parse_constraint(name, member))
     return progs
 
 
@@ -185,6 +205,15 @@ def _is_rand_class(ann):
     Imported lazily to avoid an import cycle (rand_class -> solve_view -> type_model)."""
     from .rand_class import RandClass
     return isinstance(ann, type) and issubclass(ann, RandClass)
+
+
+def _type_model_of(cls):
+    """Return cls._vsc_type_model, building+caching it lazily if absent."""
+    tm = cls.__dict__.get("_vsc_type_model")
+    if tm is None:
+        tm = build_type_model(cls)
+        cls._vsc_type_model = tm
+    return tm
 
 
 def build_type_model(cls):
@@ -215,8 +244,16 @@ def build_type_model(cls):
             continue
         elem_ann = _list_element(ann)
         if elem_ann is not None:
-            # Array field: list[T]. Element width comes from T; size from metadata.
-            fields.append(_array_decl(f.name, meta, elem_ann))
+            if _is_rand_class(elem_ann):
+                # Array of composites: list[Sub] where Sub is a RandClass.
+                fields.append(_composite_array_decl(f.name, meta, elem_ann))
+            elif isinstance(elem_ann, EnumMeta):
+                # Array of enums: list[MyEnum]. Elements are EnumFieldModels
+                # constrained to the enum's values and written back as members.
+                fields.append(_enum_array_decl(f.name, meta, elem_ann))
+            else:
+                # Array field: list[T]. Element width comes from T; size from metadata.
+                fields.append(_array_decl(f.name, meta, elem_ann))
             continue
         is_rand = meta.is_rand if meta is not None else False
         if not is_rand and not _is_scalarish(ann):

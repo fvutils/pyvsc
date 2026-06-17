@@ -63,7 +63,6 @@ _RESIDUAL_ALLOWLIST = {
     "width",        # field width > 255 bits (uint8 add_var width) — permanent
     "dist",         # >64-bit dist / conditional / multiple-dist-on-field
     "array",        # n>64 select, >64 summands, wide aggregate, object randsz
-    "unsat-defer",  # width-range UNSAT the primary won't declare authoritatively
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
                     # to the fallback for distribution / solve_order. Expected,
                     # correct two-engine operation — NOT a completeness gap (F-E1).
@@ -92,17 +91,17 @@ _RESIDUAL_MANIFEST = {
                      ">64-bit / conditional / multiple-dist-on-field — [dvs] dist "
                      "composition + wide encode"),
     "array":        ("closable",
-                     "Phase C §5 shapes (var-indexed select, randsz/co-solved "
-                     "aggregate, >64 element/summand caps) — [dvs] C work"),
-    "unsat-defer":  ("closable",
-                     "near-unsat width-range the primary won't authoritatively "
-                     "declare — primary-authority refinement"),
+                     "Phase C §5 tail after EF-1a closed var-indexed select: "
+                     "randsz/co-solved aggregate, >64 element/summand caps — "
+                     "[dvs] C work"),
     "translator-unsupported": ("closable",
-                     "constraint override / inline-scope nested-soft — translator "
-                     "coverage"),
+                     "a constraint/expression node the translator does not yet "
+                     "encode — translator coverage"),
     "bvsat-sat-deferred": ("closable",
-                     "SAT-proved but not served: sampler dist-weighting (F-2b) or "
-                     ">64-bit ordered-field freeze (the F-2a wide-order residual)"),
+                     "SAT-proved but not served: an unsigned upper-half constant "
+                     "bound (pyvsc literal-width inference, Phase G residual), "
+                     "sampler dist-weighting (F-2b), or a >64-bit ordered-field "
+                     "freeze (the F-2a wide-order residual)"),
 }
 
 
@@ -219,6 +218,24 @@ def _native_corpus():
             s.x.not_inside(vsc.rangelist(0, 1, 2, 3, 5, 6, 7, 8, vsc.rng(100, 120)))
 
     @vsc.randobj
+    class VarIndexedSelect(object):
+        # arr[idx] with a *rand* index — variable-indexed array select (the
+        # largest `array` residual class, Phase C-1). The translator now encodes
+        # it natively as an ITE chain over the active elements (EF-1a), so it
+        # defers NOTHING. When the index is co-solved it selects symbolically —
+        # which Boolector gets *wrong* (it snapshots the index) — so dv-solve is
+        # strictly more correct here; XCHECK still agrees because it validates the
+        # finished model, when the index is concrete.
+        def __init__(s):
+            s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), 4)
+            s.idx = vsc.rand_uint8_t()
+            s.val = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            s.idx < 4
+            s.arr[s.idx] == s.val
+
+    @vsc.randobj
     class ImpliesArithGuard(object):
         # Implication guard = logical AND of comparisons over lifted arithmetic
         # (the clog2 idiom). The *primary* bounds engine's disjunction propagation
@@ -235,6 +252,59 @@ def _native_corpus():
             with vsc.implies(((s.b - 1) >= 4) & ((s.b - 1) < 8)):
                 s.a == 3
 
+    @vsc.randobj
+    class GuardedSoftPrimary(object):
+        # A guarded (conditional) soft `if_then(g): soft(e)` with a single-statement
+        # body lowers to the disjunction soft `(!g)||e` and is served on the
+        # *primary* path: the relaxation loop keeps it and bound-propagation enforces
+        # the kept disjunction. Honored natively, defers NOTHING (engine plan DSE-0;
+        # the prior "soft-guarded" defer was a pyvsc translator memo-key bug, fixed).
+        def __init__(s):
+            s.a = vsc.rand_uint8_t()
+            s.d = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            s.a > 10
+            with vsc.if_then(s.a > 5):
+                vsc.soft(s.d == 40)
+
+    @vsc.randobj
+    class SoftOnBVSatServe(object):
+        # A soft coupled into a RandSet that *force-serves via BV-SAT* (the
+        # conjunctive guard body routes it to the complete BV-SAT engine). The
+        # serve path runs the engine's soft-aware MaxSAT (zsp_bbsolver_check_maxsat)
+        # and the sampler enforces the kept set, so `soft(a==40)` is honored
+        # natively — defers NOTHING (engine plan DSE-2). This previously deferred
+        # (`soft-serve-deferred`); the unconditional soft on this path was also the
+        # latent silent-drop the old `soft-guarded` gate missed.
+        def __init__(s):
+            s.g = vsc.rand_uint8_t()
+            s.a = vsc.rand_uint8_t()
+            s.b = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            s.g == 1
+            with vsc.if_then(s.g == 1):
+                s.a < 200
+                s.b < 200
+            vsc.soft(s.a == 40)
+
+    @vsc.randobj
+    class SoftPriorityLadder(object):
+        # A ladder of three mutually-conflicting softs at distinct (declaration-
+        # order) priorities. The engine's MaxSAT relaxation keeps the maximal
+        # priority-respecting set (the last-declared/highest-preference soft) and
+        # relaxes the rest — entirely on the primary path, defers NOTHING. Locks the
+        # DSE-3 priority-fidelity surface against a regression that re-introduces a
+        # defer (or routes the ladder to the net).
+        def __init__(s):
+            s.x = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            vsc.soft(s.x == 1)
+            vsc.soft(s.x == 2)
+            vsc.soft(s.x == 3)
+
     return [
         ("scalar", Scalar),
         ("dist", Dist),
@@ -244,7 +314,11 @@ def _native_corpus():
         ("wide_above_int64", WideAboveInt64),
         ("wide_eq_literal", WideEqLiteral),
         ("not_inside", NotInside),
+        ("var_indexed_select", VarIndexedSelect),
         ("implies_arith_guard", ImpliesArithGuard),
+        ("guarded_soft_primary", GuardedSoftPrimary),
+        ("soft_on_bvsat_serve", SoftOnBVSatServe),
+        ("soft_priority_ladder", SoftPriorityLadder),
     ]
 
 
@@ -273,37 +347,39 @@ def _residual_corpus():
                            vsc.weight(((1 << 80), (1 << 80) + 5), 2)])
 
     @vsc.randobj
-    class RandSzGappedSize(object):
-        # randsz array whose size domain is a gapped set excluding 0
-        # ({1,2,4,8}). The primary bounds search can't decide this shape; BV-SAT
-        # *proves it SAT* and dv-solve defers to the fallback for distribution —
-        # `bvsat-sat-deferred`, the expected two-engine path, NOT a bug (F-E1).
-        # (A contiguous range, a single value, or including 0 all solve natively.)
+    class UpperHalfConstBound(object):
+        # `x > 2**63` on an unsigned u64: a *constant* bound in the unsigned upper
+        # half. The literal is inferred signed (width 65) and lowered to a concat
+        # wide-const the comparison compiler can't fold, so the constraint is left
+        # uncompiled and BV-SAT *proves it SAT* — `bvsat-sat-deferred`, served by
+        # the net (sound). A pyvsc literal-width inference residual, independent of
+        # the C engine (Phase G §"Residual"); the upper half is reachable natively
+        # via *relational* constraints. Deterministic (unlike a bitwise search).
         def __init__(s):
-            s.l = vsc.randsz_list_t(vsc.uint16_t())
+            s.x = vsc.rand_bit_t(64)
         @vsc.constraint
         def sc(s):
-            s.l.size.inside(vsc.rangelist(1, 2, 4, 8))
+            s.x > (1 << 63)
 
     @vsc.randobj
-    class VarIndexedSelect(object):
-        # arr[idx] with a *rand* index → variable-indexed array select, the
-        # largest `array` residual class (Phase C-1). The translator defers it
-        # ("array"); served by the net. Not a correctness gap — the net solves it.
+    class OverCapSum(object):
+        # An array aggregate (`sum`) over more elements than the native n-ary sum
+        # propagator's summand cap (`_MAX_SUM_VARS`=64). The translator defers it
+        # ("array"); served by the net. This is the surviving `array` residual
+        # tail after EF-1a closed the variable-indexed-select shape (now native).
         def __init__(s):
-            s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), 4)
-            s.idx = vsc.rand_uint8_t()
-            s.val = vsc.rand_uint8_t()
+            s.arr = vsc.rand_list_t(vsc.uint8_t(), 100)
         @vsc.constraint
         def c(s):
-            s.idx < 4
-            s.arr[s.idx] == s.val
+            s.arr.sum < 5000
+            with vsc.foreach(s.arr) as e:
+                e > 0
 
     return [
         ("width256", "width", Width256),
         ("wide_dist", "dist", WideDist),
-        ("randsz_gapped_size", "bvsat-sat-deferred", RandSzGappedSize),
-        ("var_indexed_select", "array", VarIndexedSelect),
+        ("upper_half_const_bound", "bvsat-sat-deferred", UpperHalfConstBound),
+        ("over_cap_sum", "array", OverCapSum),
     ]
 
 
@@ -316,8 +392,8 @@ class TestDvSolveFallbackHistogram(VscTestCase):
         # The documented residual taxonomy is the *default-config* one (serve-SAT
         # off). Pin it so the dashboard is deterministic even when the ambient env
         # forces serve-SAT on (e.g. a suite-wide audit run): with serve-SAT on,
-        # `randsz_gapped_size` would be *served* by the sampler instead of
-        # deferring `bvsat-sat-deferred`, which is correct behavior but not what
+        # a `bvsat-sat-deferred` shape (e.g. `bitand_eq`) would be *served* by the
+        # sampler instead of deferring, which is correct behavior but not what
         # this dashboard documents.
         import vsc.model.solver.dvsolve_backend as _dvb
         self._saved_serve = _dvb._BVSAT_SERVE_SAT_MODE
@@ -400,12 +476,18 @@ class TestDvSolveFallbackHistogram(VscTestCase):
                 s.a <= 100
                 vsc.soft(s.a == 5)
 
-        obj = DynSoft()
-        for _ in range(4):
-            with obj.randomize_with() as it:
-                it.hi_pref5()
-            self.assertTrue(50 <= obj.a <= 100,
-                            "soft-in-dynamic-block over-constrained: a=%d" % int(obj.a))
+        # Isolate the global fallback tally: this shape defers to the net (serve-SAT
+        # is off while a fallback is present — the expected two-engine behavior), so
+        # without snapshot/restore its `bvsat-sat-deferred` events would leak into
+        # the suite-wide self-sufficiency audit and read as a real serving residual.
+        with _tally():
+            obj = DynSoft()
+            for _ in range(4):
+                with obj.randomize_with() as it:
+                    it.hi_pref5()
+                self.assertTrue(
+                    50 <= obj.a <= 100,
+                    "soft-in-dynamic-block over-constrained: a=%d" % int(obj.a))
 
     # ------------------------------------------------------------------ #
     # T-E0b — each residual shape defers with its documented reason code   #

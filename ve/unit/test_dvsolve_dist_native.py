@@ -459,6 +459,51 @@ class TestDvSolveDistNative(VscTestCase):
                                 "rand-guard conditional dist membership: %d" % a)
 
     # ------------------------------------------------------------------ #
+    # EF-1b — dist weighting honored when the RandSet force-serves via      #
+    #         BV-SAT (a dist combined with a conjunctive-body implication,  #
+    #         which routes off the primary's add_dist value picker).        #
+    # ------------------------------------------------------------------ #
+    def test_ef1b_dist_with_conjunctive_implies_keeps_weighting(self):
+        """A dist field in a RandSet that also carries a conjunctive-body
+        implication (``with implies(g): a==0; b==0``) force-serves via the
+        complete BV-SAT engine (the primary's disjunction propagation is unsound
+        over the AND-leaf'd ``(!g) || (a==0 && b==0)``). The BV-SAT engine ignores
+        ``add_dist``, so without the EF-1b weighted assume-then-assert pre-stage
+        (``bvsat_sampler.sample_dist``) the 99999:1 weighting washes out to ~50/50
+        (the ``test_dist_multiple_dists_in_randset`` regression). Assert: served
+        natively (no fallback) AND the weighting is honored on every dist field."""
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.a = vsc.rand_bit_t()
+                s.b = vsc.rand_bit_t()
+                s.en = vsc.rand_bit_t()
+            @vsc.constraint
+            def c(s):
+                vsc.dist(s.a, [vsc.weight(0, 1), vsc.weight(1, 99999)])
+                vsc.dist(s.b, [vsc.weight(0, 1), vsc.weight(1, 99999)])
+                with vsc.implies(s.en == 0):   # conjunctive body -> BV-SAT route
+                    s.a == 0
+                    s.b == 0
+
+        ones = [0, 0]
+        n = 200
+        with _strict_no_fallback():            # serve-SAT auto-activates (no net)
+            c = C()
+            for _ in range(n):
+                with c.randomize_with() as it:
+                    it.en == 1                 # guard false -> a,b free, weighted
+                ones[0] += int(c.a)
+                ones[1] += int(c.b)
+        # ~99.999% ones expected; uniform (the bug) would land ~50%. A generous
+        # floor (85%) locks the weighting without flaking on the rare 0 draw.
+        for i, k in enumerate(ones):
+            self.assertGreater(
+                k, int(0.85 * n),
+                "dist weighting lost on field %s (force-served via BV-SAT): "
+                "%d/%d ones — expected ~%d" % ("ab"[i], k, n, n))
+
+    # ------------------------------------------------------------------ #
     # T-B7 — fallback safety: dist + unsupported construct stays weighted  #
     # ------------------------------------------------------------------ #
     def test_tb7_fallback_keeps_dist_weighting(self):

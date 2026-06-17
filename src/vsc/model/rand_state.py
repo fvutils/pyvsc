@@ -8,8 +8,12 @@ import random
 class RandState(object):
         
     def __init__(self, seed):
-        self.rng = random.Random()
-        self.rng.seed(f"{seed}")
+        # Seed via the constructor so the Mersenne Twister is initialized once
+        # (string seed), not twice — `random.Random()` first seeds from OS
+        # entropy, and a following `.seed(...)` throws that away. Passing the
+        # seed to the constructor produces the identical value stream at ~half
+        # the cost; this is on the per-instance randomize() hot path.
+        self.rng = random.Random(f"{seed}")
     
     def clone(self) -> 'RandState':
         randState = RandState("")

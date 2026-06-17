@@ -149,6 +149,24 @@ class DvSolveExprTranslator(ModelVisitor):
         # correct; only the primary's propagation over it is unsound, and BV-SAT
         # is complete, so serving via BV-SAT is sound (Phase F / F-2 burn-down).
         self.requires_bvsat = False
+        # Fields carrying a native ``dist``: their membership is owned by the dist
+        # encoding (add_dist + the dist's domain-twin), so the native
+        # EXPR_IN_RANGES membership shortcut (try_native_in_ranges) must NOT also
+        # fire for them — emitting a second hard membership propagator over a dist
+        # var breaks the dist compile. The backend populates this before
+        # translating constraints.
+        self.dist_fields = set()
+        # Soft-translation context, mirroring ``ConstraintModel.build(btor, soft)``.
+        # A ``soft(expr)`` only *exists* as a constraint when built in the soft
+        # context (``ConstraintSoftModel.build`` returns ``None`` for ``soft=False``).
+        # So when translating the **hard** constraint tree (default), a soft node
+        # must translate to *nothing* (the conjunction identity, ``true``) — it is
+        # enforced exclusively via the native soft list (``add_soft_constraint``).
+        # When the backend's soft loop translates a soft *root*, it sets this True
+        # via ``translate_soft`` so the soft's expr is materialized for
+        # ``add_soft_constraint``. Translating a soft as hard would silently turn a
+        # preference into a requirement (a soundness bug) — see SC-1.
+        self._soft_ctx = False
         # Non-rand fields referenced as constants, with their value at build
         # time. The backend uses this to invalidate a cached compiled problem
         # when a referenced non-rand field's value changes (the value is baked
@@ -162,7 +180,15 @@ class DvSolveExprTranslator(ModelVisitor):
         ``_want_var``). Also sets ``self._last_simple`` for the caller.
         """
         self._keepalive.append(node)
-        key = (id(node), ctx_width, want_var)
+        # ``_soft_ctx`` MUST be part of the memo key: a soft model shared between
+        # the hard tree (a guarded soft's enclosing ``if_else``/scope, where a soft
+        # drops to ``true``) and the soft list (the priority-bearing
+        # ``ConstraintImpliesModel`` whose body must materialize the soft's expr)
+        # translates to *different* refs by context. Without it, whichever context
+        # runs first (hard, always — see ``_populate_builder``) caches its result
+        # and the guarded soft body is silently lost (``(!cond) || true``),
+        # dropping the preference entirely.
+        key = (id(node), ctx_width, want_var, self._soft_ctx)
         cached = self._memo.get(key, _UNSET)
         if cached is not _UNSET:
             self._last_simple = cached[1]
@@ -387,6 +413,14 @@ class DvSolveExprTranslator(ModelVisitor):
             acc = self._b.expr_concat(acc, const_limb(limb, lw), lw)
         return acc
 
+    @staticmethod
+    def _value_fits_width(v, w, signed):
+        """True iff integer ``v`` is representable in a ``w``-bit field of the
+        given signedness — i.e. a variable of that width could actually hold it."""
+        if signed:
+            return -(1 << (w - 1)) <= v <= (1 << (w - 1)) - 1
+        return 0 <= v <= (1 << w) - 1
+
     def visit_expr_bin(self, e):
         is_logical = False
         if e.op in (BinExprType.And, BinExprType.Or):
@@ -442,9 +476,36 @@ class DvSolveExprTranslator(ModelVisitor):
             # comparing. A constant operand never wraps (it is a fixed value), so
             # `var == const` keeps the direct, un-extended form.
             from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
-            extend = (lhs_w != rhs_w
-                      and not IsConstExprVisitor().is_const(e.lhs)
-                      and not IsConstExprVisitor().is_const(e.rhs))
+            _isc = IsConstExprVisitor()
+            lhs_const = _isc.is_const(e.lhs)
+            rhs_const = _isc.is_const(e.rhs)
+            # A constant whose magnitude exceeds the width of a *field reference*
+            # it is compared to can never equal it — a width-w field is bounded by
+            # its width — so the equality is statically false (Ne: true). Without
+            # this the native min-width equality truncates the constant to the
+            # field width (`a(8) == 500` -> `a == 244`) and reports a wrong SAT;
+            # matching Boolector here is what lets the empty-domain RandSet routed
+            # to BV-SAT (the backend's near-unsat path) prove UNSAT as Boolector
+            # does. Restricted to a bare field ref: a value-op (e.g. `a*b`) can
+            # exceed its operands' width (the literal up-sizes the expression —
+            # `a*b == 256` is SAT for uint8 a,b), so its declared width does NOT
+            # bound its value and the short-circuit would wrongly reject it.
+            if lhs_const != rhs_const:
+                if lhs_const:                      # the variable side is e.rhs
+                    vexpr, vw, vsigned, cexpr = e.rhs, rhs_w, e.rhs.is_signed(), e.lhs
+                else:                               # the variable side is e.lhs
+                    vexpr, vw, vsigned, cexpr = e.lhs, lhs_w, e.lhs.is_signed(), e.rhs
+                if isinstance(vexpr, ExprFieldRefModel):
+                    try:
+                        cv = int(cexpr.val())
+                    except Exception:
+                        cv = None
+                    if cv is not None and not self._value_fits_width(cv, vw, vsigned):
+                        self._result = self._b.expr_const(
+                            0 if e.op == BinExprType.Eq else 1)
+                        self._last_simple = False
+                        return
+            extend = (lhs_w != rhs_w and not lhs_const and not rhs_const)
             lhs = self.translate(e.lhs, ctx_width, want_var=extend)
             lhs_simple = self._last_simple
             rhs = self.translate(e.rhs, ctx_width, want_var=extend)
@@ -623,10 +684,81 @@ class DvSolveExprTranslator(ModelVisitor):
     # ------------------------------------------------------------------ #
 
     def visit_constraint_expr(self, c):
+        # A top-level `field inside {ranges}` over constant ranges compiles to a
+        # native EXPR_IN_RANGES membership propagator (sound, and unlike the
+        # OR-of-ranges encoding it does not defeat the compiler's _flatten_or).
+        native = self.try_native_in_ranges(c.e)
+        if native is not None:
+            self._result = native
+            return
         self._result = self._to_bool(self.translate(c.e), c.e)
 
+    def try_native_in_ranges(self, e):
+        """If ``e`` is a constraint-root ``field inside {...}`` whose lhs is a
+        scalar field var and whose rangelist is >=2 constant entries with at
+        least one real range, emit a native EXPR_IN_RANGES node and return its
+        ref. Otherwise return ``None`` (caller falls back to the OR encoding).
+
+        Restricted to the multi-range case because: a single range / all-scalar
+        set already compiles soundly on the primary (bound tightening / a
+        disjunctive clause of equalities); only a disjunction containing a range
+        leaf defeats ``_flatten_or`` and was deferring (Phase G G-2). Membership
+        is constraint-root only (the node is not a boolean sub-expression), so
+        this is called from ``visit_constraint_expr`` and the gapped-domain
+        re-assertion, never mid-expression."""
+        from vsc.model.expr_in_model import ExprInModel
+        from vsc.model.expr_range_model import ExprRangeModel
+        from vsc.model.expr_literal_model import ExprLiteralModel
+        if not isinstance(e, ExprInModel):
+            return None
+        if not isinstance(e.lhs, ExprFieldRefModel):
+            return None
+        if isinstance(e.lhs.fm, FieldArrayModel):
+            return None  # membership of an array field, not a scalar var
+        if e.lhs.fm in self.dist_fields:
+            return None  # dist owns this field's membership encoding
+        pairs = []
+        has_range = False
+        for r in e.rhs.rl:
+            if isinstance(r, ExprRangeModel):
+                if not (isinstance(r.lhs, ExprLiteralModel)
+                        and isinstance(r.rhs, ExprLiteralModel)):
+                    return None  # variable range bound -> keep the OR path
+                pairs.append((self.translate(r.lhs), self.translate(r.rhs)))
+                has_range = True
+            elif isinstance(r, ExprLiteralModel):
+                s = self.translate(r)
+                pairs.append((s, s))
+            else:
+                return None  # array-element or non-const entry
+        if len(pairs) < 2 or not has_range:
+            return None
+        ref = self._b.expr_in_ranges(self.translate(e.lhs), pairs)
+        self._last_simple = False
+        return ref
+
+    def translate_soft(self, c) -> int:
+        """Translate a soft *root* (the backend's soft loop) — materialize the
+        soft's expr (and any nested soft inside a guarded ``ConstraintImpliesModel``
+        soft) so it can be handed to native ``add_soft_constraint``. Restores the
+        prior context so a soft loop cannot leak the soft context into later hard
+        translation."""
+        saved = self._soft_ctx
+        self._soft_ctx = True
+        try:
+            return self.translate(c)
+        finally:
+            self._soft_ctx = saved
+
     def visit_constraint_soft(self, c):
-        self._result = self._to_bool(self.translate(c.expr), c.expr)
+        # In the hard tree a soft contributes nothing (it is enforced via the
+        # native soft list) — mirror ``ConstraintSoftModel.build(soft=False)`` ->
+        # ``None``. Only a soft *root* (``translate_soft``) materializes its expr.
+        if self._soft_ctx:
+            self._result = self._to_bool(self.translate(c.expr), c.expr)
+        else:
+            self._result = self._b.expr_const(1)
+            self._last_simple = False
 
     def visit_constraint_scope(self, c):
         self._result = self._conj([self.translate(cc) for cc in c.constraint_l])
@@ -758,6 +890,14 @@ class DvSolveExprTranslator(ModelVisitor):
                 stack.extend(sub)
         return False
 
+    @staticmethod
+    def _branch_is_conjunctive(branch) -> bool:
+        """True if an if/else branch is a scope holding more than one statement,
+        i.e. it lowers to an ``AND`` (the unsound Boolean-guard primary case)."""
+        if branch is None:
+            return False
+        return len(getattr(branch, "constraint_l", ())) > 1
+
     def visit_constraint_implies(self, c):
         folded = self._const_cond(
             c.cond, allow_field_fold=self._branch_contains_dist(c.constraint_l))
@@ -770,6 +910,20 @@ class DvSolveExprTranslator(ModelVisitor):
             self._result = self._conj([self.translate(cc) for cc in c.constraint_l])
             return
         cond = self._translate_guarded_cond(c.cond)
+        # A *conjunctive* body (more than one statement) makes the implication
+        # `(!cond) || (b0 && b1 && ...)` carry an AND leaf in its top-level OR.
+        # The native compiler's `_flatten_or` can only handle single-comparison
+        # OR leaves, so it falls back to a Boolean-guard encoding whose primary
+        # propagation is **unsound** — it can leave the body unconstrained even
+        # when the guard is true, producing a model that violates the implication
+        # (same failure family as the lifted-logical-combo guard above; confirmed
+        # by XCHECK on `implies(c==0): a==0; b==0`). The encoding is correct and
+        # BV-SAT is complete, so force-serve it via BV-SAT. A single-comparison
+        # body (`implies(g): a==0`) lowers to a 2-clause disjunction the primary
+        # handles soundly and stays on the fast path. (Phase G — pre-existing
+        # primary reification gap, exposed once unsigned-64 stopped deferring.)
+        if len(c.constraint_l) > 1:
+            self.requires_bvsat = True
         body = self._conj([self.translate(cc) for cc in c.constraint_l])
         # cond -> body  ==  (!cond) || body  (logical OR; the native compiler
         # does not accept a top-level ite as a constraint).
@@ -789,6 +943,13 @@ class DvSolveExprTranslator(ModelVisitor):
             self._result = (self.translate(c.false_c)
                             if c.false_c is not None else self._b.expr_const(1))
             return
+        # A conjunctive branch (a scope with >1 statement) makes the encoded
+        # `(!cond) || branch` carry an AND leaf, which the primary handles via
+        # the unsound Boolean-guard fallback (see visit_constraint_implies). Force
+        # such if/else through the complete BV-SAT engine.
+        if self._branch_is_conjunctive(c.true_c) or \
+                self._branch_is_conjunctive(c.false_c):
+            self.requires_bvsat = True
         cond = self._translate_guarded_cond(c.cond)
         notcond = self._b.expr_unary(UN_NOT, cond)
         true_c = self.translate(c.true_c)
@@ -901,18 +1062,19 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def visit_constraint_override(self, c):
         # An override replaces orig_constraint with new_constraint (Boolector
-        # builds new_constraint). We translate the replacement *only* for a dist
-        # expansion, whose new_constraint is a ConstraintDistScopeModel carrying
-        # the hard `inside` membership (the weighting is applied separately via
-        # add_dist on dist_field_m). Other overrides — notably ArrayConstraintBuilder's
-        # foreach/array expansion, whose scope may hold *soft* constraints that
-        # must NOT be conjoined as hard — keep deferring (the prior behavior).
-        from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
-        if isinstance(c.new_constraint, ConstraintDistScopeModel):
-            self._result = self.translate(c.new_constraint)
-            self._last_simple = False
-        else:
-            self._unsupported(c)
+        # builds new_constraint). We translate the replacement: a dist expansion
+        # (ConstraintDistScopeModel carrying the hard `inside` membership; the
+        # weighting is applied separately via add_dist on dist_field_m), or
+        # ArrayConstraintBuilder's foreach/array expansion (a ConstraintInlineScope
+        # of per-element constraints). The inline-scope translation conjoins the
+        # *hard* per-element constraints and drops the *soft* ones (SC-1) — the
+        # softs are enforced via the native soft list, exactly as Boolector's
+        # `build(soft=False)` drops them (ConstraintSoftModel.build -> None). This
+        # is sound *because* a soft node now translates to nothing in the hard
+        # context (visit_constraint_soft); conjoining a soft as hard would turn a
+        # preference into a requirement.
+        self._result = self.translate(c.new_constraint)
+        self._last_simple = False
 
     def visit_constraint_dist_scope(self, c):
         # Conjoin the dist scope's constraints. On the native path that scope
@@ -1055,17 +1217,78 @@ class DvSolveExprTranslator(ModelVisitor):
             else:
                 return False
 
+    # The variable-indexed-select element cap. The ITE-chain encoding is O(n)
+    # nodes; cap it so a pathologically large rand array defers (retained)
+    # rather than emit an unbounded chain.
+    _MAX_SELECT_ELEMS = 1024
+
     def visit_expr_array_subscript(self, e):
         if self._const_subscript_index(e) is not None:
             # Constant index -> the concrete element field (var if rand, else const).
             self._result = self._ref_for_field(e.subscript())
             self._last_simple = True
             return
-        # Variable (rand) index: would need native expr_array_select over a
-        # contiguous element block. Defer until a corpus shape requires it.
-        raise BackendIncomplete(
-            "dv-solve: variable-indexed array subscript (Phase C-1 select)",
-            reason_code="array")
+        # Variable (rand) index: encode arr[idx] as an ITE chain over the active
+        # element set (EF-1a):
+        #   ITE(idx==0, arr[0], ITE(idx==1, arr[1], ... arr[n-1]))
+        # built directly with the native ite so it composes in any enclosing
+        # context (`arr[idx]==v`, `arr[idx] < arr[j]`).
+        #
+        # Why this is correct (and *more* correct than Boolector). pyvsc models a
+        # subscript by snapshotting the index at constraint-build time
+        # (ExprArraySubscriptModel.build reads int(rhs.val())) and registers only
+        # arr[snapshot] as a rand var in the RandSet — the other elements (and a
+        # co-solved index) are baked as constants reflecting their *current* values.
+        # The ITE handles every resulting shape uniformly:
+        #   * index resolved (const arm): the chain folds to the one selected
+        #     element, exactly as Boolector's snapshot does;
+        #   * index co-solved (var arm): the chain selects symbolically, so idx and
+        #     the element move together — which Boolector gets *wrong* (it freezes
+        #     idx at the stale snapshot, producing arr[stale]==v while reporting a
+        #     different idx). The const arms still carry the unmapped elements'
+        #     actual (unchanged) values, so the model stays self-consistent.
+        # XCHECK agrees because it runs *after* the solve, when idx is concrete:
+        # Boolector then builds arr[idx_final] and validates dv-solve's model.
+        if not isinstance(e.lhs, ExprFieldRefModel) \
+                or not isinstance(e.lhs.fm, FieldArrayModel):
+            # Nested/object-array subscript chains are not in scope here.
+            raise BackendIncomplete(
+                "dv-solve: variable-indexed subscript over a non-array lvalue",
+                reason_code="array")
+        arr = e.lhs.fm
+        n = self._array_elem_count(arr)
+        if n < 1:
+            raise BackendIncomplete(
+                "dv-solve: variable-indexed select over an empty array",
+                reason_code="array")
+        if n > self._MAX_SELECT_ELEMS:
+            raise BackendIncomplete(
+                "dv-solve: variable-indexed select over %d elements exceeds the "
+                "native %d-element cap" % (n, self._MAX_SELECT_ELEMS),
+                reason_code="array")
+        # Index as a plain operand for the equality conditions.
+        idx_ref = self.translate(e.rhs, want_var=True)
+        idx_signed = bool(e.rhs.is_signed())
+        # Element width/sign come from the homogeneous element type.
+        elem0 = arr.field_l[0]
+        w = int(elem0.width)
+        signed = bool(elem0.is_signed)
+        elem_refs = [self._ref_for_field(arr.field_l[i]) for i in range(n)]
+        # Fold right-to-left: element 0 is the outermost ITE condition; the final
+        # else is arr[n-1] (reached when idx==n-1, or — if the model leaves idx
+        # unbounded — any idx>=n-1; the realistic corpus bounds idx in range,
+        # exactly as Boolector requires to avoid an index error).
+        chain = elem_refs[n - 1]
+        for i in range(n - 2, -1, -1):
+            cond = self._b.expr_binary(
+                BIN_EQ, idx_ref, self._b.expr_const(i, idx_signed))
+            chain = self._b.expr_ite(cond, elem_refs[i], chain)
+        if self._want_var and self._AUX_MIN_W <= w <= self._AUX_MAX_W:
+            self._result = self._materialize(chain, w, signed)
+            self._last_simple = True
+        else:
+            self._result = chain
+            self._last_simple = False
 
     def visit_expr_indexed_fieldref(self, e):
         if self._indexed_ref_is_const(e):
@@ -1119,10 +1342,12 @@ class DvSolveExprTranslator(ModelVisitor):
     # Arrays / foreach (pre-expanded; residuals -> Phase 2)
     visit_constraint_foreach = _unsupported
     visit_constraint_unique_vec = _unsupported
-    # General inline scopes still defer (only the dist scope is handled, above,
-    # via visit_constraint_dist_scope) — an array/foreach inline scope may hold
-    # soft constraints that must not be conjoined as hard.
-    visit_constraint_inline_scope = _unsupported
+    # An array/foreach inline scope (ArrayConstraintBuilder's expansion) is a
+    # conjunction of per-element constraints — conjoin them exactly like an
+    # ordinary scope. Any *soft* per-element constraint inside drops to nothing in
+    # this hard context (visit_constraint_soft) and is enforced via the native soft
+    # list instead, mirroring Boolector's `build(soft=False)` (SC-1).
+    visit_constraint_inline_scope = visit_constraint_scope
     # Expression forms still routed to fallback
     visit_expr_dynamic = _unsupported
     visit_expr_range = _unsupported

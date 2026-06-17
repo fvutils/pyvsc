@@ -149,12 +149,24 @@ class _RandPlan(object):
     """Cached pre-solve plan for one root model object (Tier-A)."""
 
     __slots__ = ("bound_m", "ri", "field_state", "block_state",
-                 "rangelist_state", "dist_state", "_keepalive")
+                 "rangelist_state", "dist_state", "soft_priority_state",
+                 "_keepalive")
 
     def __init__(self, bound_m, ri, field_state, block_state, rangelist_state,
                  dist_state, keepalive):
         self.bound_m = bound_m
         self.ri = ri
+        # soft_priority_state: list of (ConstraintModel, priority). Soft-constraint
+        # priorities are (re)accumulated by RandInfoBuilder, which a Tier-A hit
+        # SKIPS — yet `clear_soft_priority` at the top of every randomize() still
+        # zeroes them. Snapshot the correct priorities here (RandInfoBuilder has
+        # just run) and re-apply them on a hit (restore_soft_priorities), so the
+        # relaxation order survives caching. Without this, cached iterations see
+        # all-zero priorities and the back-end keeps the wrong soft.
+        self.soft_priority_state = [
+            (c, c.priority)
+            for rs in ri.randsets()
+            for c in rs.soft_constraints()]
         # field_state: list of (field, was_used_rand, value_if_nonrand). Detects
         # rand_mode toggles (is_used_rand) and changes to referenced non-rand
         # values (which bake into bound_m / constants).
@@ -172,6 +184,13 @@ class _RandPlan(object):
         # Hold strong refs to every object whose identity/state the signature
         # reads, so Python can't recycle an id and cause a false match.
         self._keepalive = keepalive
+
+    def restore_soft_priorities(self):
+        """Re-apply the cached soft-constraint priorities. Called on a Tier-A hit
+        after `clear_soft_priority` has zeroed them and RandInfoBuilder (which
+        would re-accumulate them) was skipped."""
+        for c, p in self.soft_priority_state:
+            c.priority = p
 
     def is_fresh(self):
         for f, was_rand, val in self.field_state:
@@ -846,6 +865,10 @@ class Randomizer(RandIF):
             # Tier-A hit: reuse the cached plan, skip the pre-solve passes.
             bound_m = plan.bound_m
             ri = plan.ri
+            # RandInfoBuilder is skipped on a hit, so the soft priorities zeroed
+            # by clear_soft_priority above are not re-accumulated — restore them
+            # from the plan so the relaxation order matches a cold build.
+            plan.restore_soft_priorities()
         else:
             if root is not None:
                 setattr(root, _PLAN_ATTR, None)   # drop any stale plan

@@ -191,6 +191,59 @@ class TestXCheckFrontends(DcTestCase):
             self.assertTrue(oracle(ci), "classic nested oracle violated")
             self.assertTrue(oracle(di), "dc nested oracle violated")
 
+    # --- scenario: composite array (foreach + const index) -------------------
+
+    def test_composite_array(self):
+        @vsc.randobj
+        class ClassicSub(object):
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def c(self):
+                self.a < 5
+
+        @vsc.randobj
+        class Classic(object):
+            def __init__(self):
+                self.arr = vsc.rand_list_t(ClassicSub(), 4)
+
+            @vsc.constraint
+            def c(self):
+                self.arr[0].a == self.arr[1].a
+                with vsc.foreach(self.arr) as it:
+                    it.a > 1
+
+        @vdc.dataclass
+        class DcSub(vdc.RandClass):
+            a: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                self.a < 5
+
+        @vdc.dataclass
+        class Dc(vdc.RandClass):
+            arr: list[DcSub] = vdc.rand(size=4)
+
+            @vdc.constraint
+            def c(self):
+                self.arr[0].a == self.arr[1].a
+                with vdc.foreach(self.arr) as it:
+                    it.a > 1
+
+        def oracle(o):
+            els = list(o.arr)
+            return (els[0].a == els[1].a
+                    and all(1 < e.a < 5 for e in els))
+
+        ci, di = Classic(), Dc()
+        for _ in range(N):
+            ci.randomize()
+            di.randomize()
+            self.assertTrue(oracle(ci), "classic composite-array oracle violated")
+            self.assertTrue(oracle(di), "dc composite-array oracle violated")
+
     # --- helpers -------------------------------------------------------------
 
     def _compare(self, Classic, Dc, oracle, fields):

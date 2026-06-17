@@ -67,6 +67,30 @@ class RandClass:
             return rm[name]
         return fd.is_rand   # default: declared-rand fields are rand-enabled
 
+    # -- constraint_mode ---------------------------------------------------
+    # A @vdc.constraint block can be enabled/disabled by name. Classic pyvsc
+    # spells this ``it.<cname>.constraint_mode(en)``; dc fields are plain values
+    # and constraint methods are plain methods, so dc uses a method keyed by the
+    # constraint's name (mirrors set_rand_mode). State is per-instance and applied
+    # to the cached block model before each solve.
+
+    def set_constraint_mode(self, name, enabled):
+        tm = self._get_type_model()
+        if not any(c.name == name for c in tm.constraints):
+            raise AttributeError(
+                "no constraint %r on %s" % (name, type(self).__name__))
+        cm = getattr(self, "_vsc_constraint_mode", None)
+        if cm is None:
+            cm = {}
+            object.__setattr__(self, "_vsc_constraint_mode", cm)
+        cm[name] = bool(enabled)
+
+    def get_constraint_mode(self, name):
+        cm = getattr(self, "_vsc_constraint_mode", None)
+        if cm is not None and name in cm:
+            return cm[name]
+        return True   # constraints are enabled by default
+
     def randomize(self, debug=0, lint=0, solve_fail_debug=0):
         tm = self._get_type_model()
         frame = sys._getframe(1)

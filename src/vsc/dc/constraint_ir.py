@@ -95,6 +95,42 @@ class IRIndex(IRNode):
         self.base = base
         self.index = index
 
+    def __repr__(self):
+        return "IRIndex(%r, %r)" % (self.base, self.index)
+
+
+class IRPartSelect(IRNode):
+    """Scalar bit part-select ``base[upper:lower]`` (e.g. ``self.a[7:0]`` or
+    ``self.arr[i][3:1]``). ``upper``/``lower`` are the (constant) bit indices in
+    pyvsc order — ``upper`` is the high bit, ``lower`` the low bit — matching
+    ``a[hi:lo]`` source. (A single-index ``base[k]`` stays an IRIndex; ir_lower
+    resolves it to an array-subscript or a one-bit part-select from the base's
+    model.)"""
+    __slots__ = ("base", "upper", "lower")
+
+    def __init__(self, base, upper, lower):
+        self.base = base
+        self.upper = upper
+        self.lower = lower
+
+    def __repr__(self):
+        return "IRPartSelect(%r, %r, %r)" % (self.base, self.upper, self.lower)
+
+
+class IRAttr(IRNode):
+    """Attribute access ``base.name`` where ``base`` is itself an access expression
+    (an IRIndex or IRAttr) — used for composite-array element fields such as
+    ``self.arr[0].x`` (``IRAttr(IRIndex(IRField(arr), 0), 'x')``) and foreach
+    element access ``it.x``. Pure ``self.a.b`` chains stay as a flat IRField."""
+    __slots__ = ("base", "name")
+
+    def __init__(self, base, name):
+        self.base = base
+        self.name = name
+
+    def __repr__(self):
+        return "IRAttr(%r, %r)" % (self.base, self.name)
+
 
 # --- Statement nodes --------------------------------------------------------
 
@@ -150,13 +186,15 @@ class IRSolveOrder(IRNode):
 
 
 class IRWeight(IRNode):
-    """One dist weight: value point (hi None) or [lo,hi] range, weight, per_value."""
+    """One dist weight: value point (hi None) or [lo,hi] range; ``weight`` is an
+    expression node (IRConst for a static weight, or a field ref for a dynamic
+    weight read at solve time); ``per_value``."""
     __slots__ = ("lo", "hi", "weight", "per_value")
 
     def __init__(self, lo, hi, weight, per_value):
         self.lo = lo
         self.hi = hi
-        self.weight = weight
+        self.weight = weight          # IR expression node
         self.per_value = per_value
 
 

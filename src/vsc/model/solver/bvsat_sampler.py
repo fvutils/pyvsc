@@ -138,7 +138,7 @@ def _append_one_plane(b, bits, rng):
 
 
 def sample(make_base, readback, sample_vars, seed,
-           solve_info=None, m_max=None):
+           solve_info=None, m_max=None, soft_keep=None):
     """Draw a near-uniform model and write it into the readback fields.
 
     ``make_base``  — zero-arg factory returning a fresh, finalize-ready
@@ -195,7 +195,8 @@ def sample(make_base, readback, sample_vars, seed,
             try:
                 if solve_info is not None:
                     solve_info.n_sat_calls += 1
-                rc = bb.check(seed=rng.randint(0, (1 << 63) - 1))
+                rc = bb.check(seed=rng.randint(0, (1 << 63) - 1),
+                              soft_keep=soft_keep)
                 if rc == BVSAT_SAT:
                     # Nested cells: each level is a subset of the previous, so the
                     # highest SAT level has the tightest (most uniform) cell.
@@ -274,7 +275,8 @@ def _pack_const64(v, width, signed):
 _STAGE_PIN_ATTEMPTS = 8
 
 
-def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None):
+def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None,
+                   soft_keep=None):
     """Staged sampling that honors ``solve_order`` (see the section comment).
 
     ``make_base``    — the same zero-arg base-problem factory ``sample`` takes.
@@ -318,7 +320,8 @@ def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None):
         try:
             if solve_info is not None:
                 solve_info.n_sat_calls += 1
-            return bb.check(seed=rng.randint(0, (1 << 63) - 1)) == BVSAT_SAT
+            return bb.check(seed=rng.randint(0, (1 << 63) - 1),
+                            soft_keep=soft_keep) == BVSAT_SAT
         finally:
             bb.destroy()
 
@@ -352,7 +355,8 @@ def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None):
         stage_vars = [sv for sv in sample_vars
                       if sv[0] in {vid for (_f, vid) in stage}]
         ok = sample(lambda: _make_base_pinned([]), stage, stage_vars,
-                    rng.randint(0, (1 << 63) - 1), solve_info=solve_info)
+                    rng.randint(0, (1 << 63) - 1), solve_info=solve_info,
+                    soft_keep=soft_keep)
         if not ok:
             return None
         if not is_final:
@@ -362,3 +366,124 @@ def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None):
                     (vid, _pack_const64(int(f.get_val()), width, signed), signed))
 
     return True
+
+
+# --------------------------------------------------------------------------- #
+# Distribution-honoring sampling                                                #
+# --------------------------------------------------------------------------- #
+# A dist-bearing RandSet whose primary path is unavailable (e.g. a dist combined
+# with a conjunctive-body implication, which force-routes to the complete BV-SAT
+# engine — EF-1b) cannot use the primary's native `add_dist` value picker: the
+# BV-SAT engine ignores `add_dist`, and a plain uniform `sample` would wash the
+# weighting out to ~uniform (the `test_dist_multiple_dists_in_randset` failure:
+# a 99999:1 weighting came out ~50/50). We recover the weighting the same way
+# `sample_ordered` recovers solve-order — assume a *weighted* random target for
+# each dist field, check SAT, assert it (bounded retry), then uniform-sample the
+# remaining (non-dist) fields with the dist pins applied. This mirrors the
+# Boolector swizzler's dist handling (pick a weighted value, then constrain the
+# rest), reproducing the marginal distribution rather than the joint.
+
+
+def _weighted_target(entries, rng):
+    """Draw one value from a native ``add_dist`` ``DistEntry`` list, honoring the
+    weighting. Each entry is ``{lo, hi, weight, is_per_value}``:
+      * ``is_per_value`` (``:=`` / single value): every value in ``[lo,hi]`` has
+        weight ``weight`` — entry mass ``weight * (hi-lo+1)``.
+      * not ``is_per_value`` (``:/``): the range shares ``weight`` collectively —
+        entry mass ``weight``.
+    Pick an entry proportional to its mass, then a uniform value within it.
+    Zero-weight entries have zero mass (the dist exclusion). Returns ``None`` if
+    the total mass is zero (all-excluded — caller leaves the field free)."""
+    masses = []
+    total = 0
+    for e in entries:
+        span = e["hi"] - e["lo"] + 1
+        m = e["weight"] * (span if e["is_per_value"] else 1)
+        masses.append(m)
+        total += m
+    if total <= 0:
+        return None
+    r = rng.randint(1, total)
+    acc = 0
+    for e, m in zip(entries, masses):
+        acc += m
+        if r <= acc:
+            return rng.randint(e["lo"], e["hi"])
+    last = entries[-1]
+    return rng.randint(last["lo"], last["hi"])
+
+
+def sample_dist(make_base, readback, sample_vars, seed, dist_targets,
+                solve_info=None, soft_keep=None):
+    """Serve a dist-bearing RandSet via BV-SAT while honoring the dist weighting.
+
+    ``dist_targets`` — ``{var_id: [DistEntry, ...]}`` for the dist fields whose
+    weighted ``add_dist`` the primary would have applied (captured by the backend
+    from ``_add_dist_for_field``).
+
+    For each dist field, draw a weighted target (``_weighted_target``) and
+    assume-then-assert it against the prior pins (bounded retry, mirroring the
+    swizzler / ``sample_ordered``); if no weighted target lands SAT the field is
+    left free for the uniform pass. The remaining non-dist (and any un-pinnable
+    dist) fields are then served by the ordinary uniform ``sample`` with the dist
+    pins applied. Gated on ``stage_sampleable`` by the caller (all fields ``<=64``
+    bits, so each target packs into the int64 carrier).
+
+    Returns ``True`` on success or ``None`` if the uniform pass found no model
+    (caller should fall back — should not happen, the base is SAT)."""
+    from dv_solve.problem import BIN_EQ
+    from dv_solve.bvsat import BVSatCtx, BVSAT_SAT
+
+    sv_by_vid = {vid: (width, lo, hi, signed)
+                 for (vid, width, lo, hi, signed) in sample_vars}
+    rng = random.Random(seed & _U64)
+    pinned = []  # (vid, int64_const, signed)
+
+    def _make_base_pinned(extra):
+        b = make_base()
+        for (vid, val, signed) in pinned + extra:
+            b.add_constraint(b.expr_binary(
+                BIN_EQ, b.expr_var(vid), b.expr_const(val, signed)))
+        return b
+
+    def _is_sat(extra):
+        b = _make_base_pinned(extra)
+        buf, _sz = b.finalize()
+        b.destroy()
+        bb = BVSatCtx(buf)
+        try:
+            if solve_info is not None:
+                solve_info.n_sat_calls += 1
+            return bb.check(seed=rng.randint(0, (1 << 63) - 1),
+                            soft_keep=soft_keep) == BVSAT_SAT
+        finally:
+            bb.destroy()
+
+    # Weighted assume-then-assert per dist field (in readback order for a stable
+    # value stream). A field with no entries, or whose weighted targets are all
+    # UNSAT, is left free for the uniform pass below.
+    for (f, vid) in readback:
+        entries = dist_targets.get(vid)
+        if not entries or vid not in sv_by_vid:
+            continue
+        width, lo, hi, signed = sv_by_vid[vid]
+        for _ in range(_STAGE_PIN_ATTEMPTS):
+            t = _weighted_target(entries, rng)
+            if t is None:
+                break
+            if not (lo <= t <= hi):
+                continue                     # target outside declared domain
+            const = _pack_const64(t, width, signed)
+            if _is_sat([(vid, const, signed)]):
+                f.set_val(t)
+                pinned.append((vid, const, signed))
+                break
+
+    pinned_vids = {vid for (vid, _v, _s) in pinned}
+    rest = [(f, vid) for (f, vid) in readback if vid not in pinned_vids]
+    if not rest:
+        return True
+    rest_vars = [sv for sv in sample_vars if sv[0] not in pinned_vids]
+    return sample(lambda: _make_base_pinned([]), rest, rest_vars,
+                  rng.randint(0, (1 << 63) - 1), solve_info=solve_info,
+                  soft_keep=soft_keep)

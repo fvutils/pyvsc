@@ -18,10 +18,11 @@ import ast
 import inspect
 import textwrap
 
-from .constraint_ir import (ConstraintProgram, IRBin, IRConst, IRConstraintExpr,
-                            IRDist, IRField, IRForeach, IRIfElse, IRImplies,
-                            IRIndex, IRInside, IRRange, IRSoft, IRSolveOrder,
-                            IRUnary, IRUnique, IRWeight)
+from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRConst,
+                            IRConstraintExpr, IRDist, IRField, IRForeach,
+                            IRIfElse, IRImplies, IRIndex, IRInside, IRPartSelect,
+                            IRRange, IRSoft, IRSolveOrder, IRUnary, IRUnique,
+                            IRWeight)
 
 
 class ConstraintParseError(Exception):
@@ -50,13 +51,22 @@ _FOREACH = "foreach"
 def parse_constraint(name, func):
     """Compile ``func`` (a constraint method) into a :class:`ConstraintProgram`.
 
-    Raises :class:`ConstraintParseError` on unsupported syntax. Returns ``None``
-    if source is unavailable (caller falls back / warns — plan §6 risk 2).
+    Raises :class:`ConstraintParseError` on unsupported syntax or when the
+    method source cannot be read. Source is required because the constraint is
+    compiled by parsing its AST, never by executing it; if the source is
+    unavailable (e.g. the class was defined in a REPL / ``exec`` / ``python -c``)
+    the constraint cannot be recovered. Silently dropping it would randomize the
+    fields unconstrained — a wrong result with no error — so this is a hard
+    failure rather than a warning.
     """
     try:
         src = textwrap.dedent(inspect.getsource(func))
-    except (OSError, TypeError):
-        return None
+    except (OSError, TypeError) as e:
+        raise ConstraintParseError(
+            "cannot read source for constraint %r (defined in a REPL/exec/"
+            "python -c?): the constraint is compiled from its source AST, so it "
+            "cannot be applied. Define the class in an importable module file. "
+            "(%s: %s)" % (name, type(e).__name__, e))
 
     mod = ast.parse(src)
     fn = mod.body[0]
@@ -286,12 +296,25 @@ class _Parser:
             return self._call_expr(node)
         if isinstance(node, ast.Subscript):
             if isinstance(node.slice, ast.Slice):
-                self._err(node, "part-select slices in @constraint methods: not yet "
-                          "supported (use randomize_with for bit-selects)")
+                sl = node.slice
+                if sl.step is not None:
+                    self._err(node, "part-select with a step (a[hi:lo:step]) is not supported")
+                if sl.lower is None or sl.upper is None:
+                    self._err(node, "part-select requires explicit bounds a[hi:lo]")
+                # Source `a[hi:lo]` -> AST slice.lower=hi (pyvsc upper bit),
+                # slice.upper=lo (pyvsc lower bit).
+                return IRPartSelect(self._expr(node.value),
+                                    self._expr(sl.lower), self._expr(sl.upper))
             return IRIndex(self._expr(node.value), self._expr(node.slice))
         if isinstance(node, ast.Attribute):
             if self._is_self_rooted(node):
                 return IRField(self._dotted(node))
+            # Attribute over an indexed/local base (composite-array element or
+            # foreach element): self.arr[0].x, it.x -> IRAttr.
+            root = self._root_name(node)
+            if isinstance(root, ast.Name) and (
+                    root.id == self.self_name or root.id in self._bound):
+                return IRAttr(self._expr(node.value), node.attr)
             # e.g. MyEnum.A or module.CONST -> resolve to an int literal.
             return IRConst(self._resolve_external(node))
         if isinstance(node, ast.Constant):
@@ -352,18 +375,23 @@ class _Parser:
             items = node.elts
         else:
             self._err(node, "inside() argument must be a rangelist(...) or list literal")
+        # Range endpoints are general expressions (constants, fields, or arithmetic
+        # over them) — not just literals — so `a inside [rng(c, d)]` / `[b, b+1]`
+        # with rand endpoints works like the classic front-end. A literal endpoint
+        # lowers to ExprLiteralModel exactly as before (IRConst); a field endpoint
+        # lowers to its field-ref model.
         out = []
         for it in items:
             if isinstance(it, ast.Tuple) and len(it.elts) == 2:
-                out.append(IRRange(self._const(it.elts[0]), self._const(it.elts[1])))
+                out.append(IRRange(self._expr(it.elts[0]), self._expr(it.elts[1])))
             elif (isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute)
                     and it.func.attr == "rng"):
-                out.append(IRRange(self._const(it.args[0]), self._const(it.args[1])))
+                out.append(IRRange(self._expr(it.args[0]), self._expr(it.args[1])))
             elif isinstance(it, ast.List):
                 for e in it.elts:
-                    out.append(IRRange(self._const(e)))
+                    out.append(IRRange(self._expr(e)))
             else:
-                out.append(IRRange(self._const(it)))
+                out.append(IRRange(self._expr(it)))
         return out
 
     def _parse_weights(self, node):
@@ -378,7 +406,9 @@ class _Parser:
             if len(w.args) != 2:
                 self._err(w, "weight(val, w) takes a value/range and a weight")
             lo, hi = self._weight_val(w.args[0])
-            weight = self._const(w.args[1])
+            # The weight may be a constant or a (non-rand) field reference, read at
+            # solve time — so it is a general expression, not a parse-time int.
+            weight = self._expr(w.args[1])
             per_value = None
             for kw in w.keywords:
                 if kw.arg == "per_value":
@@ -411,6 +441,14 @@ class _Parser:
         while isinstance(cur, ast.Attribute):
             cur = cur.value
         return isinstance(cur, ast.Name) and cur.id == self.self_name
+
+    def _root_name(self, node):
+        """Walk through Attribute/Subscript chains to the root expression
+        (typically a Name), used to tell field accesses from external constants."""
+        cur = node
+        while isinstance(cur, (ast.Attribute, ast.Subscript)):
+            cur = cur.value
+        return cur
 
     def _resolve_external(self, node):
         """Resolve a non-self attribute chain (e.g. MyEnum.A) from the constraint's

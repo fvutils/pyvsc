@@ -53,16 +53,40 @@ class Ctx:
     def __init__(self, field_models):
         self.fields = field_models           # name -> FieldModel
         self.locals = {}                      # name -> callable() -> ExprModel
+        self.model_locals = {}               # name -> FieldModel (composite elem)
+        self.const_locals = {}               # name -> int (unrolled foreach index)
 
     def model(self, name):
         return self.fields.get(name)
 
-    def with_local(self, name, factory):
-        """Return a child Ctx with one extra local binding (foreach idx/elem)."""
+    def _child(self):
         c = Ctx(self.fields)
         c.locals = dict(self.locals)
+        c.model_locals = dict(self.model_locals)
+        c.const_locals = dict(self.const_locals)
+        return c
+
+    def with_local(self, name, factory):
+        """Return a child Ctx with one extra expr local binding (scalar foreach)."""
+        c = self._child()
         if name is not None:
             c.locals[name] = factory
+        return c
+
+    def with_model_local(self, name, model):
+        """Return a child Ctx binding ``name`` to a concrete element model
+        (composite foreach element)."""
+        c = self._child()
+        if name is not None:
+            c.model_locals[name] = model
+        return c
+
+    def with_const_local(self, name, value):
+        """Return a child Ctx binding ``name`` to a constant int (unrolled foreach
+        index), usable both as a value and as a constant array subscript."""
+        c = self._child()
+        if name is not None:
+            c.const_locals[name] = value
         return c
 
 
@@ -105,16 +129,22 @@ def _dist(node, ctx):
     for w in node.weights:
         rng_lhs = ExprLiteralModel(w.lo, True, 32)
         rng_rhs = ExprLiteralModel(w.hi, True, 32) if w.hi is not None else None
+        # Weight is a general expression: a literal (static) or a field ref read at
+        # solve time (dynamic). The plan-cache dist_state snapshot detects changes.
         weights.append(DistWeightExprModel(
-            rng_lhs, rng_rhs, ExprLiteralModel(w.weight, True, 32),
+            rng_lhs, rng_rhs, _expr(w.weight, ctx),
             is_per_value=w.per_value))
     return ConstraintDistModel(lhs, weights)
 
 
 def _foreach(node, ctx):
-    arr = ctx.model(node.array.name)
+    arr = _resolve_model(node.array, ctx)
     if not isinstance(arr, FieldArrayModel):
-        raise TypeError("foreach target %r is not an array" % node.array.name)
+        raise TypeError("foreach target %r is not an array" % (node.array,))
+    if not arr.is_scalar:
+        # Composite-element array: unroll over the concrete elements so element
+        # fields bind directly (no ExprArraySubscript-of-composite machinery).
+        return _foreach_composite(node, ctx, arr)
     # ConstraintForeachModel.lhs is an expression (ExprFieldRefModel), matching the
     # classic front-end — the array-constraint builder resolves the array from it.
     arr_ref = ExprFieldRefModel(arr)
@@ -132,6 +162,22 @@ def _foreach(node, ctx):
     for s in node.body:
         stmt.constraint_l.append(_stmt(s, child))
     return stmt
+
+
+def _foreach_composite(node, ctx, arr):
+    """Unroll a foreach over a (fixed-size) composite-element array: for each
+    element, bind ``it`` to that element's model and ``idx`` to the literal index,
+    then lower the body. Produces one ConstraintScopeModel of plain constraints."""
+    scope = ConstraintScopeModel()
+    for i, elem in enumerate(arr.field_l):
+        child = ctx
+        if node.idx_name is not None:
+            child = child.with_const_local(node.idx_name, i)
+        if node.it_name is not None:
+            child = child.with_model_local(node.it_name, elem)
+        for s in node.body:
+            scope.constraint_l.append(_stmt(s, child))
+    return scope
 
 
 def _if_else(node, ctx):
@@ -166,22 +212,99 @@ def _expr(node, ctx):
         raise NotImplementedError("unary op %r" % node.op)
     if isinstance(node, ir.IRIndex):
         return _index(node, ctx)
+    if isinstance(node, ir.IRPartSelect):
+        # base[upper:lower] bit part-select (upper/lower resolve to constants).
+        return ExprPartselectModel(_expr(node.base, ctx),
+                                   _expr(node.upper, ctx), _expr(node.lower, ctx))
+    if isinstance(node, ir.IRAttr):
+        return _attr(node, ctx)
     if isinstance(node, ir.IRInside):
         return _inside(node, ctx)
     raise NotImplementedError("lower expr %r" % type(node).__name__)
 
 
+def _attr(node, ctx):
+    """Attribute access on an indexed/element base (composite-array element field
+    or foreach element): self.arr[0].x, it.x."""
+    base = _resolve_model(node.base, ctx)
+    if isinstance(base, FieldArrayModel) and node.name == "sum":
+        return ExprArraySumModel(base)
+    return ExprFieldRefModel(_descend(base, node.name))
+
+
+def _resolve_model(node, ctx):
+    """Resolve an IRField/IRIndex/IRAttr access chain to a *concrete* FieldModel.
+    Array subscripts must be constant (literal or unrolled-foreach index)."""
+    if isinstance(node, ir.IRField):
+        path = node.path
+        head = path[0]
+        if head in ctx.model_locals:
+            model = ctx.model_locals[head]
+        elif head in ctx.locals or head in ctx.const_locals:
+            raise NotImplementedError(
+                "cannot descend through scalar loop var %r" % head)
+        else:
+            model = ctx.model(head)
+        if model is None:
+            raise KeyError("constraint references unknown field %r" % head)
+        for seg in path[1:]:
+            model = _descend(model, seg)
+        return model
+    if isinstance(node, ir.IRAttr):
+        return _descend(_resolve_model(node.base, ctx), node.name)
+    if isinstance(node, ir.IRIndex):
+        base = _resolve_model(node.base, ctx)
+        if not isinstance(base, FieldArrayModel):
+            raise TypeError("indexed access on a non-array model")
+        return base.field_l[_const_index(node.index, ctx)]
+    raise NotImplementedError("cannot resolve model for %r" % type(node).__name__)
+
+
+def _descend(model, seg):
+    if isinstance(model, FieldArrayModel):
+        if seg == "size":
+            return model.size
+        raise NotImplementedError("array attribute %r in composite access" % seg)
+    if isinstance(model, FieldCompositeModel):
+        child = model.find_field(seg)
+        if child is None:
+            raise KeyError("composite %r has no field %r"
+                           % (getattr(model, "name", "?"), seg))
+        return child
+    raise NotImplementedError(
+        "cannot descend into %r at %r" % (seg, getattr(model, "name", "?")))
+
+
+def _const_index(node, ctx):
+    """Evaluate an array subscript that must resolve to a constant int."""
+    if isinstance(node, ir.IRConst):
+        return node.value
+    if isinstance(node, ir.IRField) and len(node.path) == 1 \
+            and node.path[0] in ctx.const_locals:
+        return ctx.const_locals[node.path[0]]
+    raise NotImplementedError(
+        "composite-array subscripts must be constant (got %r)" % (node,))
+
+
 def _field(node, ctx):
     path = node.path
-    if path[0] in ctx.locals:
-        # foreach loop variable (idx/it); descent through it lands with
-        # array-of-composite support.
+    head = path[0]
+    if head in ctx.locals:
+        # Scalar foreach element/index: an expr binding.
         if len(path) == 1:
-            return ctx.locals[path[0]]()
+            return ctx.locals[head]()
         raise NotImplementedError("descent through foreach var %r" % (path,))
-    model = ctx.model(path[0])
+    if head in ctx.const_locals:
+        # Unrolled-foreach index used as a value.
+        if len(path) == 1:
+            return ExprLiteralModel(ctx.const_locals[head], True, 32)
+        raise NotImplementedError("descent through index var %r" % (path,))
+    if head in ctx.model_locals:
+        # Composite foreach element used directly (rare); descent goes via _attr.
+        return ExprFieldRefModel(_resolve_model(node, ctx))
+    model = ctx.model(head)
     if model is None:
-        raise KeyError("constraint references unknown field %r" % path[0])
+        raise KeyError("constraint references unknown field %r" % head)
     # Walk the remaining path segments, descending through nested composites and
     # resolving array pseudo-attributes (arr.size / arr.sum).
     for seg in path[1:]:
@@ -218,12 +341,12 @@ def _inside(node, ctx):
     lhs = _expr(node.lhs, ctx)
     rl = ExprRangelistModel()
     for r in node.ranges:
+        # r.lo / r.hi are IR expr nodes (IRConst for literals, IRField for rand
+        # endpoints, IRBin for arithmetic) — lower each so variable ranges work.
         if r.hi is None:
-            rl.add_range(ExprLiteralModel(r.lo, True, 32))
+            rl.add_range(_expr(r.lo, ctx))
         else:
-            rl.add_range(ExprRangeModel(
-                ExprLiteralModel(r.lo, True, 32),
-                ExprLiteralModel(r.hi, True, 32)))
+            rl.add_range(ExprRangeModel(_expr(r.lo, ctx), _expr(r.hi, ctx)))
     e = ExprInModel(lhs, rl)
     if node.negate:
         return ExprUnaryModel(UnaryExprType.Not, e)
