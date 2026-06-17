@@ -268,11 +268,17 @@ function, fallback tally) to shapes the suite already contains.
   independent-soft, priority, determinism) — passes on both backends. The C-level
   deterministic lock for I-1 lives in the nested `packages/dv-solve` repo
   (`tests/unit/test_soft.py::test_soft_no_collateral_drop_primary`).
-- **B1 / C2 — NOT YET.** B1 (distribution gate) is partially pre-covered by
-  `test_distribution_quality.py` (4 scored scenarios, no-worse-than-Boolector); remaining
-  work is the enum / array-element / weighted-ratio extensions. C2 (zero-fallback perf
-  guard) is partially pre-covered by `test_dvsolve_fallback_histogram.py`; remaining work
-  is extending the principle to the perf workloads.
+- **B1 — DONE.** `ve/unit/test_dvsolve_distribution_quality.py` extends the existing
+  4-scenario `test_distribution_quality.py` with the gaps: array-element marginal,
+  gapped 3-range `inside` (coverage + gap-exclusion), and weighted-`dist` ratio accuracy
+  (observed mass on {1,2,3} ≈ declared 0.80). Each scored, no-worse-than-Boolector;
+  stable across 4 repeat runs.
+- **C2 — DONE.** `ve/unit/test_dvsolve_zero_fallback.py` runs the six benchmark workloads
+  (simple/alu/array/wide64/dist/nested) under the fallback tally and asserts **zero**
+  deferrals — a silent revert to Boolector (the canonical dv-solve perf regression) fails
+  loudly. Verified zero-fallback in both default `auto` and serve-SAT-on modes.
+
+**First slice (A1+A4+B1+C2) COMPLETE.** Full dvsolve native suite 103 passed.
 
 > **Where the changes live:** the corpus, the two new pyvsc tests, and this plan are in
 > the top-level pyvsc repo. The **C-engine fix + its C regression test are in the nested
