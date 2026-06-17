@@ -58,3 +58,28 @@ ve/unit/test_ext_array.py
 
 # --- coverage-driven constraints ---
 ve/unit/test_coverage_driven_constraints.py
+
+# --- expanded constraint coverage (test-suite enhancement, 2026-06-17) ---
+# Constraint-relevant pyvsc suites that exercise solver shapes the original
+# corpus omitted (implication/if-else reification, inside/rangelist + gaps,
+# unique, constraint/rand mode invalidation, override resolution, object/scalar
+# lists, nested compound objects, partselect, width/sign masking). Pure-constraint
+# only: backend-manipulating suites (test_solver_*, test_bvsat_*, test_solve_failure)
+# are intentionally excluded — they set backends explicitly and would fight the
+# soak's forced VSC_SOLVER=dv-solve / nest XCHECK; UNSAT-verdict parity for those is
+# gated separately (plan A4). See doc/notes/dv_solve_test_suite_enhancement_plan.md.
+ve/unit/test_implies.py
+ve/unit/test_if_else.py
+ve/unit/test_in.py
+ve/unit/test_unique.py
+ve/unit/test_constraint_rangelist_bug.py
+ve/unit/test_constraint_mode.py
+ve/unit/test_rand_mode.py
+ve/unit/test_constraint_override.py
+ve/unit/test_list_scalar.py
+ve/unit/test_list_object.py
+ve/unit/test_compound_obj.py
+ve/unit/test_partselect.py
+ve/unit/test_select.py
+ve/unit/test_width_masking.py
+ve/unit/test_types.py
