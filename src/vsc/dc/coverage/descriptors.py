@@ -121,6 +121,64 @@ class _CrossDescriptor:
         return obj._cr_insts[self.name]
 
 
+class _BinsofExpr:
+    """Base for the ``binsof`` cross-bin selection DSL (SV-1800 §19.6). Terms and
+    their ``& | ~`` combinations form a tiny expression tree compiled to a
+    ``func(*bin_l)`` predicate at cross-build time (see covergroup._compile_binsof).
+    """
+
+    def __and__(self, other):
+        return _BinsofAnd(self, other)
+
+    def __or__(self, other):
+        return _BinsofOr(self, other)
+
+    def __invert__(self):
+        return _BinsofNot(self)
+
+
+class _BinsofTerm(_BinsofExpr):
+    """``binsof(cp)`` (whole coverpoint, ``values is None``) or
+    ``binsof(cp).intersect(values)`` (component bins overlapping ``values``)."""
+
+    def __init__(self, cp, values=None):
+        self.cp = cp                   # runtime Coverpoint object (identity -> position)
+        self.values = values           # list of points / (lo,hi) tuples, or None
+
+    def intersect(self, values):
+        return _BinsofTerm(self.cp, list(values))
+
+
+class _BinsofAnd(_BinsofExpr):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+
+class _BinsofOr(_BinsofExpr):
+    def __init__(self, lhs, rhs):
+        self.lhs = lhs
+        self.rhs = rhs
+
+
+class _BinsofNot(_BinsofExpr):
+    def __init__(self, operand):
+        self.operand = operand
+
+
+def binsof(cp):
+    """Select the cross bins whose component-``cp`` bin is in ``cp`` (SV §19.6).
+    ``cp`` is a coverpoint of the cross, referenced like the cross targets
+    (``vdc.binsof(s.a)``). Narrow with ``.intersect([points/(lo,hi)...])``; combine
+    selections with ``&`` / ``|`` / ``~``. Used as a cross ``ignore_bins`` /
+    ``illegal_bins`` value, ``{name: lambda s: <binsof expr>}``."""
+    if not isinstance(cp, Coverpoint):
+        raise TypeError(
+            "binsof() expects a cross coverpoint (e.g. binsof(s.a)); got %r"
+            % type(cp).__name__)
+    return _BinsofTerm(cp)
+
+
 def coverpoint(ref=None, *, bins=None, iff=None, ignore_bins=None,
                illegal_bins=None, cp_t=None, options=None):
     """Declare a coverpoint. ``ref=lambda s: <expr>`` makes it *pull* (value read

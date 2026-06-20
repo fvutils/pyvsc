@@ -20,9 +20,10 @@ from .descriptors import _CPDescriptor, _CrossDescriptor
 
 class CovergroupTypeModel:
     __slots__ = ("cls_name", "coverpoints", "crosses",
-                 "sample_formals", "formal_by_name")
+                 "sample_formals", "formal_by_name", "sample_param_spec")
 
-    def __init__(self, cls_name, coverpoints, crosses, sample_formals):
+    def __init__(self, cls_name, coverpoints, crosses, sample_formals,
+                 sample_param_spec=None):
         self.cls_name = cls_name
         self.coverpoints = coverpoints      # ordered list[_CPDescriptor]
         self.crosses = crosses              # ordered list[_CrossDescriptor]
@@ -30,6 +31,11 @@ class CovergroupTypeModel:
         # {"cp" (push coverpoint), "arg" (sample_arg field)}.
         self.sample_formals = sample_formals
         self.formal_by_name = {name: (kind, name) for kind, name in sample_formals}
+        # Typed-sample signature metadata: ordered list of (name, annotation)
+        # parallel to sample_formals — annotation is the push-coverpoint's Enum
+        # class when applicable, else ``int``. Drives the synthesized per-type
+        # ``sample()`` signature (see covergroup._install_typed_sample).
+        self.sample_param_spec = sample_param_spec or []
 
     def __repr__(self):
         return "CovergroupTypeModel(%s, %d cp, %d cross)" % (
@@ -100,12 +106,21 @@ def build_cg_type_model(cls):
     crosses = sorted(crs.values(), key=lambda d: d.order)
 
     # Synthesized sample() formals: push coverpoints (declaration order), then
-    # sample_arg fields (dataclass field order).
-    formals = [("cp", d.name) for d in coverpoints if d.is_push]
+    # sample_arg fields (dataclass field order). The parallel param spec carries
+    # each formal's annotation (Enum class for enum push coverpoints, else int)
+    # for the typed sample() signature.
+    formals = []
+    param_spec = []
+    for d in coverpoints:
+        if d.is_push:
+            formals.append(("cp", d.name))
+            param_spec.append((d.name, d.enum_cls if d.enum_cls is not None else int))
     import dataclasses
     for f in dataclasses.fields(cls):
         meta = get_field_meta(f)
         if meta is not None and meta.role == "sample_arg":
             formals.append(("arg", f.name))
+            param_spec.append((f.name, int))
 
-    return CovergroupTypeModel(cls.__qualname__, coverpoints, crosses, formals)
+    return CovergroupTypeModel(cls.__qualname__, coverpoints, crosses, formals,
+                               param_spec)

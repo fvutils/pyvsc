@@ -132,6 +132,68 @@ class IRAttr(IRNode):
         return "IRAttr(%r, %r)" % (self.base, self.name)
 
 
+class IRParam(IRNode):
+    """A reference to a generic-constraint formal parameter, bound to the actual
+    argument expression at the reference site during lowering."""
+    __slots__ = ("name",)
+
+    def __init__(self, name):
+        self.name = name
+
+    def __repr__(self):
+        return "IRParam(%r)" % (self.name,)
+
+
+class IRConstraintRef(IRNode):
+    """A reference to a generic constraint ``self.<name>(args...)`` (or the bare
+    ``self.<name>`` statement form). Used both as a statement (splice the whole
+    body into the enclosing scope) and as a boolean/value expression (reify the
+    body as a boolean term, or inline a value generic's expression). ``lineno`` is
+    the absolute source line for decoration-time error reporting."""
+    __slots__ = ("name", "args", "lineno", "kwargs")
+
+    def __init__(self, name, args, lineno=0, kwargs=None):
+        self.name = name
+        self.args = args          # list of IR expression nodes (positional actuals)
+        self.lineno = lineno
+        self.kwargs = kwargs or {}  # dict name -> IR expression node (keyword actuals)
+
+    def __repr__(self):
+        return "IRConstraintRef(%r, %d args, %d kwargs)" % (
+            self.name, len(self.args), len(self.kwargs))
+
+
+def bind_actuals(name, params, defaults, args, kwargs):
+    """Resolve a reference's positional + keyword actuals against the formal
+    parameter list ``params`` (with ``defaults`` name->IR), returning an ordered
+    list of one IR-expr actual per formal. Raises ``ValueError`` (caller adds the
+    source-location context) on too many positionals, unknown/duplicate keywords,
+    or a missing required argument."""
+    n = len(params)
+    if len(args) > n:
+        raise ValueError("generic %r expects at most %d argument(s), got %d"
+                         % (name, n, len(args)))
+    index = {p: i for i, p in enumerate(params)}
+    bound = list(args) + [None] * (n - len(args))
+    for k, v in kwargs.items():
+        if k not in index:
+            raise ValueError("generic %r got an unexpected keyword argument %r"
+                             % (name, k))
+        if bound[index[k]] is not None:
+            raise ValueError("generic %r got multiple values for argument %r"
+                             % (name, k))
+        bound[index[k]] = v
+    out = []
+    for i, p in enumerate(params):
+        if bound[i] is not None:
+            out.append(bound[i])
+        elif p in defaults:
+            out.append(defaults[p])
+        else:
+            raise ValueError("generic %r missing required argument %r" % (name, p))
+    return out
+
+
 # --- Statement nodes --------------------------------------------------------
 
 
@@ -222,13 +284,25 @@ class IRForeach(IRNode):
 
 
 class ConstraintProgram:
-    """The compiled form of one ``@vdc.constraint`` method."""
-    __slots__ = ("name", "kind", "stmts")
+    """The compiled form of one ``@vdc.constraint`` method.
 
-    def __init__(self, name, stmts, kind="block"):
+    ``kind`` is ``"fixed"`` (always-on), ``"generic"`` (boolean generic, applied
+    only when referenced) or ``"value"`` (an expression generic). ``params`` is the
+    tuple of formal-parameter names (empty for fixed/no-param generics);
+    ``param_defaults`` maps a formal name to its default-value IR node (only for
+    params with a default). ``ret`` is the inlined expression for a value generic,
+    else ``None``."""
+    __slots__ = ("name", "kind", "stmts", "params", "param_defaults", "ret")
+
+    def __init__(self, name, stmts, kind="fixed", params=(), ret=None,
+                 param_defaults=None):
         self.name = name
         self.kind = kind
         self.stmts = stmts        # list of statement nodes
+        self.params = tuple(params)
+        self.param_defaults = param_defaults or {}
+        self.ret = ret
 
     def __repr__(self):
-        return "ConstraintProgram(%r, %d stmts)" % (self.name, len(self.stmts))
+        return "ConstraintProgram(%r, kind=%s, %d stmts)" % (
+            self.name, self.kind, len(self.stmts))

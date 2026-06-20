@@ -21,7 +21,7 @@ except ImportError:  # pragma: no cover - Python < 3.11
             return o
         return _wrap
 
-from .coverage.covergroup import Covergroup
+from .coverage.covergroup import Covergroup, _install_typed_sample
 from .coverage.type_model import build_cg_type_model, prepare_covergroup
 from .fields import field as _field, rand as _rand, randc as _randc
 from .rand_class import RandClass
@@ -29,10 +29,38 @@ from .type_model import CONSTRAINT_ATTR, build_type_model
 
 
 def constraint(func):
-    """Tag a method as a constraint. The body is parsed (not executed) once per
-    type by the constraint compiler."""
-    setattr(func, CONSTRAINT_ATTR, True)
+    """Tag a method as a *fixed* constraint (always holds). The body is parsed (not
+    executed) once per type by the constraint compiler.
+
+    Two nested variants tag *generic* constraints, which apply only when referenced
+    by name from a fixed constraint (PSS 3.1 §13.1.1):
+
+    - ``@vdc.constraint.generic`` — a named boolean constraint block that holds only
+      where it is referenced (the no-parameter form replaces the deprecated
+      ``dynamic constraint``).
+    - ``@vdc.constraint.value`` — a value (expression) generic, used in expression
+      position like a function. May also be inferred from a single ``return``.
+    """
+    setattr(func, CONSTRAINT_ATTR, "fixed")
     return func
+
+
+def _generic_constraint(func):
+    """``@vdc.constraint.generic`` — tag a method as a generic (referenced-only)
+    boolean constraint. See :func:`constraint`."""
+    setattr(func, CONSTRAINT_ATTR, "generic")
+    return func
+
+
+def _value_constraint(func):
+    """``@vdc.constraint.value`` — tag a method as a value (expression) generic.
+    See :func:`constraint`."""
+    setattr(func, CONSTRAINT_ATTR, "value")
+    return func
+
+
+constraint.generic = _generic_constraint
+constraint.value = _value_constraint
 
 
 def _fixup_composite_defaults(cls):
@@ -98,5 +126,6 @@ def dataclass(cls):
         cls._vsc_type_model = build_type_model(cls)
     if is_cg:
         cls._vsc_cg_type_model = build_cg_type_model(cls)
+        _install_typed_sample(cls, cls._vsc_cg_type_model)
 
     return cls

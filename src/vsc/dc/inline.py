@@ -22,7 +22,8 @@ from vsc.model.solve_failure import SolveFailure
 from vsc.model.source_info import SourceInfo
 from vsc.types import expr, to_expr
 
-from . import solve_view
+from . import ir_lower, solve_view
+from .constraint_ir import IRConst
 
 
 class _FieldExpr(expr):
@@ -56,12 +57,57 @@ class _InlineProxy:
         fm = object.__getattribute__(self, "_fm")
         model = fm.get(name)
         if model is None:
+            # Not a field — it may be a generic constraint referenced inline
+            # (``it.<name>()``, the analog of classic ``dynamic_constraint``).
+            obj = object.__getattribute__(self, "_obj")
+            tm = obj._get_type_model()
+            prog = tm.generic_constraints.get(name)
+            if prog is not None:
+                if is_expr_mode():
+                    return _GenericInlineRef(name, fm, tm.generic_constraints)
+                raise AttributeError(
+                    "generic constraint %r is only usable inside randomize_with"
+                    % name)
             raise AttributeError(
                 "no rand field %r to constrain in randomize_with" % name)
         if is_expr_mode():
             return _FieldExpr(ExprFieldRefModel(model))
         # Outside the with-block: behave like the object (return the value).
         return getattr(object.__getattribute__(self, "_obj"), name)
+
+
+class _GenericInlineRef:
+    """A generic-constraint reference inside a ``randomize_with`` block. Calling it
+    (``it.foo(...)``) reifies the generic's body as a boolean term — usable as a
+    bare statement or combined with ``|``/``&``/``~`` — mirroring classic
+    ``dynamic_constraint``. Actual arguments must be int/bool/enum constants (a
+    field-valued actual is a follow-on; reference such generics from a
+    ``@vdc.constraint`` instead)."""
+
+    def __init__(self, name, field_models, generics):
+        self._name = name
+        self._fm = field_models
+        self._generics = generics
+
+    def __call__(self, *args, **kwargs):
+        a = [self._actual_ir(v) for v in args]
+        kw = {k: self._actual_ir(v) for k, v in kwargs.items()}
+        return expr(ir_lower.lower_generic_ref(
+            self._name, self._fm, self._generics, a, kw))
+
+    def _actual_ir(self, v):
+        import enum
+        if isinstance(v, bool):
+            return IRConst(int(v))
+        if isinstance(v, enum.Enum):
+            from vsc.impl.enum_info import EnumInfo
+            return IRConst(EnumInfo.get(type(v)).e2v(v))
+        if isinstance(v, int):
+            return IRConst(v)
+        raise TypeError(
+            "inline argument to generic constraint %r must be an int/bool/enum "
+            "constant (got %r); reference it from a @vdc.constraint for "
+            "field-valued actuals" % (self._name, type(v).__name__))
 
 
 class RandomizeWith:

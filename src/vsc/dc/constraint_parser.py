@@ -19,10 +19,10 @@ import inspect
 import textwrap
 
 from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRConst,
-                            IRConstraintExpr, IRDist, IRField, IRForeach,
-                            IRIfElse, IRImplies, IRIndex, IRInside, IRPartSelect,
-                            IRRange, IRSoft, IRSolveOrder, IRUnary, IRUnique,
-                            IRWeight)
+                            IRConstraintExpr, IRConstraintRef, IRDist, IRField,
+                            IRForeach, IRIfElse, IRImplies, IRIndex, IRInside,
+                            IRParam, IRPartSelect, IRRange, IRSoft, IRSolveOrder,
+                            IRUnary, IRUnique, IRWeight)
 
 
 class ConstraintParseError(Exception):
@@ -48,8 +48,14 @@ _IMPLIES = "implies"
 _FOREACH = "foreach"
 
 
-def parse_constraint(name, func):
+def parse_constraint(name, func, kind="fixed"):
     """Compile ``func`` (a constraint method) into a :class:`ConstraintProgram`.
+
+    ``kind`` is the marker set by the decorator: ``"fixed"`` (``@vdc.constraint``),
+    ``"generic"`` (``@vdc.constraint.generic``) or ``"value"``
+    (``@vdc.constraint.value``). A method with parameters beyond ``self`` is forced
+    to ``"generic"`` (a fixed constraint cannot bind parameters); a body that is a
+    single ``return <expr>`` is a value generic.
 
     Raises :class:`ConstraintParseError` on unsupported syntax or when the
     method source cannot be read. Source is required because the constraint is
@@ -74,16 +80,51 @@ def parse_constraint(name, func):
         raise ConstraintParseError("constraint %r is not a function" % name)
     if not fn.args.args:
         raise ConstraintParseError("constraint %r must take self" % name)
+    if fn.args.vararg is not None or fn.args.kwarg is not None:
+        raise ConstraintParseError(
+            "constraint %r: *args/**kwargs are not supported in a generic "
+            "constraint signature" % name)
+
+    # Formal parameters (everything past self), with any default values. Defaults
+    # are concrete already-evaluated Python objects (via inspect.signature) — coerce
+    # to int/enum literals, matching how constant references are lowered.
+    sig_params = list(inspect.signature(func).parameters.values())[1:]
+    params = tuple(sp.name for sp in sig_params)
 
     p = _Parser(name, fn.args.args[0].arg, func)
+    p._params = set(params)
+
+    param_defaults = {}
+    for sp in sig_params:
+        if sp.default is not inspect.Parameter.empty:
+            param_defaults[sp.name] = IRConst(p._as_int(fn, sp.default))
+
+    # Value generic: a single ``return <expr>`` body (or explicit @constraint.value).
+    is_value = (kind == "value") or (
+        len(fn.body) == 1 and isinstance(fn.body[0], ast.Return))
+    if is_value:
+        if not (len(fn.body) == 1 and isinstance(fn.body[0], ast.Return)
+                and fn.body[0].value is not None):
+            raise ConstraintParseError(
+                "constraint %r: a value generic must be a single 'return <expr>'"
+                % name)
+        ret = p._expr(fn.body[0].value)
+        return ConstraintProgram(name, [], kind="value", params=params, ret=ret,
+                                 param_defaults=param_defaults)
+
     stmts = p.parse_body(fn.body)
-    return ConstraintProgram(name, stmts)
+    eff_kind = "generic" if (params and kind == "fixed") else kind
+    return ConstraintProgram(name, stmts, kind=eff_kind, params=params,
+                             param_defaults=param_defaults)
 
 
 class _Parser:
     def __init__(self, cname, self_name, func):
         self.cname = cname
         self.self_name = self_name
+        # Formal parameter names of a generic constraint (set by parse_constraint
+        # after construction); a bare Name matching one lowers to IRParam.
+        self._params = set()
         # Names bound by enclosing foreach loops (idx/it), referenceable as bare
         # Names in the body and resolved to IRField at lowering.
         self._bound = set()
@@ -107,6 +148,11 @@ class _Parser:
         line = self.lineno0 + getattr(node, "lineno", 1) - 1
         raise ConstraintParseError(
             "constraint %r (%s:%d): %s" % (self.cname, self.filename, line, msg))
+
+    def _abs_line(self, node):
+        """Absolute source line of ``node`` (for deferred decoration-time errors
+        raised after the AST line context is gone, e.g. reference validation)."""
+        return self.lineno0 + getattr(node, "lineno", 1) - 1
 
     # -- statement bodies --
     def parse_body(self, body):
@@ -153,8 +199,32 @@ class _Parser:
                     self._err(value, "dist(lhs, [weight, ...]) takes two arguments")
                 return IRDist(self._expr(value.args[0]),
                               self._parse_weights(value.args[1]))
+            # A generic-constraint reference: self.<name>(...) directly on self
+            # (a field method like self.x.inside() has an Attribute, not Name, base).
+            if (isinstance(value.func.value, ast.Name)
+                    and value.func.value.id == self.self_name
+                    and attr not in ("inside", "not_inside", "outside")):
+                return self._constraint_ref(value, attr, value.args, value.keywords)
             # inside/not_inside/outside fall through to expression handling.
+        # A bare ``self.<name>`` statement references a generic constraint (a bare
+        # field statement is meaningless, so this is unambiguous).
+        if (isinstance(value, ast.Attribute)
+                and isinstance(value.value, ast.Name)
+                and value.value.id == self.self_name):
+            return IRConstraintRef(value.attr, [], self._abs_line(value))
         return IRConstraintExpr(self._expr(value))
+
+    def _constraint_ref(self, node, name, args, keywords):
+        """Build an IRConstraintRef from a ``self.<name>(actuals...)`` reference,
+        capturing positional and keyword actuals (bound to formals at lowering)."""
+        kw_irs = {}
+        for kw in keywords:
+            if kw.arg is None:
+                self._err(node, "**-unpacking is not supported in a "
+                          "generic-constraint reference")
+            kw_irs[kw.arg] = self._expr(kw.value)
+        return IRConstraintRef(name, [self._expr(a) for a in args],
+                               self._abs_line(node), kw_irs)
 
     def _parse_native_if(self, stmt):
         cond = self._expr(stmt.test)
@@ -324,6 +394,9 @@ class _Parser:
                 return IRConst(node.value)
             self._err(node, "unsupported constant %r" % (node.value,))
         if isinstance(node, ast.Name):
+            if node.id in self._params:
+                # A generic-constraint formal — bound to its actual at the ref site.
+                return IRParam(node.id)
             if node.id in self._bound:
                 return IRField((node.id,))
             if node.id in self._names:
@@ -365,6 +438,11 @@ class _Parser:
                     self._err(node, "%s expects a single rangelist/list" % attr)
                 ranges = self._ranges(node.args[0])
                 return IRInside(lhs, ranges, negate=(attr != "inside"))
+            # A generic-constraint reference used as a boolean/value term:
+            # self.<name>(...) directly on self.
+            if (isinstance(node.func.value, ast.Name)
+                    and node.func.value.id == self.self_name):
+                return self._constraint_ref(node, attr, node.args, node.keywords)
         self._err(node, "unsupported call in expression")
 
     def _ranges(self, node):

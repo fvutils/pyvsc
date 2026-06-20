@@ -33,7 +33,8 @@ from vsc.model.bin_expr_type import BinExprType
 
 class CoverpointCrossModel(CoverItemBase):
     
-    def __init__(self, name, options, iff=None, ignore_bins=None):
+    def __init__(self, name, options, iff=None, ignore_bins=None,
+                 illegal_bins=None):
         super().__init__()
         self.parent = None
         self.name = name
@@ -41,16 +42,23 @@ class CoverpointCrossModel(CoverItemBase):
         self.iff_val_cache = True
         self.iff_val_cache_valid = False
         self.ignore_bins = ignore_bins
+        # Illegal cross bins mirror the ignore channel: a {name: func(*bin_l)} dict
+        # selecting cross bins that are excluded from coverage *and* tracked when
+        # hit (parity with coverpoint illegal bins, SV §19.6).
+        self.illegal_bins = illegal_bins
         self.coverpoint_model_l : List[CoverpointModel]= []
         self.finalized = False
         self.n_bins = 0
         self.n_ignore = 0
+        self.n_illegal = 0
 
         # Need to map (tuple)->bin_idx (for coverage recording)
         # Need to map bin_idx->(tuple) (for constraint driving)
         # Need to track unhit bin indexes
         self.hit_l : List[int] = []
         self.ignore_l : List[int] = []
+        self.illegal_l : List[int] = []
+        self.illegal_hits : Dict[int,int] = {}
         self.tuple2idx_m : Dict[Tuple,int] = {}
         self.idx2tuple_m : Dict[int,Tuple] = {}
         self.unhit_s : Set[Tuple] = set()
@@ -72,9 +80,19 @@ class CoverpointCrossModel(CoverItemBase):
         
     def get_coverage(self):
         if not self.coverage_calc_valid:
-            self.coverage = (len(self.hit_l)-len(self.unhit_s))/len(self.hit_l) * 100.0
+            # Ignored cross bins are excluded from both numerator and denominator
+            # (SV §19.6). ``unhit_s`` only ever holds non-ignored bins, so the hit
+            # count among valid bins is (valid - unhit). When ``n_ignore`` is 0 this
+            # reduces to the original (len(hit_l)-len(unhit_s))/len(hit_l) form, so
+            # crosses without ignore selections are unaffected. An all-ignored cross
+            # has nothing to cover -> 100% (design §2.8: warn, don't crash).
+            valid = len(self.hit_l) - self.n_ignore - self.n_illegal
+            if valid <= 0:
+                self.coverage = 100.0
+            else:
+                self.coverage = (valid - len(self.unhit_s)) / valid * 100.0
             self.coverage_calc_valid = True
-            
+
         return self.coverage
     
     def get_n_bins(self):
@@ -105,10 +123,23 @@ class CoverpointCrossModel(CoverItemBase):
         return self.hit_l[bin_idx]
     
     def get_bin_valid(self, bin_idx):
-        ignore_i = int(bin_idx/32)
-        ignore_o = int(bin_idx % 32)
-        valid = (self.ignore_l[ignore_i] & (1 << ignore_o)) == 0
-        return valid
+        # Valid for coverage = neither ignored nor illegal.
+        i = int(bin_idx/32)
+        o = int(bin_idx % 32)
+        return ((self.ignore_l[i] & (1 << o)) == 0
+                and (self.illegal_l[i] & (1 << o)) == 0)
+
+    def get_bin_illegal(self, bin_idx):
+        i = int(bin_idx/32)
+        o = int(bin_idx % 32)
+        return (self.illegal_l[i] & (1 << o)) != 0
+
+    def get_n_illegal(self):
+        return self.n_illegal
+
+    def get_illegal_bin_hits(self, bin_idx):
+        """Hit count for an illegal cross bin (0 if never hit)."""
+        return self.illegal_hits.get(bin_idx, 0)
             
     def get_bin_name(self, bin_idx)->str:
         t = self.idx2tuple_m[bin_idx]
@@ -131,6 +162,7 @@ class CoverpointCrossModel(CoverItemBase):
             self.hit_l = [0]*self.n_bins
 
             self.ignore_l = [0]*int((self.n_bins-1)/32 + 1)
+            self.illegal_l = [0]*int((self.n_bins-1)/32 + 1)
             bin_l = []
             self._build_ignore_map(0, [], bin_l, 0)
 
@@ -164,16 +196,23 @@ class CoverpointCrossModel(CoverItemBase):
             range : Tuple
 
             def intersect(self, val):
+                # Does this component bin's range overlap the value set ``val``?
+                # Both ``val`` and ``self.range`` (from get_bin_range) are iterables
+                # of *entries*, each a scalar point or a ``(lo, hi)`` range tuple:
+                # a range bin yields ``((lo, hi),)``, a value/array bin ``(v,)``.
+                # Normalize every entry to bounds and test range-overlap.
+                def _bounds(e):
+                    if isinstance(e, (tuple, list)):
+                        return e[0], e[1]
+                    return e, e
                 if not hasattr(val, "__iter__"):
                     val = (val,)
                 for v in val:
+                    vlo, vhi = _bounds(v)
                     for r in self.range:
-                        if type(r) == tuple:
-                            if (v >= r[0][0] and v <= r[0][1]):
-                                return True
-                        else:
-                            if (v == r):
-                                return True
+                        rlo, rhi = _bounds(r)
+                        if vlo <= rhi and rlo <= vhi:
+                            return True
                 return False
 
         # Bin needs: name, 
@@ -198,10 +237,20 @@ class CoverpointCrossModel(CoverItemBase):
                         if func(*bin_l):
                             self.ignore_l[ignore_i] |= (1 << ignore_o)
                             ignore = True
-                if not ignore:
-                    self.unhit_s.add(n_bins)
-                else:
+                illegal = False
+                if self.illegal_bins is not None:
+                    for name,func in self.illegal_bins.items():
+                        if func(*bin_l):
+                            self.illegal_l[ignore_i] |= (1 << ignore_o)
+                            illegal = True
+                # Both ignore and illegal bins are excluded from coverage; an
+                # ignore selection wins the count when a bin matches both.
+                if ignore:
                     self.n_ignore += 1
+                elif illegal:
+                    self.n_illegal += 1
+                else:
+                    self.unhit_s.add(n_bins)
                 n_bins += 1
             else:
                 n_bins = self._build_ignore_map(i+1, key_m, bin_l, n_bins)
@@ -246,6 +295,9 @@ class CoverpointCrossModel(CoverItemBase):
             key = tuple(key_m)
             bin_idx = self.tuple2idx_m[key]
             self.hit_l[bin_idx] += 1
+            if self.get_bin_illegal(bin_idx):
+                # Illegal cross bin hit: tracked, excluded from coverage.
+                self.illegal_hits[bin_idx] = self.illegal_hits.get(bin_idx, 0) + 1
             if bin_idx in self.unhit_s:
                 # New bin hit
                 self.parent.coverage_ev(self, bin_idx)

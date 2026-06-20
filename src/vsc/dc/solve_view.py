@@ -135,8 +135,11 @@ def build_solve_node(obj, type_model):
         field_models[fd.name] = fm
 
     # Lower the cached constraint programs against this instance's field models.
+    # Generic/value programs are not added here (they apply only when referenced);
+    # the registry is threaded in so references inside fixed blocks resolve.
     for prog in type_model.constraints:
-        composite.add_constraint(ir_lower.lower_program(prog, field_models))
+        composite.add_constraint(ir_lower.lower_program(
+            prog, field_models, type_model.generic_constraints))
 
     # Synthesize domain (lo<=f<=hi) constraints for rand(domain=...) fields.
     dom = _domain_block(type_model, field_models)

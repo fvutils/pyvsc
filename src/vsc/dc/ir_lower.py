@@ -23,6 +23,7 @@ from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_array_sum_model import ExprArraySumModel
 from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_in_model import ExprInModel
 from vsc.model.expr_literal_model import ExprLiteralModel
@@ -50,20 +51,29 @@ _BIN = {
 class Ctx:
     """Name-resolution context for lowering one constraint program."""
 
-    def __init__(self, field_models):
+    def __init__(self, field_models, generics=None):
         self.fields = field_models           # name -> FieldModel
         self.locals = {}                      # name -> callable() -> ExprModel
         self.model_locals = {}               # name -> FieldModel (composite elem)
         self.const_locals = {}               # name -> int (unrolled foreach index)
+        self.generics = generics or {}        # name -> ConstraintProgram (generic/value)
+        self._active = frozenset()            # generics being expanded (cycle guard)
 
     def model(self, name):
         return self.fields.get(name)
 
     def _child(self):
-        c = Ctx(self.fields)
+        c = Ctx(self.fields, self.generics)
         c.locals = dict(self.locals)
         c.model_locals = dict(self.model_locals)
         c.const_locals = dict(self.const_locals)
+        c._active = self._active
+        return c
+
+    def activate(self, name):
+        """Return a child Ctx marking ``name`` as being expanded (cycle guard)."""
+        c = self._child()
+        c._active = self._active | {name}
         return c
 
     def with_local(self, name, factory):
@@ -90,17 +100,95 @@ class Ctx:
         return c
 
 
-def lower_program(prog, field_models):
+def lower_program(prog, field_models, generics=None):
     """Build a fresh :class:`ConstraintBlockModel` from ``prog`` binding fields
-    via ``field_models`` (name -> model)."""
-    ctx = Ctx(field_models)
+    via ``field_models`` (name -> model). ``generics`` is the type's generic/value
+    constraint registry, used to resolve ``IRConstraintRef`` references."""
+    ctx = Ctx(field_models, generics)
     block = ConstraintBlockModel(prog.name)
     for stmt in prog.stmts:
         block.constraint_l.append(_stmt(stmt, ctx))
     return block
 
 
+def _bind_params(ctx, prog, ref):
+    """Return a child Ctx binding each of ``prog``'s formals to its actual argument
+    (positional/keyword/default, resolved by ir.bind_actuals), lowered in the
+    *caller's* scope (``ctx``). Each formal use re-lowers the actual (fresh model
+    per occurrence, matching foreach-local semantics)."""
+    actuals = ir.bind_actuals(prog.name, prog.params, prog.param_defaults,
+                              ref.args, ref.kwargs)
+    child = ctx
+    for pname, arg in zip(prog.params, actuals):
+        child = child.with_local(pname, (lambda a, c: (lambda: _expr(a, c)))(arg, ctx))
+    return child
+
+
+def _ref_stmt(node, ctx):
+    """Lower a generic-constraint reference in statement position: splice the whole
+    body into a fresh scope."""
+    prog = ctx.generics.get(node.name)
+    if prog is None:
+        raise KeyError("reference to unknown generic constraint %r" % node.name)
+    if prog.kind == "value":
+        raise TypeError("value generic %r cannot be referenced as a statement"
+                        % node.name)
+    if node.name in ctx._active:
+        raise ValueError("recursive generic-constraint reference %r" % node.name)
+    child = _bind_params(ctx.activate(node.name), prog, node)
+    scope = ConstraintScopeModel()
+    for s in prog.stmts:
+        scope.constraint_l.append(_stmt(s, child))
+    return scope
+
+
+# Statement kinds with a boolean value — the only ones meaningful when a generic
+# is reified as a boolean term (matches type_model._BOOLEAN_OK_STMT).
+_BOOLEAN_REF_OK = (ir.IRConstraintExpr, ir.IRIfElse, ir.IRImplies,
+                   ir.IRUnique, ir.IRConstraintRef)
+
+
+def lower_generic_ref(name, field_models, generics, args=None, kwargs=None):
+    """Lower a generic-constraint reference to an ExprDynRefModel, for inline
+    ``randomize_with`` references (``it.<name>(...)``). ``args``/``kwargs`` are IR
+    actuals (constants for the inline path). Boolean-bodied generics only — the
+    inline path always reifies the block as a boolean term."""
+    prog = generics.get(name)
+    if prog is None:
+        raise KeyError("unknown generic constraint %r" % name)
+    if prog.kind == "value":
+        raise TypeError(
+            "value generic %r cannot be referenced as a constraint" % name)
+    if any(not isinstance(s, _BOOLEAN_REF_OK) for s in prog.stmts):
+        raise TypeError(
+            "generic %r contains a non-boolean item (soft/dist/solve_order/foreach) "
+            "and cannot be referenced in randomize_with; reference it from a "
+            "@vdc.constraint instead" % name)
+    ctx = Ctx(field_models, generics)
+    return _ref_expr(ir.IRConstraintRef(name, args or [], 0, kwargs or {}), ctx)
+
+
+def _ref_expr(node, ctx):
+    """Lower a generic-constraint reference in expression/boolean position. A value
+    generic inlines its returned expression; a boolean generic is reified as a
+    boolean term via ExprDynRefModel (reusing the dynamic-constraint backend path)."""
+    prog = ctx.generics.get(node.name)
+    if prog is None:
+        raise KeyError("reference to unknown generic constraint %r" % node.name)
+    if node.name in ctx._active:
+        raise ValueError("recursive generic-constraint reference %r" % node.name)
+    child = _bind_params(ctx.activate(node.name), prog, node)
+    if prog.kind == "value":
+        return _expr(prog.ret, child)
+    block = ConstraintBlockModel(node.name)
+    for s in prog.stmts:
+        block.constraint_l.append(_stmt(s, child))
+    return ExprDynRefModel(block)
+
+
 def _stmt(node, ctx):
+    if isinstance(node, ir.IRConstraintRef):
+        return _ref_stmt(node, ctx)
     if isinstance(node, ir.IRConstraintExpr):
         return ConstraintExprModel(_expr(node.expr, ctx))
     if isinstance(node, ir.IRIfElse):
@@ -201,6 +289,13 @@ def _scope(stmts, ctx):
 def _expr(node, ctx):
     if isinstance(node, ir.IRField):
         return _field(node, ctx)
+    if isinstance(node, ir.IRParam):
+        factory = ctx.locals.get(node.name)
+        if factory is None:
+            raise KeyError("unbound generic-constraint parameter %r" % node.name)
+        return factory()
+    if isinstance(node, ir.IRConstraintRef):
+        return _ref_expr(node, ctx)
     if isinstance(node, ir.IRConst):
         # Match vsc.types.to_expr: int literals are signed, width 32.
         return ExprLiteralModel(node.value, True, 32)

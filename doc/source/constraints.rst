@@ -50,10 +50,17 @@ Expressions
 
 Dynamic-constraint Reference
 ----------------------------
-Constraint blocks decorated with `constraint` always apply. 
+Constraint blocks decorated with `constraint` always apply.
 Dynamic-constraint blocks, decorated with `dynamic_constraint` only
 apply when referenced. A dynamic constraint is referenced using syntax
 similar to a method call.
+
+.. note::
+
+   In the dataclass front-end (``vsc.dc``) this is generalized as
+   *generic constraints* — the no-parameter form is the direct equivalent of a
+   ``dynamic_constraint``, with parameterized and value forms added. See
+   :doc:`dataclass/generic_constraints`.
 
 Dynamic constraints provide an abstraction mechanism for applying a
 condition without knowing the details of what that condition is.

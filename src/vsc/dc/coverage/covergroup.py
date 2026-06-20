@@ -10,6 +10,8 @@ delegate sampling + coverage math to. ``_build_runtime`` is the single seam a
 flat-count / native collector would later replace; ``sample()`` already takes plain
 scalar values, so that boundary is stable.
 """
+import inspect
+
 from vsc.impl.coverage_registry import CoverageRegistry
 from vsc.impl.enum_info import EnumInfo
 from vsc.model.coverage_options_model import CoverageOptionsModel
@@ -21,7 +23,8 @@ from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.expr_ref_model import ExprRefModel
 from vsc.model.rangelist_model import RangelistModel
 
-from .descriptors import Coverpoint, Cross
+from .descriptors import (Coverpoint, Cross, _BinsofAnd, _BinsofNot, _BinsofOr,
+                          _BinsofTerm)
 
 
 class Covergroup:
@@ -61,9 +64,14 @@ class Covergroup:
     # -- sampling ----------------------------------------------------------
 
     def sample(self, *args, **kwargs):
-        """Bind any provided push-coverpoint / sample_arg formals (positional in
-        declaration order, then by name), then run the core sampling pass. Unset
-        formals keep their previous value."""
+        """Generic binder: bind any provided push-coverpoint / sample_arg formals
+        (positional in declaration order, then by name), then run the core sampling
+        pass. Unset formals keep their previous value.
+
+        ``@vdc.dataclass`` replaces this with a synthesized per-type ``sample`` whose
+        signature lists the real formals (see :func:`_install_typed_sample`); this
+        base method remains the fallback for un-finalized classes and the target an
+        overridden ``sample()`` reaches via ``super().sample()``."""
         tm = type(self)._vsc_cg_type_model
         formals = tm.sample_formals
         if len(args) > len(formals):
@@ -76,6 +84,15 @@ class Covergroup:
             if f is None:
                 raise TypeError("sample() got an unexpected argument %r" % name)
             self._apply_formal(f, v)
+        self._sample_now()
+
+    def _bind_and_sample(self, bound):
+        """Apply an ordered ``{formal_name: value}`` mapping (only the formals the
+        caller supplied), then run the core sampling pass. The engine the synthesized
+        per-type ``sample`` funnels into."""
+        tm = type(self)._vsc_cg_type_model
+        for name, v in bound.items():
+            self._apply_formal(tm.formal_by_name[name], v)
         self._sample_now()
 
     def _apply_formal(self, formal, value):
@@ -113,18 +130,134 @@ class Covergroup:
         return self._cg_model.get_coverage()
 
 
+class _Unset:
+    """Sentinel default for synthesized ``sample`` params: an absent argument keeps
+    the formal's previous value (the long-standing ``sample()`` contract)."""
+    __slots__ = ()
+
+    def __repr__(self):
+        return "<unset>"
+
+
+_UNSET = _Unset()
+
+
+def _install_typed_sample(cls, tm):
+    """Synthesize and install a per-type ``sample`` whose signature lists the
+    covergroup's real formals — so ``inspect.signature(cg.sample)`` / REPL / notebook
+    introspection show them and Python raises native arity/keyword ``TypeError``s.
+
+    Skipped when the class defines its own ``sample`` (user override is respected) or
+    when a formal name is not a valid identifier (defensive — falls back to the
+    generic binder). Behavior is unchanged: the body funnels into ``_bind_and_sample``
+    and unset params keep the formal's previous value."""
+    # Respect a user-defined sample() on the class itself (not the inherited base).
+    if "sample" in cls.__dict__:
+        return
+    spec = tm.sample_param_spec
+    names = [n for n, _ in spec]
+    if any(not (isinstance(n, str) and n.isidentifier()) for n in names):
+        return
+
+    # exec a real ``def`` so Python owns the binding (native arity/keyword errors).
+    # Each param defaults to the _UNSET sentinel; only supplied params are bound.
+    params = "".join(", %s=_UNSET" % n for n in names)
+    collect = "".join(
+        "\n    if %s is not _UNSET: _b[%r] = %s" % (n, n, n) for n in names)
+    src = ("def sample(self%s):\n"
+           "    _b = {}%s\n"
+           "    return self._bind_and_sample(_b)\n") % (params, collect)
+    ns = {"_UNSET": _UNSET}
+    exec(src, ns)
+    fn = ns["sample"]
+
+    # Authoritative introspection surface: real signature with annotations + doc.
+    sig_params = [inspect.Parameter("self", inspect.Parameter.POSITIONAL_OR_KEYWORD)]
+    annotations = {}
+    for name, ann in spec:
+        sig_params.append(inspect.Parameter(
+            name, inspect.Parameter.POSITIONAL_OR_KEYWORD,
+            default=_UNSET, annotation=ann))
+        annotations[name] = ann
+    fn.__signature__ = inspect.Signature(sig_params)
+    fn.__annotations__ = annotations
+    fn.__qualname__ = "%s.sample" % cls.__qualname__
+    fn.__doc__ = _typed_sample_doc(cls, spec)
+    cls.sample = fn
+
+
+def _typed_sample_doc(cls, spec):
+    if not spec:
+        return ("Sample %s (no push/sample_arg formals): re-bins current state."
+                % cls.__name__)
+    formals = ", ".join(
+        "%s: %s" % (n, getattr(ann, "__name__", str(ann))) for n, ann in spec)
+    return ("Sample %s. Formals (keyword or positional, declaration order): %s. "
+            "An omitted formal keeps its previous value." % (cls.__name__, formals))
+
+
 def _build_cross_model(obj, cdesc):
     """Build a CoverpointCrossModel from the cross's targets (resolved via their
     lambdas to the just-built runtime objects). A target may be a coverpoint or
     another cross — nested crosses are flattened to their component coverpoints
-    (matching classic ``cross``'s flatten_targets). ``binsof`` cross ignore/illegal
-    selections are a back-end stub in classic (no parity target), so unsupported."""
+    (matching classic ``cross``'s flatten_targets). ``ignore_bins`` /
+    ``illegal_bins`` are ``{name: lambda s: <binsof expr>}`` selections compiled to
+    per-cross-bin predicates (SV §19.6); see :func:`_compile_cross_selects`."""
     options = _make_options(cdesc)
-    model = CoverpointCrossModel(cdesc.name, options, None, None)
+    components = []
     for target in cdesc.targets:
         for cp_model in _flatten_cross_target(target(obj), cdesc.name):
-            model.add_coverpoint(cp_model)
+            components.append(cp_model)
+    pos = {id(m): i for i, m in enumerate(components)}
+    ignore = _compile_cross_selects(obj, cdesc, cdesc.ignore_bins, pos)
+    illegal = _compile_cross_selects(obj, cdesc, cdesc.illegal_bins, pos)
+    model = CoverpointCrossModel(cdesc.name, options, None, ignore, illegal)
+    for cp_model in components:
+        model.add_coverpoint(cp_model)
     return model
+
+
+def _compile_cross_selects(obj, cdesc, selects, pos):
+    """Evaluate each ``{name: lambda s: <binsof expr>}`` (or a bare ``_BinsofExpr``)
+    against the covergroup instance and compile it to a ``func(*bin_l) -> bool`` the
+    cross model calls per cross bin. Returns ``{name: func}`` or ``None``."""
+    if not selects:
+        return None
+    out = {}
+    for name, sel in selects.items():
+        expr = sel(obj) if callable(sel) else sel
+        out[name] = _compile_binsof(expr, pos, cdesc.name)
+    return out
+
+
+def _compile_binsof(expr, pos, cname):
+    """Compile a ``_BinsofExpr`` tree to ``func(*bin_l) -> bool``. ``bin_l[i]`` is the
+    model's per-component ``bin_info`` (``.intersect``/``.idx``/``.name``/``.range``);
+    positions are resolved by the cross-component identity map ``pos``."""
+    if isinstance(expr, _BinsofTerm):
+        p = pos.get(id(expr.cp._model))
+        if p is None:
+            raise ValueError(
+                "binsof references coverpoint %r not in cross %r"
+                % (expr.cp._name, cname))
+        if expr.values is None:
+            return lambda *b: True            # whole coverpoint selected
+        vals = expr.values
+        return lambda *b, p=p, vals=vals: b[p].intersect(vals)
+    if isinstance(expr, _BinsofAnd):
+        lhs = _compile_binsof(expr.lhs, pos, cname)
+        rhs = _compile_binsof(expr.rhs, pos, cname)
+        return lambda *b: lhs(*b) and rhs(*b)
+    if isinstance(expr, _BinsofOr):
+        lhs = _compile_binsof(expr.lhs, pos, cname)
+        rhs = _compile_binsof(expr.rhs, pos, cname)
+        return lambda *b: lhs(*b) or rhs(*b)
+    if isinstance(expr, _BinsofNot):
+        operand = _compile_binsof(expr.operand, pos, cname)
+        return lambda *b: not operand(*b)
+    raise TypeError(
+        "cross %r ignore/illegal selection must be a binsof expression (got %r)"
+        % (cname, type(expr).__name__))
 
 
 def _flatten_cross_target(rt, cname):

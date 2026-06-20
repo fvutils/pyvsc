@@ -8,12 +8,12 @@ specification helpers (``bin``/``bin_array``/``wildcard_bin``) are re-exported f
 the classic implementation unchanged — same SV semantics.
 """
 from .covergroup import Covergroup
-from .descriptors import Coverpoint, Cross, coverpoint, cross
+from .descriptors import Coverpoint, Cross, binsof, coverpoint, cross
 
 # Reuse the classic, SV-1800-faithful bin specifications verbatim.
 from vsc.coverage import bin, bin_array, wildcard_bin  # noqa: F401
 
 __all__ = [
-    "Covergroup", "Coverpoint", "Cross", "coverpoint", "cross",
+    "Covergroup", "Coverpoint", "Cross", "coverpoint", "cross", "binsof",
     "bin", "bin_array", "wildcard_bin",
 ]

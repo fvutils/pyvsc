@@ -7,9 +7,11 @@ See ``doc/notes/dataclass_pyvsc_impl_test_doc_plan.md`` §2.3.
 """
 import dataclasses
 import typing
+import warnings
 from enum import EnumMeta
 
-from .constraint_parser import parse_constraint
+from . import constraint_ir as _ir
+from .constraint_parser import ConstraintParseError, parse_constraint
 from .fields import get_field_meta
 from .types import width_of
 
@@ -75,21 +77,26 @@ class FieldDecl:
 
 
 class TypeModel:
-    __slots__ = ("cls_name", "fields", "field_index", "constraints", "layout_hash")
+    __slots__ = ("cls_name", "fields", "field_index", "constraints",
+                 "generic_constraints", "layout_hash")
 
-    def __init__(self, cls_name, fields, constraints):
+    def __init__(self, cls_name, fields, constraints, generic_constraints=None):
         self.cls_name = cls_name
         self.fields = fields
         self.field_index = {f.name: i for i, f in enumerate(fields)}
+        # Fixed (always-on) constraint programs.
         self.constraints = constraints
+        # Generic/value programs, keyed by name — applied only when referenced.
+        self.generic_constraints = generic_constraints or {}
         self.layout_hash = _layout_hash(cls_name, fields)
 
     def rand_fields(self):
         return [f for f in self.fields if f.is_rand]
 
     def __repr__(self):
-        return "TypeModel(%s, %d fields, %d constraints)" % (
-            self.cls_name, len(self.fields), len(self.constraints))
+        return "TypeModel(%s, %d fields, %d constraints, %d generic)" % (
+            self.cls_name, len(self.fields), len(self.constraints),
+            len(self.generic_constraints))
 
 
 def _layout_hash(cls_name, fields):
@@ -184,20 +191,204 @@ def _composite_array_decl(name, meta, elem_cls):
 
 def _collect_constraints(cls):
     """Gather constraint methods across the MRO (subclass overrides win),
-    preserving declaration order within each class."""
-    seen = set()
-    progs = []
+    preserving declaration order within each class. Returns ``(fixed, generic)``:
+    a list of fixed (always-on) programs and a name->program dict of generic/value
+    programs (applied only when referenced)."""
+    seen = {}        # name -> effective kind of the winning (most-derived) def
+    fixed = []
+    generic = {}
     for klass in cls.__mro__:
         for name, member in vars(klass).items():
-            if name in seen:
+            kind = getattr(member, CONSTRAINT_ATTR, None)
+            if not (callable(member) and kind):
                 continue
-            if callable(member) and getattr(member, CONSTRAINT_ATTR, False):
-                seen.add(name)
-                # parse_constraint raises ConstraintParseError if the source is
-                # unavailable (REPL/exec/python -c) — a hard failure, because a
-                # dropped constraint would silently randomize fields unconstrained.
-                progs.append(parse_constraint(name, member))
-    return progs
+            marker = kind if isinstance(kind, str) else "fixed"
+            if name in seen:
+                # A base definition shadowed by a more-derived one: warn if the
+                # override silently flips the constraint's kind (fixed<->generic
+                # <->value) — that changes always-on-ness, a likely footgun.
+                base_kind = _safe_kind(name, member, marker)
+                if base_kind is not None and base_kind != seen[name]:
+                    warnings.warn(
+                        "%s: %r overrides a base constraint but changes its kind "
+                        "(%s -> %s)" % (cls.__qualname__, name, base_kind,
+                                        seen[name]), stacklevel=3)
+                continue
+            # parse_constraint raises ConstraintParseError if the source is
+            # unavailable (REPL/exec/python -c) — a hard failure, because a
+            # dropped constraint would silently randomize fields unconstrained.
+            prog = parse_constraint(name, member, marker)
+            seen[name] = prog.kind
+            if prog.kind == "fixed":
+                fixed.append(prog)
+            else:
+                generic[prog.name] = prog
+    return fixed, generic
+
+
+def _safe_kind(name, member, marker):
+    """Effective kind of a (possibly shadowed) constraint def, or None if its
+    source is unavailable — used only for the override kind-change warning, so a
+    base whose source can't be read is simply skipped rather than failing."""
+    try:
+        return parse_constraint(name, member, marker).kind
+    except ConstraintParseError:
+        return None
+
+
+# Statement kinds that have a boolean value (may appear in a generic body that is
+# referenced in boolean position). Non-boolean items (soft/dist/solve_order/foreach)
+# are rejected in boolean position (design O2, strict v1).
+_BOOLEAN_OK_STMT = (_ir.IRConstraintExpr, _ir.IRIfElse, _ir.IRImplies,
+                    _ir.IRUnique, _ir.IRConstraintRef)
+
+
+def _refs_in_expr(e):
+    """Yield IRConstraintRef nodes appearing in expression position within ``e``."""
+    if e is None:
+        return
+    if isinstance(e, _ir.IRConstraintRef):
+        yield e
+        for a in e.args:
+            yield from _refs_in_expr(a)
+    elif isinstance(e, _ir.IRBin):
+        yield from _refs_in_expr(e.lhs)
+        yield from _refs_in_expr(e.rhs)
+    elif isinstance(e, _ir.IRUnary):
+        yield from _refs_in_expr(e.operand)
+    elif isinstance(e, _ir.IRInside):
+        yield from _refs_in_expr(e.lhs)
+        for r in e.ranges:
+            yield from _refs_in_expr(r.lo)
+            yield from _refs_in_expr(r.hi)
+    elif isinstance(e, _ir.IRIndex):
+        yield from _refs_in_expr(e.base)
+        yield from _refs_in_expr(e.index)
+    elif isinstance(e, _ir.IRPartSelect):
+        yield from _refs_in_expr(e.base)
+        yield from _refs_in_expr(e.upper)
+        yield from _refs_in_expr(e.lower)
+    elif isinstance(e, _ir.IRAttr):
+        yield from _refs_in_expr(e.base)
+
+
+def _walk_refs(stmts):
+    """Yield ``(ref, context)`` for every IRConstraintRef in ``stmts``; context is
+    ``"stmt"`` (bare reference) or ``"expr"`` (boolean/value position)."""
+    for s in stmts:
+        if isinstance(s, _ir.IRConstraintRef):
+            yield (s, "stmt")
+            for a in s.args:
+                for r in _refs_in_expr(a):
+                    yield (r, "expr")
+        elif isinstance(s, _ir.IRConstraintExpr):
+            for r in _refs_in_expr(s.expr):
+                yield (r, "expr")
+        elif isinstance(s, _ir.IRIfElse):
+            for r in _refs_in_expr(s.cond):
+                yield (r, "expr")
+            yield from _walk_refs(s.true_body)
+            if s.false_body:
+                yield from _walk_refs(s.false_body)
+        elif isinstance(s, _ir.IRImplies):
+            for r in _refs_in_expr(s.cond):
+                yield (r, "expr")
+            yield from _walk_refs(s.body)
+        elif isinstance(s, _ir.IRSoft):
+            for r in _refs_in_expr(s.expr):
+                yield (r, "expr")
+        elif isinstance(s, _ir.IRUnique):
+            for t in s.terms:
+                for r in _refs_in_expr(t):
+                    yield (r, "expr")
+        elif isinstance(s, _ir.IRForeach):
+            yield from _walk_refs(s.body)
+        elif isinstance(s, _ir.IRDist):
+            for r in _refs_in_expr(s.lhs):
+                yield (r, "expr")
+            for w in s.weights:
+                for r in _refs_in_expr(w.weight):
+                    yield (r, "expr")
+        # IRSolveOrder references fields only.
+
+
+def _program_refs(prog):
+    if prog.kind == "value":
+        return [(r, "expr") for r in _refs_in_expr(prog.ret)]
+    return list(_walk_refs(prog.stmts))
+
+
+def _validate_refs(cls_name, fixed, generic, field_names):
+    """Decoration-time validation of all generic-constraint references: resolve
+    names, check arity and context, enforce the O2 boolean-body rule, and reject
+    reference cycles. Raises TypeError with a source line on any violation."""
+    fixed_names = {p.name for p in fixed}
+
+    for owner in list(fixed) + list(generic.values()):
+        for ref, ctxk in _program_refs(owner):
+            referent = generic.get(ref.name)
+            if referent is None:
+                if ref.name in fixed_names:
+                    raise TypeError(
+                        "%s: constraint %r references %r, which is a *fixed* "
+                        "constraint and cannot be referenced; mark %r with "
+                        "@vdc.constraint.generic (line %d)"
+                        % (cls_name, owner.name, ref.name, ref.name, ref.lineno))
+                if ref.name in field_names:
+                    raise TypeError(
+                        "%s: constraint %r references %r, which is a field, not a "
+                        "constraint (line %d)"
+                        % (cls_name, owner.name, ref.name, ref.lineno))
+                raise TypeError(
+                    "%s: constraint %r references unknown generic constraint %r "
+                    "(line %d)" % (cls_name, owner.name, ref.name, ref.lineno))
+            try:
+                _ir.bind_actuals(referent.name, referent.params,
+                                 referent.param_defaults, ref.args, ref.kwargs)
+            except ValueError as e:
+                raise TypeError("%s: %s (in %r, line %d)"
+                                % (cls_name, e, owner.name, ref.lineno))
+            if ctxk == "stmt" and referent.kind == "value":
+                raise TypeError(
+                    "%s: value generic %r cannot be referenced as a statement "
+                    "(in %r, line %d)"
+                    % (cls_name, referent.name, owner.name, ref.lineno))
+            if ctxk == "expr" and referent.kind == "generic":
+                if any(not isinstance(s, _BOOLEAN_OK_STMT) for s in referent.stmts):
+                    raise TypeError(
+                        "%s: generic %r is used as a boolean term (in %r, line %d) "
+                        "but its body contains a non-boolean item "
+                        "(soft/dist/solve_order/foreach); reference it as a "
+                        "statement instead"
+                        % (cls_name, referent.name, owner.name, ref.lineno))
+
+    _detect_ref_cycles(cls_name, generic)
+
+
+def _detect_ref_cycles(cls_name, generic):
+    edges = {}
+    for p in generic.values():
+        edges[p.name] = {r.name for r, _c in _program_refs(p) if r.name in generic}
+    WHITE, GRAY, BLACK = 0, 1, 2
+    color = {n: WHITE for n in edges}
+    stack = []
+
+    def dfs(n):
+        color[n] = GRAY
+        stack.append(n)
+        for m in edges.get(n, ()):
+            if color.get(m, BLACK) == GRAY:
+                cyc = stack[stack.index(m):] + [m]
+                raise TypeError("%s: cyclic generic-constraint reference: %s"
+                                % (cls_name, " -> ".join(cyc)))
+            if color.get(m, BLACK) == WHITE:
+                dfs(m)
+        stack.pop()
+        color[n] = BLACK
+
+    for n in list(edges):
+        if color[n] == WHITE:
+            dfs(n)
 
 
 def _is_rand_class(ann):
@@ -274,17 +465,20 @@ def build_type_model(cls):
             domain=meta.domain, size=meta.size, max_size=meta.max_size,
             soft=meta.soft, role=meta.role))
 
-    constraints = _collect_constraints(cls)
+    constraints, generic_constraints = _collect_constraints(cls)
 
     # A constraint method and a field cannot share a name: the method would shadow
     # the field's dataclass default and corrupt both. Catch it with a clear error
     # rather than a downstream TypeError.
     field_names = {f.name for f in fields}
-    for prog in constraints:
+    for prog in list(constraints) + list(generic_constraints.values()):
         if prog.name in field_names:
             raise TypeError(
                 "%s: constraint method %r collides with a field of the same name; "
                 "rename the constraint (e.g. %r)"
                 % (cls.__qualname__, prog.name, prog.name + "_c"))
 
-    return TypeModel(cls.__qualname__, fields, constraints)
+    # Resolve + validate all generic-constraint references at decoration time.
+    _validate_refs(cls.__qualname__, constraints, generic_constraints, field_names)
+
+    return TypeModel(cls.__qualname__, fields, constraints, generic_constraints)
