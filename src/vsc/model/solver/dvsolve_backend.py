@@ -107,6 +107,26 @@ def _guard_references_rand(cond_l):
     return p.has_rand
 
 
+def _guard_field_vids(cond_l, idmap):
+    """Var ids of the *rand* fields referenced by the guard expressions in
+    ``cond_l`` (those that must be frozen before a conditional dist's branch is
+    selectable). Only fields present in ``idmap`` are returned; a guard over a
+    field outside this RandSet's id map can't be staged here."""
+    from vsc.model.model_visitor import ModelVisitor
+
+    vids = set()
+
+    class _Collect(ModelVisitor):
+        def visit_expr_fieldref(self, e):
+            if getattr(e.fm, "is_used_rand", False) and idmap.has(e.fm):
+                vids.add(idmap.id_of(e.fm))
+
+    c = _Collect()
+    for cond in cond_l:
+        cond.accept(c)
+    return vids
+
+
 class _CompiledPlan(object):
     """A built+compiled dv-solve problem retained for reuse.
 
@@ -410,11 +430,22 @@ class DvSolveBackend(SolverBackendIF):
         # (sample_dist) can honor the same weighting the primary's add_dist
         # applies, for a dist-bearing RandSet that force-serves via BV-SAT.
         tr.dist_targets = {}
+        # Rand-guarded conditional dist: {vid: [(cond_l, entries), ...]} plus the
+        # union of guard var-ids to freeze first. Presence forces BV-SAT serving so
+        # the guard-staged sampler applies the active branch's weighting (else the
+        # weighting would collapse to the uniform union — the old §5 behavior).
+        tr.cond_dist_targets = {}
+        tr.dist_guard_vids = set()
         for f in dist_fields:
             scopes = dist_field_m[f]
-            entries = self._add_dist_for_field(b, idmap, f, scopes)
+            entries, cond_target = self._add_dist_for_field(b, idmap, f, scopes)
             if entries:
                 tr.dist_targets[idmap.id_of(f)] = entries
+            if cond_target is not None:
+                tr.cond_dist_targets[idmap.id_of(f)] = cond_target["branches"]
+                tr.dist_guard_vids |= cond_target["guard_vids"]
+        if tr.cond_dist_targets:
+            tr.requires_bvsat = True
 
         # Soft serving posture (soft-constraints engine plan, DSE-0/DSE-2). The
         # dv-solve *primary* engine honors softs correctly — including *guarded*
@@ -510,7 +541,8 @@ class DvSolveBackend(SolverBackendIF):
                     make_base=make_base, sample_vars=sample_vars,
                     has_order=has_order, force_serve=True,
                     rand_order_l=rand_order_l, dist_targets=tr.dist_targets,
-                    n_softs=n_softs)
+                    cond_dist_targets=tr.cond_dist_targets,
+                    dist_guard_vids=tr.dist_guard_vids, n_softs=n_softs)
 
             try:
                 ctx = _make_solve_ctx(buf, problem_sz)
@@ -521,13 +553,17 @@ class DvSolveBackend(SolverBackendIF):
                     buf, readback, randstate, solve_info,
                     make_base=make_base, sample_vars=sample_vars,
                     has_order=has_order, rand_order_l=rand_order_l,
-                    dist_targets=tr.dist_targets, n_softs=n_softs)
+                    dist_targets=tr.dist_targets,
+                    cond_dist_targets=tr.cond_dist_targets,
+                    dist_guard_vids=tr.dist_guard_vids, n_softs=n_softs)
 
             solved_by_primary = self._solve_and_readback(
                 ctx, readback, randstate, solve_info, problem_buf=buf,
                 make_base=make_base, sample_vars=sample_vars,
                 has_order=has_order, rand_order_l=rand_order_l,
-                dist_targets=tr.dist_targets, n_softs=n_softs)
+                dist_targets=tr.dist_targets,
+                cond_dist_targets=tr.cond_dist_targets,
+                dist_guard_vids=tr.dist_guard_vids, n_softs=n_softs)
 
             # Retain the compiled ctx for reuse only when the *primary* engine
             # produced the solution — a ctx that needed the BV-SAT fallback is
@@ -558,6 +594,7 @@ class DvSolveBackend(SolverBackendIF):
                             problem_buf=None, make_base=None,
                             sample_vars=None, has_order=False,
                             rand_order_l=None, dist_targets=None,
+                            cond_dist_targets=None, dist_guard_vids=None,
                             n_softs=0) -> bool:
         """Solve ``ctx`` with a fresh seed and write the solved values back into
         the fields. Shared by the build and reuse paths.
@@ -591,7 +628,9 @@ class DvSolveBackend(SolverBackendIF):
             self._solve_via_bvsat(problem_buf, readback, randstate, solve_info,
                                   make_base=make_base, sample_vars=sample_vars,
                                   has_order=has_order, rand_order_l=rand_order_l,
-                                  dist_targets=dist_targets, n_softs=n_softs)
+                                  dist_targets=dist_targets,
+                                  cond_dist_targets=cond_dist_targets,
+                                  dist_guard_vids=dist_guard_vids, n_softs=n_softs)
             return False
         raise BackendIncomplete(
             "dv-solve search did not find a solution "
@@ -646,6 +685,7 @@ class DvSolveBackend(SolverBackendIF):
                          solve_info, make_base=None, sample_vars=None,
                          has_order=False, force_serve=False,
                          rand_order_l=None, dist_targets=None,
+                         cond_dist_targets=None, dist_guard_vids=None,
                          n_softs=0) -> SolveResult:
         """Solve ``problem_buf`` with the internal BV-SAT completeness engine and
         write values back. Authoritative: SAT -> set values & return; UNSAT ->
@@ -726,7 +766,16 @@ class DvSolveBackend(SolverBackendIF):
                         # weighting via a weighted assume-then-assert pre-stage
                         # (EF-1b), then uniform-sample the rest. Otherwise the
                         # plain uniform sampler.
-                        if (dist_targets
+                        if (cond_dist_targets
+                                and bvsat_sampler.stage_sampleable(sample_vars)):
+                            # Rand-guarded conditional dist: freeze the guard vars
+                            # first, then apply the *active* branch's weighting so
+                            # the ratio is guard-correlated (not the uniform mean).
+                            ok = bvsat_sampler.sample_dist_conditional(
+                                make_base, readback, sample_vars, seed,
+                                cond_dist_targets, dist_guard_vids or set(),
+                                solve_info=solve_info, soft_keep=soft_keep)
+                        elif (dist_targets
                                 and bvsat_sampler.stage_sampleable(sample_vars)):
                             ok = bvsat_sampler.sample_dist(
                                 make_base, readback, sample_vars, seed,
@@ -938,14 +987,19 @@ class DvSolveBackend(SolverBackendIF):
          * A plain dist mixed with others, or >1 active constant-guard branch:
            genuinely ambiguous — defer (``reason_code="dist"``).
 
-        Returns the weighted ``DistEntry`` list applied to the primary's value
-        picker, or ``None`` when no *weighted* selection was emitted (no active
-        branch, or the rand-guard uniform-union case where weighting is
-        intentionally dropped). The backend captures the returned entries so the
-        BV-SAT serving path (``sample_dist``) can honor the same weighting when a
-        dist-bearing RandSet is force-served via BV-SAT (which ignores the
-        primary's ``add_dist``) — e.g. a dist combined with a conjunctive-body
-        implication that routes to BV-SAT (EF-1b).
+        Returns ``(entries, cond_target)``:
+
+         * ``entries`` — the weighted ``DistEntry`` list applied to the primary's
+           value picker (captured so the BV-SAT ``sample_dist`` path can honor the
+           same weighting when a dist-bearing RandSet force-serves via BV-SAT, which
+           ignores ``add_dist`` — e.g. a dist under a conjunctive-body implication,
+           EF-1b), or ``None`` when no weighted selection was emitted.
+         * ``cond_target`` — for a *rand-guarded* conditional dist, a
+           ``{"branches": [(cond_l, entries), ...], "guard_vids": {...}}`` descriptor
+           so the guard-staged sampler (``sample_dist_conditional``) can freeze the
+           guard first and then apply the *active* branch's weighting. ``None``
+           otherwise. When present, the RandSet force-serves via BV-SAT so the
+           weighting is guard-correlated rather than dropped.
         """
         conditional = [s for s in scopes if getattr(s, "is_conditional", False)]
         plain = [s for s in scopes if not getattr(s, "is_conditional", False)]
@@ -955,8 +1009,8 @@ class DvSolveBackend(SolverBackendIF):
             entries = self._dist_entries(f, scopes[0].dist_c)
             if entries:
                 b.add_dist(idmap.id_of(f), entries)
-                return entries
-            return None
+                return entries, None
+            return None, None
 
         # A plain dist mixed with others on one field is ambiguous (which
         # weighting wins?) — defer, as before.
@@ -966,23 +1020,35 @@ class DvSolveBackend(SolverBackendIF):
                 getattr(f, "name", "?"),
                 reason_code="dist")
 
-        # All scopes conditional. A rand guard can't be resolved now → serve a
-        # uniform union for coverage (weighting dropped).
+        # All scopes conditional. A rand guard can't be resolved at build time.
+        # Rather than drop the weighting to a uniform union (the old Phase-B §5
+        # reduced-distribution behavior), build a guard-staged conditional target:
+        # the sampler freezes the guard, then applies the *active* branch's weights.
+        # Still emit the uniform union as the native primary's fallback picker (it
+        # is ignored on the BV-SAT serve path but keeps the non-served path sound).
         if any(_guard_references_rand(getattr(s, "cond_l", []))
                for s in conditional):
+            branches = []
+            guard_vids = set()
             union = []
             for s in conditional:
-                for e in self._dist_entries(f, s.dist_c):
+                cond_l = getattr(s, "cond_l", [])
+                br_entries = self._dist_entries(f, s.dist_c)
+                branches.append((cond_l, br_entries))
+                guard_vids |= _guard_field_vids(cond_l, idmap)
+                for e in br_entries:
                     union.append({**e, "weight": 1})
             if union:
                 b.add_dist(idmap.id_of(f), union)
-            return None                  # weighting dropped → no weighted target
+            if branches and guard_vids:
+                return None, {"branches": branches, "guard_vids": guard_vids}
+            return None, None            # no stageable guard → weighting dropped
 
         # Constant guards: keep the branch(es) whose guard currently holds.
         active = [s for s in conditional
                   if self._guard_true(getattr(s, "cond_l", []))]
         if len(active) == 0:
-            return None                  # no active branch -> membership suffices
+            return None, None            # no active branch -> membership suffices
         if len(active) > 1:
             raise BackendIncomplete(
                 "dv-solve: multiple active conditional dist on field '%s'" %
@@ -991,8 +1057,8 @@ class DvSolveBackend(SolverBackendIF):
         entries = self._dist_entries(f, active[0].dist_c)
         if entries:
             b.add_dist(idmap.id_of(f), entries)
-            return entries
-        return None
+            return entries, None
+        return None, None
 
     @staticmethod
     def _guard_true(cond_l):

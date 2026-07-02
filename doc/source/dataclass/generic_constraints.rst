@@ -176,9 +176,9 @@ reference. Use ``()`` and combine with ``|`` just as in a fixed constraint::
     with it.randomize_with() as h:
         h.small_pkt_c() | h.jumbo_pkt_c()  # this solve: small OR jumbo
 
-Parameterized generics may be referenced inline with **constant** actuals
-(``it.window(100, 110)``); a field-valued actual must be referenced from a
-``@vdc.constraint`` instead.
+Parameterized generics may be referenced inline with constant actuals
+(``it.window(100, 110)``) or field-valued actuals built from the proxy
+(``it.ge(it.n)``, ``it.win(it.lo, it.lo + 50)``).
 
 .. note::
 

@@ -294,6 +294,9 @@ def _expr(node, ctx):
         if factory is None:
             raise KeyError("unbound generic-constraint parameter %r" % node.name)
         return factory()
+    if isinstance(node, ir.IRModelLiteral):
+        # An already-built model actual (inline field-valued argument).
+        return node.model
     if isinstance(node, ir.IRConstraintRef):
         return _ref_expr(node, ctx)
     if isinstance(node, ir.IRConst):

@@ -7,6 +7,14 @@ on:
 jobs:
   ci-linux:
     runs-on: ubuntu-latest
+    # Run the full ve/unit suite once per solver back-end. VSC_SOLVER is read at
+    # import time, so each back-end needs its own process/job. The boolector leg
+    # is the canonical one that also builds/publishes (see the guards below); the
+    # dv-solve leg exercises the suite under the native back-end.
+    strategy:
+      fail-fast: false
+      matrix:
+        solver: [boolector, dv-solve]
     steps:
     - uses: actions/checkout@v1
     - uses: actions/setup-python@v2
@@ -15,12 +23,19 @@ jobs:
     - name: Configure Python
       run: |
         python3 -m venv python
-        ./python/bin/python3 -m pip install wheel twine 
+        ./python/bin/python3 -m pip install wheel twine
         ./python/bin/python3 -m pip install pip setuptools --upgrade
         ./python/bin/python3 -m pip install -r requirements_dev.txt
         export BUILD_NUM=$GITHUB_RUN_ID
         ./python/bin/python3 setup.py bdist_wheel --universal
+    - name: Install dv-solve
+      if: matrix.solver == 'dv-solve'
+      # The native back-end under test; builds its lib via CMake (provided by the
+      # ubuntu-latest image). Only needed on the dv-solve leg.
+      run: ./python/bin/python3 -m pip install git+https://github.com/fvutils/dv-solve.git
     - name: Run Tests
+      env:
+        VSC_SOLVER: ${{ matrix.solver }}
       run: |
         export PYTHONPATH=`pwd`/src
         tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
@@ -36,19 +51,21 @@ jobs:
         #done
         echo "Final status: $?"
     - name: Build Docs
+      # Build/deploy/publish once, from the canonical boolector leg only.
+      if: matrix.solver == 'boolector'
       run: |
         cd doc
         make html
         touch build/html/.nojekyll
         cp -r build/html ../
     - name: Deploy
-      if: startsWith(github.ref, 'refs/heads/master')
+      if: matrix.solver == 'boolector' && startsWith(github.ref, 'refs/heads/master')
       uses: JamesIves/github-pages-deploy-action@4.1.7
       with:
         branch: gh-pages
         folder: html
     - name: Publish to PyPi
-      if: startsWith(github.ref, 'refs/heads/master')
+      if: matrix.solver == 'boolector' && startsWith(github.ref, 'refs/heads/master')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__

@@ -14,6 +14,7 @@ from vsc.model.randomizer import Randomizer
 from vsc.model.solve_failure import SolveFailure
 from vsc.model.source_info import SourceInfo
 
+from . import cyclic as _cyclic
 from . import solve_view
 from .type_model import build_type_model
 
@@ -97,10 +98,11 @@ class RandClass:
         composite, field_models = solve_view.get_solve_model(self, tm)
         # Writeback + user post_randomize run inside do_randomize via the model's
         # rand_if (so post_randomize sees solved values and its edits stick).
-        Randomizer.do_randomize(
-            self._get_randstate(),
+        # randc fields get cyclic (no-repeat-until-exhausted) semantics layered on.
+        _cyclic.do_randomize_cyclic(
+            self, tm, self._get_randstate(),
             SourceInfo(frame.f_code.co_filename, frame.f_lineno),
-            [composite],
+            composite, field_models,
             debug=debug, lint=lint, solve_fail_debug=solve_fail_debug)
 
     def randomize_with(self, debug=0, lint=0, solve_fail_debug=0):

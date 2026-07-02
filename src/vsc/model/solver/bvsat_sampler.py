@@ -413,6 +413,134 @@ def _weighted_target(entries, rng):
     return rng.randint(last["lo"], last["hi"])
 
 
+def _guard_holds(cond_l):
+    """True iff every guard expr in ``cond_l`` currently evaluates true, reading
+    the field values already frozen by the guard-pinning pass. Not-aware (the
+    if/else builder wraps a false branch in ``ExprUnaryModel(Not, ..)``, which has
+    no ``val()``), mirroring ``DvSolveBackend._guard_true``. An unevaluable guard
+    is treated as not-held so we never mis-select a branch."""
+    from vsc.model.expr_unary_model import ExprUnaryModel
+    from vsc.model.unary_expr_type import UnaryExprType
+
+    def _eval(cond):
+        if isinstance(cond, ExprUnaryModel) and cond.op == UnaryExprType.Not:
+            return not _eval(cond.expr)
+        return bool(int(cond.val()))
+
+    try:
+        return all(_eval(c) for c in cond_l)
+    except Exception:
+        return False
+
+
+def sample_dist_conditional(make_base, readback, sample_vars, seed,
+                            cond_dist_targets, guard_vids,
+                            solve_info=None, soft_keep=None):
+    """Serve a *rand-guarded conditional* dist RandSet via BV-SAT, honoring the
+    guard-selected weighting (``if(mode) x dist{A} else x dist{B}``).
+
+    The correct semantics is a phase order — the guard determines which
+    distribution applies, so the guard must be resolved first. This function
+    stages exactly that:
+
+      1. **Pin guard vars first** (``guard_vids``): draw a random domain value,
+         assume→check-SAT→assert, and ``set_val`` the field — the same
+         assume-random-then-assert the swizzler / ``sample_ordered`` use. Freezing
+         the guards fixes which branch is active for each conditional dist field.
+      2. **Per conditional dist field** (``cond_dist_targets`` — ``{vid:
+         [(cond_l, entries), ...]}``): evaluate which branch's guard now holds
+         (``_guard_holds``, reading the frozen guard values) and draw a weighted
+         target from *that* branch's entries (``_weighted_target``), assume→assert.
+         No active branch → leave the field free (the guarded ``inside`` membership
+         still constrains it).
+      3. **Uniform-sample the rest** with all pins applied.
+
+    ``guard_vids`` — set of var ids to freeze before branch selection.
+    Gated by the caller on ``stage_sampleable`` (all fields ``<=64`` bits).
+
+    Returns ``True`` on success, or ``None`` if the uniform pass found no model
+    (caller falls back — should not happen, the base is SAT)."""
+    from dv_solve.problem import BIN_EQ
+    from dv_solve.bvsat import BVSatCtx, BVSAT_SAT
+
+    sv_by_vid = {vid: (width, lo, hi, signed)
+                 for (vid, width, lo, hi, signed) in sample_vars}
+    rng = random.Random(seed & _U64)
+    pinned = []  # (vid, int64_const, signed)
+
+    def _make_base_pinned(extra):
+        b = make_base()
+        for (vid, val, signed) in pinned + extra:
+            b.add_constraint(b.expr_binary(
+                BIN_EQ, b.expr_var(vid), b.expr_const(val, signed)))
+        return b
+
+    def _is_sat(extra):
+        b = _make_base_pinned(extra)
+        buf, _sz = b.finalize()
+        b.destroy()
+        bb = BVSatCtx(buf)
+        try:
+            if solve_info is not None:
+                solve_info.n_sat_calls += 1
+            return bb.check(seed=rng.randint(0, (1 << 63) - 1),
+                            soft_keep=soft_keep) == BVSAT_SAT
+        finally:
+            bb.destroy()
+
+    # 1. Freeze guard vars first (uniform domain draw, assume-then-assert). A guard
+    #    whose random targets are all UNSAT is left free — branch selection for the
+    #    dependent dist field then finds no active branch and leaves it free too
+    #    (membership still holds).
+    for (f, vid) in readback:
+        if vid not in guard_vids or vid not in sv_by_vid:
+            continue
+        width, lo, hi, signed = sv_by_vid[vid]
+        for _ in range(_STAGE_PIN_ATTEMPTS):
+            t = rng.randint(lo, hi)
+            const = _pack_const64(t, width, signed)
+            if _is_sat([(vid, const, signed)]):
+                f.set_val(t)
+                pinned.append((vid, const, signed))
+                break
+
+    # 2. Per conditional dist field: pick the active branch (guards now frozen) and
+    #    draw a weighted target from it, assume-then-assert.
+    for (f, vid) in readback:
+        branches = cond_dist_targets.get(vid)
+        if not branches or vid not in sv_by_vid:
+            continue
+        entries = None
+        for (cond_l, br_entries) in branches:
+            if _guard_holds(cond_l):
+                entries = br_entries
+                break
+        if not entries:
+            continue                         # no active branch -> leave field free
+        width, lo, hi, signed = sv_by_vid[vid]
+        for _ in range(_STAGE_PIN_ATTEMPTS):
+            t = _weighted_target(entries, rng)
+            if t is None:
+                break
+            if not (lo <= t <= hi):
+                continue
+            const = _pack_const64(t, width, signed)
+            if _is_sat([(vid, const, signed)]):
+                f.set_val(t)
+                pinned.append((vid, const, signed))
+                break
+
+    # 3. Uniform-sample everything not yet pinned, with the pins applied.
+    pinned_vids = {vid for (vid, _v, _s) in pinned}
+    rest = [(f, vid) for (f, vid) in readback if vid not in pinned_vids]
+    if not rest:
+        return True
+    rest_vars = [sv for sv in sample_vars if sv[0] not in pinned_vids]
+    return sample(lambda: _make_base_pinned([]), rest, rest_vars,
+                  rng.randint(0, (1 << 63) - 1), solve_info=solve_info,
+                  soft_keep=soft_keep)
+
+
 def sample_dist(make_base, readback, sample_vars, seed, dist_targets,
                 solve_info=None, soft_keep=None):
     """Serve a dist-bearing RandSet via BV-SAT while honoring the dist weighting.

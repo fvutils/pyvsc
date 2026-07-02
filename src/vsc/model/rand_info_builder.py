@@ -38,6 +38,7 @@ from vsc.model.covergroup_model import CovergroupModel
 from vsc.model.coverpoint_bin_array_model import CoverpointBinArrayModel
 from vsc.model.coverpoint_model import CoverpointModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_unary_model import ExprUnaryModel
@@ -56,8 +57,32 @@ from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
 from vsc.model.field_composite_model import FieldCompositeModel
 
 
+class _IndexRefsUsedRandVisitor(ModelVisitor):
+    """Walks an array-subscript index expression and reports whether it references
+    any *used-rand* field, i.e. a genuinely-symbolic select whose index value the
+    solver chooses. A constant index has no fieldref (stays False); a `foreach`
+    loop index is a synthesized non-rand field (stays False)."""
+
+    def __init__(self, expr2fm):
+        super().__init__()
+        self._found = False
+
+    def check(self, e):
+        self._found = False
+        e.accept(self)
+        return self._found
+
+    def visit_expr_fieldref(self, e):
+        try:
+            fm = Expr2FieldVisitor().field(e)
+        except Exception:
+            return
+        if getattr(fm, "is_used_rand", False):
+            self._found = True
+
+
 class RandInfoBuilder(ModelVisitor,RandIF):
-    
+
     EN_DEBUG = 0
     
     def __init__(self, rng):
@@ -302,7 +327,30 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         self._soft_cond_l.pop()
         self.visit_constraint_stmt_leave(c)
 
+    def _index_is_used_rand(self, idx_e):
+        """True iff an array-subscript index expression references at least one
+        *used-rand* field — i.e. a genuinely-symbolic select whose value the solver
+        chooses. This is False for a constant index (no fieldref) and for a
+        `foreach` loop index (a synthesized non-rand FieldScalarModel), both of
+        which must keep the snapshot behavior."""
+        v = _IndexRefsUsedRandVisitor(self._expr2fm)
+        return v.check(idx_e)
+
     def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
+        if self._pass == 1 \
+                and isinstance(s.lhs, ExprFieldRefModel) \
+                and isinstance(s.lhs.fm, FieldArrayModel) \
+                and self._index_is_used_rand(s.rhs):
+            # Symbolic (rand) index: the selected element can be ANY element, so
+            # relate the index AND every element into one randset. This makes each
+            # arm of the dv-solve select (ITE / expr_array_select) a free solver
+            # var rather than a baked constant, so arbitrary constraints on
+            # arr[idx] (bounds, arithmetic, relational) solve simultaneously
+            # instead of landing on a frozen snapshot element.
+            s.rhs.accept(self)                     # index field(s) -> randset
+            for f in s.lhs.fm.field_l:
+                self.process_fieldref(f)           # every element -> same randset
+            return
         fm = s.getFieldModel()
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint

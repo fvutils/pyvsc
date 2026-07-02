@@ -157,6 +157,52 @@ class TestDvSolveDistributionQuality(VscTestCase):
                 "dv-solve dist ratio %.3f materially worse than boolector %.3f"
                 % (p_by_be["dv-solve"], p_by_be["boolector"]))
 
+    # ---- scenario: rand-guarded conditional dist (guard-correlated ratio) - #
+    def test_conditional_dist_guard_correlated(self):
+        # A dist under a *random* guard: if(mode) favors 255 (3:1) else favors 0
+        # (3:1). dv-solve's guard-staged conditional sampler freezes `mode` first,
+        # then applies the active branch's weights, so the per-mode ratio is
+        # guard-correlated (~75% on the favored bucket) — not the uniform mean of
+        # the two tables (~50%) that an un-correlated picker gives. This is the
+        # regression for the conditional-dist-weight fix
+        # (doc/notes/dv_solve_conditional_dist_weight_plan.md).
+        @vsc.randobj
+        class Cond(object):
+            def __init__(s):
+                s.mode = vsc.rand_bit_t(1)
+                s.x = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def c(s):
+                with vsc.if_then(s.mode == 1):
+                    vsc.dist(s.x, [vsc.weight(0, 1), vsc.weight(255, 3)])
+                with vsc.else_then():
+                    vsc.dist(s.x, [vsc.weight(0, 3), vsc.weight(255, 1)])
+
+        random.seed(0)
+        ctor.set_solver_backend("dv-solve")
+        obj = Cond()
+        m1_max = m1_tot = m0_zero = m0_tot = 0
+        for _ in range(3000):
+            obj.randomize()
+            xv = int(obj.x)
+            self.assertIn(xv, (0, 255), "conditional dist outside its support")
+            if int(obj.mode) == 1:
+                m1_tot += 1
+                m1_max += (xv == 255)
+            else:
+                m0_tot += 1
+                m0_zero += (xv == 0)
+        # Favored bucket carries ~75% of its mode's mass (3:1); lenient window.
+        self.assertGreater(m1_tot, 0)
+        self.assertGreater(m0_tot, 0)
+        p1 = m1_max / m1_tot
+        p0 = m0_zero / m0_tot
+        self.assertAlmostEqual(p1, 0.75, delta=0.12,
+                               msg="mode1 favored (255) mass=%.3f, expected ~0.75" % p1)
+        self.assertAlmostEqual(p0, 0.75, delta=0.12,
+                               msg="mode0 favored (0) mass=%.3f, expected ~0.75" % p0)
+
 
 if __name__ == "__main__":
     unittest.main()

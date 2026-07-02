@@ -293,20 +293,52 @@ class TestGenericConstraintInline(DcTestCase):
             self.assertTrue(100 <= it.x <= 110 or 500 <= it.x <= 510,
                             "x=%d outside either window" % it.x)
 
-    def test_inline_field_actual_is_error(self):
-        # A field-valued actual to an inline parameterized ref is rejected (clearly).
+    def test_inline_field_actual(self):
+        # A field-valued actual built from the proxy (it.n) is bound correctly, and
+        # the inline expr stack stays balanced (no stray constraints).
         @vdc.dataclass
         class my_c(vdc.RandClass):
             x: vdc.u8 = vdc.rand()
+            n: vdc.u8 = vdc.rand()
 
             @vdc.constraint
             def ge(self, v):
                 self.x >= v
 
+            @vdc.constraint
+            def base(self):
+                self.n > 5
+                self.n < 50
+
         it = my_c()
-        with self.assertRaises(TypeError):
+        for _ in range(60):
             with it.randomize_with() as h:
-                h.ge(h.x)
+                h.ge(h.n)              # x >= n
+            self.assertGreaterEqual(it.x, it.n)
+            self.assertTrue(5 < it.n < 50)   # base still holds (stack not corrupted)
+
+    def test_inline_compound_field_actual(self):
+        @vdc.dataclass
+        class my_c(vdc.RandClass):
+            x: vdc.u16 = vdc.rand()
+            lo: vdc.u16 = vdc.rand()
+
+            @vdc.constraint
+            def win(self, a, b):
+                self.x >= a
+                self.x <= b
+
+            @vdc.constraint
+            def base(self):
+                self.lo > 10
+                self.lo < 100
+
+        it = my_c()
+        for _ in range(60):
+            with it.randomize_with() as h:
+                h.win(h.lo, h.lo + 50)        # two actuals, one compound
+            self.assertTrue(it.lo <= it.x <= it.lo + 50)
+            self.assertTrue(10 < it.lo < 100)
 
     def test_inline_unreferenced_full_range(self):
         # Without referencing a generic, a spans the fixed range 0..100.

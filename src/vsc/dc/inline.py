@@ -22,8 +22,8 @@ from vsc.model.solve_failure import SolveFailure
 from vsc.model.source_info import SourceInfo
 from vsc.types import expr, to_expr
 
-from . import ir_lower, solve_view
-from .constraint_ir import IRConst
+from . import cyclic, ir_lower, solve_view
+from .constraint_ir import IRConst, IRModelLiteral
 
 
 class _FieldExpr(expr):
@@ -80,9 +80,8 @@ class _GenericInlineRef:
     """A generic-constraint reference inside a ``randomize_with`` block. Calling it
     (``it.foo(...)``) reifies the generic's body as a boolean term — usable as a
     bare statement or combined with ``|``/``&``/``~`` — mirroring classic
-    ``dynamic_constraint``. Actual arguments must be int/bool/enum constants (a
-    field-valued actual is a follow-on; reference such generics from a
-    ``@vdc.constraint`` instead)."""
+    ``dynamic_constraint``. Actual arguments may be int/bool/enum constants or
+    field-valued expressions built from the ``it`` proxy (``it.x``, ``it.x + 1``)."""
 
     def __init__(self, name, field_models, generics):
         self._name = name
@@ -90,13 +89,23 @@ class _GenericInlineRef:
         self._generics = generics
 
     def __call__(self, *args, **kwargs):
-        a = [self._actual_ir(v) for v in args]
-        kw = {k: self._actual_ir(v) for k, v in kwargs.items()}
+        # Each ``expr`` actual pushed its model onto the global expr stack when it
+        # was constructed (e.g. ``it.x``). Capture the models, then pop exactly that
+        # many entries so the inline scope is not left with stray constraints.
+        npops = [0]
+        a = [self._actual_ir(v, npops) for v in args]
+        kw = {k: self._actual_ir(v, npops) for k, v in kwargs.items()}
+        for _ in range(npops[0]):
+            pop_expr()
         return expr(ir_lower.lower_generic_ref(
             self._name, self._fm, self._generics, a, kw))
 
-    def _actual_ir(self, v):
+    def _actual_ir(self, v, npops):
         import enum
+        if isinstance(v, expr):
+            # A field-valued / compound actual built from the proxy: reuse its model.
+            npops[0] += 1
+            return IRModelLiteral(v.em)
         if isinstance(v, bool):
             return IRConst(int(v))
         if isinstance(v, enum.Enum):
@@ -106,8 +115,8 @@ class _GenericInlineRef:
             return IRConst(v)
         raise TypeError(
             "inline argument to generic constraint %r must be an int/bool/enum "
-            "constant (got %r); reference it from a @vdc.constraint for "
-            "field-valued actuals" % (self._name, type(v).__name__))
+            "constant or a field expression (got %r)"
+            % (self._name, type(v).__name__))
 
 
 class RandomizeWith:
@@ -137,10 +146,11 @@ class RandomizeWith:
             return False
         frame = sys._getframe(1)
         # Writeback + post_randomize run inside do_randomize via the model rand_if.
-        Randomizer.do_randomize(
-            self._obj._get_randstate(),
+        # The inline block is applied alongside the randc cyclic exclusions.
+        cyclic.do_randomize_cyclic(
+            self._obj, self._tm, self._obj._get_randstate(),
             SourceInfo(frame.f_code.co_filename, frame.f_lineno),
-            [self._composite], [block],
+            self._composite, self._field_models, extra_blocks=[block],
             debug=self._debug, lint=self._lint,
             solve_fail_debug=self._solve_fail_debug)
         return False

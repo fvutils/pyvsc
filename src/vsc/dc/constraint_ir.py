@@ -144,6 +144,20 @@ class IRParam(IRNode):
         return "IRParam(%r)" % (self.name,)
 
 
+class IRModelLiteral(IRNode):
+    """An actual argument that is an *already-built* ``Expr*Model`` rather than an
+    IR expression. Produced only on the inline (``randomize_with``) reference path,
+    where a field-valued actual (``it.x``) is a live model — never stored in a
+    cached program. Lowering returns the wrapped model verbatim."""
+    __slots__ = ("model",)
+
+    def __init__(self, model):
+        self.model = model
+
+    def __repr__(self):
+        return "IRModelLiteral(%r)" % (self.model,)
+
+
 class IRConstraintRef(IRNode):
     """A reference to a generic constraint ``self.<name>(args...)`` (or the bare
     ``self.<name>`` statement form). Used both as a statement (splice the whole
