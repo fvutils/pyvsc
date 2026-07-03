@@ -51,14 +51,22 @@ class RandClass:
     # randomize() instead of being solved for.
 
     def set_rand_mode(self, name, enabled):
+        # ``name=None`` is the object-level form (SV ``obj.rand_mode(en)``): toggle
+        # every declared-rand field of this object at once. It does not recurse
+        # into sub-objects — each has its own rand_mode state (SV semantics).
         tm = self._get_type_model()
-        if name not in tm.field_index:
+        if name is not None and name not in tm.field_index:
             raise AttributeError("no field %r on %s" % (name, type(self).__name__))
         rm = getattr(self, "_vsc_rand_mode", None)
         if rm is None:
             rm = {}
             object.__setattr__(self, "_vsc_rand_mode", rm)
-        rm[name] = bool(enabled)
+        if name is None:
+            for fd in tm.fields:
+                if fd.is_rand:
+                    rm[fd.name] = bool(enabled)
+        else:
+            rm[name] = bool(enabled)
 
     def get_rand_mode(self, name):
         tm = self._get_type_model()

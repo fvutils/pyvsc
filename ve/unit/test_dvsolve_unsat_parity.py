@@ -91,6 +91,23 @@ class UniqueImpossible(object):
         vsc.unique(s.a, s.b)
 
 
+@vsc.randobj
+class ConstConstraintFalse(object):
+    """A hard constraint over only a *non-rand* field (``k``==11) that the field's
+    fixed value violates. The constraint has no solver variable, so a back-end
+    that drops variable-free constraints would silently ignore it and "solve" an
+    infeasible problem. Boolector evaluates it and reports UNSAT; dv-solve must
+    agree (regression: variable-free constant-false constraint was dropped)."""
+    def __init__(s):
+        s.k = vsc.uint8_t(11)          # non-rand state field
+        s.r = vsc.rand_uint8_t()
+
+    @vsc.constraint
+    def c(s):
+        s.k < 10                       # all-constant -> false
+        s.r < 200
+
+
 # --- satisfiable controls ------------------------------------------------ #
 
 @vsc.randobj
@@ -104,9 +121,23 @@ class FeasibleTight(object):
         s.x < 101            # only x == 100
 
 
+@vsc.randobj
+class ConstConstraintTrue(object):
+    """Control for ConstConstraintFalse: the same variable-free constraint, but
+    satisfied by the non-rand field's value — must stay SAT on both back-ends."""
+    def __init__(s):
+        s.k = vsc.uint8_t(5)           # non-rand state field, satisfies k < 10
+        s.r = vsc.rand_uint8_t()
+
+    @vsc.constraint
+    def c(s):
+        s.k < 10                       # all-constant -> true
+        s.r < 200
+
+
 UNSAT_CLASSES = [RangeConflict, PairCycle, InsideGapConflict,
-                 EqContradiction, UniqueImpossible]
-SAT_CLASSES = [FeasibleTight]
+                 EqContradiction, UniqueImpossible, ConstConstraintFalse]
+SAT_CLASSES = [FeasibleTight, ConstConstraintTrue]
 
 
 def _verdict(cls):

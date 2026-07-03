@@ -28,9 +28,13 @@ class ExprUnaryModel(ExprModel):
         return ret
     
     def width(self):
-        # Currently-supported unary expressions have the 
+        # Currently-supported unary expressions have the
         # same width as the base expression
         return self.expr.width()
-        
+
+    def is_signed(self):
+        # A unary op (bitwise ~/Not) preserves the operand's signedness.
+        return self.expr.is_signed()
+
     def accept(self, v):
         v.visit_expr_unary(self)

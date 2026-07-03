@@ -159,3 +159,75 @@ class TestListObject(DcTestCase):
         t = Top()
         t.randomize()
         self.assertEqual(t.n, 3)
+
+    # --- t_constraint_cls_arr_member: constraints on object-array members --- #
+    def test_foreach_member_range(self):
+        # Scenario A: foreach range on each element's member.
+
+        @vdc.dataclass
+        class Item(vdc.RandClass):
+            value: vdc.u8 = vdc.rand()
+
+        @vdc.dataclass
+        class Container(vdc.RandClass):
+            items: list[Item] = vdc.rand(size=4)
+
+            @vdc.constraint
+            def val_c(self):
+                with vdc.foreach(self.items) as it:
+                    it.value in vdc.rangelist((10, 200))
+
+        c = Container()
+        for _ in range(20):
+            c.randomize()
+            for e in c.items:
+                self.assertTrue(10 <= int(e.value) <= 200)
+
+    def test_foreach_member_relative_index_order(self):
+        # Scenario B: foreach ordering via a relative index (items[i] > items[i-1]).
+        # Exercises constant-folded composite-array subscripts (i-1) at lower time.
+
+        @vdc.dataclass
+        class Item(vdc.RandClass):
+            value: vdc.u8 = vdc.rand()
+
+        @vdc.dataclass
+        class Container(vdc.RandClass):
+            items: list[Item] = vdc.rand(size=4)
+
+            @vdc.constraint
+            def order_c(self):
+                with vdc.foreach(self.items, idx=True) as i:
+                    with vdc.if_then(i != 0):
+                        self.items[i].value > self.items[i - 1].value
+
+        c = Container()
+        for _ in range(20):
+            c.randomize()
+            vals = [int(e.value) for e in c.items]
+            self.assertTrue(all(vals[k] > vals[k - 1] for k in range(1, 4)),
+                            "ordering violated: %s" % vals)
+
+    def test_const_index_member_order_chain(self):
+        # Scenario C: the same ordering written with explicit constant indices.
+
+        @vdc.dataclass
+        class Item(vdc.RandClass):
+            value: vdc.u8 = vdc.rand()
+
+        @vdc.dataclass
+        class Container(vdc.RandClass):
+            items: list[Item] = vdc.rand(size=4)
+
+            @vdc.constraint
+            def val_c(self):
+                self.items[0].value < self.items[1].value
+                self.items[1].value < self.items[2].value
+                self.items[2].value < self.items[3].value
+
+        c = Container()
+        for _ in range(20):
+            c.randomize()
+            vals = [int(e.value) for e in c.items]
+            self.assertTrue(all(vals[k] > vals[k - 1] for k in range(1, 4)),
+                            "ordering violated: %s" % vals)

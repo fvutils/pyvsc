@@ -26,6 +26,86 @@ from typing import Dict
 
 from vsc.model.solver.backend import SolverBackendIF, SolveResult, BackendIncomplete
 from vsc.model.solve_failure import SolveFailure
+from vsc.model.model_visitor import ModelVisitor
+from vsc.model.constraint_expr_model import ConstraintExprModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.constraint_if_else_model import ConstraintIfElseModel
+from vsc.model.constraint_implies_model import ConstraintImpliesModel
+
+
+class _RefsUsedRandVisitor(ModelVisitor):
+    """Detect whether a constraint (sub)tree references any *used-rand* field. A
+    hard constraint that references none is fully constant at the current field
+    values (e.g. every referenced field is non-rand, or a ``rand_mode(0)``
+    disabled rand field)."""
+
+    def __init__(self):
+        super().__init__()
+        self.found = False
+
+    def visit_expr_fieldref(self, e):
+        if getattr(e.fm, "is_used_rand", False):
+            self.found = True
+
+
+def _refs_used_rand(c) -> bool:
+    v = _RefsUsedRandVisitor()
+    c.accept(v)
+    return v.found
+
+
+def _const_constraint_holds(c):
+    """Boolean truth of a fully-constant hard constraint (one that references no
+    used-rand field, so every operand is a constant at its current value).
+
+    Returns True/False when the shape can be evaluated, or ``None`` when it can't
+    (the caller then leaves it to the solver, unchanged — never a false UNSAT).
+
+    Mirrors Boolector, which evaluates such a constraint and reports UNSAT when it
+    is false. dv-solve's builder drops variable-free constraints, so without this
+    a violated constant constraint (a disabled field whose fixed value breaks its
+    own constraint) would be silently ignored."""
+    try:
+        if isinstance(c, ConstraintExprModel):
+            return int(c.e.val()) != 0
+        if isinstance(c, ConstraintIfElseModel):
+            if int(c.cond.val()) != 0:
+                return _const_constraint_holds(c.true_c)
+            return True if c.false_c is None else _const_constraint_holds(c.false_c)
+        if isinstance(c, ConstraintImpliesModel):
+            # ConstraintImpliesModel is a scope with a guard: (!cond) || body.
+            if int(c.cond.val()) == 0:
+                return True
+            return _scope_holds(c)
+        if isinstance(c, ConstraintScopeModel):
+            return _scope_holds(c)
+    except Exception:
+        return None
+    return None
+
+
+def _scope_holds(scope):
+    """AND of a scope's child constraints, all constant. ``None`` if any child is
+    non-evaluable."""
+    for cc in scope.constraint_l:
+        r = _const_constraint_holds(cc)
+        if r is None:
+            return None
+        if r is False:
+            return False
+    return True
+
+
+def _check_const_constraints(rs):
+    """Raise ``SolveFailure`` if any hard constraint of ``rs`` is fully constant
+    and false. A constant-false hard constraint makes the RandSet unsatisfiable;
+    dv-solve's builder would otherwise drop it (it has no variable), so we honor
+    it here to match Boolector."""
+    for c in rs.constraints():
+        if not _refs_used_rand(c) and _const_constraint_holds(c) is False:
+            raise SolveFailure(
+                "solve failure",
+                "unsatisfiable constant constraint (all operands fixed)")
 
 
 # Reuse the compiled dv-solve problem across randomizations of the same object
@@ -267,8 +347,13 @@ class DvSolveBackend(SolverBackendIF):
                       debug=0) -> SolveResult:
         rand_fields = rs.rand_fields()
 
-        # An empty rand set has nothing to solve.
+        # An empty rand set has no variable to solve for, but it may still carry
+        # a hard constraint over only non-rand (or rand_mode-disabled) fields —
+        # e.g. a disabled field whose fixed value violates its own constraint.
+        # Such a constant-false constraint is UNSAT (Boolector reports it; the
+        # dv-solve builder drops variable-free constraints, so validate here).
         if len(rand_fields) == 0:
+            _check_const_constraints(rs)
             return SolveResult(status=0)
 
         # Distribution (`dist`) is handled natively: _populate_builder emits a
@@ -492,6 +577,13 @@ class DvSolveBackend(SolverBackendIF):
             SolveCtx, CompileUnsatError, CompileIncompleteError,
         )
         from vsc.model.solver.var_id_map import VarIdMap
+
+        # A hard constraint that is fully constant and false makes this RandSet
+        # unsatisfiable regardless of the rand fields (the builder would silently
+        # drop it — it has no variable). Only checked on the build path: a reused
+        # compiled plan already passed this at build time and is served only while
+        # its referenced constant values are unchanged (values_unchanged()).
+        _check_const_constraints(rs)
 
         b = SolveProblemBuilder()
         ctx = None

@@ -375,7 +375,7 @@ class RandInfoBuilder(ModelVisitor,RandIF):
 
                     # Remove the previous randset
                     idx = self._randset_m[self._active_randset]
-                    self._randset_m.pop(idx)
+                    self._randset_m.pop(self._active_randset)
                     self._randset_l[idx] = None
                     self._active_randset = ex_randset
             else:

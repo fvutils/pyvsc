@@ -373,13 +373,44 @@ def _descend(model, seg):
         "cannot descend into %r at %r" % (seg, getattr(model, "name", "?")))
 
 
-def _const_index(node, ctx):
-    """Evaluate an array subscript that must resolve to a constant int."""
+# Constant-foldable arithmetic ops for composite-array subscripts. A foreach over
+# a composite array is fully unrolled, so its index var is a concrete const_local;
+# relative element access (items[i-1], items[i+1]) is then a constant expression.
+_CONST_BINOPS = {
+    "+": lambda a, b: a + b,
+    "-": lambda a, b: a - b,
+    "*": lambda a, b: a * b,
+    "//": lambda a, b: a // b,
+    "%": lambda a, b: a % b,
+}
+
+
+def _try_const_eval(node, ctx):
+    """Return the int value of a constant subscript expression, or None if it is
+    not a compile-time constant in this context."""
     if isinstance(node, ir.IRConst):
         return node.value
     if isinstance(node, ir.IRField) and len(node.path) == 1 \
             and node.path[0] in ctx.const_locals:
         return ctx.const_locals[node.path[0]]
+    if isinstance(node, ir.IRBin):
+        fn = _CONST_BINOPS.get(node.op)
+        if fn is None:
+            return None
+        lhs = _try_const_eval(node.lhs, ctx)
+        rhs = _try_const_eval(node.rhs, ctx)
+        if lhs is None or rhs is None:
+            return None
+        return fn(lhs, rhs)
+    return None
+
+
+def _const_index(node, ctx):
+    """Evaluate an array subscript that must resolve to a constant int (a literal,
+    an unrolled-foreach index var, or constant arithmetic over them — e.g. i-1)."""
+    val = _try_const_eval(node, ctx)
+    if val is not None:
+        return val
     raise NotImplementedError(
         "composite-array subscripts must be constant (got %r)" % (node,))
 

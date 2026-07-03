@@ -59,3 +59,38 @@ class TestConstraintMode(DcTestCase):
         for _ in range(16):
             it.randomize()
             self.assertNotEqual(it.a, 0)
+
+    def test_constraint_mode_in_post_init(self):
+        # Adapts t_constraint_mode_ctor.v: constraint_mode set in the constructor.
+        # The dc analog of a SV ``function new`` is ``__post_init__``; disabling a
+        # constraint there is honored on the very first randomize.
+
+        @vdc.dataclass
+        class ConstraintModeInCtor(vdc.RandClass):
+            value: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def low_range_c(self):
+                self.value < 50
+
+            @vdc.constraint
+            def high_range_c(self):
+                self.value >= 50
+                self.value < 200
+
+            def __post_init__(self):
+                self.set_constraint_mode("high_range_c", False)
+
+        obj = ConstraintModeInCtor()
+        self.assertEqual(obj.get_constraint_mode("low_range_c"), True)
+        self.assertEqual(obj.get_constraint_mode("high_range_c"), False)
+        for _ in range(20):
+            obj.randomize()
+            self.assertLess(obj.value, 50)
+
+        # Flip: disable low, enable high -> value in [50, 200).
+        obj.set_constraint_mode("low_range_c", False)
+        obj.set_constraint_mode("high_range_c", True)
+        for _ in range(20):
+            obj.randomize()
+            self.assertTrue(50 <= obj.value < 200)

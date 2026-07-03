@@ -12,7 +12,7 @@ from enum import EnumMeta
 
 from . import constraint_ir as _ir
 from .constraint_parser import ConstraintParseError, parse_constraint
-from .fields import get_field_meta
+from .fields import get_field_meta, META_KEY
 from .types import width_of
 
 # Attribute used to tag a method as a constraint (set by @vdc.constraint).
@@ -465,12 +465,31 @@ def build_type_model(cls):
             domain=meta.domain, size=meta.size, max_size=meta.max_size,
             soft=meta.soft, role=meta.role))
 
+    # A subclass in the hierarchy that adds vdc fields but was not decorated with
+    # @vdc.dataclass leaves its ``vdc.rand()``/``field()`` spec as a raw class
+    # attribute (a dataclasses.Field): the @dataclass machinery never ran on that
+    # level, so the annotation never became a solver field. A constraint that
+    # references it would fail deep in lowering with a cryptic "unknown field".
+    # Catch it here with an actionable message. (A decorated level instead holds
+    # the field's *default value* — never the Field object — at this attribute.)
+    field_names = {f.name for f in fields}
+    for klass in cls.__mro__:
+        for aname, aval in vars(klass).items():
+            if (isinstance(aval, dataclasses.Field)
+                    and META_KEY in getattr(aval, "metadata", {})
+                    and aname not in field_names):
+                raise TypeError(
+                    "%s: field %r declared on %s never became a solver field — "
+                    "decorate %s with @vdc.dataclass (every RandClass level that "
+                    "adds fields must be decorated)."
+                    % (cls.__qualname__, aname, klass.__qualname__,
+                       klass.__qualname__))
+
     constraints, generic_constraints = _collect_constraints(cls)
 
     # A constraint method and a field cannot share a name: the method would shadow
     # the field's dataclass default and corrupt both. Catch it with a clear error
     # rather than a downstream TypeError.
-    field_names = {f.name for f in fields}
     for prog in list(constraints) + list(generic_constraints.values()):
         if prog.name in field_names:
             raise TypeError(
