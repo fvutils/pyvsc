@@ -79,11 +79,27 @@ def randc(*, domain=None, size=None, max_size=None,
                          max_size=max_size, width=width, signed=signed))
 
 
-def field(*, default=_MISSING, default_factory=_MISSING, width=None, signed=None):
+def field(*, default=_MISSING, default_factory=_MISSING, width=None, signed=None,
+          size=None):
     """A plain (non-rand) field: covergroup/random state that constraints and
-    coverpoints may reference but the solver does not assign."""
+    coverpoints may reference but the solver does not assign.
+
+    ``size`` declares a **fixed-size non-rand array** (a lookup table the solver
+    reads but never assigns) — e.g. ``tbl: list[u8] = vdc.field(size=4)`` or, with
+    values, ``vdc.field(default_factory=lambda: [10, 20, 30, 40])``. When ``size``
+    is omitted but a ``default_factory`` producing a list is given, the size is
+    inferred from that list's length, so a fixed table need only supply its
+    contents. Without a size a ``list`` field would be modelled as a random-size
+    array and rejected by the array builder."""
+    if size is None and default_factory is not _MISSING:
+        try:
+            sample = default_factory()
+        except Exception:
+            sample = None
+        if isinstance(sample, list):
+            size = len(sample)
     return _mk(default, default_factory,
-               FieldMeta(role="", width=width, signed=signed))
+               FieldMeta(role="", width=width, signed=signed, size=size))
 
 
 # --- Coverage formals (structure reserved in Phase 0; consumed in Phase 3) ---

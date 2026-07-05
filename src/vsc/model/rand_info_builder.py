@@ -342,14 +342,22 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 and isinstance(s.lhs.fm, FieldArrayModel) \
                 and self._index_is_used_rand(s.rhs):
             # Symbolic (rand) index: the selected element can be ANY element, so
-            # relate the index AND every element into one randset. This makes each
-            # arm of the dv-solve select (ITE / expr_array_select) a free solver
-            # var rather than a baked constant, so arbitrary constraints on
-            # arr[idx] (bounds, arithmetic, relational) solve simultaneously
-            # instead of landing on a frozen snapshot element.
+            # relate the index AND every *rand* element into one randset. This
+            # makes each arm of the dv-solve select (ITE / expr_array_select) a
+            # free solver var rather than a baked constant, so arbitrary
+            # constraints on arr[idx] (bounds, arithmetic, relational) solve
+            # simultaneously instead of landing on a frozen snapshot element.
+            #
+            # Only *rand* elements are pulled in: when the array is a fixed
+            # (non-rand) lookup table, its elements are constant inputs — freeing
+            # them would be wrong (they aren't solve targets) and pointless O(n)
+            # work. Such a subscript is a pure index *selector*, not a symbolic
+            # select; only the index is a solve var (and the dv-solve translator
+            # rewrites `table[idx] <cmp> const` to an index membership constraint).
             s.rhs.accept(self)                     # index field(s) -> randset
             for f in s.lhs.fm.field_l:
-                self.process_fieldref(f)           # every element -> same randset
+                if getattr(f, "is_used_rand", False):
+                    self.process_fieldref(f)       # rand element -> same randset
             return
         fm = s.getFieldModel()
         if self._pass == 1:

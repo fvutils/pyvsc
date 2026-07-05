@@ -233,6 +233,113 @@ class TestSymbolicArrayIndex(DcTestCase):
         self.assertEqual(seen, set(range(16)), "index did not spread: %s" % seen)
         self.assertEqual(rnd.get_fallback_tally(), {})
 
+    def test_select_uses_native_path(self):
+        # Workstream B: a small (n<=64) contiguous rand-element array must lower
+        # through the native `expr_array_select` op (flat guard-reified select),
+        # not the O(n) Python ITE chain. Lock that the native branch is actually
+        # taken and still produces correct results, so a later refactor can't
+        # silently regress to the ITE encoding.
+        self._require_dvsolve()
+        from vsc.model.solver import dvsolve_translator as _dt
+
+        orig = _dt.DvSolveExprTranslator._try_native_array_select
+        stats = {"native": 0, "fallback": 0}
+
+        def _counting(self, e, arr, n, w, signed):
+            r = orig(self, e, arr, n, w, signed)
+            stats["native" if r is not None else "fallback"] += 1
+            return r
+
+        _dt.DvSolveExprTranslator._try_native_array_select = _counting
+        self.addCleanup(setattr, _dt.DvSolveExprTranslator,
+                        "_try_native_array_select", orig)
+
+        @vdc.dataclass
+        class my_c(vdc.RandClass):
+            arr: list[vdc.u8] = vdc.rand(size=8)
+            idx: vdc.u8 = vdc.rand()
+            val: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                self.idx < 8
+                self.arr[self.idx] == self.val
+
+        c = my_c()
+        for i in range(20):
+            random.seed(i)
+            c.randomize()
+            arr = [int(x) for x in c.arr]
+            self.assertEqual(arr[int(c.idx)], int(c.val))
+        self.assertGreater(stats["native"], 0,
+                           "native expr_array_select was never emitted for n=8")
+        self.assertEqual(stats["fallback"], 0,
+                         "a contiguous small select fell back to the ITE chain")
+
+    def test_select_large_array_sound(self):
+        # Regression lock for the propagator side-table sizing bug: a symbolic
+        # select emits ~2 propagators per array element from a *single*
+        # constraint, but the dv-solve compiler sized prop_refs/guard_vars/
+        # constraint_id by the constraint *count*. Past ~65 elements the tables
+        # overflowed — guard tracking was silently dropped, so `arr[idx]==val`
+        # was quietly not enforced (wrong answers, no fallback, no crash). A
+        # 96-element array is well past that cliff; it must solve correctly and
+        # still serve natively (fallback-free).
+        self._require_dvsolve()
+        self._no_fallback()
+
+        @vdc.dataclass
+        class my_c(vdc.RandClass):
+            arr: list[vdc.u8] = vdc.rand(size=96)
+            idx: vdc.u8 = vdc.rand()
+            val: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                self.idx < 96
+                self.arr[self.idx] == self.val
+
+        c = my_c()
+        for i in range(40):
+            random.seed(i)
+            c.randomize()
+            arr = [int(x) for x in c.arr]
+            idx = int(c.idx)
+            self.assertTrue(0 <= idx < 96)
+            self.assertEqual(arr[idx], int(c.val), (idx, int(c.val)))
+        self.assertEqual(rnd.get_fallback_tally(), {},
+                         "large select deferred (side-table overflow regressed?)")
+
+    def test_select_huge_array_no_crash(self):
+        # Regression lock for the decision-depth overflow: the search pushes one
+        # level per decided variable, and a symbolic select frees every array
+        # element, so an array larger than MAX_DECISION_DEPTH would overflow the
+        # fixed decisions/level_marks arrays — an out-of-bounds write that
+        # segfaulted the interpreter. The depth guard must degrade this to a
+        # clean defer (SolveFailure at worst) instead of crashing the process.
+        self._require_dvsolve()
+
+        @vdc.dataclass
+        class my_c(vdc.RandClass):
+            arr: list[vdc.u8] = vdc.rand(size=400)
+            idx: vdc.u16 = vdc.rand()
+            val: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                self.idx < 400
+                self.arr[self.idx] == self.val
+
+        c = my_c()
+        # The contract here is *survival*, not correctness: reaching the end of
+        # the loop proves the engine never performed the out-of-bounds write.
+        for i in range(5):
+            random.seed(i)
+            try:
+                c.randomize()
+            except SolveFailure:
+                pass  # a clean defer is an acceptable outcome for this size
+
     # ---- soundness: UNSAT parity ----------------------------------------- #
     def test_select_unsat(self):
         # arr[idx] == 5 while every element is pinned to 0 -> genuinely UNSAT for

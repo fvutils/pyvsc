@@ -684,6 +684,12 @@ class DvSolveExprTranslator(ModelVisitor):
     # ------------------------------------------------------------------ #
 
     def visit_constraint_expr(self, c):
+        # `const_table[rand_idx] <cmp> const` is a pure index *selector*, not a
+        # symbolic select: rewrite it to a membership constraint on the index.
+        sel = self.try_const_table_select(c.e)
+        if sel is not None:
+            self._result = sel
+            return
         # A top-level `field inside {ranges}` over constant ranges compiles to a
         # native EXPR_IN_RANGES membership propagator (sound, and unlike the
         # OR-of-ranges encoding it does not defeat the compiler's _flatten_or).
@@ -692,6 +698,93 @@ class DvSolveExprTranslator(ModelVisitor):
             self._result = native
             return
         self._result = self._to_bool(self.translate(c.e), c.e)
+
+    # Comparison ops eligible for the const-table selector rewrite, with their
+    # Python evaluators (applied to concrete table values at compile time).
+    _TABLE_CMP_FN = {
+        BinExprType.Eq: lambda a, b: a == b,
+        BinExprType.Ne: lambda a, b: a != b,
+        BinExprType.Lt: lambda a, b: a < b,
+        BinExprType.Le: lambda a, b: a <= b,
+        BinExprType.Gt: lambda a, b: a > b,
+        BinExprType.Ge: lambda a, b: a >= b,
+    }
+
+    def try_const_table_select(self, e):
+        """Rewrite ``table[idx] <cmp> const`` (table a non-rand fixed array, idx a
+        rand var) into ``idx inside {i : table[i] <cmp> const}`` — a single
+        small-domain membership on the index.
+
+        When the array is not randomized it is a fixed lookup table, so the
+        selected element is a *constant function of the index*: the feasible index
+        set is computable here in O(n), yielding one native ``EXPR_IN_SET`` on idx
+        instead of an n-arm ITE select. That is both far cheaper (no n baked-const
+        arms, no per-element propagators) and strictly more solvable — the ITE
+        encoding can't reverse-propagate ``arm == K`` back to the index, so a
+        plain ``table[idx] == K`` otherwise deferred. Returns the constraint ref,
+        or ``None`` to fall through to the general path."""
+        from vsc.model.expr_bin_model import ExprBinModel
+        from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+        from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+        if not isinstance(e, ExprBinModel):
+            return None
+        fn = self._TABLE_CMP_FN.get(e.op)
+        if fn is None:
+            return None
+        is_const = IsConstExprVisitor().is_const
+        # One side is the table subscript, the other a compile-time constant.
+        if isinstance(e.lhs, ExprArraySubscriptModel) and is_const(e.rhs):
+            sub, k_expr, table_on_left = e.lhs, e.rhs, True
+        elif isinstance(e.rhs, ExprArraySubscriptModel) and is_const(e.lhs):
+            sub, k_expr, table_on_left = e.rhs, e.lhs, False
+        else:
+            return None
+        if not isinstance(sub.lhs, ExprFieldRefModel) \
+                or not isinstance(sub.lhs.fm, FieldArrayModel):
+            return None
+        arr = sub.lhs.fm
+        # Only a *non-rand* table (every element constant at solve time) with a
+        # *rand, non-constant* index is a selector; anything else is a genuine
+        # symbolic select and stays on the general path.
+        if any(getattr(f, "is_used_rand", False) for f in arr.field_l):
+            return None
+        if is_const(sub.rhs):
+            return None
+        try:
+            n = self._array_elem_count(arr)
+        except Exception:
+            return None
+        if n < 1:
+            return None
+        # The index must lower to a plain solver var (EXPR_IN_SET's value).
+        try:
+            idx_w = int(sub.rhs.width())
+        except Exception:
+            return None
+        if not (self._AUX_MIN_W <= idx_w <= self._AUX_MAX_W):
+            return None
+        try:
+            # k_expr is an expression (``.val()`` method); the table elements are
+            # field models whose current value is the ``.val`` attribute — exactly
+            # the constant ``_ref_for_field`` would bake for a non-rand field.
+            k = int(k_expr.val())
+            elems = [int(arr.field_l[i].val) for i in range(n)]
+        except Exception:
+            return None
+        # feasible = { i : table[i] <cmp> K } (respecting operand order).
+        feasible = [i for i in range(n)
+                    if (fn(elems[i], k) if table_on_left else fn(k, elems[i]))]
+        idx_ref = self.translate(sub.rhs, want_var=True)
+        if not self._last_simple:
+            idx_ref = self._materialize(idx_ref, idx_w, bool(sub.rhs.is_signed()))
+        if not feasible:
+            # No index satisfies the constraint -> UNSAT. `idx < idx` is a
+            # guaranteed-false root the compiler rejects cleanly.
+            self._last_simple = False
+            return self._b.expr_binary(BIN_LT, idx_ref, idx_ref)
+        self._last_simple = False
+        return self._b.expr_in_set(
+            idx_ref, [self._b.expr_const(i) for i in feasible])
 
     def try_native_in_ranges(self, e):
         """If ``e`` is a constraint-root ``field inside {...}`` whose lhs is a
@@ -1222,6 +1315,51 @@ class DvSolveExprTranslator(ModelVisitor):
     # rather than emit an unbounded chain.
     _MAX_SELECT_ELEMS = 1024
 
+    # Native `expr_array_select` element cap (Workstream B). The C compiler's
+    # EXPR_ARRAY_SELECT path (zsp_compile.c) builds flat guard-reified
+    # propagators; benchmarking showed it beats the ITE chain up to ~64 elements
+    # and degrades past ~96 (its 2n guard propagators fire poorly at scale, and
+    # the freed element set nears MAX_DECISION_DEPTH). Above this the ITE chain is
+    # both faster and correct (see the propagator side-table fix), so cap here.
+    _NATIVE_SELECT_MAX = 64
+
+    def _try_native_array_select(self, e, arr, n, w, signed):
+        """Emit the native ``expr_array_select`` for ``arr[idx]`` when the array's
+        elements are all rand vars with **contiguous** var-ids (base..base+n-1).
+
+        This replaces the O(n) Python ITE chain with a single builder op that the
+        C compiler lowers to flat, parallel guard-reified propagators — cheaper to
+        build and better-propagating than the nested-ITE encoding, and it tightens
+        ``idx`` to ``[0, n-1]`` itself (implicit in-range bound). Returns the
+        result aux's var ref on success, or ``None`` to fall back to the ITE
+        chain (non-contiguous / non-rand elements, or an index that can't be
+        lowered to a plain var)."""
+        m = self._m
+        field_l = arr.field_l
+        if not m.has(field_l[0]):
+            return None
+        base = m.id_of(field_l[0])
+        for i in range(n):
+            f = field_l[i]
+            if not m.has(f) or m.id_of(f) != base + i:
+                return None  # non-contiguous or baked-const element -> ITE path
+        # The index must lower to a plain solver var (expr_array_select's `index`
+        # is read via _is_var on the C side). A plain rand-field index already
+        # is one; anything else is materialized, and if it can't be sized into an
+        # aux we fall back rather than emit a select the compiler would drop.
+        try:
+            idx_w = int(e.rhs.width())
+        except Exception:
+            return None
+        if not (self._AUX_MIN_W <= idx_w <= self._AUX_MAX_W):
+            return None
+        idx_ref = self.translate(e.rhs, want_var=True)
+        if not self._last_simple:
+            idx_ref = self._materialize(idx_ref, idx_w, bool(e.rhs.is_signed()))
+        result_ref = self._new_aux(w, signed)
+        self._b.add_constraint(self._b.expr_array_select(base, n, result_ref, idx_ref))
+        return result_ref
+
     def visit_expr_array_subscript(self, e):
         if self._const_subscript_index(e) is not None:
             # Constant index -> the concrete element field (var if rand, else const).
@@ -1266,13 +1404,24 @@ class DvSolveExprTranslator(ModelVisitor):
                 "dv-solve: variable-indexed select over %d elements exceeds the "
                 "native %d-element cap" % (n, self._MAX_SELECT_ELEMS),
                 reason_code="array")
-        # Index as a plain operand for the equality conditions.
-        idx_ref = self.translate(e.rhs, want_var=True)
-        idx_signed = bool(e.rhs.is_signed())
         # Element width/sign come from the homogeneous element type.
         elem0 = arr.field_l[0]
         w = int(elem0.width)
         signed = bool(elem0.is_signed)
+        # Native fast path (Workstream B): a contiguous all-rand element block of
+        # a supported size compiles to a single flat guard-reified select instead
+        # of the O(n) ITE chain below. Falls through on non-contiguous / oversized
+        # arrays or a non-lowerable index.
+        if self._AUX_MIN_W <= w <= self._AUX_MAX_W \
+                and 2 <= n <= self._NATIVE_SELECT_MAX:
+            native = self._try_native_array_select(e, arr, n, w, signed)
+            if native is not None:
+                self._result = native
+                self._last_simple = True
+                return
+        # Index as a plain operand for the equality conditions.
+        idx_ref = self.translate(e.rhs, want_var=True)
+        idx_signed = bool(e.rhs.is_signed())
         elem_refs = [self._ref_for_field(arr.field_l[i]) for i in range(n)]
         # Fold right-to-left: element 0 is the outermost ITE condition; the final
         # else is arr[n-1] (reached when idx==n-1, or — if the model leaves idx

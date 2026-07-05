@@ -324,10 +324,55 @@ def _expr(node, ctx):
 def _attr(node, ctx):
     """Attribute access on an indexed/element base (composite-array element field
     or foreach element): self.arr[0].x, it.x."""
+    # Symbolic composite-array subscript — self.arr[idx].field with a rand
+    # (non-constant) idx over a list of dataclass objects. Lower it to a select
+    # over the homogeneous sub-field column rather than a concrete element.
+    if isinstance(node.base, ir.IRIndex):
+        sel = _try_symbolic_composite_select(node.base, node.name, ctx)
+        if sel is not None:
+            return sel
     base = _resolve_model(node.base, ctx)
     if isinstance(base, FieldArrayModel) and node.name == "sum":
         return ExprArraySumModel(base)
     return ExprFieldRefModel(_descend(base, node.name))
+
+
+def _try_symbolic_composite_select(idx_node, field_name, ctx):
+    """Lower ``arr[idx].field`` for a **non-constant** index over a composite-element
+    array into a symbolic select over the homogeneous scalar sub-field column
+    ``[arr[0].field, arr[1].field, …]``.
+
+    The column is wrapped in a synthetic scalar :class:`FieldArrayModel` (a *view* —
+    its ``field_l`` are the real element sub-field models, never copied or renamed)
+    and returned as an ``ExprArraySubscriptModel``. From there the existing scalar
+    symbolic-select machinery takes over unchanged: ``RandInfoBuilder`` unifies the
+    column elements + the index into one randset (A1), and the dv-solve translator
+    emits the ITE / native select. Returns ``None`` when the index is actually
+    constant or the base is not a composite array (caller falls back to the concrete
+    resolve path); raises for an unsupported multi-level access."""
+    if _try_const_eval(idx_node.index, ctx) is not None:
+        return None                          # constant index -> concrete element
+    arr = _resolve_model(idx_node.base, ctx)
+    if not isinstance(arr, FieldArrayModel) or arr.is_scalar:
+        return None                          # scalar-array subscript: not our case
+    column = [_descend(elem, field_name) for elem in arr.field_l]
+    if any(isinstance(f, FieldCompositeModel) for f in column):
+        # arr[idx].sub.field / arr[idx].sub[k] — more than one symbolic level.
+        raise NotImplementedError(
+            "symbolic composite-array subscript supports a single scalar sub-field "
+            "level only (got a nested composite at %r)" % (field_name,))
+    if not column:
+        raise NotImplementedError(
+            "symbolic subscript over an empty composite array %r" % (arr.name,))
+    elem0 = column[0]
+    synth = FieldArrayModel(
+        arr.name, None, True, None,
+        int(getattr(elem0, "width", 32)),
+        bool(getattr(elem0, "is_signed", False)),
+        arr.is_used_rand, False)
+    synth.field_l = list(column)
+    synth._set_size(len(column))
+    return ExprArraySubscriptModel(ExprFieldRefModel(synth), _expr(idx_node.index, ctx))
 
 
 def _resolve_model(node, ctx):
