@@ -1,0 +1,107 @@
+# Docs build for fvutils/pyvsc on Forgejo Actions.
+#
+# THIS IS THE ONLY THING THAT PUBLISHES THESE DOCS. The GitHub workflow still
+# BUILDS them, as a CI check, but its Pages deploy was deleted on 2026-08-31.
+# dvkit.org owns all documentation: a repo's docs land at
+# dvkit.org/<org>/<repo>/. dvkit.org is a single Cloudflare Pages project and a
+# deploy replaces the WHOLE site, so there is exactly one publisher for it.
+#
+# What happens after this job, all of it host-side:
+#
+#   docs-fetch fvutils/pyvsc master   # artifact -> staging/
+#   docs-promote / docs-deploy           # -> dvkit.org/fvutils/pyvsc/
+#
+# The built HTML leaves as an ARTIFACT and nothing else. This job holds no
+# Cloudflare token and mounts nothing: a workflow file is public and editable by
+# anyone who can push, and the deploy credential is account-scoped.
+#
+# NO RELEASE-AUTHORITY GATE, deliberately. That switch decides who publishes
+# PACKAGES. Docs are not a release -- they publish from Forgejo to dvkit.org
+# whichever forge holds release authority, and adding the gate here would
+# silently stop docs for every repo whose authority is "github", which is most
+# of them.
+#
+# Constraints this file is shaped by, all measured on this instance:
+#
+#  1. No third-party actions. A bare `uses:` resolves against code.forgejo.org
+#     (Forgejo's DEFAULT_ACTIONS_URL), not github.com, so actions/setup-python
+#     does not exist here. `ubuntu-latest` maps to catthehacker/ubuntu:act-22.04,
+#     which carries Python 3.10 -- enough for Sphinx 7.
+#  2. `python` unqualified DOES NOT EXIST in that image. Use python3.
+#  3. The artifact name is the `docs-<org>-<repo>` convention docs-fetch matches
+#     on, and `path: .../**` makes the build directory the ZIP ROOT --
+#     docs-fetch refuses an artifact with no index.html at the top level.
+#  4. This repo's Makefile html target (where it has one) invokes the
+#     ivpm-bootstrapped interpreter at packages/python/bin/sphinx-build, which
+#     does not exist here, so the build below calls sphinx-build directly.
+
+name: Docs
+
+on:
+  - push
+  - pull_request
+  - workflow_dispatch
+
+jobs:
+  docs:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for internal identifiers in tracked files
+        # This repo is published to git.dvkit.org and mirrored to GitHub, so
+        # anything committed here is public. Internal host names, tailnet
+        # addresses and CGNAT-range IPs must not appear in tracked files -- if a
+        # build ever needs one, it belongs in a repository secret, which is
+        # masked in logs.
+        run: |
+          pattern='perch-char\.ts\.net|\.ts\.net|a9550|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]+\.[0-9]+'
+          if git grep -nIE "$pattern" -- . ':!.forgejo/workflows/' ; then
+            echo "::error::internal identifier found in a tracked file (see matches above)"
+            exit 1
+          fi
+          echo "OK: no internal identifiers in tracked files"
+
+      - name: Install doc dependencies
+        # --break-system-packages is a FALLBACK, not the first attempt. Some
+        # rebuilds of catthehacker/ubuntu:act-22.04 mark the interpreter
+        # externally-managed (PEP 668), at which point a plain `pip install`
+        # exits 1 with a wall of text about virtual environments and the failure
+        # reads as a docs problem rather than an image problem. There is nothing
+        # to protect here -- the container is discarded at the end of the job.
+        run: |
+          pip_install() {
+            python3 -m pip install -q "$@" && return 0
+            python3 -m pip install -q --break-system-packages "$@"
+          }
+          pip_install --upgrade pip setuptools wheel
+          pip_install -r doc/requirements.txt setuptools
+
+      - name: Build HTML docs
+        # The same doc set the GitHub workflow builds, so the CI check and the
+        # thing that actually ships cannot disagree about what the docs are.
+        run: python3 -m sphinx -M html doc/source doc/build
+
+      - name: Sanity-check the build
+        # Sphinx exits 0 on a build that produced almost nothing, and an empty
+        # doc set is worse than a failed one because it deploys.
+        run: |
+          test -s doc/build/html/index.html \
+            || { echo "::error::no index.html in the build output"; exit 1; }
+          n=$(find doc/build/html -name '*.html' | wc -l)
+          echo "generated pages: $n"
+          # A local build of this doc set produced 40 pages on 2026-08-31.
+          # The floor is set well BELOW that on purpose: it exists to catch a
+          # COLLAPSED build, not to fail when somebody deletes a page.
+          [ "$n" -ge 20 ] || { echo "::error::only $n pages built; a known-good build of this doc set produces 40. Refusing to call this a doc set."; exit 1; }
+
+      - name: Upload docs
+        # Consumed by the host-side poller:
+        #   docs-fetch fvutils/pyvsc master
+        # Note the explicit branch -- docs-fetch defaults to `master`.
+        uses: forgejo/upload-artifact@v4
+        with:
+          name: docs-fvutils-pyvsc
+          path: doc/build/html/**
+          if-no-files-found: error

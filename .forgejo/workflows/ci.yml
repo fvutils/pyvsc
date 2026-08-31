@@ -35,7 +35,7 @@ jobs:
       # repository secret, which is masked in logs.
       run: |
         pattern='perch-char\.ts\.net|\.ts\.net|a9550|100\.(6[4-9]|[7-9][0-9]|1[01][0-9]|12[0-7])\.[0-9]+\.[0-9]+'
-        if git grep -nIE "$pattern" -- . ':!.forgejo/workflows/ci.yml' ; then
+        if git grep -nIE "$pattern" -- . ':!.forgejo/workflows/' ; then
           echo "::error::internal identifier found in a tracked file (see matches above)"
           exit 1
         fi
