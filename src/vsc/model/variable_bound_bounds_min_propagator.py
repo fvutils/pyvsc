@@ -19,5 +19,9 @@ class VariableBoundBoundsMinPropagator(VariableBoundMinPropagator):
         other.add_propagator(self)
         
     def min(self):
+        # Guard against empty domain
+        if len(self.other.domain.range_l) == 0:
+            # Return a very large value to force constraint failure
+            return 2**63
         return (self.other.domain.range_l[0][0]+self.offset)
     
