@@ -63,6 +63,15 @@ jobs:
           fi
           echo "OK: no internal identifiers in tracked files"
 
+      - name: Install system libraries this doc set needs
+        # Sphinx extensions with C dependencies. pip installs the Python
+        # binding happily and the failure surfaces much later, as
+        # `Could not import extension ...` during the build -- which reads as a
+        # docs problem rather than a missing system package.
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq libenchant-2-2 libcairo2
+
       - name: Install doc dependencies
         # --break-system-packages is a FALLBACK, not the first attempt. Some
         # rebuilds of catthehacker/ubuntu:act-22.04 mark the interpreter
