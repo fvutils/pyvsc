@@ -8,6 +8,36 @@ from vsc.model.value_bool import ValueBool
 
 class ValueInt(int):
     """Wrapper for 'int' values. Permits operators"""
+    
+    @classmethod
+    def from_bits(cls, value, width, signed=False):
+        """
+        Create a ValueInt from a bit pattern with specified width and signedness.
+        
+        Args:
+            value: The bit pattern value (integer)
+            width: The bit width (e.g., 8, 16, 32)
+            signed: Whether to interpret the value as signed (default: False)
+            
+        Returns:
+            ValueInt: A properly interpreted integer value
+            
+        Example:
+            >>> ValueInt.from_bits(0xFF, 8, signed=True)  # Returns -1
+            >>> ValueInt.from_bits(0xFF, 8, signed=False) # Returns 255
+        """
+        # Mask to the specified width
+        mask = (1 << width) - 1
+        masked_value = int(value) & mask
+        
+        # If signed and MSB is set, convert to negative (two's complement)
+        if signed and (masked_value & (1 << (width - 1))):
+            # Convert to negative: -(2^width - value)
+            result = -((1 << width) - masked_value)
+        else:
+            result = masked_value
+            
+        return cls(result)
      
     def __getitem__(self, rng):
         val =  self.__int__()
