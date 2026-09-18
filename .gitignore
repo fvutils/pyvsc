@@ -111,3 +111,4 @@ junit/
 .venv/
 .venv.bld
 cov.xml
+/src/pyucis
