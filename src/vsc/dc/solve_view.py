@@ -22,6 +22,8 @@ from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.field_scalar_model import FieldScalarModel
 from vsc.model.value_scalar import ValueScalar
+from vsc.model import phase_timers as PT
+from vsc.model import opt_flags
 
 from . import ir_lower
 
@@ -45,14 +47,25 @@ class _Node:
     """One level of the solve tree: a ``FieldCompositeModel`` plus the bookkeeping
     needed to refresh inputs and write solved values back. Composite (nested
     ``RandClass``) fields get a child ``_Node`` so apply/writeback recurse."""
-    __slots__ = ("obj", "tm", "composite", "field_models", "children")
+    __slots__ = ("obj", "tm", "composite", "field_models", "children",
+                 "skip_copyin", "rm_dirty")
 
-    def __init__(self, obj, tm, composite, field_models, children):
+    def __init__(self, obj, tm, composite, field_models, children,
+                 skip_copyin=frozenset()):
         self.obj = obj
         self.tm = tm
         self.composite = composite
         self.field_models = field_models   # name -> leaf/array/enum/child-composite model
         self.children = children           # name -> child _Node (composite fields)
+        # Names of leaf fields whose instance value need not be copied into the
+        # model before a solve, because the solve is about to overwrite them
+        # (S1.3). See _skippable_copyin for exactly what qualifies.
+        self.skip_copyin = skip_copyin
+        # True once an apply has written per-instance rand_mode onto this node's
+        # models. While set, the next apply must take the full path even with no
+        # override present, so `rand_mode` is restored to True rather than left
+        # at a previous instance's False.
+        self.rm_dirty = False
 
 
 def get_solve_model(obj, type_model):
@@ -64,7 +77,9 @@ def get_solve_model(obj, type_model):
     # cls.__dict__ (not getattr) so a subclass doesn't inherit a base's model.
     node = cls.__dict__.get(_SOLVE_MODEL_ATTR)
     if node is not None:
+        _t = PT.now()
         _apply_node(node, obj)
+        PT.add("apply_node", _t)
         return node.composite, node.field_models
     node = build_solve_node(obj, type_model)   # applies obj's inputs as it builds
     setattr(cls, _SOLVE_MODEL_ATTR, node)
@@ -88,13 +103,46 @@ class _RandIf:
             hook()
 
     def do_post_randomize(self):
+        _t = PT.now()
         _writeback_level(self._node)
+        PT.add("writeback", _t)
         hook = getattr(self._node.obj, "post_randomize", None)
         if callable(hook):
             hook()
 
 
-def build_solve_node(obj, type_model):
+def _skippable_copyin(type_model, parent_rand):
+    """Names of leaf fields whose current instance value never needs to reach the
+    model before a solve (Stage 1 / S1.3).
+
+    Copying a value in that the solver is about to overwrite is pure waste — it
+    was 17.7% of a warm `arr128` randomize(). A field qualifies only when its
+    pre-solve model value provably cannot be read:
+
+    - it must be *used-rand*, which needs ``is_declared_rand`` all the way up the
+      composite chain (``FieldCompositeModel.set_used_rand`` only propagates
+      rand-ness through declared-rand parents), hence ``parent_rand``;
+    - **not randc.** The cyclic fast path (``cyclic.py``) sets ``fm.rand_mode =
+      False`` and a chosen value directly, and only restores ``rand_mode`` on its
+      bail path — so the *next* ``_apply_node`` is what puts it back to True.
+      Skipping would strand the field at ``rand_mode=False`` forever;
+    - **not a random-size array.** Elements past the solved size are variables in
+      the problem but are not written back, so their model values are not
+      provably solver-owned. Conservative by choice: the whole class of bug
+      disappears, and rand-size arrays are not the shape this step is for.
+
+    Composites and composite arrays are not listed here — they are recursed into,
+    and each child node carries its own set.
+    """
+    if not parent_rand:
+        return frozenset()
+    return frozenset(
+        fd.name for fd in type_model.fields
+        if (not fd.is_opaque and not fd.is_composite and fd.elem_comp_cls is None
+            and fd.is_rand and fd.rand_kind != "randc" and not fd.is_rand_sz))
+
+
+def build_solve_node(obj, type_model, parent_rand=True):
     """Build a fresh solve :class:`_Node` for ``obj`` (recursing into composites)."""
     composite = FieldCompositeModel(type_model.cls_name, True, None)
     composite.typename = type_model.cls_name
@@ -106,7 +154,8 @@ def build_solve_node(obj, type_model):
             continue   # plain Python state — never enters the solve model
         if fd.is_composite:
             child_obj = getattr(obj, fd.name)
-            child_node = build_solve_node(child_obj, fd.comp_type_model())
+            child_node = build_solve_node(child_obj, fd.comp_type_model(),
+                                          parent_rand and fd.is_rand)
             # Re-name the child composite to the field name so cross-references
             # (self.sub.x) and fullnames read naturally in the parent's tree.
             child_node.composite.name = fd.name
@@ -116,7 +165,8 @@ def build_solve_node(obj, type_model):
             children[fd.name] = child_node
             continue
         if fd.is_array and fd.elem_comp_cls is not None:
-            arr, elem_nodes = _build_composite_array(obj, fd)
+            arr, elem_nodes = _build_composite_array(
+                obj, fd, parent_rand and fd.is_rand)
             composite.add_field(arr)
             field_models[fd.name] = arr
             children[fd.name] = elem_nodes
@@ -146,7 +196,8 @@ def build_solve_node(obj, type_model):
     if dom is not None:
         composite.add_constraint(dom)
 
-    node = _Node(obj, type_model, composite, field_models, children)
+    node = _Node(obj, type_model, composite, field_models, children,
+                 _skippable_copyin(type_model, parent_rand))
     # Bridge this level's pre/post_randomize hooks (and writeback) to the instance.
     composite.rand_if = _RandIf(node)
 
@@ -170,7 +221,7 @@ def _build_array(fd):
     return arr
 
 
-def _build_composite_array(obj, fd):
+def _build_composite_array(obj, fd, parent_rand=True):
     """Build a composite-element FieldArrayModel + a child _Node per element.
 
     Mirrors the classic ``rand_list_t(Sub())`` path: each element's
@@ -189,7 +240,7 @@ def _build_composite_array(obj, fd):
                           fd.is_rand_sz)
     elem_nodes = []
     for elem_obj in elem_objs:
-        elem_node = build_solve_node(elem_obj, elem_tm)
+        elem_node = build_solve_node(elem_obj, elem_tm, parent_rand)
         arr.append(elem_node.composite)   # sets size, names elem, propagates rand
         elem_nodes.append(elem_node)
     return arr, elem_nodes
@@ -220,8 +271,26 @@ def _apply_node(node, obj):
     type_model = node.tm
     field_models = node.field_models
     rand_mode = getattr(obj, "_vsc_rand_mode", None)
+    # S1.3: skip copying values the solver is about to overwrite. Disabled
+    # whenever a per-instance rand_mode override is in play — a disabled rand
+    # field becomes a constant at its current value, so it *must* be copied in —
+    # and for one further apply after any override, so this node's models get
+    # their `rand_mode` restored to True rather than inheriting a previous
+    # instance's False.
+    if rand_mode is not None:
+        node.rm_dirty = True
+        skip = None
+    elif node.rm_dirty:
+        node.rm_dirty = False
+        skip = None
+    elif opt_flags.SKIP_COPYIN:
+        skip = node.skip_copyin
+    else:
+        skip = None
     for fd in type_model.fields:
         if fd.is_opaque:
+            continue
+        if skip is not None and fd.name in skip:
             continue
         if fd.is_composite:
             _apply_node(node.children[fd.name], getattr(obj, fd.name))

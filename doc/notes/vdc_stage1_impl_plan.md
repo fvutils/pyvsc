@@ -2,8 +2,8 @@
 
 Status: **active / tracking doc** · opened 2026-09-20 · last updated 2026-09-20
 
-**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 → S1.7 open.
-`arr128` warm: 4 455 → **8 153** solves/sec so far (target 13 000).
+**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 ✅ · S1.4, S1.5, S1.7 open.
+`arr128` warm: 4 455 → **10 739** solves/sec so far (target 13 000).
 Live numbers: `benchmarks/RESULTS_stage1.md`.
 Parent: `doc/notes/vdc_value_representation_plan.md` (this is that document's
 "Stage 0" — renamed Stage 1 here because it is the first stage we are building).
@@ -31,7 +31,7 @@ Measured `arr128`, warm, same box (findings §7b):
 | pre-investigation baseline | 231 | 4 320 | — |
 | `ValueScalar.__int__` fix | 160 | **6 224** | ✅ S1.0 landed (`b4f27b5`), re-measured |
 | + bulk readback | **122.5** | **8 153** | ✅ S1.2 landed, re-measured |
-| + skip copy-in for enabled rand fields | ~114 | ~8 800 | S1.3 |
+| + skip copy-in for enabled rand fields | **96.7** | **10 739** | ✅ S1.3 landed, re-measured |
 | + pay-per-use housekeeping walks | ~74 | ~13 500 | S1.4 |
 | *constrainedrandom 1.3.0, same box* | *26.5* | *37 763* | reference |
 | *structural ceiling (findings §5)* | *15.5* | *64 556* | reference |
@@ -231,7 +231,63 @@ Expected: 33 µs → ~4.4 µs on `arr128` (7.6×), ~12.5% of total.
 
 ---
 
-### S1.3 — Skip copy-in for enabled rand fields
+### S1.3 — Skip copy-in for enabled rand fields  ✅ **DONE**
+
+**Result: `arr128` 8 129 → 10 739 solves/sec (1.32×), 122.5 → 96.7 µs/solve.**
+Cumulative from the S1.0 baseline: **1.72×**. `arr32` 1.29× (26 577 → 34 184),
+`packet16` 1.22×, and — unlike S1.2 — the scalar workloads gain too
+(`basic` 1.13×, `nested` 1.11×, `hooks` 1.11×), because every type pays copy-in.
+Cold (create-many) tracks warm: `arr128` 1.30×, geo-mean 1.19×. Well ahead of
+the ~8 800/s estimate.
+
+`apply_node` went from **29.58 → 0.30 µs/solve** on `arr128` (99×), i.e. it is
+now off the profile entirely.
+
+Implemented as a per-node `skip_copyin` frozenset computed once per type in
+`build_solve_node` and consulted by a single `continue` at the top of
+`_apply_node`'s field loop — rather than the planned second `_apply_fast`
+function. One code path is easier to keep correct than two, and the set is
+already precomputed, which is where the cost was.
+
+**What qualifies for the skip** (`_skippable_copyin`) is narrower than the plan
+assumed, in three ways found while implementing:
+
+1. **`parent_rand` chain.** `FieldCompositeModel.set_used_rand` only propagates
+   rand-ness through parents that are themselves declared rand, so a rand field
+   under a *non*-rand composite is never used-rand and its value must be copied
+   in. The flag is threaded down `build_solve_node`.
+2. **randc is excluded.** `cyclic.py`'s fast path sets `fm.rand_mode = False`
+   and a value directly, and restores `rand_mode` **only on its bail path** — so
+   the next `_apply_node` is what puts it back to True. Skipping would strand
+   the field at `rand_mode=False`; the exclusion fallback would then treat it as
+   a constant at its stale value. Worth noting that a behavioural test does
+   *not* catch this (cyclic re-sets `rand_mode=False` before each solve anyway),
+   which is why the test for it is a structural assertion on the skip set.
+3. **Random-size arrays are excluded**, as the plan's conservative option.
+   Elements past the solved size are variables but are not written back, so
+   their model values are not provably solver-owned. Verified by mutation that
+   including them does not break the current tests — kept out anyway, since
+   "the tests don't catch it" is not the same as "it is sound", and rand-size
+   arrays are not the shape this step exists for.
+
+**`rand_mode` restoration.** A per-node `rm_dirty` flag: once an apply has
+written per-instance `rand_mode` onto a node's models, the *next* apply takes
+the full path even with no override present, so the models get `rand_mode=True`
+restored rather than inheriting a previous instance's `False`. Without this, a
+`set_rand_mode(name, False)` on one instance would silently pin that field for
+every other instance of the type, because the solve model is shared per type.
+Covered by `test_c1b_rand_mode_restored_after_reenable` and
+`test_c1c_rand_mode_disabled_on_a_second_instance`.
+
+**Validation:** ✅ `ve/unit_dc/test_skip_copyin.py` — 18 tests covering all five
+conditions, the skip-set membership rules (structurally, so a too-wide set fails
+loudly — verified by mutation), the coupled/non-separable randc path, and a
+switch-on-vs-switch-off stimulus-identity check over 7 class shapes.
+Full `ve/unit` + `ve/unit_dc` on both back-ends, plus `test_rand_mode` and
+`test_random_dist` (excluded from the standard slice) run explicitly. XCHECK
+soak clean apart from the known pre-existing failure.
+
+<details><summary>original plan text</summary>
 
 `_apply_node` (`src/vsc/dc/solve_view.py:215`) writes **every** field's current
 instance value into the model on every solve. For an enabled rand field this is
@@ -283,6 +339,8 @@ Implementation:
 - [ ] `ve/unit_dc` full, `ve/unit` full, both backends
 - [ ] distribution gates unchanged (a copy-in change must not be able to shift a
       distribution; if it does, something reads a stale value)
+
+</details>
 
 ---
 

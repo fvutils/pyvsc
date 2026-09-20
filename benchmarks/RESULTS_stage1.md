@@ -123,6 +123,56 @@ The win scales with readback width, exactly as it should.
 
 ---
 
+## After S1.3 — skip copy-in
+
+**Warm, solves/sec** (each column adds one switch):
+
+| workload | all off | + S1.2 | + S1.3 | ratio |
+|---|---:|---:|---:|---:|
+| basic    | 81 925 | 80 284 | 90 505 | 1.11× |
+| nested   | 56 533 | 57 649 | 64 096 | 1.13× |
+| soft     | 47 866 | 47 831 | 50 907 | 1.07× |
+| randc    | 17 726 | 17 717 | 17 665 | 1.00× |
+| hooks    | 90 837 | 90 044 | 100 257 | 1.10× |
+| knob     | 13 037 | 12 586 | 12 701 | 0.97× |
+| packet16 | 26 500 | 30 199 | 36 917 | **1.39×** |
+| arr32    | 21 717 | 26 577 | 34 184 | **1.57×** |
+| arr128   |  6 259 |  8 129 | 10 739 | **1.72×** |
+| **geo-mean** | | | | **1.21×** |
+
+**Cold (create-many)** tracks warm — geo-mean 1.19×, `arr128` 1.65×, `arr32`
+1.49× — so this is not a warm-path-only win.
+
+`randc` is deliberately flat: randc fields are excluded from the skip set.
+`knob` never hits the plan cache, so neither S1.2 nor S1.3 reaches it; its 0.97×
+is run-to-run noise (see the knob-cliff finding below, tracked as S1.7).
+
+### Phase attribution, `arr128` warm, after S1.2+S1.3 (93.4 µs/solve)
+
+| phase | µs/solve | pct | was (baseline) |
+|---|---:|---:|---:|
+| solve (native) | 31.30 | **33.5%** | 33.16 |
+| post_randomize walk | 19.92 | 21.3% | 11.16 |
+| rollback walk | 8.85 | 9.5% | 9.48 |
+| readback | 7.29 | 7.8% | **48.14** |
+| clear_soft_pri walk (×2) | 7.22 | 7.7% | 7.61 |
+| set_used_rand walk | 6.89 | 7.4% | 7.30 |
+| writeback | 5.77 | 6.2% | 6.19 |
+| pre_randomize walk | 4.50 | 4.8% | 4.41 |
+| apply_node (copy-in) | **0.30** | 0.3% | **29.58** |
+| unconstrained_draw | 0.31 | 0.3% | — |
+| (unattributed) | 1.08 | 1.2% | 10.29 |
+
+Readback fell 6.6×; copy-in fell 99× and is off the profile. The native solve is
+now the single largest line at 33.5%, which is the first time in this exercise
+that has been true.
+
+**The five housekeeping walks now total 47.4 µs = 50.7%** of the remaining
+budget — more than the solve. That is S1.4, and it is where the rest of the
+Stage 1 target has to come from.
+
+---
+
 ## Finding: the plan-cache "knob" cliff (new, 2026-09-20)
 
 Mutating a **non-rand dataclass field** between solves invalidates the Tier-A
