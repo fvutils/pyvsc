@@ -36,7 +36,12 @@ class ValueScalar(Value):
         return self.v
     
     def __int__(self):
-        return ValueInt(self.v)
+        # MUST return an exact int: returning an int *subclass* (ValueInt) makes
+        # CPython take the deprecated-conversion path, which costs ~360ns per
+        # call through the warnings machinery. set_val() calls int() on every
+        # field write, so this dominated randomize() on array-shaped objects.
+        # Callers that need the operator-bearing wrapper use toInt().
+        return self.v
     
     def toInt(self):
         return ValueInt(self.v)
