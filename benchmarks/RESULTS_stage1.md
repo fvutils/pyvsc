@@ -173,6 +173,64 @@ Stage 1 target has to come from.
 
 ---
 
+## After S1.4 — pay-per-use housekeeping walks (end of Stage 1)
+
+**Warm, solves/sec.** Full ladder, each column adding one switch:
+
+| workload | all off | + S1.2 | + S1.3 | + S1.4 | ratio |
+|---|---:|---:|---:|---:|---:|
+| basic    | 82 946 | 81 908 |  90 440 | 144 552 | 1.74× |
+| nested   | 56 326 | 58 277 |  65 110 | 110 541 | 1.96× |
+| soft     | 48 201 | 47 680 |  51 316 |  69 220 | 1.44× |
+| randc    | 17 890 | 17 938 |  17 859 |  18 641 | 1.04× |
+| hooks    | 90 996 | 89 242 | 101 117 | 145 202 | 1.60× |
+| knob     | 13 150 | 12 689 |  12 939 |  13 385 | 1.02× |
+| packet16 | 26 705 | 30 515 |  37 769 |  65 844 | 2.47× |
+| arr32    | 22 105 | 27 507 |  34 949 |  53 956 | 2.44× |
+| arr128   |  6 484 |  8 385 |  11 011 |  14 079 | 2.17× |
+| **geo-mean** | | | | | **1.68×** |
+
+**Stage 1 target: `arr128` warm ≥ 13 000 solves/sec — measured 14 005. PASS.**
+
+Against the tree as it stood before any of this work (`arr128` 4 455/s):
+**3.14×**, 225 → 71.4 µs/solve.
+
+S1.4 is where the *scalar* workloads finally move. The walks are a fixed
+per-call cost, so they dominated the small problems that had nothing for S1.2 or
+S1.3 to remove.
+
+### Phase attribution, `arr128` warm, end of Stage 1 (75.1 µs/solve)
+
+| phase | µs/solve | pct | baseline |
+|---|---:|---:|---:|
+| solve (native) | 32.81 | **43.7%** | 33.16 |
+| post_randomize walk (drives writeback) | 10.73 | 14.3% | 11.16 |
+| merged_finalize (per-variable) | 6.94 | 9.2% | — |
+| set_used_rand walk | 6.92 | 9.2% | 7.30 |
+| readback | 7.05 | 9.4% | 48.14 |
+| writeback | 5.75 | 7.7% | 6.19 |
+| pre_randomize walk | 4.40 | 5.9% | 4.41 |
+| apply_node (copy-in) | 0.23 | 0.3% | 29.58 |
+| unconstrained_draw | 0.28 | 0.4% | — |
+| rollback walk | — | — | 9.48 |
+| clear_soft_pri walk | — | — | 7.61 |
+
+The native solve is now **43.7%** of `randomize()`, up from 19.8% at the S1.0
+baseline — not because it got slower (33.16 → 32.81 µs; it did not) but because
+everything around it got faster. That inversion is the headline result of
+Stage 1: the Python overhead is no longer the dominant term on this workload.
+
+Two walks are gone from the profile entirely (rollback, soft-priority clear) and
+two are down to noise (`apply_node` 99×, `readback` 6.8×).
+
+### `basic` warm, end of Stage 1 (8.7 µs/solve, was 14.0)
+
+Every walk is now under 0.3 µs/solve. 46% of what is left is unattributed —
+plan-cache freshness checking and dispatch — which is where a small-problem
+"T0 no-solver tier" (Stage 2) would aim.
+
+---
+
 ## Finding: the plan-cache "knob" cliff (new, 2026-09-20)
 
 Mutating a **non-rand dataclass field** between solves invalidates the Tier-A

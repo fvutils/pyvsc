@@ -2,8 +2,8 @@
 
 Status: **active / tracking doc** · opened 2026-09-20 · last updated 2026-09-20
 
-**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 ✅ · S1.4, S1.5, S1.7 open.
-`arr128` warm: 4 455 → **10 739** solves/sec so far (target 13 000).
+**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 ✅ · S1.4 ✅ (C4 deferred) · S1.5, S1.7 open.
+`arr128` warm **4 455 → 14 005 solves/sec (3.14×)** — Stage 1 target (13 000) **met**.
 Live numbers: `benchmarks/RESULTS_stage1.md`.
 Parent: `doc/notes/vdc_value_representation_plan.md` (this is that document's
 "Stage 0" — renamed Stage 1 here because it is the first stage we are building).
@@ -32,7 +32,7 @@ Measured `arr128`, warm, same box (findings §7b):
 | `ValueScalar.__int__` fix | 160 | **6 224** | ✅ S1.0 landed (`b4f27b5`), re-measured |
 | + bulk readback | **122.5** | **8 153** | ✅ S1.2 landed, re-measured |
 | + skip copy-in for enabled rand fields | **96.7** | **10 739** | ✅ S1.3 landed, re-measured |
-| + pay-per-use housekeeping walks | ~74 | ~13 500 | S1.4 |
+| + pay-per-use housekeeping walks | **71.4** | **14 005** | ✅ S1.4 (C1–C3) landed, re-measured |
 | *constrainedrandom 1.3.0, same box* | *26.5* | *37 763* | reference |
 | *structural ceiling (findings §5)* | *15.5* | *64 556* | reference |
 
@@ -344,7 +344,109 @@ Implementation:
 
 ---
 
-### S1.4 — Pay-per-use housekeeping walks
+### S1.4 — Pay-per-use housekeeping walks  ✅ **C1, C2, C3 done · C4 deferred**
+
+**Result: `arr128` 11 011 → 14 079 solves/sec (1.28×), 96.7 → 71.4 µs/solve.
+Stage 1 target met: 14 005 ≥ 13 000.** Cumulative from the S1.0 baseline
+**2.17×**; from the pre-investigation tree **3.14×** (4 455 → 14 005).
+
+This is where the *scalar* workloads finally move, because the walks are a fixed
+per-call cost the small problems were dominated by: `basic` 90 440 → 144 552
+(1.60×), `nested` 1.70×, `hooks` 1.44×, `packet16` 1.74×. Geo-mean across the
+whole set is 1.68× cumulative.
+
+| # | what was done | outcome |
+|---|---|---|
+| **C1** | soft-priority clear moved to the plan-cache **cold path** | done |
+| **C2** | override rollback gated on a per-call install delta | done |
+| **C3** | merged-path per-variable finalize cheapened | done (partially) |
+| **C4** | `set_used_rand(True, 0)` walk | **deferred** — see below |
+
+**C1 — the clear moved rather than became conditional.** A per-type `has_soft`
+flag turned out to be the wrong mechanism. `RandInfoBuilder.visit_constraint_soft`
+does `c.priority += self._soft_priority` — it *accumulates* — and the clear
+exists to zero that before each rebuild. On a Tier-A **hit** the builder is
+skipped and `plan.restore_soft_priorities()` immediately put the priorities
+back, so clear-then-restore was a round trip to the same state. Running the
+clear on the cold path only makes it run exactly when the rebuild does, which is
+exact rather than heuristic. Measured 7.2 µs/solve on a warm `arr128` for a model
+with no soft constraints at all.
+
+The one behavioural difference: a soft constraint in the tree but in no RandSet
+keeps its previous priority on a hit instead of being zeroed. It is not handed
+to the solver either way, and the next cold build clears it.
+
+**C2 — a per-call delta, not an outstanding balance.** The first implementation
+counted installs minus rollbacks and skipped when the balance was zero. It
+failed under the full suite with `outstanding = 10013`: the builders also
+override constraints inside *inline* constraint objects, which the rollback walk
+(which only traverses the field-model tree) never reaches — so a balance counter
+drifts up without bound and would disable the skip permanently after the first
+`randomize_with`. The fix is a monotonic install counter, snapshotted at the top
+of `do_randomize` and compared at the bottom: "did *this call* install
+anything?" That is exact, because an override the walk can reach is always fully
+rolled back by the same call's walk (`depth` starts at 1, so one visit restores
+it). Nesting is safe — `cyclic.py` can re-enter `do_randomize`, and a monotonic
+counter makes an inner call's installs also trigger the outer call's walk.
+
+Measured: **0 installs and 0 rollback hits per warm solve on every workload**,
+including the array ones — array/dist expansion runs on the cold path only.
+
+**C3 — partially.** The plan's framing was "`post_randomize` drives vdc
+writeback, so replace the walk". Attribution after splitting the timer showed
+the 19 µs was actually *two different things*: the outer tree walk that drives
+writeback (10.3 µs — load-bearing, left alone) and the merged fast path's
+per-*variable* finalize loop (7.8 µs). The latter was cheapened without touching
+the writeback contract at all:
+
+- `visited` was a fresh list per field; only `FieldCompositeModel` touches it and
+  it appends/removes symmetrically, so one shared list is equivalent.
+- `FieldScalarModel.post_randomize` does exactly two things — convert `self.var`
+  and fire `self.rand_if`. On the merged path `var` is *always* None (the merged
+  ctx means fields never got individual solver vars), so for a scalar with no
+  `rand_if` the call is a guaranteed no-op; test the two attributes instead.
+- `set_used_rand(False, 0)` on a scalar reduces to `is_used_rand = False and
+  (...)`, i.e. always plain `False`. Assigned directly, behind an exact-type
+  check so any subclass that overrides the method still gets the call.
+
+7.8 → ~5 µs. The writeback ordering contract (writeback before the user hook)
+is untouched — it lives in `_RandIf.do_post_randomize`, which this does not go
+near.
+
+**C4 — deferred, with the reason.** `set_used_rand(True, 0)` costs **6.9 µs =
+9.2%** of what remains on `arr128`, so it is worth having; the plan rated it
+"low confidence — investigate first", and the investigation says **not as a
+skip**:
+
+- The set/clear *pair* is not symmetrical. The clear is per-field inside the
+  solve loops, not a second walk, so there is no pair to elide.
+- `is_used_rand` **is** read on the warm path — by `plan.is_fresh()` (which
+  compares it against the recorded `was_rand`), by the unconstrained-field
+  filter, and by `_RefsUsedRandVisitor` in the dv-solve back-end.
+- It cannot be deferred until after the plan lookup either, because
+  `is_fresh()` reads it: fields are left `is_used_rand=False` at the end of the
+  previous call, so an un-set tree makes every plan look stale.
+
+The promising shape is not a skip but a **cheaper walk** — replaying a flat
+cached per-field list instead of a recursive visitor that allocates an `in_set`
+per call — which is the same family of change as the plan cache itself and
+wants its own invalidation story (`rand_mode`). Recorded for Stage 2 rather
+than rushed here; Stage 1's target is met without it.
+
+**Validation:** ✅ `ve/unit/test_stage1_lazy_walks.py` — 11 tests: the
+structural post-condition that no `ConstraintOverrideModel` remains reachable
+after `randomize()` (for `foreach`, for `dist`, and for inline constraints), the
+install-counter gate, soft honoured / soft dropped across *repeated* solves so
+the cached-plan path is exercised, the non-accumulation invariant C1 rests on,
+switch-on vs switch-off stimulus identity, and a `dist` shape check so a walk
+skip cannot buy speed with distribution. Both C1 and C2 were mutation-tested:
+disabling either makes specific tests fail.
+
+Full `ve/unit` + `ve/unit_dc` on both back-ends, with switches on *and* off;
+`test_rand_mode` / `test_random_dist` / `test_covergroup_programmatic`
+explicitly; XCHECK soak; full ASAN run (545 passed, clean).
+
+<details><summary>original plan text</summary>
 
 Five unconditional O(n) tree walks totalling **53.6 µs = 32%** of the post-fix
 budget, every one a semantic no-op for a type like `arr128`. This is the largest
@@ -381,6 +483,8 @@ Implementation notes:
       at every nesting level
 - [ ] `foreach` / array-expansion override + rollback tests
 - [ ] full `ve/unit` + `ve/unit_dc`, both backends, plus XCHECK
+
+</details>
 
 ---
 
