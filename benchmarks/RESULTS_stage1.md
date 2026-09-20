@@ -96,6 +96,33 @@ for.
 
 ---
 
+## After S1.2 — bulk readback
+
+**Warm, solves/sec.** Each column adds one switch; the `all off` column is the
+S1.0 baseline reproduced in the same process.
+
+| workload | all off | + S1.2 | ratio |
+|---|---:|---:|---:|
+| basic    | 82 962 | 80 857 | 0.97× |
+| nested   | 57 370 | 58 298 | 1.02× |
+| soft     | 49 496 | 49 016 | 0.99× |
+| randc    | 18 164 | 18 212 | 1.00× |
+| hooks    | 94 496 | 92 055 | 0.97× |
+| knob     | 13 292 | 12 881 | 0.97× |
+| packet16 | 26 938 | 30 596 | **1.13×** |
+| arr32    | 21 921 | 26 704 | **1.21×** |
+| arr128   |  6 374 |  8 153 | **1.28×** |
+
+`arr128` 160 → **122.5 µs/solve**, slightly ahead of the ~131 µs / ~7 600 per sec
+estimate in the plan.
+
+The scalar workloads are flat within run-to-run noise (±3%), which is the
+expected result: a one- or two-field readback has nothing to batch, and on
+`knob` the plan cache never hits, so the bulk buffers are never built at all.
+The win scales with readback width, exactly as it should.
+
+---
+
 ## Finding: the plan-cache "knob" cliff (new, 2026-09-20)
 
 Mutating a **non-rand dataclass field** between solves invalidates the Tier-A

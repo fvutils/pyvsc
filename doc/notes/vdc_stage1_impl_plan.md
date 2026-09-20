@@ -2,7 +2,8 @@
 
 Status: **active / tracking doc** · opened 2026-09-20 · last updated 2026-09-20
 
-**Progress:** S1.0 ✅ landed (`b4f27b5`) · S1.1 ✅ landed · S1.2 → S1.7 open.
+**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 → S1.7 open.
+`arr128` warm: 4 455 → **8 153** solves/sec so far (target 13 000).
 Live numbers: `benchmarks/RESULTS_stage1.md`.
 Parent: `doc/notes/vdc_value_representation_plan.md` (this is that document's
 "Stage 0" — renamed Stage 1 here because it is the first stage we are building).
@@ -29,7 +30,7 @@ Measured `arr128`, warm, same box (findings §7b):
 |---|---:|---:|---|
 | pre-investigation baseline | 231 | 4 320 | — |
 | `ValueScalar.__int__` fix | 160 | **6 224** | ✅ S1.0 landed (`b4f27b5`), re-measured |
-| + bulk readback | ~131 | ~7 600 | S1.2 |
+| + bulk readback | **122.5** | **8 153** | ✅ S1.2 landed, re-measured |
 | + skip copy-in for enabled rand fields | ~114 | ~8 800 | S1.3 |
 | + pay-per-use housekeeping walks | ~74 | ~13 500 | S1.4 |
 | *constrainedrandom 1.3.0, same box* | *26.5* | *37 763* | reference |
@@ -136,7 +137,44 @@ ladder is flat.
 
 ---
 
-### S1.2 — Bulk readback (largest single item, lowest risk)
+### S1.2 — Bulk readback  ✅ **DONE**
+
+**Result: `arr128` 6 374 → 8 153 solves/sec (1.28×), 160 → 122.5 µs/solve.**
+`arr32` 1.21×, `packet16` 1.13×; scalar workloads flat, as expected (a 1–2
+field readback has nothing to batch). Slightly ahead of the ~7 600/s estimate.
+
+Landed as `_BulkReadback` in `dvsolve_backend.py` (pre-built `c_uint32*n` id
+array + `c_int64*n` output buffer + a precomputed mask per entry, all cached for
+the life of the compiled ctx) plus `SolveCtx.get_values` in dv-solve
+(`197d920`). Built **lazily on first reuse**, so a plan that is never reused
+does not pay to construct the buffers.
+
+Two things worth recording:
+
+- The mask precomputation specialises the uniform case. An array of one unsigned
+  type — the shape this whole step exists for — collapses to a single mask, and
+  the hot loop then drops a `zip` leg. Mixed widths fall back to a per-entry
+  mask list. Semantics are identical to `_as_field_value` in all three cases.
+- `get_value` also lost its per-call `ctypes.c_uint32(var_id)` (~18% of each
+  remaining scalar FFI call). The same pattern recurs throughout `problem.py`
+  and was left alone there — not on a hot path.
+
+**Validation:** ✅ all of the below.
+- [x] `packages/dv-solve` `tests/unit` — 759 passed
+- [x] new `ve/unit/test_dvsolve_bulk_readback.py` — bulk vs scalar equivalence
+      across widths 1/8/32/63/64 × both signednesses, the u64-with-bit-63-set
+      case the masking exists for, mixed widths/signs, single element, the
+      `_BulkReadback` mask precomputation itself, and a switch-on vs switch-off
+      stimulus-identity test over 12 randomizes (so plan reuse is covered)
+- [x] `ve/unit` + `ve/unit_dc` on dv-solve **and** boolector — no new failures
+- [x] XCHECK soak — no new failures
+- [x] ASAN full `ve/unit` slice — clean, 528 passed
+
+Two pre-existing failures confirmed unrelated (both reproduce with this step's
+changes removed): `test_dvsolve_array_native::test_tc2_fixed_product` and, under
+XCHECK, `test_randomization::test_simple`.
+
+<details><summary>original plan text</summary>
 
 The per-element FFI readback is **33 µs = 48.1% of the post-fix budget** on
 `arr128`, and a bulk C entry point already exists, is wired, and is unit-tested —
@@ -188,6 +226,8 @@ Expected: 33 µs → ~4.4 µs on `arr128` (7.6×), ~12.5% of total.
 - [ ] ASAN run (`ve/run_asan.sh`) — this step introduces new pointer-passing, and
       the project has already been bitten once by an unwired-ctypes pointer
       truncation that only crashed under high-address heaps
+
+</details>
 
 ---
 
