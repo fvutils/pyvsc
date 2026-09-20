@@ -31,13 +31,17 @@ SKIP_COPYIN = _env("VSC_S1_SKIP_COPYIN")
 #: affected by them (soft priorities, override rollback, user hooks).
 LAZY_WALKS = _env("VSC_S1_LAZY_WALKS")
 
+#: S1.7 — track only *constraint-referenced* non-rand field values in the
+#: Tier-A plan's freshness signature, instead of every field in ``bound_m``.
+NARROW_PLAN_SIG = _env("VSC_S1_NARROW_PLAN_SIG")
+
 
 def set_all(on):
     """Set every Stage 1 switch at once (benchmark/bisect helper)."""
-    global BULK_READBACK, SKIP_COPYIN, LAZY_WALKS
-    BULK_READBACK = SKIP_COPYIN = LAZY_WALKS = bool(on)
+    global BULK_READBACK, SKIP_COPYIN, LAZY_WALKS, NARROW_PLAN_SIG
+    BULK_READBACK = SKIP_COPYIN = LAZY_WALKS = NARROW_PLAN_SIG = bool(on)
 
 
 def snapshot():
     return {"BULK_READBACK": BULK_READBACK, "SKIP_COPYIN": SKIP_COPYIN,
-            "LAZY_WALKS": LAZY_WALKS}
+            "LAZY_WALKS": LAZY_WALKS, "NARROW_PLAN_SIG": NARROW_PLAN_SIG}

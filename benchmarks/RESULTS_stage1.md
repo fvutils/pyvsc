@@ -231,6 +231,83 @@ plan-cache freshness checking and dispatch — which is where a small-problem
 
 ---
 
+## After S1.7 — narrowed plan signature (final Stage 1 numbers)
+
+**Warm, solves/sec:**
+
+| workload | all off | + S1.2 | + S1.3 | + S1.4 | + S1.7 | ratio |
+|---|---:|---:|---:|---:|---:|---:|
+| basic    | 81 513 | 80 295 |  89 539 | 144 427 | 142 296 | 1.75× |
+| nested   | 56 267 | 58 721 |  64 693 | 111 519 | 111 531 | 1.98× |
+| soft     | 48 608 | 48 039 |  50 992 |  69 566 |  70 541 | 1.45× |
+| randc    | 17 739 | 17 734 |  17 632 |  18 436 |  18 361 | 1.04× |
+| hooks    | 90 402 | 89 590 |  98 850 | 145 924 | 145 157 | 1.61× |
+| knob     | 12 907 | 12 517 |  12 704 |  13 140 | 131 253 | **10.17×** |
+| packet16 | 26 634 | 30 102 |  37 039 |  64 248 |  64 620 | 2.43× |
+| arr32    | 22 069 | 26 865 |  34 694 |  54 190 |  54 589 | 2.47× |
+| arr128   |  6 388 |  8 213 |  10 910 |  13 934 |  13 903 | 2.18× |
+| **geo-mean** | | | | | | **2.18×** |
+
+**Cold (create-many), solves/sec:**
+
+| workload | all off | + S1.7 | ratio |
+|---|---:|---:|---:|
+| basic    | 57 545 |  91 107 | 1.58× |
+| nested   | 43 502 |  71 261 | 1.64× |
+| soft     | 38 947 |  52 685 | 1.35× |
+| randc    | 12 770 |  13 232 | 1.04× |
+| hooks    | 63 310 |  91 688 | 1.45× |
+| knob     | 58 572 |  85 113 | 1.45× |
+| packet16 | 23 938 |  49 020 | 2.05× |
+| arr32    | 20 196 |  43 674 | 2.16× |
+| arr128   |  6 221 |  13 367 | 2.15× |
+| **geo-mean** | | | **1.61×** |
+
+**Against the tree before any of this work:** `arr128` 4 455 → **13 890**
+solves/sec, 225 → 72.0 µs/solve — **3.12×**.
+
+> **Ladder caveat, learned the hard way.** S1.7 changes how a plan's freshness
+> signature is *built*, and `is_fresh` then reads the stored tuples — so a plan
+> built under one setting keeps that shape until it is rebuilt. Before
+> `bench_stage1._reset_type_caches` was added, the ladder reported `knob` at
+> 83 644 solves/sec in its **all-off** column (true value 12 907), because the
+> previous column had left a narrow-signature plan cached on the type. Any
+> future switch that affects cached state needs the same treatment.
+
+### Read side — unchanged
+
+ns per field read after `randomize()`, all switches off vs all on:
+
+| basic | nested | soft | randc | hooks | knob | packet16 | arr32 | arr128 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1.00× | 1.01× | 1.00× | 0.97× | 0.98× | 1.00× | 1.00× | 0.95× | 0.97× |
+
+Flat within noise — Stage 1 never touched how values are stored. Measured rather
+than asserted, because the parent plan calls the read side "the trap" and any
+later representation work gets compared against exactly this column.
+`bench_stage1.py --read` reproduces it.
+
+### Final attribution, `arr128` warm (72.7 µs/solve)
+
+| phase | µs/solve | pct | at S1.0 baseline |
+|---|---:|---:|---:|
+| **solve (native)** | **31.09** | **42.7%** | 33.16 (19.8%) |
+| post_randomize walk (drives writeback) | 10.37 | 14.2% | 11.16 |
+| readback | 7.05 | 9.7% | 48.14 |
+| set_used_rand walk | 6.96 | 9.6% | 7.30 |
+| merged_finalize (per-variable) | 6.83 | 9.4% | — |
+| writeback | 5.65 | 7.8% | 6.19 |
+| pre_randomize walk | 4.22 | 5.8% | 4.41 |
+| apply_node (copy-in) | 0.24 | 0.3% | 29.58 |
+| clear_soft_pri / rollback walks | 0.04 / 0.03 | ~0% | 7.61 / 9.48 |
+
+The native solve is now **42.7%** of `randomize()`, up from 19.8% — not because
+it got slower (33.16 → 31.09 µs) but because everything around it got faster.
+On `basic` (9.6 µs/solve, was 14.0) every walk is under 0.3 µs and **45% of what
+remains is unattributed** — plan-cache freshness checking and dispatch.
+
+---
+
 ## Finding: the plan-cache "knob" cliff (new, 2026-09-20)
 
 Mutating a **non-rand dataclass field** between solves invalidates the Tier-A

@@ -33,11 +33,16 @@ from vsc.model import opt_flags, phase_timers as PT
 from _stage1_workloads import WORKLOADS, TARGET_WORKLOAD, TARGET_SPS
 
 # The switches in the order they land, so the ladder rows mean something.
+_OFF = dict(BULK_READBACK=False, SKIP_COPYIN=False, LAZY_WALKS=False,
+            NARROW_PLAN_SIG=False)
 LADDER = [
-    ("baseline (all off)",  dict(BULK_READBACK=False, SKIP_COPYIN=False, LAZY_WALKS=False)),
-    ("+ S1.2 bulk readback", dict(BULK_READBACK=True,  SKIP_COPYIN=False, LAZY_WALKS=False)),
-    ("+ S1.3 skip copy-in",  dict(BULK_READBACK=True,  SKIP_COPYIN=True,  LAZY_WALKS=False)),
-    ("+ S1.4 lazy walks",    dict(BULK_READBACK=True,  SKIP_COPYIN=True,  LAZY_WALKS=True)),
+    ("baseline (all off)",   dict(_OFF)),
+    ("+ S1.2 bulk readback", dict(_OFF, BULK_READBACK=True)),
+    ("+ S1.3 skip copy-in",  dict(_OFF, BULK_READBACK=True, SKIP_COPYIN=True)),
+    ("+ S1.4 lazy walks",    dict(_OFF, BULK_READBACK=True, SKIP_COPYIN=True,
+                                  LAZY_WALKS=True)),
+    ("+ S1.7 narrow sig",    dict(BULK_READBACK=True, SKIP_COPYIN=True,
+                                  LAZY_WALKS=True, NARROW_PLAN_SIG=True)),
 ]
 
 
@@ -46,10 +51,25 @@ def _set(cfg):
         setattr(opt_flags, k, v)
 
 
+def _reset_type_caches(cls):
+    """Drop the per-type solve model (and with it the cached Tier-A plan).
+
+    Required between ladder configurations: S1.7 changes how a plan's freshness
+    signature is *built*, and `is_fresh` then reads the stored tuples — so a plan
+    built under one setting keeps that shape until it is rebuilt. Without this
+    reset the S1.7 column measured whatever the previous column left cached,
+    which showed up as `knob` reporting 83 644 solves/sec in the "all off"
+    column instead of its true 13 150.
+    """
+    if "_vsc_solve_model" in cls.__dict__:
+        delattr(cls, "_vsc_solve_model")
+
+
 def t_warm(cls, n):
     """Reuse one object, randomize n times (the plan-cache-warm path Stage 1
     targets). Returns seconds."""
     random.seed(0)
+    _reset_type_caches(cls)
     o = cls()
     for _ in range(5):
         o.randomize()
@@ -62,6 +82,7 @@ def t_warm(cls, n):
 def t_cold(cls, n):
     """Fresh object each solve (the generator / UVM sequence-item pattern)."""
     random.seed(0)
+    _reset_type_caches(cls)
     cls().randomize()          # warm the per-type caches
     t0 = time.perf_counter()
     for _ in range(n):
@@ -117,20 +138,66 @@ def ladder(workloads, scale, timer, label, reps=3):
     print("-" * len(hdr))
     print("%-9s" % "geo-mean" + " " * (17 * len(LADDER)) + "| %5.2fx" % geo)
     print()
-    _set(dict(BULK_READBACK=True, SKIP_COPYIN=True, LAZY_WALKS=True))
+    _set(LADDER[-1][1])
 
 
 def target_check(scale):
     """Report the Stage 1 headline target explicitly, pass or fail."""
     wl = [w for w in WORKLOADS if w[0] == TARGET_WORKLOAD][0]
     n = max(20, int(wl[2] * scale))
-    _set(dict(BULK_READBACK=True, SKIP_COPYIN=True, LAZY_WALKS=True))
+    _set(LADDER[-1][1])
     dt = t_warm(wl[1], n)
     sps = n / dt
     print("## Stage 1 target: %s warm >= %s solves/sec" % (TARGET_WORKLOAD, _fmt(TARGET_SPS)))
     print("   measured: %s solves/sec (%.1f us/solve)  -->  %s"
           % (_fmt(sps), 1e6 * dt / n, "PASS" if sps >= TARGET_SPS else "NOT YET"))
     print()
+
+
+# ---------------------------------------------------------------------------
+# Read side
+# ---------------------------------------------------------------------------
+
+def read_side(workloads, scale, reps=3):
+    """Field-access cost *after* randomize().
+
+    The parent plan (`vdc_value_representation_plan.md` §2) calls the read side
+    "the trap": a change that makes randomize() fast and `obj.field` slow can be
+    a net loss, because user code reads fields in drivers, scoreboards and
+    coverage sampling. Stage 1 deliberately does not touch how values are
+    stored, so the expected result here is *no change* — and that is worth
+    measuring rather than asserting.
+
+    Reported separately from throughput, never folded into a geo-mean.
+    """
+    print("## READ SIDE — ns per field read, after randomize()")
+    print("%-9s | %14s | %14s | %7s" % ("workload", "all off", "all on", "ratio"))
+    print("-" * 52)
+    for name, cls, n in workloads:
+        iters = max(200, int(n * scale))
+        res = []
+        for cfg in (LADDER[0][1], LADDER[-1][1]):
+            best = 0.0
+            for _ in range(reps):
+                _set(cfg)
+                _reset_type_caches(cls)
+                o = cls()
+                o.randomize()
+                names = [f.name for f in o._get_type_model().fields]
+                t0 = time.perf_counter()
+                for _ in range(iters):
+                    for fn in names:
+                        getattr(o, fn)
+                dt = time.perf_counter() - t0
+                rate = (iters * len(names)) / dt
+                best = max(best, rate)
+            res.append(1e9 / best)          # ns per read
+        ratio = res[1] / res[0] if res[0] else float("nan")
+        flag = "" if ratio <= 1.05 else "   <-- READ REGRESSION"
+        print("%-9s | %14.1f | %14.1f | %6.2fx%s"
+              % (name, res[0], res[1], ratio, flag))
+    print()
+    _set(LADDER[-1][1])
 
 
 # ---------------------------------------------------------------------------
@@ -143,7 +210,7 @@ def attribution(workloads, scale, timer, label):
                  "re-execs, or set it yourself)")
     for name, cls, n in workloads:
         n = max(20, int(n * scale))
-        _set(dict(BULK_READBACK=True, SKIP_COPYIN=True, LAZY_WALKS=True))
+        _set(LADDER[-1][1])
         timer(cls, n)               # warm, discard
         PT.reset()
         dt = timer(cls, n)
@@ -161,6 +228,7 @@ def main():
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--workload", action="append", default=[])
     ap.add_argument("--attrib", action="store_true", help="phase attribution only")
+    ap.add_argument("--read", action="store_true", help="read-side cost only")
     ap.add_argument("--all", action="store_true", help="ladder, then attribution "
                     "in a second process")
     ap.add_argument("--cold", action="store_true", help="create-many instead of reuse")
@@ -176,10 +244,15 @@ def main():
         attribution(workloads, args.scale, timer, label)
         return
 
+    if args.read:
+        read_side(workloads, args.scale, reps=args.reps)
+        return
+
     print("# Stage 1 ladder — doc/notes/vdc_stage1_impl_plan.md")
     print("# switches: %s\n" % opt_flags.snapshot())
     ladder(workloads, args.scale, timer, label, reps=args.reps)
     target_check(args.scale)
+    read_side(workloads, args.scale, reps=args.reps)
 
     if args.all:
         # Separate process: the phase timers cost enough to move the headline.

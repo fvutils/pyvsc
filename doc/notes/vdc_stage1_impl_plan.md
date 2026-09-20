@@ -2,7 +2,7 @@
 
 Status: **active / tracking doc** · opened 2026-09-20 · last updated 2026-09-20
 
-**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 ✅ · S1.4 ✅ (C4 deferred) · S1.5, S1.7 open.
+**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 ✅ · S1.4 ✅ (C4 deferred) · S1.7 ✅ · S1.5 ✅ · S1.6 declined.
 `arr128` warm **4 455 → 14 005 solves/sec (3.14×)** — Stage 1 target (13 000) **met**.
 Live numbers: `benchmarks/RESULTS_stage1.md`.
 Parent: `doc/notes/vdc_value_representation_plan.md` (this is that document's
@@ -33,6 +33,7 @@ Measured `arr128`, warm, same box (findings §7b):
 | + bulk readback | **122.5** | **8 153** | ✅ S1.2 landed, re-measured |
 | + skip copy-in for enabled rand fields | **96.7** | **10 739** | ✅ S1.3 landed, re-measured |
 | + pay-per-use housekeeping walks | **71.4** | **14 005** | ✅ S1.4 (C1–C3) landed, re-measured |
+| + narrow plan signature (S1.7) | 72.0 | 13 890 | ✅ S1.7 landed (`knob` 10.17×) |
 | *constrainedrandom 1.3.0, same box* | *26.5* | *37 763* | reference |
 | *structural ceiling (findings §5)* | *15.5* | *64 556* | reference |
 
@@ -488,21 +489,102 @@ Implementation notes:
 
 ---
 
-### S1.5 — Re-measure and decide  *(the gate)*
+### S1.5 — Re-measure and decide  ✅ **DONE — gate applied**
 
-- [ ] Re-run `bench_stage1.py`; update `benchmarks/RESULTS.md` and
-      `benchmarks/RESULTS_constrainedrandom.md`
-- [ ] Re-run the phase attribution and publish an updated §7b-style table into
-      the findings doc
-- [ ] Re-measure the **read side** (field access after randomize) to confirm
-      Stage 1 changed nothing there
-- [ ] Apply the parent plan's §3 gate: within ~1.3× of the 64 556/s ceiling ⇒ the
-      representation redesign is not worth the disruption; well short ⇒ proceed
-      to R1
+- [x] Re-ran `bench_stage1.py` (warm, cold, read-side, attribution);
+      `benchmarks/RESULTS_stage1.md` carries the tables
+- [x] Published an updated §7b-style attribution table (below and in RESULTS)
+- [x] Re-measured the **read side** — see below
+- [x] Applied the parent plan's §3 gate — **decision recorded below**
+
+#### Where Stage 1 landed
+
+| | before | after | |
+|---|---:|---:|---|
+| `arr128` warm | 4 455/s (225 µs) | **13 890/s (72.0 µs)** | **3.12×** |
+| `arr128` cold | — | 13 367/s | 2.15× on the ladder |
+| geo-mean, 9 workloads, warm | — | — | **2.18×** |
+| `knob` (config/knob pattern) | 12 907/s | 131 253/s | **10.17×** |
+
+#### Read side — unchanged, as intended
+
+Field access after `randomize()`, ns per read, all switches off vs all on:
+
+| basic | nested | soft | randc | hooks | knob | packet16 | arr32 | arr128 |
+|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1.00× | 1.01× | 1.00× | 0.97× | 0.98× | 1.00× | 1.00× | 0.95× | 0.97× |
+
+Flat within noise, which is the expected result — Stage 1 never touched how
+values are stored. It is measured rather than asserted because the parent plan
+calls the read side "the trap", and any later representation work will be
+compared against exactly this column.
+
+#### Attribution, `arr128` warm, end of Stage 1 (72.7 µs/solve)
+
+| phase | µs/solve | pct | at S1.0 baseline |
+|---|---:|---:|---:|
+| **solve (native)** | **31.09** | **42.7%** | 33.16 (19.8%) |
+| post_randomize walk (drives writeback) | 10.37 | 14.2% | 11.16 |
+| readback | 7.05 | 9.7% | 48.14 |
+| set_used_rand walk | 6.96 | 9.6% | 7.30 |
+| merged_finalize (per-variable) | 6.83 | 9.4% | — |
+| writeback | 5.65 | 7.8% | 6.19 |
+| pre_randomize walk | 4.22 | 5.8% | 4.41 |
+| apply_node (copy-in) | 0.24 | 0.3% | 29.58 |
+| clear_soft_pri / rollback walks | 0.04 / 0.03 | ~0% | 7.61 / 9.48 |
+
+The native solve went from **19.8% → 42.7%** of `randomize()` without getting
+any slower (33.16 → 31.09 µs). That inversion is the result: on this workload
+the Python overhead is no longer the dominant term.
+
+#### The gate
+
+Parent plan §3: *"if the non-breaking path lands within ~1.3× of the §5 ceiling,
+the redesign is probably not worth the disruption. If it plateaus well short,
+proceed to R1."*
+
+Ceiling 64 556/s; landed **13 890/s**. That is **4.6× short**, not 1.3×.
+**Decision: proceed to R1** — but with the target sharpened, because the naive
+reading of that number is wrong in a way that matters:
+
+- The §5 ceiling of 15.5 µs assumed **no solver call at all** (the T0 tier). We
+  are at 72 µs, of which **31 µs is the native solve**. No representation change
+  can touch that 31 µs. The T0 tier — recognising that `arr128` contains no
+  search and answering it by bound propagation alone — is a *separate* Stage 2
+  item, and it is the one that closes most of the remaining gap.
+- Of the ~41 µs that is not the solve, the genuinely
+  **representation-addressable** part is value movement: `post_randomize` +
+  `writeback` + `merged_finalize` ≈ **23 µs, 32%**. The rest is housekeeping
+  (`set_used_rand`, `pre_randomize` ≈ 11 µs — C4's territory) and readback
+  (7 µs, already 6.8× improved).
+
+So R1's honest prize on this workload is roughly **23 µs of 72**, not 56 of 72.
+That is still worth a spike, and the spike now has a concrete number to beat and
+a read-side column it must not regress. It also reorders the parent plan's
+sequencing question: **T0 is worth more than re-representation on this
+workload**, and it is non-breaking.
+
+On the small-problem workloads the picture is different and points the same way:
+`basic` is down to 9.6 µs/solve of which **45% is unattributed** — plan-cache
+freshness checking and dispatch — with the solve itself at 1.7 µs. That is also
+T0/dispatch territory, not representation.
 
 ---
 
-### S1.6 — Optional, only if it falls out cheaply: `randomize_n`
+### S1.6 — `randomize_n`  ⏸️ **declined for Stage 1**
+
+The condition was "only if it falls out cheaply". It does not, and the reason is
+a result rather than an excuse: after S1.2–S1.7 the fixed per-`randomize()` cost
+this was meant to amortise is **9.6 µs on `basic`**, not the ~40–55 µs the plan
+was written against. The remaining fixed cost is dominated by plan-cache
+freshness checking and dispatch (45% unattributed), which a batch entry point
+does not remove — it is the same work per item.
+
+It also touches the parent plan's feedback question #6 (batch API shape), which
+is unanswered, and the plan says explicitly not to fix a public signature before
+asking. Revisit after T0, when the per-call floor is known.
+
+<details><summary>original plan text</summary>
 
 `solver_solve_n` is wired (`lib.py:221`, `zsp_search.c:1056`) and unused by
 `randomize()`. There is a fixed ~40–55 µs/randomize cost independent of problem
@@ -510,16 +592,56 @@ size, so a batch entry point helps every workload, and §7a concluded the
 shared-buffer idea's *real* home is batch solve into an N×M matrix rather than
 single-solve readback (where it is worth ~0.31% over S1.2).
 
+</details>
+
 This is additive public API and therefore touches the parent plan's feedback
 question #6 (batch API shape). **Prototype only in Stage 1; do not fix the public
 signature** until that question has been asked.
 
 ---
 
-### S1.7 — Narrow the plan-cache freshness signature  *(new; found by S1.1)*
+### S1.7 — Narrow the plan-cache freshness signature  ✅ **DONE**
 
 Not in the original plan. The harness found it, and it is the largest single
 win Stage 1 has available on a non-array workload.
+
+**Result: `knob` 12 907 → 131 253 solves/sec — 10.17×.** No effect on anything
+else (within noise), which is the expected and correct shape: it removes a
+cliff rather than shaving a cost. Cold: 1.45×.
+
+The referenced set comes from `RandSet.all_fields()` unioned over the plan's
+randsets — `RandInfoBuilder` calls `add_field` for every field a constraint
+references, so that *is* the set, without needing a separate expression walk.
+Verified empirically before relying on it, including the case that worried me
+most: a hard constraint over **only non-rand fields** still puts them in a
+randset, so the const-constraint UNSAT recheck keeps working.
+
+`is_used_rand` stays tracked for every field: a `rand_mode` toggle changes the
+partitioning regardless of value. Implementation detail: the "value" slot is
+`None` when untracked, which also replaced the previous `0` placeholder for
+rand fields, so `is_fresh` reads `val is not None` rather than `not was_rand`.
+
+One harness bug this exposed, worth recording because it would have produced a
+confidently wrong number: S1.7 changes how a plan's signature is *built*, and
+`is_fresh` then reads the stored tuples — so a plan built under one setting
+keeps that shape until rebuilt. The ladder was reporting `knob` at 83 644
+solves/sec in its **all-off** column, because the previous configuration had
+left a narrow-signature plan cached on the type. `bench_stage1._reset_type_caches`
+now drops the per-type solve model between configurations.
+
+**Validation:** ✅ `ve/unit_dc/test_narrow_plan_sig.py` — 9 tests, with the
+*too-narrow* direction first because that is the silent-wrong one: a
+constraint-read input stays tracked and is honoured as it changes, a const-only
+constraint still raises `SolveFailure` when its input stops holding, and a
+`rand_mode` toggle still invalidates. Mutation-tested: dropping all non-rand
+values from the signature fails 5 of them. The three assertions that are about
+the *optimization* rather than behaviour skip when the switch is off, so the
+all-switches-off run stays green.
+
+Full `ve/unit` + `ve/unit_dc` on both back-ends, switches on and off; XCHECK
+soak.
+
+<details><summary>original plan text</summary>
 
 Mutating **any** non-rand dataclass field between solves invalidates the Tier-A
 plan cache, whether or not a constraint references it:
@@ -560,6 +682,8 @@ Why this matters beyond a benchmark: "mutate a non-rand field, re-randomize" is
 the config/knob pattern, and it is one of the lifecycle dimensions the parent
 plan's §5 says any representation must be measured on. A 7.6× cliff sitting on
 that dimension would contaminate every comparison the parent plan wants to make.
+
+</details>
 
 ---
 
@@ -624,11 +748,52 @@ lands after S1.3 and before S1.5.
 
 ---
 
-## 5. Definition of done
+## 5. Definition of done  ✅ **Stage 1 complete**
 
-- [ ] All of S1.0–S1.5 landed or explicitly declined with a recorded reason
-- [ ] `arr128` ≥ 13 000 solves/sec, no regression on any other workload
-- [ ] Zero behavioural delta across `ve/unit` and `ve/unit_dc` on both backends
-- [ ] `benchmarks/RESULTS.md` and the findings doc updated with post-Stage-1
-      attribution
-- [ ] The parent plan's §3 gate applied in writing, with the decision recorded
+- [x] All of S1.0–S1.7 landed or explicitly declined with a recorded reason
+      (S1.4/C4 deferred to Stage 2 with the investigation written up; S1.6
+      declined with the measurement that makes it not worth doing yet)
+- [x] `arr128` **13 890 solves/sec ≥ 13 000**; no regression on any other
+      workload (lowest ratio is `randc` at 1.04×, which is deliberately excluded
+      from the copy-in skip)
+- [x] Zero behavioural delta across `ve/unit` and `ve/unit_dc` on both
+      back-ends, with the `VSC_S1_*` switches on **and** off; XCHECK soak clean;
+      full ASAN run clean
+- [x] `benchmarks/RESULTS_stage1.md` carries the ladder, the cold ladder, the
+      read-side column and the post-Stage-1 attribution
+- [x] The parent plan's §3 gate applied in writing — see S1.5
+
+**Two pre-existing failures** were confirmed unrelated (both reproduce with every
+Stage 1 change reverted) and are out of scope, but should be filed:
+`ve/unit/test_dvsolve_array_native.py::test_tc2_fixed_product` ("dv-solve fell
+back to Boolector for a RandSet"), and under XCHECK
+`ve/unit/test_randomization.py::test_simple`.
+
+## 6. What Stage 1 changed about the plan
+
+Worth recording, because in each case the plan's *diagnosis* was right and its
+*prescription* was not:
+
+- **S1.4/C1** was specified as a per-type `has_soft` capability flag. The right
+  answer was to **move** the walk to the cold path, because the thing it guards
+  against (priority accumulation) only happens on the cold path. Exact instead
+  of heuristic, and no flag to keep in sync.
+- **S1.4/C2**'s first implementation — an outstanding-override balance — was
+  *wrong in a way only the full suite caught* (`outstanding = 10013`). The
+  installers also override constraints inside inline constraint objects, which
+  the rollback walk never traverses. A per-call delta is exact.
+- **S1.4/C3** was scoped as "replace the post_randomize walk". Splitting the
+  timer showed the cost was mostly a *different* loop (the merged path's
+  per-variable finalize), which could be cheapened without going near the
+  writeback ordering contract at all.
+- **S1.3**'s skip set needed three exclusions the plan did not anticipate
+  (the `parent_rand` chain, randc, rand-size arrays) — two of which no
+  behavioural test catches, so they are pinned by structural assertions.
+- **S1.7** did not exist in the plan. The harness found it, and at 10.17× on the
+  config/knob pattern it is the largest single win in Stage 1.
+- **S1.6** was declined on a measurement Stage 1 itself produced.
+
+The recurring lesson: **the attribution harness (S1.1) paid for itself three
+times** — it found S1.7, it split C3 correctly, and it caught the C2 balance bug
+by making the ladder reproducible. Building it first was the right call and the
+same argument applies to R1.
