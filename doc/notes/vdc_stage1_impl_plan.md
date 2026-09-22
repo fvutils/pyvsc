@@ -2,7 +2,16 @@
 
 Status: **active / tracking doc** · opened 2026-09-20 · last updated 2026-09-20
 
-**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 ✅ · S1.4 ✅ (C4 deferred) · S1.7 ✅ · S1.5 ✅ · S1.6 declined.
+**Progress:** S1.0 ✅ · S1.1 ✅ · S1.2 ✅ · S1.3 ✅ · S1.4 ✅ (C4 deferred) · S1.7 ✅ · S1.7b ✅ · S1.5 ✅ · S1.6 declined.
+
+> ⚠️ **The absolute numbers below were measured before the T0 no-solver tier
+> landed** (`randomizer.py`, `VSC_T0=0` to disable), which happened after S1.5
+> was written. They remain valid as a record of *Stage 1's own* contribution —
+> re-measured with `VSC_T0=0` on 2026-09-22, `arr128` goes 7 215 → 18 315
+> (2.54×), geo-mean 2.29×, close to what is recorded here. With T0 on, the same
+> ladder reads 16 588 → 76 432 (4.61×), geo-mean 2.58×. Current numbers live in
+> `benchmarks/RESULTS_stage1.md`; reproduce either with
+> `VSC_T0=0|1 python benchmarks/bench_stage1.py`.
 `arr128` warm **4 455 → 14 005 solves/sec (3.14×)** — Stage 1 target (13 000) **met**.
 Live numbers: `benchmarks/RESULTS_stage1.md`.
 Parent: `doc/notes/vdc_value_representation_plan.md` (this is that document's
@@ -486,6 +495,59 @@ Implementation notes:
 - [ ] full `ve/unit` + `ve/unit_dc`, both backends, plus XCHECK
 
 </details>
+
+---
+
+### S1.7b — Symbolic rangelist bounds must not enter the signature  ✅ **DONE**
+
+Found 2026-09-22 while re-running the constrainedrandom comparison during
+tidy-up. **A regression S1.3 introduced, plus a pre-existing bug it exposed.**
+
+`_snapshot_rangelist` evaluates every `inside` range bound and puts the value in
+the plan's freshness signature. For a *symbolic* bound — `rng(self.c, self.d)`
+with `c`/`d` rand — that value is the previous solve's **answer**, not a user
+input. So the signature compares this call's inputs against the last call's
+output and never matches.
+
+Measured on `vdc_in` (`b inside rng(c, d)`): the plan was rebuilt on **29 of 29**
+consecutive randomizes. Create-many throughput **37 992 → 4 941 solves/sec
+(7.7×)**.
+
+S1.3 caused the create-many regression by leaving the model holding the previous
+solution instead of the fresh instance's zeros — before S1.3, a fresh instance
+copied its zeros in and the snapshot happened to match. But **the warm path was
+already thrashing this way before Stage 1**, which is the long-standing `in_kw`
+anomaly called out in `benchmarks/RESULTS_constrainedrandom.md` §4. The
+accidental match was never a design.
+
+Fix: a bound that reads a used-rand field records a `_SOLVER_OWNED` placeholder
+instead of its value — the same principle as S1.7. State the solver owns must
+not participate in freshness; only state the *user* can change between calls
+(literals, or refs to non-rand fields, which `field_state` tracks separately).
+
+| `vdc_in` | before | after |
+|---|---:|---:|
+| warm | 5 024 | **99 371** (19.8×) |
+| cold | 5 068 | **66 393** (13.1×) |
+
+In the constrainedrandom comparison that moves `in_kw` from **0.1× to 1.1×** of
+cr warm and **1.2× to 14.4×** cold, and lifts the their-suite geo-mean from
+1.6× to **3.1×** warm / **5.2×** cold.
+
+**Validation:** `ve/unit_dc/test_symbolic_rangelist_plan.py` — correctness
+first (the symbolic range is respected over 60 draws and still varies; a
+*non-rand* bound still invalidates as it changes), then the plan-reuse
+assertion, then switch-identity. Mutated-literal invalidation — the case
+`_snapshot_rangelist` exists for — is already covered by
+`ve/unit/test_dvsolve_array_plan_cache.py::test_foreach_rangelist_mutation_invalidates`
+(classic front-end; the dc parser only accepts a literal `rangelist(...)` in a
+constraint body). Full suites both front-ends × both back-ends, switches on and
+off; XCHECK soak.
+
+**Lesson for the record:** Stage 1's own workload set did not contain a symbolic
+rangelist, so nothing caught this. It surfaced only from re-running a *different*
+benchmark suite. Cross-checking against an independent workload set is worth
+doing before declaring a performance stage done.
 
 ---
 
