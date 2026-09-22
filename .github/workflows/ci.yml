@@ -36,6 +36,12 @@ jobs:
     - name: Run Tests
       env:
         VSC_SOLVER: ${{ matrix.solver }}
+        # Post-solve model validation (KF-1b). Re-evaluates every constraint
+        # against the model dv-solve returned and fails on a violation, so a
+        # mis-compiled constraint is loud here rather than silently producing
+        # illegal stimulus. Ignored by the boolector leg. Costs a constraint-tree
+        # walk per solve, which is why it is not the runtime default.
+        VSC_DVSOLVE_VALIDATE: '1'
       run: |
         export PYTHONPATH=`pwd`/src
         tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
@@ -96,6 +102,41 @@ jobs:
         # the ubuntu-latest image already provides.
         ./python/bin/python3 -m pip install git+https://github.com/fvutils/dv-solve.git
     - name: XCHECK soak corpus
+      env:
+        # Belt and braces: XCHECK needs Boolector to agree, validate_model needs
+        # no oracle at all. KF-1 showed the two catch the same class, so run both
+        # here -- if the oracle is ever unavailable, the net still holds.
+        VSC_DVSOLVE_VALIDATE: '1'
       run: |
         PYTHON=./python/bin/python3 ./ve/run_xcheck_soak.sh
+
+  # ASAN gate — run the suite against an AddressSanitizer-instrumented dv-solve
+  # so native memory bugs (out-of-bounds, use-after-free, wild pointers) fail CI
+  # instead of staying latent in a normal build and only crashing under a
+  # different heap layout. This is what would have caught the unwired-ctypes
+  # pointer-truncation crash (builder_expr_concat) that a normal build hid. The
+  # instrumented lib is built from dv-solve source (not the pip wheel), so this
+  # job clones dv-solve and drives ve/run_asan.sh, which handles the ASan build +
+  # LD_PRELOAD wiring. Separate from ci-linux so it does not block build/publish.
+  asan:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+    - name: Configure Python
+      run: |
+        python3 -m venv python
+        ./python/bin/python3 -m pip install pip setuptools wheel --upgrade
+        ./python/bin/python3 -m pip install -r requirements_dev.txt
+    - name: Build ASan dv-solve + run the suite under it
+      run: |
+        # ve/run_asan.sh builds the instrumented lib from packages/dv-solve via
+        # CMake (Debug -> -fsanitize=address) and loads it via ZSP_SOLVER_PATH.
+        # The dv_solve *Python* package must be importable too — add its source
+        # tree to PYTHONPATH (the .so itself comes from the ASan build, not pip).
+        git clone --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        export PYTHONPATH="$PWD/packages/dv-solve/src"
+        PYTHON=./python/bin/python3 ./ve/run_asan.sh
 

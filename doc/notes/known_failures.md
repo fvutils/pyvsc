@@ -14,6 +14,10 @@ Stage 1.
 
 ## KF-1 — `if/else` constraints: dv-solve returns models that violate them
 
+**FIXED 2026-09-22.** Root cause and fix at the end of this entry. The XCHECK
+soak is green for the first time (211 passed). The description below is kept as
+written, because the diagnosis it records is what led to the cause.
+
 **Severity: high. This is a soundness bug in the default back-end, and it is
 silent.** It produces illegal stimulus with no error, no warning, and no
 fallback event. It is only visible if you run with `VSC_DVSOLVE_XCHECK=1`,
@@ -103,15 +107,84 @@ encoding bug: a debug/CI mode that calls `validate_model` after every
 `SOLVE_OK` would have turned a silent wrong answer into a loud one at the
 source, rather than leaving it to an XCHECK run nobody does by default.
 
-### Suggested handling
+**DONE 2026-09-22.** `VSC_DVSOLVE_VALIDATE=1` now re-checks every `SOLVE_OK`
+model on both solve paths (merged and per-RandSet) and raises
+`ModelValidationError`; CI sets it on the dv-solve leg and the XCHECK soak.
+Confirmed against the unfixed engine: KF-1 went from a silent 63% wrong-answer
+rate to an immediate loud failure on the first bad model, with **no oracle** —
+which is the property XCHECK does not have.
 
-1. Wire `validate_model` behind an env flag and turn it on in CI. Cheap, and it
-   bounds the blast radius of this whole class.
-2. Fix the else-branch guard linkage in the native engine, or — as an immediate
-   stopgap — mark `if/else` with a constrained then-branch as
-   `requires_bvsat`, which is the existing mechanism for exactly this.
-3. Add a regression test asserting the constraint holds over N draws (the
-   current test only checks that randomize succeeds).
+#### What wiring it up turned up
+
+The validator could not have been switched on as it stood: it reported **15
+tests' worth of violations on models that were entirely correct**. Its
+expression evaluator disagreed with the engine in four ways, each found by
+dumping the offending constraint tree (`solver_validate_model` takes a `FILE*`
+for exactly this) and reading the values back:
+
+| symptom | cause |
+|---|---|
+| `z = -2` "violates" `z < 0` | relational ops compared raw bit patterns, ignoring signedness |
+| aligned address "violates" `addr % (1 << size)` | shift result masked to the *shift amount's* width, so `1 << 12` was 0 |
+| `k=8, a=16` "violates" `a == k * 2` | arithmetic evaluated at `max(operand widths)` — 4 bits — instead of the context width |
+| `755852753` "violates" `<= 3718135548` | mixed signed/unsigned comparison treated as signed |
+
+The third is the real one: bit width in SystemVerilog is **context-determined**,
+not a bottom-up property of each node. Every operand is evaluated at the width of
+the widest operand in the whole expression, *including the far side of the
+comparison* — which is why `r == a + b` over three u8s must wrap to 44 while
+`a == k * 2` with a u4 `k` must not wrap at all. `_max_width()` now computes that
+context and `_eval()` threads it down (shift amounts stay self-determined, per
+the SV rule). Signedness follows the matching SV rule: signed only if every
+width-bearing operand is signed.
+
+After those four fixes both suites are clean under validation (`ve/unit` 579
+passed, `ve/unit_dc` 441 passed; only KF-2 below still fails, unrelated), and the
+validator still catches KF-1 on the unfixed engine. A validator that invents
+violations is worse than none, since the whole point is to be trusted in CI.
+
+### Root cause
+
+Not the guard linkage. **A zero-extend wrapper on an OR leaf.**
+
+pyvsc emits a width-mismatched comparison with the narrower side wrapped:
+`c == zero_extend(d)` for 2-bit `c` and 1-bit `d`. The whole if/else compiles to
+
+```
+AND( OR(NOT(a<b), c<d),  OR(a<b, c == zext(d)) )
+```
+
+`_classify_or_leaf` in `zsp_compile.c` accepted a zero-extend wrapper on a
+**var-const** leaf but not on a **var-var** one — that case used bare `_is_var`
+on both sides. So the second leaf was rejected, `_flatten_or` failed for the
+whole disjunction, and compilation fell through to the `_bool_to_var`
+Boolean-guard fallback — the one the translator's own comments (F-E3) describe
+as having unsound primary propagation.
+
+That explains every observation in the table above. Only the *else* comparison
+was width-mismatched, so only the else clause was lost. The looser the
+then-branch, the more often the search could satisfy the surviving clause
+without ever pinning the guard, which is why the violation rate tracked
+then-branch restrictiveness. And nothing was routed to BV-SAT because from the
+compiler's point of view nothing had failed.
+
+Isolating it took building the same problem twice against the raw dv-solve API:
+by hand it was clean at 0/400, and the only difference from what pyvsc built was
+that one `expr_extend` — adding it reproduced 236/400 immediately.
+
+### Fix
+
+`_or_leaf_var()` in `zsp_compile.c` — strip a zero-extend wrapper on either side
+of a var-var OR leaf, guarded so it is only done where it cannot change the
+value: not a sign-extend, not a signed var, and `from_bits` not below the var's
+own width. Under those conditions the extended value *is* the var's value, so
+comparing at the wider width is exactly comparing the values, which is what the
+DisjClause var-var propagator computes.
+
+Verified: 0 violations in 2000 draws (was 1263), all four then-branch variants
+clean, both branches still exercised, and the XCHECK soak green at 211 passed.
+Regression tests in `ve/unit/test_dvsolve_ifelse_soundness.py` — two of the four
+fail on the unfixed engine, which is the point.
 
 ---
 
