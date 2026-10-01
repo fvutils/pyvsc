@@ -81,6 +81,7 @@ class TestDvSolveXCheck(VscTestCase):
     def setUp(self):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
+        self.disable_t0()   # the cross-check hooks the back-end solve
 
     def tearDown(self):
         ctor.set_solver_backend(None)

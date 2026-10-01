@@ -57,6 +57,7 @@ class TestDvSolveServeSatAuto(VscTestCase):
     def setUp(self):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
+        self.disable_t0()   # these tests observe back-end dispatch
         self._saved_mode = dvb._BVSAT_SERVE_SAT_MODE
 
     def tearDown(self):

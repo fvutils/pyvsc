@@ -31,6 +31,8 @@ from vsc.model.constraint_expr_model import ConstraintExprModel
 from vsc.model.constraint_scope_model import ConstraintScopeModel
 from vsc.model.constraint_if_else_model import ConstraintIfElseModel
 from vsc.model.constraint_implies_model import ConstraintImpliesModel
+from vsc.model import phase_timers as PT
+from vsc.model import opt_flags
 
 
 class _RefsUsedRandVisitor(ModelVisitor):
@@ -114,6 +116,13 @@ def _check_const_constraints(rs):
 # stream and distribution are unchanged, and the full ve/unit suite passes. Set
 # VSC_DVSOLVE_REUSE=0 to disable (e.g. to isolate a suspected stale-cache issue).
 _REUSE_ENABLED = os.environ.get("VSC_DVSOLVE_REUSE", "1") != "0"
+
+# Cap on the total variable count of a whole-problem merged solve (see
+# solve_merged / _build_merged). Merging independent partitions into one native
+# solve wins by eliminating per-RandSet Python overhead, but the merged native
+# solve degrades super-linearly past a few hundred vars (measured cliff ~256→384),
+# so above this cap the per-RandSet path (linear) is used instead.
+_MERGE_MAX_VARS = int(os.environ.get("VSC_DVSOLVE_MERGE_MAX_VARS", "256"))
 
 # Use dv-solve's internal BV-SAT completeness engine (zsp_bbsolver, via BVSatCtx)
 # as the fallback when the primary bounds-propagation engine can't give an
@@ -207,6 +216,59 @@ def _guard_field_vids(cond_l, idmap):
     return vids
 
 
+class _BulkReadback(object):
+    """Pre-built buffers for reading a fixed list of solved vars back in one
+    FFI call (``solver_get_values``) instead of one call per field.
+
+    Built once for a given ``[(field, var_id, width, signed)]`` list and reused
+    for the life of the compiled ctx, so nothing is allocated per solve. The
+    per-element ``ctx.get_value`` loop was 28.8% of a warm 128-element
+    randomize(); this is the same work in one boundary crossing.
+
+    Only valid for variables that fit in an int64 — both call sites already
+    route >64-bit fields to the BV-SAT path before reaching a readback.
+    """
+
+    __slots__ = ("n", "ids", "out", "_mv", "fields", "masks", "uniform_mask")
+
+    def __init__(self, entries):
+        import ctypes
+        n = len(entries)
+        self.n = n
+        self.ids = (ctypes.c_uint32 * n)(*[e[1] for e in entries])
+        self.out = (ctypes.c_int64 * n)()
+        # memoryview().cast('B').cast('q').tolist() is the Python-int
+        # materialisation floor (measured 0.267us vs 0.281us for the ideal;
+        # list(buf) is 14x worse). The via-'B' step is required: casting a
+        # c_int64 array directly to 'q' raises
+        # "NotImplementedError: memoryview: unsupported format <q".
+        self._mv = memoryview(self.out).cast('B').cast('q')
+        self.fields = [e[0] for e in entries]
+        # `_as_field_value` masks unsigned fields to width and leaves signed
+        # fields alone. Precompute the mask per entry rather than recomputing
+        # (1 << width) - 1 per element per solve; None means "no work".
+        self.masks = [None if e[3] else (1 << e[2]) - 1 for e in entries]
+        # The overwhelmingly common case (an array of one unsigned type) is a
+        # single mask for every entry, which lets the hot loop drop a zip leg.
+        first = self.masks[0] if n else None
+        self.uniform_mask = first if all(m == first for m in self.masks) else False
+
+    def read_into_fields(self, ctx):
+        """One FFI call, then write every value into its field."""
+        ctx.get_values(self.ids, self.out, self.n)
+        vals = self._mv.tolist()
+        m = self.uniform_mask
+        if m is False:
+            for f, v, fm in zip(self.fields, vals, self.masks):
+                f.set_val(v if fm is None else v & fm)
+        elif m is None:
+            for f, v in zip(self.fields, vals):
+                f.set_val(v)
+        else:
+            for f, v in zip(self.fields, vals):
+                f.set_val(v & m)
+
+
 class _CompiledPlan(object):
     """A built+compiled dv-solve problem retained for reuse.
 
@@ -216,9 +278,13 @@ class _CompiledPlan(object):
     instead of rebuilding and recompiling from scratch.
     """
 
-    __slots__ = ("ctx", "readback", "struct_sig", "const_fields", "_keepalive")
+    __slots__ = ("ctx", "readback", "struct_sig", "const_fields", "_keepalive",
+                 "bulk")
 
     def __init__(self, ctx, readback, struct_sig, const_fields, keepalive):
+        # Lazily-built _BulkReadback for `readback` (S1.2). Built on the first
+        # reuse rather than here, so a plan that is never reused pays nothing.
+        self.bulk = None
         # The ctx keeps its own SolveProblem buffer alive (SolveCtx._problem),
         # so the builder is transient and need not be retained here.
         self.ctx = ctx                      # the compiled SolveCtx
@@ -268,6 +334,47 @@ _CTX_BUF_MAX = 16 * 1024 * 1024
 _CTX_BUF_PER_PROBLEM_BYTE = 40
 
 
+# Post-solve model validation (KF-1b). dv-solve's `validate_model()` re-evaluates
+# every constraint in the problem against the assignment the search produced, and
+# returns the violation count. It is the net for the class of bug where a
+# constraint is *mis*-compiled — the search then satisfies only what it was given
+# and reports SOLVE_OK on a model that violates the user's constraints, silently.
+#
+# That is not hypothetical: KF-1 (`if (a<b) c<d; else c==d` with mismatched
+# operand widths) returned violating models 63% of the time and nothing in the
+# normal flow noticed. Only the XCHECK differential run — which needs Boolector
+# and is off by default — caught it. `validate_model` catches the same thing with
+# no oracle, so it can run anywhere.
+#
+# Off by default (it re-walks the constraint tree per solve). Set
+# VSC_DVSOLVE_VALIDATE=1 to raise on a violation; CI runs with it on.
+# Constructs the C evaluator cannot handle (arrays, sums, countones, clog2,
+# in_set, in_range) are skipped, so a clean run is not a proof of correctness.
+_VALIDATE_ENABLED = os.environ.get("VSC_DVSOLVE_VALIDATE", "0") != "0"
+
+
+class ModelValidationError(Exception):
+    """A dv-solve SOLVE_OK model failed post-solve constraint re-evaluation."""
+
+
+def _validate_model(ctx, where):
+    """Re-check a just-solved model against its own problem. Raises on violation.
+
+    Never masks a solve: a validator that itself errors (an older dv-solve with no
+    `solver_validate_model`) is reported as unavailable, not as a violation."""
+    if not _VALIDATE_ENABLED:
+        return
+    try:
+        n = ctx.validate_model()
+    except AttributeError:
+        return
+    if n:
+        raise ModelValidationError(
+            "dv-solve returned SOLVE_OK on a model violating %d constraint(s) "
+            "(%s) — a mis-compiled constraint. See doc/notes/known_failures.md "
+            "KF-1." % (n, where))
+
+
 def _make_solve_ctx(buf, problem_sz=0):
     """Create a SolveCtx with a problem-sized working-pool buffer, growing on
     pool overflow. Compile *verdicts* (UNSAT / incomplete) are real and not
@@ -308,6 +415,21 @@ class DvSolveBackend(SolverBackendIF):
     supports_soft = True
     supports_dist_native = True
     randomizes_internally = True
+
+    # Stage 1 (declared-only bounds), Option A — DEFAULT ON, kill-switch
+    # VSC_DVSOLVE_DECLARED_ONLY=0. The Randomizer's post-expansion bound pass runs
+    # in `declared_only` mode: narrow-field (<=32-bit) range-inequality
+    # propagation is skipped (the native core re-derives those bounds and its
+    # narrow-field sampler is uniform regardless of declared-domain width),
+    # trimming ~20% of cold-path time on large array problems. Correctness/
+    # distribution carriers are KEPT — `==` pins, `inside`/rangelist folds, and
+    # WIDE-field (>32-bit) range propagators (the wide sampler needs the tight
+    # domain to avoid boundary bias). A blanket "skip all propagation" variant was
+    # validated and REJECTED (regressed wide `==`, rangelist folds, and wide
+    # fairness). Full ve/unit + ve/unit_dc pass with this ON. Not bit-identical:
+    # per-seed values change for narrow-array/wide problems (still valid/uniform).
+    # See doc/notes/dv_solve_native_full_problem_plan.md (Stage 1 / Option A).
+    derives_bounds = os.environ.get("VSC_DVSOLVE_DECLARED_ONLY", "1") != "0"
 
     # Whether the Randomizer has an external fallback back-end (Boolector) after
     # this primary. Set per-instance by Randomizer.__init__ once the fallback
@@ -408,7 +530,8 @@ class DvSolveBackend(SolverBackendIF):
                         plan.ctx, plan.readback, randstate, solve_info,
                         problem_buf=getattr(plan.ctx, "_problem", None),
                         has_order=has_order, rand_order_l=rand_order_l,
-                        n_softs=len(rs.soft_constraints()))
+                        n_softs=len(rs.soft_constraints()),
+                        plan=plan)
                     return SolveResult(status=0)
                 # Structure or a referenced constant changed: discard and rebuild.
                 setattr(anchor, _PLAN_ATTR, None)
@@ -682,12 +805,144 @@ class DvSolveBackend(SolverBackendIF):
                 # Build/compile/solve failed (or caching disabled): free the ctx.
                 ctx.destroy()
 
+    # ------------------------------------------------------------------ #
+    # Whole-problem merged solve (independent partitions in one native call) #
+    # ------------------------------------------------------------------ #
+
+    def solve_merged(self, randsets, bound_m, randstate, plan) -> bool:
+        """Solve every RandSet of a plan-cached problem in ONE native problem.
+
+        RandInfoBuilder emits *independent* partitions, so the union is a
+        block-diagonal problem: one compiled ctx, one ``solve(fair_pick)`` and one
+        readback replace the per-RandSet loop (~9x on a 128-partition warm solve —
+        the per-RandSet reuse-signature/dispatch/dispose overhead dominates once
+        the problem is plan-cached). The compiled ctx is cached on ``plan.merged``
+        and reused (reset + solve) until the plan is evicted.
+
+        Returns True on success (values written into the fields). Returns False
+        when the problem is not mergeable (a special RandSet — dist / rand_order /
+        soft / >64-bit / near-unsat) or a merged solve did not cleanly succeed, so
+        the caller falls back to the authoritative per-RandSet path (which also
+        gives UNSAT attribution). Never returns a wrong answer: a non-OK merged
+        solve defers rather than guessing."""
+        from dv_solve.ctx import SOLVE_OK
+        from vsc.model.solver import xcheck
+
+        # XCHECK differential verification hooks the per-RandSet solve; the merged
+        # fast path would bypass it. In that verification mode, defer to the
+        # per-RandSet path so every model is still cross-checked (perf irrelevant).
+        if xcheck.is_enabled():
+            return False
+
+        merged = plan.merged
+        if merged is False:
+            return False                       # known non-mergeable
+        if merged is None:
+            merged = self._build_merged(randsets, bound_m)
+            plan.merged = merged               # cache (ctx,readback,bulk) or False
+            if merged is False:
+                return False
+        ctx, readback, bulk = merged
+
+        _t = PT.now()
+        ctx.reset()
+        seed = randstate.randint(0, (1 << 63) - 1)
+        rc = ctx.solve(seed=seed, fair_pick=True)
+        PT.add("solve", _t)
+        if rc != SOLVE_OK:
+            # Not an authoritative UNSAT proof (the primary search is incomplete on
+            # some shapes) — defer to the per-RandSet path, which routes to the
+            # complete BV-SAT engine / external fallback and attributes the culprit.
+            return False
+        _validate_model(ctx, "merged solve")
+        _t = PT.now()
+        if opt_flags.BULK_READBACK:
+            if bulk is None:
+                bulk = _BulkReadback(readback)
+                plan.merged = (ctx, readback, bulk)
+            bulk.read_into_fields(ctx)
+        else:
+            for f, vid, w, s in readback:
+                f.set_val(self._as_field_value(ctx.get_value(vid), w, s))
+        PT.add("readback", _t)
+        return True
+
+    def _build_merged(self, randsets, bound_m):
+        """Compile all RandSets into one problem if every one is *plain* (≤64-bit,
+        no dist / rand_order / soft / near-unsat) and the union is not too large.
+        Returns ``(ctx, readback, bulk)`` or ``False`` (not mergeable — caller uses
+        the per-RandSet path). ``bulk`` starts as None and is filled in by the
+        first readback."""
+        from dv_solve.builder import SolveProblemBuilder
+        from dv_solve.ctx import CompileUnsatError, CompileIncompleteError
+        from vsc.model.solver.var_id_map import VarIdMap
+
+        # Fast plain-ness screen before touching native code, and count vars: the
+        # merged native solve degrades super-linearly past a few hundred vars (a
+        # single big problem loses to many tiny ones — a native scaling cliff
+        # around ~256-384 vars), so cap the merge and let large problems keep the
+        # per-RandSet path (which scales linearly). Tunable via env.
+        n_vars = 0
+        for rs in randsets:
+            if rs.soft_constraints():
+                return False
+            if getattr(rs, "dist_field_m", None):
+                return False
+            if getattr(rs, "rand_order_l", None):
+                return False
+            for f in rs.rand_fields():
+                if f.width > 64:
+                    return False
+                n_vars += 1
+            # A constant-false hard constraint (over only non-rand fields) makes
+            # this RandSet UNSAT; the merged builder drops variable-free
+            # constraints, so it would "solve" an infeasible problem. Defer to the
+            # per-RandSet path (which raises SolveFailure) — matching Boolector.
+            try:
+                _check_const_constraints(rs)
+            except SolveFailure:
+                return False
+        if n_vars > _MERGE_MAX_VARS:
+            return False
+
+        b = SolveProblemBuilder()
+        idmap = VarIdMap()
+        readback = []
+        ctx = None
+        ok = False
+        try:
+            for rs in randsets:
+                rf = rs.rand_fields()
+                if not rf:
+                    continue
+                tr, _sv = self._populate_builder(b, idmap, rs, rf, bound_m)
+                if tr.requires_bvsat or tr.dist_targets or tr.cond_dist_targets:
+                    return False               # needs special serving; don't merge
+                readback.extend(
+                    (f, idmap.id_of(f), int(f.width), bool(f.is_signed))
+                    for f in rf)
+            if not readback:
+                return False                   # nothing to merge
+            buf, problem_sz = b.finalize()
+            ctx = _make_solve_ctx(buf, problem_sz)
+            ok = True
+            # bulk is built lazily on first readback (S1.2), so a merged plan
+            # that is never actually solved costs nothing extra.
+            return (ctx, readback, None)
+        except (CompileUnsatError, CompileIncompleteError, RuntimeError,
+                BackendIncomplete):
+            return False
+        finally:
+            b.destroy()
+            if not ok and ctx is not None:
+                ctx.destroy()
+
     def _solve_and_readback(self, ctx, readback, randstate, solve_info,
                             problem_buf=None, make_base=None,
                             sample_vars=None, has_order=False,
                             rand_order_l=None, dist_targets=None,
                             cond_dist_targets=None, dist_guard_vids=None,
-                            n_softs=0) -> bool:
+                            n_softs=0, plan=None) -> bool:
         """Solve ``ctx`` with a fresh seed and write the solved values back into
         the fields. Shared by the build and reuse paths.
 
@@ -702,14 +957,30 @@ class DvSolveBackend(SolverBackendIF):
             solve_info.n_sat_calls += 1
         # fair_pick=True: uniform marginals / full coverage — the correct
         # distribution for constrained-random stimulus.
+        _t = PT.now()
         rc = ctx.solve(seed=seed, fair_pick=True)
+        PT.add("solve", _t)
         if rc == SOLVE_OK:
+            _validate_model(ctx, "per-RandSet solve")
             # dv-solve returns an int64; for an unsigned field whose value has its
             # top bit set (only at width 64) that int64 is negative, so reinterpret
             # as unsigned. Signed fields are already correctly sign-extended.
-            for f, vid in readback:
-                f.set_val(self._as_field_value(
-                    ctx.get_value(vid), int(f.width), bool(f.is_signed)))
+            _t = PT.now()
+            if opt_flags.BULK_READBACK and plan is not None and readback:
+                # One FFI call for the whole RandSet. Only on the plan-reuse
+                # path: the buffers are built once and cached on the plan, so a
+                # first (build-path) solve does not pay to construct them.
+                bulk = plan.bulk
+                if bulk is None:
+                    bulk = plan.bulk = _BulkReadback(
+                        [(f, vid, int(f.width), bool(f.is_signed))
+                         for f, vid in readback])
+                bulk.read_into_fields(ctx)
+            else:
+                for f, vid in readback:
+                    f.set_val(self._as_field_value(
+                        ctx.get_value(vid), int(f.width), bool(f.is_signed)))
+            PT.add("readback", _t)
             return True
         # The native *search* is incomplete on some feasible sets that are not
         # simple intervals (e.g. weak backward propagation for extract/bitwise),

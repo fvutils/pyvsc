@@ -12,6 +12,8 @@ The metadata is read once per type by ``type_model.build_type_model`` to produce
 import dataclasses
 from typing import Any, Optional, Tuple
 
+from .domain import DeclaredDomain
+
 # Key under which FieldMeta is stored in dataclasses.Field.metadata.
 META_KEY = "vsc_dc"
 
@@ -30,7 +32,8 @@ class FieldMeta:
       - ``"sample_arg"``          — persistent sample formal (coverage)
     """
     role: str = ""
-    domain: Optional[Tuple[int, int]] = None
+    #: Normalized by ``rand()``/``randc()``; never a raw user spec.
+    domain: Optional[DeclaredDomain] = None
     size: Optional[int] = None
     max_size: Optional[int] = None
     soft: Any = None
@@ -63,19 +66,29 @@ def _mk(default, default_factory, meta: FieldMeta):
 
 def rand(*, domain=None, size=None, max_size=None, soft=None,
          width=None, signed=None, default=_MISSING, default_factory=_MISSING):
-    """A random field. ``domain=(lo,hi)`` restricts the value range; ``size``/
+    """A random field. ``domain=`` restricts the value range; ``size``/
     ``max_size`` declare (random-size) arrays; ``width``/``signed`` override the
-    annotation (needed for ``vdc.bitv``)."""
+    annotation (needed for ``vdc.bitv``).
+
+    ``domain`` accepts ``(lo, hi)``, ``range(lo, hi)`` (half-open, as in Python),
+    a union list such as ``[1, 2, (100, 200)]``, a ``rangelist``/``rng``, or a
+    weighted ``{value_or_range: weight}`` dict. It is normalized here so a bad
+    spec fails at class-definition time rather than at the first ``randomize()``.
+    A domain is a property of the *variable*, not a constraint over it -- see
+    :mod:`vsc.dc.domain`. On an array field it applies to every element."""
     return _mk(default, default_factory,
-               FieldMeta(role="rand", domain=domain, size=size,
+               FieldMeta(role="rand", domain=DeclaredDomain.parse(domain, "rand"),
+                         size=size,
                          max_size=max_size, soft=soft, width=width, signed=signed))
 
 
 def randc(*, domain=None, size=None, max_size=None,
           width=None, signed=None, default=_MISSING, default_factory=_MISSING):
-    """A cyclic-random field (visits its full domain before repeating)."""
+    """A cyclic-random field (visits its full domain before repeating).
+    ``domain`` takes the same spellings as :func:`rand`."""
     return _mk(default, default_factory,
-               FieldMeta(role="randc", domain=domain, size=size,
+               FieldMeta(role="randc", domain=DeclaredDomain.parse(domain, "randc"),
+                         size=size,
                          max_size=max_size, width=width, signed=signed))
 
 

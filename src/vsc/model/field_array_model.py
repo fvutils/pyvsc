@@ -48,9 +48,33 @@ class FieldArrayModel(FieldCompositeModel):
             is_rand_sz)
         self.size.parent = self
         self._set_size(0)
-        
+
+        # Cached result of _is_bulk() (None = not yet computed). Invalidated by
+        # every method that changes field_l.
+        self._bulk = None
+
+    def _is_bulk(self):
+        """True when every element is a plain scalar with no ``rand_if``.
+
+        Such an array can be walked with an inlined loop instead of one Python
+        method call per element, because each element's per-field work is known
+        statically: ``pre_randomize`` is a guaranteed no-op, ``post_randomize``
+        matters only if the element got a solver var, and ``set_used_rand``
+        reduces to one boolean expression. On a 128-element array those three
+        walks were 20.6 us of a 28.3 us randomize().
+
+        Exact type, not isinstance: EnumFieldModel overrides the behavior this
+        shortcut reasons about.
+        """
+        if self._bulk is None:
+            self._bulk = all(
+                type(f) is FieldScalarModel and f.rand_if is None
+                for f in self.field_l)
+        return self._bulk
+
     def append(self, fm):
         super().add_field(fm)
+        self._bulk = None
         self._set_size(len(self.field_l))
         fm.is_declared_rand = self.is_declared_rand
         fm.rand_mode = self.is_declared_rand
@@ -58,10 +82,12 @@ class FieldArrayModel(FieldCompositeModel):
         
     def clear(self):
         self.field_l.clear()
+        self._bulk = None
         self._set_size(0)
 
     def pop(self, idx=0):
         self.field_l.pop(idx)
+        self._bulk = None
         self._set_size(len(self.field_l))
         self.name_elems()
         
@@ -87,10 +113,28 @@ class FieldArrayModel(FieldCompositeModel):
             self.size.set_used_rand(True)
         else:
             self._set_size(len(self.field_l))
+        if self._is_bulk():
+            # A plain scalar element with no rand_if has a no-op
+            # pre_randomize, so the per-element walk is pure overhead.
+            if self.is_used_rand and self.rand_if is not None:
+                self.rand_if.do_pre_randomize()
+            return
         FieldCompositeModel.pre_randomize(self, visited)
         
     def post_randomize(self, visited):
-        FieldCompositeModel.post_randomize(self, visited)
+        if self._is_bulk():
+            if self.is_used_rand and self.rand_if is not None:
+                self.rand_if.do_post_randomize()
+            # FieldScalarModel.post_randomize converts `var.assignment` and
+            # fires `rand_if`. rand_if is None here by _is_bulk, so an element
+            # that never got a solver var (the T0 / direct-draw case, and any
+            # element already disposed) has nothing to do. Testing the
+            # attribute is ~5x cheaper than making the call.
+            for f in self.field_l:
+                if f.var is not None:
+                    f.post_randomize(visited)
+        else:
+            FieldCompositeModel.post_randomize(self, visited)
         self.sum_expr = None
         self.sum_expr_btor = None
         
@@ -107,6 +151,12 @@ class FieldArrayModel(FieldCompositeModel):
                 self.width,
                 self.is_signed,
                 self.is_declared_rand))
+        # A declared domain on the array applies per element, including the
+        # elements a random-size expansion adds after the model was built.
+        dd = getattr(self.type_t, "declared_domain", None)
+        if dd is not None:
+            ret.declared_domain = dd
+        self._bulk = None
         # Update the size
         self._set_size(len(self.field_l))
         return ret
@@ -117,7 +167,19 @@ class FieldArrayModel(FieldCompositeModel):
         super().build(builder)
         
     def set_used_rand(self, is_rand, level=0, in_set=None):
-        super().set_used_rand(is_rand, level, in_set)
+        if self._is_bulk():
+            self.is_used_rand = (is_rand and
+                                 ((self.is_declared_rand and self.rand_mode)
+                                  or level == 0))
+            v = self.is_used_rand
+            # FieldScalarModel.set_used_rand at level>0 reduces to exactly
+            # this. The `in_set` bookkeeping of the generic walk is skipped:
+            # a scalar element is owned solely by its array, so it cannot be
+            # reached twice, and the assignment is idempotent regardless.
+            for f in self.field_l:
+                f.is_used_rand = (v and f.is_declared_rand and f.rand_mode)
+        else:
+            super().set_used_rand(is_rand, level, in_set)
         self.size.set_used_rand(is_rand, level+1, in_set)
         
     def get_sum_expr(self):

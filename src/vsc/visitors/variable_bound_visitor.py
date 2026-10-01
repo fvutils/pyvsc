@@ -43,6 +43,19 @@ from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
 
 
+# Range-inequality operators whose narrow-field propagators are skippable on the
+# declared_only (dv-solve) path — the native core re-derives these bounds and its
+# narrow-field sampler is uniform regardless of declared-domain width.
+_RANGE_OPS = frozenset((
+    BinExprType.Lt, BinExprType.Le, BinExprType.Gt, BinExprType.Ge))
+
+# Fields at or below this width sample uniformly on the native path even when
+# handed their full declared domain (validated across u8/u16/u32, incl. tiny
+# feasible fractions). Wider fields (esp. 64-bit) show boundary bias unless given
+# the tightened domain, so their range propagators are always kept.
+_DECLARED_ONLY_NARROW_MAX_WIDTH = 32
+
+
 class VariableBoundVisitor(ModelVisitor):
     """Establishes bounds for each variable based on constraints"""
     
@@ -57,35 +70,64 @@ class VariableBoundVisitor(ModelVisitor):
         self._expr = None
         self.depth = 0
         self.process_subscript = True
+        # Stage 1 declared_only (dv-solve): narrow-field range propagators are
+        # skipped so the native core re-derives them. See process().
+        self.declared_only = False
         self.propagators = []
         
         # Result data from processing expressions
         self.field = None
         self.const = None
         
-    def process(self, 
+    def process(self,
                 variables,
                 constraints,
-                process_subscript=True) -> Dict[FieldModel, 'VarInfo']:
+                process_subscript=True,
+                declared_only=False) -> Dict[FieldModel, 'VarInfo']:
+        """Establish a VariableBoundModel per field.
+
+        ``declared_only`` (dv-solve path, ``derives_bounds`` capability): a
+        *narrowed* propagation. Phase 0 (declared domains) and the phase-1 walk
+        still run, but range-inequality propagators (``< <= > >=``) targeting a
+        **narrow** field (width <= ``_DECLARED_ONLY_NARROW_MAX_WIDTH``) are
+        skipped: the native back-end re-derives those bounds itself and, for
+        narrow fields, its sampler is uniform regardless of the declared-domain
+        width (validated — see doc/notes/dv_solve_native_full_problem_plan.md,
+        Stage 1 / Option A). The propagators that are KEPT are the ones the
+        native path can't reconstruct or that the sampler needs:
+
+          - **Eq** (``==`` pins) and **In** (``inside`` / rangelist folds) — the
+            back-end's sole carriers for a wide literal or a bounds-only fold; if
+            dropped the constraint is silently lost.
+          - **range propagators on WIDE fields** (width > threshold) — the wide
+            (>32-bit) sampler exhibits boundary bias unless ``add_var`` is handed
+            the tightened domain.
+
+        This trims the expensive propagation over narrow array elements (the
+        ~24% cold cost) while preserving correctness and distribution. Not
+        bit-identical: skipped narrow fields reach the back-end with their
+        declared domain, changing its search path (results stay valid/uniform).
+        """
         self.bound_m : Dict[FieldModel, 'VarInfo'] = {}
         self.process_subscript = process_subscript
-        
+        self.declared_only = declared_only
+
         # Tracks how deep we are in expressions, so we know
         # how to process expressions
         self.depth = 0
-        
+
         self.phase = 0
         for v in variables:
             v.accept(self)
         for c in constraints:
             c.accept(self)
-            
+
         self.phase = 1
         for v in variables:
             v.accept(self)
         for c in constraints:
             c.accept(self)
-            
+
         # Now, process propagators until we stabilize
         changed = True
         count = 0
@@ -95,10 +137,10 @@ class VariableBoundVisitor(ModelVisitor):
             for p in self.propagators:
                 changed |= p.propagate()
             count += 1
-            
+
         if count >= limit:
             print("Note: variable bounds model failed to converge in " + str(limit) + " iterations")
-            
+
         # Update data calcuated from domain ranges
         for f,b in self.bound_m.items():
             b.update()
@@ -170,13 +212,25 @@ class VariableBoundVisitor(ModelVisitor):
             else:
                 lhs_bounds = None
                 
-            if rhs_fm is not None and rhs_fm in self.bound_m.keys():                
+            if rhs_fm is not None and rhs_fm in self.bound_m.keys():
                 rhs_bounds = self.bound_m[rhs_fm]
             else:
                 rhs_bounds = None
-                
+
+            # Stage 1 (declared_only): skip a range-inequality propagator when its
+            # target field is narrow — the native back-end re-derives that bound
+            # and samples it uniformly regardless of declared-domain width. Eq
+            # pins and wide-field ranges fall through and are still built (they
+            # are the back-end's sole carrier / the wide sampler needs the tight
+            # domain). See process() docstring.
+            if self.declared_only and e.op in _RANGE_OPS:
+                target_fm = lhs_fm if lhs_bounds is not None else rhs_fm
+                tw = getattr(target_fm, "width", None)
+                if tw is not None and tw <= _DECLARED_ONLY_NARROW_MAX_WIDTH:
+                    return
+
             propagator = None
-                
+
             if lhs_bounds is not None and rhs_bounds is not None:
                 # Two-sided relationship involving fields
                 propagator = self.lhsvar_rhsvar_propagator(

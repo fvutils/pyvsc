@@ -44,7 +44,14 @@ class FieldScalarModel(FieldModel):
         self.rand_if = rand_if
         self.var = None
         self.val = ValueScalar(0)
-        
+        # Declared domain (vsc.dc.domain.DeclaredDomain) or None. A *property of
+        # the variable*, not a constraint over it: it is intersected into this
+        # field's initial VariableBoundScalarModel domain, so the back-ends, the
+        # unconstrained direct draw, the swizzler and cyclic all see it without
+        # anything appearing in constraint_l. That is what keeps a domain-only
+        # field separable (and so eligible for the no-solver tier).
+        self.declared_domain = None
+
     def set_used_rand(self, is_rand, level=0, in_set=None):
         # Field is considered rand when
         # - It is a root field, on which 'randomize' is called

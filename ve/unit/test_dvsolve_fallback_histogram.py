@@ -389,6 +389,7 @@ class TestDvSolveFallbackHistogram(VscTestCase):
     def setUp(self):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
+        self.disable_t0()   # the histogram counts back-end deferrals
         # The documented residual taxonomy is the *default-config* one (serve-SAT
         # off). Pin it so the dashboard is deterministic even when the ambient env
         # forces serve-SAT on (e.g. a suite-wide audit run): with serve-SAT on,

@@ -18,3 +18,14 @@ class DcTestCase(TestCase):
 
     def tearDown(self):
         ctor.test_teardown()
+
+    def disable_t0(self):
+        """Keep this test on the solver. Mirrors VscTestCase.disable_t0 -- see
+        there for why a back-end test needs it."""
+        import vsc.model.randomizer as _rnd
+        saved = _rnd._T0_ENABLED
+        _rnd._T0_ENABLED = False
+
+        def _restore():
+            _rnd._T0_ENABLED = saved
+        self.addCleanup(_restore)

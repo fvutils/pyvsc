@@ -66,7 +66,53 @@ for _b in range(1, 65):
     _g["s%d" % _b] = Annotated[int, _Width(_b, True)]
 del _g, _b
 
+# ---------------------------------------------------------------------------
+# Inclusive range-slice helper
+# ---------------------------------------------------------------------------
+
+class _RangeSlice:
+    """``vdc.r[lo:hi]`` — an **inclusive** value range, the closest legal Python
+    spelling of SystemVerilog's ``inside {[lo:hi]}``.
+
+    Inside a ``@vdc.constraint`` body this is recognized by the AST parser and is
+    never executed; the runtime behaviour here exists so the object is real outside
+    a constraint (and so a typo surfaces as a normal error rather than silence).
+
+        self.a in vdc.r[3:50]              # 3..50 inclusive
+        self.a in vdc.r[3:50, 100:200]     # a union of inclusive ranges
+
+    Contrast ``range(3, 50)``, which is **half-open** (3..49) because that is what
+    ``range`` means in Python. Both spellings are accepted; they differ at the upper
+    endpoint, deliberately.
+    """
+
+    __slots__ = ()
+
+    def __getitem__(self, key):
+        # Imported lazily: this is a cold path, and vsc.types pulls in the whole
+        # expression machinery, which dc.types must not depend on at import time.
+        from vsc.types import rangelist, rng
+        items = key if isinstance(key, tuple) else (key,)
+        out = []
+        for it in items:
+            if not isinstance(it, slice):
+                raise TypeError(
+                    "vdc.r takes range slices (r[lo:hi]); got %r" % (it,))
+            if it.step is not None:
+                raise TypeError("vdc.r does not support a step (r[lo:hi:step])")
+            if it.start is None or it.stop is None:
+                raise TypeError("vdc.r requires explicit bounds (r[lo:hi])")
+            out.append(rng(it.start, it.stop))
+        return rangelist(*out)
+
+    def __repr__(self):
+        return "vdc.r"
+
+
+r = _RangeSlice()
+
+
 # Explicit, documented exports (the generated names above are all valid too).
-__all__ = ["_Width", "width_of", "bitv"] \
+__all__ = ["_Width", "width_of", "bitv", "r"] \
     + ["u%d" % b for b in range(1, 65)] \
     + ["s%d" % b for b in range(1, 65)]

@@ -30,6 +30,42 @@ from vsc.model.solvegroup_swizzler_partsel import SolveGroupSwizzlerPartsel
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 
 
+def _declared_domain_terms(btor, rs):
+    """Boolector terms enforcing each rand field's *declared domain*.
+
+    A declared domain (``vdc.rand(domain=...)``) deliberately produces no
+    ``ConstraintExprModel`` -- that is what keeps a domain-only field separable
+    for the no-solver tier. dv-solve picks it up from ``bound_m`` when it
+    declares the native variable; Boolector solves from the constraint set alone,
+    so the domain has to be handed to it here instead. Built at solve time and
+    never added to ``rs``, so RandSet partitioning and separability are
+    unaffected.
+
+    Returned in the same ``(model, term)`` shape as ``constraint_l`` so the
+    existing assume/assert and failure-reporting paths handle them unchanged.
+    """
+    from vsc.model.constraint_expr_model import ConstraintExprModel
+    from vsc.model.expr_fieldref_model import ExprFieldRefModel
+    from vsc.model.expr_in_model import ExprInModel
+    from vsc.model.expr_literal_model import ExprLiteralModel
+    from vsc.model.expr_range_model import ExprRangeModel
+    from vsc.model.expr_rangelist_model import ExprRangelistModel
+
+    out = []
+    for f in rs.rand_fields():
+        dd = getattr(f, "declared_domain", None)
+        if dd is None:
+            continue
+        rl = ExprRangelistModel()
+        for lo, hi in dd.ranges:
+            rl.add_range(ExprRangeModel(
+                ExprLiteralModel(lo, f.is_signed, f.width),
+                ExprLiteralModel(hi, f.is_signed, f.width)))
+        c = ConstraintExprModel(ExprInModel(ExprFieldRefModel(f), rl))
+        out.append((c, c.build(btor, False)))
+    return out
+
+
 class BoolectorBackend(SolverBackendIF):
     """Wraps the existing Boolector machinery (RandSetNodeBuilder, the node
     ``build(btor)`` methods, and the partsel swizzler). Solving and value
@@ -70,6 +106,7 @@ class BoolectorBackend(SolverBackendIF):
         rs_node_builder.build(rs)
 
         constraint_l = list(map(lambda c: (c, c.build(btor, False)), rs.constraints()))
+        constraint_l.extend(_declared_domain_terms(btor, rs))
         soft_constraint_l = list(map(lambda c: (c, c.build(btor, True)), rs.soft_constraints()))
 
         # Sort the list in descending order so we know which constraints

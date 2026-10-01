@@ -445,14 +445,92 @@ class _Parser:
                 return self._constraint_ref(node, attr, node.args, node.keywords)
         self._err(node, "unsupported call in expression")
 
+    @staticmethod
+    def _callee_name(node):
+        """Bare name of a call target: ``rangelist``/``vdc.rangelist`` -> 'rangelist'."""
+        f = node.func
+        if isinstance(f, ast.Attribute):
+            return f.attr
+        if isinstance(f, ast.Name):
+            return f.id
+        return None
+
+    def _range_call(self, node):
+        """``range(hi)`` / ``range(lo, hi)`` -> a HALF-OPEN IRRange, i.e. [lo, hi-1].
+
+        Half-open because that is what ``range`` means in Python: ``a in range(3, 50)``
+        must exclude 50, exactly as ``50 in range(3, 50)`` is False. The inclusive
+        spellings are ``(lo, hi)``, ``vdc.rng(lo, hi)`` and ``vdc.r[lo:hi]``.
+
+        A literal upper bound is decremented at parse time; a non-literal one becomes
+        ``hi - 1`` so field/arithmetic endpoints keep working.
+        """
+        if len(node.args) == 1:
+            lo, hi = IRConst(0), self._expr(node.args[0])
+        elif len(node.args) == 2:
+            lo, hi = self._expr(node.args[0]), self._expr(node.args[1])
+        else:
+            self._err(node, "range() in a constraint takes 1 or 2 arguments "
+                            "(a step is not supported)")
+        if isinstance(hi, IRConst):
+            hi = IRConst(hi.value - 1)
+        else:
+            hi = IRBin("-", hi, IRConst(1))
+        return IRRange(lo, hi)
+
+    def _slice_range(self, sl):
+        """``vdc.r[lo:hi]`` -> an INCLUSIVE IRRange [lo, hi], matching SystemVerilog
+        ``inside {[lo:hi]}``. (Contrast ``range(lo, hi)``, which is half-open.)"""
+        if sl.step is not None:
+            self._err(sl, "a range slice with a step (r[lo:hi:step]) is not supported")
+        if sl.lower is None or sl.upper is None:
+            self._err(sl, "a range slice requires explicit bounds (r[lo:hi])")
+        return IRRange(self._expr(sl.lower), self._expr(sl.upper))
+
     def _ranges(self, node):
-        """Parse the argument to inside(): vdc.rangelist(...) call, or a list."""
+        """Parse the argument to ``inside()`` / the RHS of ``in``.
+
+        Accepted forms (all denote a set of values):
+
+          * ``vdc.rangelist(...)``       -- classic spelling
+          * ``[...]`` / ``(...)``        -- list/tuple literal
+          * ``range(lo, hi)``            -- HALF-OPEN, Python semantics
+          * ``vdc.r[lo:hi]``             -- INCLUSIVE, SystemVerilog semantics
+
+        and, as elements of a list: a bare value, a ``(lo, hi)`` tuple (inclusive),
+        ``vdc.rng(lo, hi)`` (inclusive), ``range(lo, hi)`` (half-open), or a nested
+        list of values.
+        """
         if isinstance(node, ast.Call):
+            callee = self._callee_name(node)
+            if callee == "range":
+                return [self._range_call(node)]
+            if callee != "rangelist":
+                # Historically ANY call had its arguments splatted as set members,
+                # so `a in range(3, 50)` silently meant `a inside {3, 50}`. Refuse
+                # unrecognized calls rather than guess at their arguments.
+                self._err(node, "unsupported call %r in a value set: use "
+                                "vdc.rangelist(...), a list literal, range(lo, hi) "
+                                "(half-open) or vdc.r[lo:hi] (inclusive)"
+                                % (callee or "<expr>"))
             items = node.args
         elif isinstance(node, (ast.List, ast.Tuple)):
             items = node.elts
+        elif isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice):
+            # vdc.r[lo:hi]
+            return [self._slice_range(node.slice)]
+        elif isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Tuple):
+            # vdc.r[lo:hi, lo2:hi2] -- a union of inclusive ranges
+            out = []
+            for e in node.slice.elts:
+                if not isinstance(e, ast.Slice):
+                    self._err(node, "every entry of a multi-range slice must be "
+                                    "a range (r[lo:hi, lo2:hi2])")
+                out.append(self._slice_range(e))
+            return out
         else:
-            self._err(node, "inside() argument must be a rangelist(...) or list literal")
+            self._err(node, "value set must be a rangelist(...), a list literal, "
+                            "range(lo, hi) or vdc.r[lo:hi]")
         # Range endpoints are general expressions (constants, fields, or arithmetic
         # over them) — not just literals — so `a inside [rng(c, d)]` / `[b, b+1]`
         # with rand endpoints works like the classic front-end. A literal endpoint
@@ -462,9 +540,13 @@ class _Parser:
         for it in items:
             if isinstance(it, ast.Tuple) and len(it.elts) == 2:
                 out.append(IRRange(self._expr(it.elts[0]), self._expr(it.elts[1])))
-            elif (isinstance(it, ast.Call) and isinstance(it.func, ast.Attribute)
-                    and it.func.attr == "rng"):
+            elif isinstance(it, ast.Call) and self._callee_name(it) == "rng":
                 out.append(IRRange(self._expr(it.args[0]), self._expr(it.args[1])))
+            elif isinstance(it, ast.Call) and self._callee_name(it) == "range":
+                # `a in [range(3, 50), range(100, 200)]` -- a union of half-open ranges
+                out.append(self._range_call(it))
+            elif isinstance(it, ast.Subscript) and isinstance(it.slice, ast.Slice):
+                out.append(self._slice_range(it.slice))
             elif isinstance(it, ast.List):
                 for e in it.elts:
                     out.append(IRRange(self._expr(e)))

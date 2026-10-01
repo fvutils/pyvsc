@@ -43,6 +43,7 @@ from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.field_composite_model import FieldCompositeModel
 from vsc.model.model_visitor import ModelVisitor
+from vsc.model.separability import analyze_separable, rand_refs
 from vsc.model.randomizer import Randomizer
 from vsc.model.solve_failure import SolveFailure
 from vsc.visitors.variable_bound_visitor import VariableBoundVisitor
@@ -131,23 +132,8 @@ def _record(used, field_models, names):
 # Fast path (separable randc): bound-domain candidate + evaluation filter
 # ---------------------------------------------------------------------------
 
-class _RandRefCollector(ModelVisitor):
-    """Collect the rand-*enabled* field models referenced by a constraint."""
-
-    def __init__(self):
-        super().__init__()
-        self.refs = set()
-
-    def visit_expr_fieldref(self, e):
-        fm = e.fm
-        if getattr(fm, "is_declared_rand", False) and getattr(fm, "rand_mode", False):
-            self.refs.add(fm)
-
-
 def _rand_refs(stmt):
-    c = _RandRefCollector()
-    stmt.accept(c)
-    return c.refs
+    return rand_refs(stmt)
 
 
 def _all_blocks(composite):
@@ -162,29 +148,18 @@ def _all_blocks(composite):
 def _fast_analysis(names, name2fm, blocks):
     """For each randc field, decide separability and collect its atomic constraints.
 
-    Returns ``(fast, cons)`` where ``fast`` is the set of names that are both
-    separable (never co-occur with another rand field in a statement) and whose
-    every referencing statement is an atomic ``ConstraintExprModel``; ``cons`` maps
-    each such name to the list of atomic constraints referencing it (for filtering).
+    Thin name-keyed adapter over ``separability.analyze_separable`` (the shared
+    implementation, also used by the T0 tier). Returns ``(fast, cons)`` where
+    ``fast`` is the set of names that are both separable (never co-occur with
+    another rand field in a statement) and whose every referencing statement is
+    an atomic ``ConstraintExprModel``; ``cons`` maps each such name to the list
+    of atomic constraints referencing it (for filtering).
     """
-    target = {name2fm[n]: n for n in names if n in name2fm}
-    ok = set(target.values())
-    cons = {n: [] for n in target.values()}
-    for blk in blocks:
-        for stmt in blk.constraint_l:
-            refs = _rand_refs(stmt)
-            here = [target[fm] for fm in refs if fm in target]
-            if not here:
-                continue
-            if len(refs) > 1:                 # coupled to another rand field
-                for n in here:
-                    ok.discard(n)
-            if isinstance(stmt, ConstraintExprModel):
-                for n in here:
-                    cons[n].append(stmt)
-            else:                             # non-atomic (scope/foreach/...)
-                for n in here:
-                    ok.discard(n)
+    fm2name = {name2fm[n]: n for n in names if n in name2fm}
+    stmts = [stmt for blk in blocks for stmt in blk.constraint_l]
+    ok_fm, cons_fm = analyze_separable(fm2name.keys(), stmts)
+    ok = {fm2name[fm] for fm in ok_fm}
+    cons = {fm2name[fm]: c for fm, c in cons_fm.items()}
     return ok, cons
 
 

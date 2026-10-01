@@ -33,12 +33,26 @@ class RandInfo(object):
         self.randset_l :List[RandSet] = randset_l
         self.unconstrained_l :List[FieldModel] = unconstrained_l
         self.floating_constraint_l = floating_constraint_l
+        # RandSets promoted to the T0 no-solver tier: their fields have been
+        # appended to unconstrained_l and they are no longer solved. Retained
+        # because the plan cache builds its freshness signature from the fields
+        # and constraints the RandSets reference -- dropping them would stop it
+        # noticing a change that invalidates a promoted field's domain.
+        self.t0_randset_l :List[RandSet] = []
         
     def add_randset(self, r : RandSet):
         self.randset_l.append(r)
         
     def randsets(self) ->List[RandSet]:
         return self.randset_l
+
+    def all_randsets(self) ->List[RandSet]:
+        """Every RandSet the build produced, solved or T0-promoted. Use this
+        (not randsets()) for anything that reasons about the *model* rather than
+        about what the solver is asked to do."""
+        if not self.t0_randset_l:
+            return self.randset_l
+        return self.randset_l + self.t0_randset_l
         
     def add_field(self, f:FieldModel):
         self.unconstrained_l.append(f)

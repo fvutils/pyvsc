@@ -160,6 +160,9 @@ def _array_decl(name, meta, elem_ann):
         size=size, max_size=max_size,
         soft=(meta.soft if meta is not None else None),
         role=(meta.role if meta is not None else ""),
+        # A declared domain on an array applies to every *element*. Before this
+        # it was dropped here and silently ignored.
+        domain=(meta.domain if meta is not None else None),
         is_array=True, is_rand_sz=is_rand_sz)
 
 
@@ -414,6 +417,21 @@ def build_type_model(cls):
     for f in dataclasses.fields(cls):
         meta = get_field_meta(f)
         ann = hints.get(f.name)
+        if meta is not None and meta.domain is not None:
+            # Reject the shapes where a domain has no meaning rather than
+            # dropping it on the floor (which is what array fields used to do).
+            bad = None
+            if _is_rand_class(ann):
+                bad = "a nested composite"
+            elif isinstance(ann, EnumMeta):
+                bad = "an enum field (its domain is the member set)"
+            else:
+                ea = _list_element(ann)
+                if ea is not None and (_is_rand_class(ea) or isinstance(ea, EnumMeta)):
+                    bad = "an array of composites/enums"
+            if bad is not None:
+                raise TypeError("%s.%s: domain= is not supported on %s"
+                                % (cls.__name__, f.name, bad))
         if _is_rand_class(ann):
             # Nested composite: a field typed as another RandClass. rand-ness comes
             # from the field factory (vdc.rand() -> rand, vdc.field()/bare -> not).

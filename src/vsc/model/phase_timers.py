@@ -29,31 +29,65 @@ cnt = Counter()
 
 #: Declaration order for reporting (phases not listed are appended, sorted).
 ORDER = [
-    "apply_node",       # vdc copy-in  (solve_view._apply_node)
-    "set_used_rand",    # randomizer housekeeping walk
-    "clear_soft_pri",   # randomizer housekeeping walk
-    "pre_randomize",    # randomizer housekeeping walk
-    "randinfo_build",   # RandSet partitioning (skipped on a plan-cache hit)
-    "solve",            # native solve (inside the back-end)
-    "readback",         # field values out of the solver
-    "rollback",         # constraint-override rollback walk
-    "post_randomize",   # randomizer housekeeping walk (drives vdc writeback)
-    "writeback",        # vdc model -> instance attributes
+    "apply_node",         # vdc copy-in  (solve_view._apply_node)
+    "set_used_rand",      # randomizer housekeeping walk
+    "clear_soft_pri",     # randomizer housekeeping walk
+    "pre_randomize",      # randomizer housekeeping walk
+    # --- cold path only: skipped entirely on a plan-cache hit ---
+    "bounds_1",           # VariableBoundVisitor, pre-array-expansion
+    "plan_snapshot",      # rangelist/dist state capture for the plan cache
+    "array_dist_expand",  # ArrayConstraintBuilder + DistConstraintBuilder
+    "bounds_2",           # VariableBoundVisitor, post-expansion
+    "randinfo_build",     # RandSet partitioning
+    # --- every call ---
+    "unconstrained_draw", # direct draw for unconstrained fields (and T0)
+    "solve",              # native solve (inside the back-end)
+    "readback",           # field values out of the solver
+    "merged_finalize",    # per-variable finalize on the merged fast path
+    "rollback",           # constraint-override rollback walk
+    "post_randomize",     # randomizer housekeeping walk (drives vdc writeback)
+    "writeback",          # vdc model -> instance attributes
 ]
 
 
-if ENABLED:
-    now = time.perf_counter
+def _live_now():
+    return time.perf_counter()
 
-    def add(name, t0):
-        acc[name] += time.perf_counter() - t0
-        cnt[name] += 1
-else:
-    def now():
-        return 0.0
 
-    def add(name, t0):
-        pass
+def _live_add(name, t0):
+    acc[name] += time.perf_counter() - t0
+    cnt[name] += 1
+
+
+def _off_now():
+    return 0.0
+
+
+def _off_add(name, t0):
+    pass
+
+
+def set_enabled(on):
+    """Turn instrumentation on/off at runtime, returning the previous state.
+
+    Call sites go through the module attributes (``PT.now()`` / ``PT.add()``), so
+    rebinding them here takes effect immediately. This exists so a benchmark can
+    take its *headline* number with the timers genuinely off and its *breakdown*
+    in a second pass with them on, in one process. Without it the headline is
+    silently instrumented whenever ``VSC_PHASE_TIMERS`` is set -- which is how
+    ``benchmarks/BASELINE_stage_profile.txt`` was originally recorded, making
+    those headline rates ~2x pessimistic (the per-stage *shares* in it are
+    unaffected, since they come from the instrumented pass either way).
+    """
+    global now, add, ENABLED
+    prev = ENABLED
+    ENABLED = bool(on)
+    now, add = (_live_now, _live_add) if ENABLED else (_off_now, _off_add)
+    return prev
+
+
+now = _live_now if ENABLED else _off_now
+add = _live_add if ENABLED else _off_add
 
 
 def reset():

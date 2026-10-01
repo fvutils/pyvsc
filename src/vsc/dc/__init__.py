@@ -36,6 +36,7 @@ from . import types as _types
 from vsc.constraints import (else_if, else_then, foreach, if_then, implies,  # noqa: F401
                              solve_order, soft, unique, unique_vec, weight, dist)
 from vsc.types import rangelist, rng  # noqa: F401
+from .types import r  # noqa: F401  (inclusive range-slice helper: vdc.r[3:50])
 from vsc.model.solve_failure import SolveFailure  # noqa: F401
 
 # Re-export the generated width aliases (u1..u64, s1..s64).
@@ -53,5 +54,5 @@ __all__ = [
     "bitv",
     "if_then", "else_if", "else_then", "implies", "foreach",
     "soft", "unique", "unique_vec", "solve_order", "weight", "dist", "rangelist",
-    "rng", "SolveFailure",
+    "rng", "r", "SolveFailure",
 ] + [n for n in _types.__all__ if n[0] in ("u", "s") and n[1:].isdigit()]

@@ -79,6 +79,18 @@ class SolverBackendIF(object):
     # Randomizer skips the Boolector swizzler.
     randomizes_internally = False
 
+    # True => the back-end tightens variable domains from the constraints
+    # itself (native bound propagation), so the Randomizer can skip the
+    # expensive post-expansion VariableBoundVisitor propagation pass and feed
+    # the back-end only *declared* domains. The back-end re-derives any
+    # tightening and enforces membership (inside/enum/dist) from the translated
+    # constraints. See doc/notes/dv_solve_native_full_problem_plan.md (Stage 1).
+    # NOTE: gating this changes generated values for a fixed seed (different
+    # initial domain -> different search path); results stay valid, not
+    # bit-identical. Boolector leaves this False (it needs propagated bounds for
+    # the swizzler).
+    derives_bounds = False
+
     @classmethod
     def available(cls) -> bool:
         """Return True if this back-end can be used in the current
