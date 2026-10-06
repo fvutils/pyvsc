@@ -741,3 +741,69 @@ class TestConstraintDist(VscTestCase):
         run_obj(obj)        
         
         
+    def test_dist_weight_rand_field_inline(self):
+        # Issue #282: dist weights that reference a rand field must use
+        # the solved value, not the value from before randomization
+
+        @vsc.randobj
+        class my_c(object):
+
+            def __init__(self):
+                self.BURST = vsc.rand_uint8_t()
+                self.burst_weight = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def burst_length_c(self):
+                vsc.dist(self.BURST, [
+                    vsc.weight(1, self.burst_weight),
+                    vsc.weight(0, 100-self.burst_weight)])
+
+        # Alternate the inline weight, so the pre-randomization value
+        # is always the 'other' weight
+        hist = {10: [0,0], 90: [0,0]}
+        c = my_c()
+        for i in range(400):
+            bw = 10 if (i%2) == 0 else 90
+            with c.randomize_with() as it:
+                it.burst_weight == bw
+            self.assertEqual(c.burst_weight, bw)
+            hist[bw][c.BURST] += 1
+
+        # Expect ~20/200 1s with bw=10, and ~180/200 1s with bw=90
+        self.assertLess(hist[10][1], 60)
+        self.assertGreater(hist[90][1], 140)
+
+        # A fresh object starts with burst_weight=0. The 1 must still be selected
+        n_one = 0
+        for i in range(100):
+            c = my_c()
+            with c.randomize_with() as it:
+                it.burst_weight == 50
+            n_one += c.BURST
+        self.assertGreater(n_one, 20)
+        self.assertLess(n_one, 80)
+
+    def test_dist_weight_rand_field_all_zero(self):
+        # A weight that depends on a rand field may be zero
+        # before randomization, but non-zero after
+
+        @vsc.randobj
+        class my_c(object):
+
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+                self.w = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def a_c(self):
+                self.w > 0
+                self.w < 10
+                vsc.dist(self.a, [
+                    vsc.weight(1, self.w),
+                    vsc.weight(2, self.w)])
+
+        c = my_c()
+        for i in range(20):
+            c.randomize()
+            self.assertIn(c.a, [1,2])
+            self.assertTrue(0 < c.w < 10)

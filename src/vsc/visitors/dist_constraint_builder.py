@@ -22,6 +22,18 @@ from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 
 
+class _FieldRefCollector(ModelVisitor):
+    """Collects referenced fields, in reference order"""
+
+    def __init__(self, field_l):
+        super().__init__()
+        self.field_l = field_l
+
+    def visit_expr_fieldref(self, e):
+        if e.fm not in self.field_l:
+            self.field_l.append(e.fm)
+
+
 class DistConstraintBuilder(ConstraintOverrideVisitor):
     
     def __init__(self, randstate):
@@ -94,19 +106,14 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
                                 w.rng_lhs))
                     ]))
 
-        # Form a list of non-zero weighted tuples of weight/range
-        # Sort in ascending order
-        weight_list = []
-        total_weight = 0
-        for i,w in enumerate(c.weights):
-            weight = int(w.weight.val())
-            total_weight += weight
-            if weight > 0:
-                weight_list.append((weight, i))
-        weight_list.sort(key=lambda w:w[0])
+        # Form a list of non-zero weighted tuples of weight/range.
+        # Note: weights that reference rand fields are re-evaluated
+        # by the swizzler once those fields have been solved
+        scope.update_weights()
 
-        scope.weight_list = weight_list
-        scope.total_weight = total_weight
+        ref_c = _FieldRefCollector(scope.weight_field_l)
+        for w in c.weights:
+            w.weight.accept(ref_c)
 
         # Call next_target_range for solvegroup_swizzler_range to use
         _ = scope.next_target_range(self.rng)

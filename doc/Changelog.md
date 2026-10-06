@@ -1,3 +1,7 @@
+
+## 0.9.6
+- (#282) - Enusre that dist weights respect randomized value of rand fields in expressions
+
 ## 0.9.5
 - (#237) - Add support for specifying cross-bins to ignore
 
