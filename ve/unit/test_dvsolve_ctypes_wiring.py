@@ -69,7 +69,10 @@ class TestDvSolveCtypesWiring(unittest.TestCase):
 
     def test_concat_wired_canary(self):
         # Named canary for the exact CI regression: builder_expr_concat unwired.
-        fn = getattr(_LIB, "builder_expr_concat")
+        # dv-solve now prefixes its builder entry points with ``dvs_``; take
+        # whichever name this build's wrapper actually calls.
+        name = next(n for n in _called_c_functions() if n.endswith("builder_expr_concat"))
+        fn = getattr(_LIB, name)
         self.assertIsNotNone(
             fn.argtypes, "builder_expr_concat lost its ctypes argtypes wiring")
         self.assertIs(fn.argtypes[0], ctypes.c_void_p)

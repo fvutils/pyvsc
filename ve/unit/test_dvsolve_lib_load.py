@@ -29,15 +29,18 @@ def _dv_solve_lib():
 
 
 def _package_build_dirs(lib_mod):
-    """The build dirs `_candidate_paths` derives from lib.py's own location.
+    """The library dirs dv-solve derives from lib.py's own location.
 
-    Mirrors `_candidate_paths` candidate group #3: pkg_root is three parents up
-    from lib.py (dv_solve/ -> src/ -> dv-solve/). This is the exact level the
-    E4-2 fix corrected (was four, which overshot to packages/).
+    Mirrors the source-checkout candidates (dv_solve/_resolve.py, group #3):
+    pkg_root is three parents up from lib.py (dv_solve/ -> src/ -> dv-solve/),
+    the exact level the E4-2 fix corrected (was four, which overshot to
+    packages/). Each build dir is searched at its root (the pre-install link
+    output) and at its ``lib``/``lib64`` install destinations, where current
+    dv-solve builds put the library.
     """
     pkg_root = Path(lib_mod.__file__).parent.parent.parent
     names = ("build", "_build", "build_release", "cmake-build-release")
-    return [pkg_root / n for n in names]
+    return [pkg_root / n / sub for n in names for sub in ("", "lib", "lib64")]
 
 
 def _has_package_built_lib(lib_mod):

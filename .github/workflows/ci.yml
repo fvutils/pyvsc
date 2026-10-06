@@ -76,8 +76,24 @@ jobs:
         ./python/bin/python3 -m pip install wheel twine
         ./python/bin/python3 -m pip install pip setuptools --upgrade
         ./python/bin/python3 -m pip install -r requirements_dev.txt
-        export BUILD_NUM=$GITHUB_RUN_ID
+        # THE TAG IS THE VERSION. setup.py takes the version from etc/ivpm.info
+        # and appends "." + $BUILD_NUM when it is set. A tag build leaves it
+        # unset, so a release carries exactly the number in ivpm.info (checked
+        # against the tag before publishing). Every other build is stamped with
+        # a PEP 440 dev + local segment:
+        #
+        #   0.9.6.dev37412289187+gh.g7775f37
+        #
+        # .dev sorts BEFORE the release (a bare .<run-id> sorts after it, so a CI
+        # build would outrank the release it came from); +gh. says which forge
+        # built it (run ids collide across forges); and PyPI rejects any local
+        # segment, so a branch build can never be published.
+        case "$GITHUB_REF" in
+          refs/tags/v*) unset BUILD_NUM ;;
+          *) export BUILD_NUM="dev${GITHUB_RUN_ID}+gh.g$(git rev-parse --short=7 HEAD)" ;;
+        esac
         ./python/bin/python3 setup.py bdist_wheel --universal
+        ls dist/
     - name: Install dv-solve
       if: matrix.solver == 'dv-solve'
       # The native back-end under test; builds its lib via CMake (provided by the
@@ -128,6 +144,29 @@ jobs:
     #
     # THE DOCS BUILD ABOVE STAYS, as a CI check. A broken cross-reference should fail
     # here, not render as a dead link on dvkit.org.
+
+    - name: Check the tag IS the version
+      # REQUIRED before publishing: the tag alone decides the published version.
+      # Asserts the source (etc/ivpm.info) agrees with the tag AND that every
+      # built artifact agrees with the source -- a build that read a stale
+      # version, or picked up a BUILD_NUM stamp, passes the first and fails the
+      # second. v0.9.6 shipped as 0.9.6.37412289187 for want of this check.
+      if: matrix.solver == 'boolector' && startsWith(github.ref, 'refs/tags/v')
+      run: |
+        tag="${GITHUB_REF#refs/tags/v}"
+        base=$(sed -n 's/^version=//p' etc/ivpm.info | tr -d '[:space:]')
+        echo "tag=$tag  source=$base"
+        if [ "$tag" != "$base" ]; then
+          echo "::error::tag v$tag does not match version=$base in etc/ivpm.info"
+          exit 1
+        fi
+        for f in dist/*; do
+          case "$(basename "$f")" in
+            pyvsc-${base}-*.whl|pyvsc-${base}.tar.gz) ;;
+            *) echo "::error::artifact $(basename "$f") is not version ${base}"; exit 1 ;;
+          esac
+        done
+        echo "OK: tag, source version and every artifact agree on ${base}"
 
     - name: Publish to PyPi
       # GATED 2026-08-31 (wave 3b). Two clauses, and both are load-bearing:
