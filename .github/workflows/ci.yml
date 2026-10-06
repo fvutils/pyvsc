@@ -98,7 +98,15 @@ jobs:
       if: matrix.solver == 'dv-solve'
       # The native back-end under test; builds its lib via CMake (provided by the
       # ubuntu-latest image). Only needed on the dv-solve leg.
-      run: ./python/bin/python3 -m pip install git+https://github.com/fvutils/dv-solve.git
+      run: |
+        # dv-solve builds CaDiCaL from source, found as a SIBLING checkout
+        # (<packages>/cadical, normally fetched by ivpm), so a bare
+        # `pip install git+...dv-solve.git` fails at CMake configure. Clone
+        # both side by side, CaDiCaL at the tag dv-solve's own ivpm.yaml pins.
+        git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        cadical_tag=$(sed -n '/name: cadical/,/tag:/s/.*tag: *//p' packages/dv-solve/ivpm.yaml)
+        git -c advice.detachedHead=false clone -q --depth 1 -b "$cadical_tag" https://github.com/arminbiere/cadical.git packages/cadical
+        ./python/bin/python3 -m pip install ./packages/dv-solve
     - name: Run Tests
       env:
         VSC_SOLVER: ${{ matrix.solver }}
@@ -220,7 +228,14 @@ jobs:
         # default-dev dep-set); pyboolector — the XCHECK oracle — comes from
         # requirements_dev.txt. dv-solve builds its native lib via CMake, which
         # the ubuntu-latest image already provides.
-        ./python/bin/python3 -m pip install git+https://github.com/fvutils/dv-solve.git
+        # dv-solve builds CaDiCaL from source, found as a SIBLING checkout
+        # (<packages>/cadical, normally fetched by ivpm), so a bare
+        # `pip install git+...dv-solve.git` fails at CMake configure. Clone
+        # both side by side, CaDiCaL at the tag dv-solve's own ivpm.yaml pins.
+        git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        cadical_tag=$(sed -n '/name: cadical/,/tag:/s/.*tag: *//p' packages/dv-solve/ivpm.yaml)
+        git -c advice.detachedHead=false clone -q --depth 1 -b "$cadical_tag" https://github.com/arminbiere/cadical.git packages/cadical
+        ./python/bin/python3 -m pip install ./packages/dv-solve
     - name: XCHECK soak corpus
       env:
         # Belt and braces: XCHECK needs Boolector to agree, validate_model needs
@@ -256,7 +271,13 @@ jobs:
         # CMake (Debug -> -fsanitize=address) and loads it via ZSP_SOLVER_PATH.
         # The dv_solve *Python* package must be importable too — add its source
         # tree to PYTHONPATH (the .so itself comes from the ASan build, not pip).
-        git clone --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        # dv-solve builds CaDiCaL from source, found as a SIBLING checkout
+        # (<packages>/cadical, normally fetched by ivpm), so a bare
+        # `pip install git+...dv-solve.git` fails at CMake configure. Clone
+        # both side by side, CaDiCaL at the tag dv-solve's own ivpm.yaml pins.
+        git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        cadical_tag=$(sed -n '/name: cadical/,/tag:/s/.*tag: *//p' packages/dv-solve/ivpm.yaml)
+        git -c advice.detachedHead=false clone -q --depth 1 -b "$cadical_tag" https://github.com/arminbiere/cadical.git packages/cadical
         export PYTHONPATH="$PWD/packages/dv-solve/src"
         PYTHON=./python/bin/python3 ./ve/run_asan.sh
 
