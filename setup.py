@@ -27,6 +27,10 @@ setup(
   license="Apache 2.0",
   keywords = ["Python", "Functional Verification", "Constraints", "Coverage"],
   url = "https://github.com/fvutils/pyvsc",
+  project_urls={
+    "Documentation": "https://dvkit.org/fvutils/pyvsc/",
+    "Source": "https://github.com/fvutils/pyvsc",
+  },
   entry_points={
     'console_scripts': [
       'vsc = vsc.__main__:main'
