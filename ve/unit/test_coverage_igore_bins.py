@@ -8,6 +8,54 @@ from enum import IntEnum, auto
 #from coverage import covergroup
 
 class TestCoverageIgnoreBins(VscTestCase):
+
+    def test_ignore_fully_excluded_bin(self):
+        self._check_fully_excluded_bin("ignore_bins")
+
+    def test_illegal_fully_excluded_bin(self):
+        self._check_fully_excluded_bin("illegal_bins")
+
+    def _check_fully_excluded_bin(self, exclusion_kind):
+        import vsc
+
+        @vsc.covergroup
+        class cg_t(object):
+            def __init__(self):
+                self.with_sample(dict(a=vsc.uint8_t()))
+                exclusions = dict(zero=vsc.bin(0), one=vsc.bin(1))
+                self.cp = vsc.coverpoint(self.a,
+                    bins=dict(
+                        min=vsc.bin(0),
+                        mid=vsc.bin([1, 254]),
+                        max=vsc.bin(255)),
+                    **{exclusion_kind: exclusions})
+
+        cg = cg_t()
+        cp = cg.cp.get_model()
+        self.assertEqual(cp.get_n_bins(), 2)
+        self.assertEqual(
+            [cp.get_bin_name(i) for i in range(cp.get_n_bins())],
+            ["mid", "max"])
+
+        # Excluded values must not hit the surviving normal bins.
+        cg.sample(0)
+        cg.sample(1)
+        self.assertEqual([cp.get_bin_hits(i) for i in range(2)], [0, 0])
+        if exclusion_kind == "ignore_bins":
+            self.assertEqual(cp.get_n_ignore_bins(), 2)
+            self.assertEqual(
+                [cp.get_ignore_bin_hits(i) for i in range(2)], [1, 1])
+        else:
+            self.assertEqual(cp.get_n_illegal_bins(), 2)
+            self.assertEqual(
+                [cp.get_illegal_bin_hits(i) for i in range(2)], [1, 1])
+
+        # The partially trimmed bin and the unaffected bin still sample.
+        cg.sample(2)
+        cg.sample(254)
+        cg.sample(255)
+        self.assertEqual([cp.get_bin_hits(i) for i in range(2)], [2, 1])
+        self.assertEqual(cp.get_inst_coverage(), 100.0)
     
     def test_smoke(self):
         import vsc

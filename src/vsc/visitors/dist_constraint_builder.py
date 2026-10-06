@@ -22,6 +22,18 @@ from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.model.constraint_dist_scope_model import ConstraintDistScopeModel
 
 
+class _FieldRefCollector(ModelVisitor):
+    """Collects referenced fields, in reference order"""
+
+    def __init__(self, field_l):
+        super().__init__()
+        self.field_l = field_l
+
+    def visit_expr_fieldref(self, e):
+        if e.fm not in self.field_l:
+            self.field_l.append(e.fm)
+
+
 class DistConstraintBuilder(ConstraintOverrideVisitor):
 
     def __init__(self, randstate, native=False):
@@ -105,29 +117,15 @@ class DistConstraintBuilder(ConstraintOverrideVisitor):
                                 w.rng_lhs))
                     ]))
 
-        # Form a list of non-zero weighted tuples of weight/range
-        # Sort in ascending order.
-        #
-        # The swizzler picks a range proportional to its weight, then a uniform
-        # value within it. That realizes `:/` (weight applies to the range as a
-        # whole). For `:=` (is_per_value) the weight applies to *each* value, so
-        # the range's selection weight is scaled by its value count — wider
-        # ranges then draw proportionally more, matching native add_dist.
-        weight_list = []
-        total_weight = 0
-        for i,w in enumerate(c.weights):
-            weight = int(w.weight.val())
-            if getattr(w, "is_per_value", False) and w.rng_rhs is not None:
-                width = int(w.rng_rhs.val()) - int(w.rng_lhs.val()) + 1
-                if width > 1:
-                    weight *= width
-            total_weight += weight
-            if weight > 0:
-                weight_list.append((weight, i))
-        weight_list.sort(key=lambda w:w[0])
+        # Form a list of non-zero weighted tuples of weight/range.
+        # Note: weights that reference rand fields are re-evaluated
+        # by the swizzler once those fields have been solved. `:=` range
+        # weights are scaled by the range width (see update_weights).
+        scope.update_weights()
 
-        scope.weight_list = weight_list
-        scope.total_weight = total_weight
+        ref_c = _FieldRefCollector(scope.weight_field_l)
+        for w in c.weights:
+            w.weight.accept(ref_c)
 
         # Prime an initial target range for solvegroup_swizzler_range. This
         # consumes randstate, so it must be skipped on the native path: a native

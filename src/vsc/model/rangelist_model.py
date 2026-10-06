@@ -72,15 +72,17 @@ class RangelistModel(object):
         if len(self.range_l) == 0 or len(other.range_l) == 0:
             return
         
-        rng_i=0
-        while rng_i < len(self.range_l):
-            for r in other.range_l:
+        # Apply each exclusion to every surviving range. _intersect can
+        # remove the current range and rewind the index for the next one.
+        for r in other.range_l:
+            rng_i=0
+            while rng_i < len(self.range_l):
                 rng_i = self._intersect(
                     self.range_l,
                     rng_i,
                     self.range_l[rng_i],
                     r)
-            rng_i += 1
+                rng_i += 1
     
     def _intersect(self,
                    ranges,
