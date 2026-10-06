@@ -23,12 +23,32 @@ class ConstraintDistScopeModel(ConstraintInlineScopeModel):
         self.weight_list : List[Tuple[int, int]] = []
         self.total_weight = 0
 
+        # Rand fields referenced by weight expressions. Weights that
+        # depend on these can only be evaluated once the fields are solved
+        self.weight_field_l = []
+
         # Indicates the current-target range. This is used to
         # by solvegroup_swizzler_range.
         self.target_range = 0
 
+    def update_weights(self):
+        """(Re)compute the weight list from the current weight-expression values"""
+        self.weight_list = []
+        self.total_weight = 0
+        for i,w in enumerate(self.dist_c.weights):
+            weight = int(w.weight.val())
+            if weight > 0:
+                self.total_weight += weight
+                self.weight_list.append((weight, i))
+        self.weight_list.sort(key=lambda w:w[0])
+
     def next_target_range(self, randstate : RandState) -> int:
         """Select the next target range from the weight list"""
+
+        if self.total_weight <= 0:
+            # All weights are zero. The hard constraints exclude
+            # every value, so there is nothing to target
+            return None
 
         seed_v = randstate.rng.randint(1, self.total_weight)
 

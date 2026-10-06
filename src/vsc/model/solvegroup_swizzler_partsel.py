@@ -38,11 +38,26 @@ class SolveGroupSwizzlerPartsel(object):
             
         if self.debug > 0:
             print("  " + str(len(field_l)) + " fields in randset")
+
+        # Dist weights that reference rand fields can only be evaluated
+        # once those fields are solved. Swizzle them first, then fix
+        # their values so the dist weights reflect the final solution
+        weight_field_l = self.dist_weight_fields(rs)
+        if len(weight_field_l) > 0:
+            if self.debug > 0: print("  solving dist-weight fields first")
+            swizzled_field |= self.swizzle_field_l(weight_field_l, rs, bound_m, btor)
+            for f in weight_field_l:
+                self.fix_field_value(f, btor)
+            if self.solve_info is not None:
+                self.solve_info.n_sat_calls += 1
+            btor.Sat()
+            field_l = [f for f in field_l if f not in weight_field_l]
             
         if rs.rand_order_l is not None:
             # Perform an ordered randomization
             if self.debug > 0: print("  following solve-order constraints")
             for ro_l in rs.rand_order_l:
+                ro_l = [f for f in ro_l if f not in weight_field_l]
                 swizzled_field |= self.swizzle_field_l(ro_l, rs, bound_m, btor)
                 # Remove swizzled fields from future unordered swizzling
                 field_l = [f for f in field_l if f not in ro_l]
@@ -58,6 +73,27 @@ class SolveGroupSwizzlerPartsel(object):
         if self.debug > 0:
             print("<-- swizzle_randvars")    
             
+    def dist_weight_fields(self, rs : RandSet):
+        """Returns rand fields referenced by dist weights in this randset"""
+        ret = []
+        for dist_l in rs.dist_field_m.values():
+            for d in dist_l:
+                for f in d.weight_field_l:
+                    if f.is_used_rand and f.var is not None and f not in ret:
+                        ret.append(f)
+        return ret
+
+    def fix_field_value(self, f : FieldScalarModel, btor):
+        """Locks a field to its current solver value and makes that
+        value visible to expression evaluation (eg dist weights)"""
+        val = int(f.var.assignment, 2)
+        btor.Assert(btor.Eq(f.var, btor.Const(val, f.width)))
+        if f.is_signed and (val&(1 << f.width-1)) != 0:
+            val = -((~val&f.mask)+1)
+        f.set_val(val)
+        if self.debug > 0:
+            print("  Fix dist-weight field %s = %d" % (f.name, val))
+
     def swizzle_field_l(self, field_l, rs : RandSet, bound_m, btor):
         e = None
         if len(field_l) > 0:
@@ -118,6 +154,8 @@ class SolveGroupSwizzlerPartsel(object):
             max_dist_samples = 4
             for _ in range(max_dist_samples):
                 e = self.sample_dist_weights(f, rs)
+                if e is None:
+                    break
                 n = e.build(btor)
                 btor.Assume(n)
                 if self.solve_info is not None:
@@ -152,7 +190,11 @@ class SolveGroupSwizzlerPartsel(object):
         else:
             dist_scope_c = rs.dist_field_m[f][0]
 
+        # Weights may reference (now-fixed) rand fields
+        dist_scope_c.update_weights()
         target_range = dist_scope_c.next_target_range(self.randstate)
+        if target_range is None:
+            return None
         target_w = dist_scope_c.dist_c.weights[target_range]
         if target_w.rng_rhs is not None:
             # Dual-bound range
