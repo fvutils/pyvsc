@@ -63,8 +63,8 @@ class _randobj:
                 ro_i.srcinfo = srcinfo
                 
                 # Capture the instantiation location
-                frame = inspect.stack()[1]
-                ro_i.srcinfo_inst = SourceInfo(frame.filename, frame.lineno)
+                frame = sys._getframe(1)
+                ro_i.srcinfo_inst = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
     
                 # Initialize the field_info member before going deeper            
                 if ro_i.ctor_level == 0:
@@ -361,8 +361,8 @@ def generator(T):
             gen_i = self._get_int()
             
             # Capture the instantiation location
-            frame = inspect.stack()[1]
-            gen_i.srcinfo_inst = SourceInfo(frame.filename, frame.lineno)
+            frame = sys._getframe(1)
+            gen_i.srcinfo_inst = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
 
             # Call the user's constructor            
             with gen_i:

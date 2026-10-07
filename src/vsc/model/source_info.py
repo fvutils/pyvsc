@@ -1,4 +1,4 @@
-import inspect
+import sys
 
 
 # Created on Mar 13, 2020
@@ -20,14 +20,15 @@ class SourceInfo(object):
     
     @classmethod
     def mk(cls, levels=1):
-        stack = inspect.stack()
-       
-        if len(stack) <= (levels+1):
-            raise Exception("requested stack frame %d out-of-bounds (%d)" % (
-                levels, len(stack)))
-        frame = stack[levels+1]
+        # sys._getframe is O(1). inspect.stack() would build FrameInfo for the
+        # whole stack, reading source for every frame and, for a frame with no
+        # source file, scanning all of sys.modules -- per call.
+        try:
+            frame = sys._getframe(levels+1)
+        except ValueError:
+            raise Exception("requested stack frame %d out-of-bounds" % levels)
         
-        return cls(frame.filename, frame.lineno)
+        return cls(frame.f_code.co_filename, frame.f_lineno)
     
     @staticmethod
     def toString(srcinfo):

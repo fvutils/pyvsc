@@ -22,6 +22,7 @@
 
 from builtins import callable
 import inspect
+import sys
 import random
 
 from vsc.constraints import weight
@@ -78,14 +79,14 @@ def randomize_with(*args, **kwargs):
             return self
         
         def __exit__(self, t, v, tb):
-            frame = inspect.stack()[1]
+            frame = sys._getframe(1)
             c = pop_constraint_scope()
             leave_expr_mode()
           
             try:
                 Randomizer.do_randomize(
                     self.randstate,
-                    SourceInfo(frame.filename, frame.lineno),
+                    SourceInfo(frame.f_code.co_filename, frame.f_lineno),
                     self.field_l, 
                     [c], 
                     debug=debug)
@@ -99,7 +100,7 @@ def randomize_with(*args, **kwargs):
 
 def randomize(*args,**kwargs):
     """Randomize a list of variables"""
-    frame = inspect.stack()[1]
+    frame = sys._getframe(1)
     fields = []
     for v in args:
         if hasattr(v, "get_model"):
@@ -123,7 +124,7 @@ def randomize(*args,**kwargs):
         
     Randomizer.do_randomize(
         randstate,
-        SourceInfo(frame.filename, frame.lineno),
+        SourceInfo(frame.f_code.co_filename, frame.f_lineno),
         fields, 
         solve_fail_debug=solve_fail_debug,
         debug=debug)
