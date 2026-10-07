@@ -1,0 +1,105 @@
+{
+ "arms": [
+  "classic-btor",
+  "classic-dvs",
+  "dc-btor",
+  "dc-dvs",
+  "stock",
+  "cr"
+ ],
+ "family_weights": {
+  "arrays": 1.0,
+  "composite": 1.0,
+  "distribution": 1.0,
+  "scalar": 1.0
+ },
+ "hash": "4280b263ae31",
+ "patterns": [
+  "cold",
+  "warm"
+ ],
+ "protocol": {
+  "batch_s": 0.3,
+  "rounds": 2,
+  "timeout_s": 60
+ },
+ "suite": "core",
+ "workloads": [
+  {
+   "family": "scalar",
+   "frontends": [
+    "classic",
+    "dc",
+    "cr"
+   ],
+   "name": "basic",
+   "rev": 1,
+   "sha": "cff14f98374a7427"
+  },
+  {
+   "family": "scalar",
+   "frontends": [
+    "classic",
+    "dc",
+    "cr"
+   ],
+   "name": "simple",
+   "rev": 1,
+   "sha": "c9380c933047a814"
+  },
+  {
+   "family": "scalar",
+   "frontends": [
+    "classic",
+    "dc",
+    "cr"
+   ],
+   "name": "alu",
+   "rev": 1,
+   "sha": "bdf8cdb726932fa2"
+  },
+  {
+   "family": "scalar",
+   "frontends": [
+    "classic",
+    "dc",
+    "cr"
+   ],
+   "name": "wide64",
+   "rev": 1,
+   "sha": "66b8ab0bd7325c93"
+  },
+  {
+   "family": "distribution",
+   "frontends": [
+    "classic",
+    "dc",
+    "cr"
+   ],
+   "name": "dist_weighted",
+   "rev": 1,
+   "sha": "3f72ac6c759e33a0"
+  },
+  {
+   "family": "composite",
+   "frontends": [
+    "classic",
+    "dc"
+   ],
+   "name": "nested2",
+   "rev": 1,
+   "sha": "75621d7b9eacc27c"
+  },
+  {
+   "family": "arrays",
+   "frontends": [
+    "classic",
+    "dc",
+    "cr"
+   ],
+   "name": "arr8",
+   "rev": 1,
+   "sha": "39bd92f09ac1f0c6"
+  }
+ ]
+}
