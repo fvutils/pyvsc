@@ -24,6 +24,12 @@ Contents:
 
    dataclass/generic_constraints
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Performance
+
+   results/index
+
 
 Indices and tables
 ==================

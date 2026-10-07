@@ -1,0 +1,10 @@
+{
+ "_comment": "Recorded on every run (design §4.2). P0 subset: the six bench_frontends workloads plus constrainedrandom's basic; the rest of §4.2's core list arrives in P2.",
+ "workloads": ["basic", "simple", "alu", "wide64", "dist_weighted", "nested2", "arr8"],
+ "arms": ["classic-btor", "classic-dvs", "dc-btor", "dc-dvs", "stock", "cr"],
+ "patterns": ["cold", "warm"],
+ "family_weights": {"scalar": 1.0, "distribution": 1.0, "composite": 1.0, "arrays": 1.0},
+ "batch_s": 0.3,
+ "rounds": 2,
+ "timeout_s": 60
+}

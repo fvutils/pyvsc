@@ -1,0 +1,9 @@
+{
+ "_comment": "Correctness only, never recorded (design §8.3): every workload once per arm and pattern, 20 checked draws, no timing. A failure here fails a perf run before any timing.",
+ "workloads": ["basic", "simple", "alu", "wide64", "dist_weighted", "nested2", "arr8"],
+ "arms": ["classic-btor", "classic-dvs", "dc-btor", "dc-dvs", "stock", "cr"],
+ "patterns": ["cold", "warm"],
+ "validate_only": true,
+ "draws": 20,
+ "timeout_s": 60
+}

@@ -134,6 +134,8 @@ jobs:
       # Built once, from the canonical boolector leg only, as a CI check.
       if: matrix.solver == 'boolector'
       run: |
+        # The results pages come from the committed history, as on Forgejo.
+        PYTHONPATH=benchmarks ./python/bin/python3 -m perf.render --out doc/source/results --require-run
         cd doc
         make html
         touch build/html/.nojekyll

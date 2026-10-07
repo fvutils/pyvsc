@@ -1,0 +1,8 @@
+{
+ "_comment": "Pins for perf runs (design §5.4, §8.6). The anchor and the external reference are side installs (pip --target) under build/perf/builds/. Changing anything here changes the lock hash every run record carries; a change of python minor version starts a new epoch.",
+ "python": "3.12",
+ "builds": {
+  "stock": ["pyvsc==0.9.5.27214109393"],
+  "cr": ["constrainedrandom==1.3.0"]
+ }
+}

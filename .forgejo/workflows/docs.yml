@@ -87,6 +87,14 @@ jobs:
           pip_install --upgrade pip setuptools wheel
           pip_install -r doc/requirements.txt setuptools
 
+      - name: Render the performance results
+        # benchmarks/history/ (committed by perf.consolidate) -> RST pages under
+        # doc/source/results/, which the build below turns into
+        # dvkit.org/fvutils/pyvsc/results/. Standard library only, so the image's
+        # python3 is enough. --require-run: a doc set that silently lost its
+        # results is worse than a failed build, because it deploys.
+        run: PYTHONPATH=benchmarks python3 -m perf.render --out doc/source/results --require-run
+
       - name: Build HTML docs
         # The same doc set the GitHub workflow builds, so the CI check and the
         # thing that actually ships cannot disagree about what the docs are.
@@ -100,10 +108,15 @@ jobs:
             || { echo "::error::no index.html in the build output"; exit 1; }
           n=$(find doc/build/html -name '*.html' | wc -l)
           echo "generated pages: $n"
-          # A local build of this doc set produced 40 pages on 2026-08-31.
+          # A local build of this doc set produced 40 pages on 2026-08-31, and 44
+          # once the performance results joined it (2026-10-06).
           # The floor is set well BELOW that on purpose: it exists to catch a
           # COLLAPSED build, not to fail when somebody deletes a page.
-          [ "$n" -ge 20 ] || { echo "::error::only $n pages built; a known-good build of this doc set produces 40. Refusing to call this a doc set."; exit 1; }
+          [ "$n" -ge 20 ] || { echo "::error::only $n pages built; a known-good build of this doc set produces 44. Refusing to call this a doc set."; exit 1; }
+          for page in results/index.html results/methodology.html; do
+            test -s "doc/build/html/$page" \
+              || { echo "::error::$page missing from the build: the performance results did not render"; exit 1; }
+          done
 
       - name: Upload docs
         # Consumed by the host-side poller:

@@ -116,3 +116,8 @@ cov.xml
 .claude/
 .codex/
 
+
+# Generated at docs-build time from benchmarks/history/ by perf.render; only the
+# hand-written methodology page is tracked.
+doc/source/results/*
+!doc/source/results/methodology.rst
