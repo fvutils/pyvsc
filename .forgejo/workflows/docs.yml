@@ -117,6 +117,10 @@ jobs:
             test -s "doc/build/html/$page" \
               || { echo "::error::$page missing from the build: the performance results did not render"; exit 1; }
           done
+          for chart in trend-cold.svg trend-warm.svg; do
+            test -s "doc/build/html/_images/$chart" \
+              || { echo "::error::$chart missing from the build: the trend charts did not render"; exit 1; }
+          done
 
       - name: Upload docs
         # Consumed by the host-side poller:

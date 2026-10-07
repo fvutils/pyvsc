@@ -82,3 +82,21 @@ def manifest_from_line(line: dict, suite: str, families: dict) -> dict:
     p = line["perf"][suite]
     return {"workloads": [{"name": w, "family": families.get(w, "scalar")} for w in p["w"]],
             "family_weights": {}}
+
+
+def mean_us(line: dict, suite: str, manifest: dict, pat: str, arm: str):
+    """Family-weighted geometric mean of an arm's CPU µs per call, or None.
+
+    The same weighting as score(), over the workloads the arm measured.
+    Comparable across runs only while the manifest (the workload set) is the
+    same, which is why the trend chart breaks its lines where it changes."""
+    c = cells(line, suite)
+    logs = {}
+    for w in manifest["workloads"]:
+        v = c.get((w["name"], pat, arm))
+        if v:
+            logs.setdefault(w["family"], []).append(math.log(v))
+    if not logs:
+        return None
+    share = family_shares(list(logs), manifest.get("family_weights", {}))
+    return math.exp(sum(share[f] * sum(v) / len(v) for f, v in logs.items()))

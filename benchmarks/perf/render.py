@@ -18,7 +18,7 @@ import json
 import sys
 from pathlib import Path
 
-from . import normalize
+from . import normalize, svg
 from .arms import HEADLINE
 from .consolidate import HISTORY, committed_lines
 
@@ -147,9 +147,9 @@ def index_page(lines: list, root: Path) -> str:
             "an external reference shown where it can express the workload, and never part of a",
             "pyvsc headline. T, B and F are the ratios defined above.", ""]
 
+    out += trend_section(lines, root, man)
     out += ["Run history", "-----------", "",
-            "Every recorded run, newest first. Charts over time arrive once there are enough",
-            "points to draw them.", ""]
+            "Every recorded run, newest first.", ""]
     rows = []
     for l in reversed(lines):
         if SUITE not in l.get("perf", {}):
@@ -175,12 +175,68 @@ def index_page(lines: list, root: Path) -> str:
     return "\n".join(out)
 
 
+def trend_data(lines: list, root: Path, pat: str, arms: list) -> dict:
+    """Per run: label, flags, and each arm's mean µs per call.
+
+    Invalid runs are left out (their numbers may be wrong); noisy and dirty
+    ones are kept and drawn hollow."""
+    runs = [l for l in lines if l["valid"] and SUITE in l.get("perf", {})]
+    labels, hollow, breaks, series, rows = [], set(), set(), {a: [] for a in arms}, []
+    prev = None
+    for i, l in enumerate(runs):
+        man = _manifest(l, root)
+        if prev is not None and man["hash"] != prev:
+            breaks.add(i)
+        prev = man["hash"]
+        labels.append(f"{l['utc'][4:6]}-{l['utc'][6:8]}\n{_short(l['commit'])}")
+        if l.get("noisy") or l.get("dirty"):
+            hollow.add(i)
+        row = [l["utc"], l["commit"], man["hash"], int(bool(l.get("noisy"))),
+               int(bool(l.get("dirty")))]
+        for a in arms:
+            v = normalize.mean_us(l, SUITE, man, pat, a)
+            series[a].append(v)
+            row.append("" if v is None else f"{v:.3f}")
+        rows.append(row)
+    return {"labels": labels, "hollow": hollow, "breaks": breaks, "series": series,
+            "csv_header": ["utc", "commit", "manifest", "noisy", "dirty"] + arms, "rows": rows}
+
+
+def trend_section(lines: list, root: Path, man: dict) -> list:
+    out = ["Over time", "---------", "",
+           "Mean CPU µs per call for each arm, one point per recorded run (lower is faster).",
+           "The mean is geometric over the suite's workloads, families weighted as in the",
+           "headline, so one slow workload can't dominate it. ``cr`` lacks ``nested2``, so its",
+           "mean covers six workloads. Open markers are runs on a busy host; a dashed",
+           "vertical line marks a change of workload set, across which means aren't",
+           "comparable. ``stock`` and ``cr`` never change, so their lines show the noise.", ""]
+    for pat in man["patterns"]:
+        out += [f".. image:: trend-{pat}.svg", f"   :alt: mean CPU µs per call over time, {pat}",
+                "", f"**{pat}**: {PATTERN_TEXT.get(pat, pat)}. "
+                f"Data: :download:`trend-{pat}.csv <trend-{pat}.csv>`.", ""]
+    return out
+
+
 def render(out_dir: Path, root: Path = HISTORY) -> list:
     lines = committed_lines(root)
     out_dir.mkdir(parents=True, exist_ok=True)
     p = out_dir / "index.rst"
     p.write_text(index_page(lines, root))
-    return [p]
+    written = [p]
+    cur = current(lines)
+    if cur is not None:
+        man = _manifest(cur, root)
+        for pat in man["patterns"]:
+            d = trend_data(lines, root, pat, man["arms"])
+            sp = out_dir / f"trend-{pat}.svg"
+            sp.write_text(svg.trend(d["labels"], d["series"],
+                                    f"mean CPU µs per call, {pat} (log scale)",
+                                    hollow=d["hollow"], breaks=d["breaks"]))
+            cp = out_dir / f"trend-{pat}.csv"
+            cp.write_text("\n".join(",".join(str(x) for x in r)
+                                    for r in [d["csv_header"]] + d["rows"]) + "\n")
+            written += [sp, cp]
+    return written
 
 
 def main(argv=None) -> int:
