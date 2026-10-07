@@ -375,11 +375,27 @@ def _validate_model(ctx, where):
             "KF-1." % (n, where))
 
 
-def _make_solve_ctx(buf, problem_sz=0):
+def _oracle_label(fields):
+    """Names a context in the dv-solve oracle's records (vsc.set_solver_oracle):
+    the fields it randomizes. Built only while an oracle is on."""
+    from dv_solve.oracle import get_default_oracle
+    if get_default_oracle() is None:
+        return None
+    names = []
+    for f in fields:
+        try:
+            names.append(f.fullname)
+        except Exception:
+            names.append(getattr(f, "name", "?"))
+    return " ".join(names[:16]) + (" ..." if len(names) > 16 else "")
+
+
+def _make_solve_ctx(buf, problem_sz=0, label=None):
     """Create a SolveCtx with a problem-sized working-pool buffer, growing on
     pool overflow. Compile *verdicts* (UNSAT / incomplete) are real and not
     retried; a generic compile failure (likely pool overflow) is retried at 4x
-    until ``_CTX_BUF_MAX``, then propagates."""
+    until ``_CTX_BUF_MAX``, then propagates. ``label`` names the context in the
+    oracle check's records."""
     from dv_solve.ctx import (
         SolveCtx, CompileUnsatError, CompileIncompleteError)
     # First estimate from the problem, rounded up to a 64 KiB multiple.
@@ -388,7 +404,10 @@ def _make_solve_ctx(buf, problem_sz=0):
     last = None
     while size <= _CTX_BUF_MAX:
         try:
-            return SolveCtx(buf, ctx_buf_size=size)
+            # label only with an oracle on: a dv-solve older than the oracle
+            # check has no such parameter.
+            kw = {"label": label} if label is not None else {}
+            return SolveCtx(buf, ctx_buf_size=size, **kw)
         except (CompileUnsatError, CompileIncompleteError):
             raise
         except RuntimeError as e:
@@ -760,7 +779,8 @@ class DvSolveBackend(SolverBackendIF):
                     dist_guard_vids=tr.dist_guard_vids, n_softs=n_softs)
 
             try:
-                ctx = _make_solve_ctx(buf, problem_sz)
+                ctx = _make_solve_ctx(buf, problem_sz,
+                                      label=_oracle_label(rand_fields))
             except (CompileUnsatError, CompileIncompleteError, RuntimeError):
                 # Primary can't compile / proves a non-trusted UNSAT -> let the
                 # BV-SAT engine decide authoritatively on the same buffer.
@@ -924,7 +944,8 @@ class DvSolveBackend(SolverBackendIF):
             if not readback:
                 return False                   # nothing to merge
             buf, problem_sz = b.finalize()
-            ctx = _make_solve_ctx(buf, problem_sz)
+            ctx = _make_solve_ctx(buf, problem_sz,
+                                  label=_oracle_label(r[0] for r in readback))
             ok = True
             # bulk is built lazily on first readback (S1.2), so a merged plan
             # that is never actually solved costs nothing extra.

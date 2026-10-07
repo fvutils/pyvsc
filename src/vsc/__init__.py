@@ -149,4 +149,16 @@ def get_solver_backend():
     from vsc.impl.ctor import get_solver_backend as _get
     return _get()
 
+def set_solver_oracle(enable=True, **kwargs):
+    """Check every dv-solve answer against a reference SMT solver (z3): its
+    sat/unsat verdict, and that its values satisfy the constraints. Pass False
+    to stop. See vsc.model.solver.oracle."""
+    from vsc.model.solver.oracle import set_solver_oracle as _set
+    return _set(enable, **kwargs)
+
+def get_solver_oracle():
+    """The dv-solve oracle in use, or None."""
+    from vsc.model.solver.oracle import get_solver_oracle as _get
+    return _get()
+
     
