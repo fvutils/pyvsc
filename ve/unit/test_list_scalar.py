@@ -318,3 +318,19 @@ class TestListScalar(VscTestCase):
             print(obj.num_of_regs)
             print(obj.offset)        
         
+    def test_iter_values(self):
+        # Iterating yields Python ints, sign-extended for signed elements.
+        # The iterator types are module-level: __iter__ used to define two
+        # classes on every call, which dominated loops over small lists.
+
+        @vsc.randobj
+        class my_c(object):
+
+            def __init__(self):
+                self.s = vsc.list_t(vsc.int8_t(), init=[-1, 2, -128])
+                self.u = vsc.list_t(vsc.uint8_t(), init=[255, 0, 7])
+
+        obj = my_c()
+        self.assertEqual(list(obj.s), [-1, 2, -128])
+        self.assertEqual(list(obj.u), [255, 0, 7])
+        self.assertIs(type(iter(obj.s)), type(iter(obj.u)))
