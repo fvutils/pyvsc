@@ -9,7 +9,7 @@ solver distributes them. The kill-switch (VSC_T0 / randomizer._T0_ENABLED) is
 the test methodology -- each equivalence test runs the same model both ways.
 
 The second gate is *eligibility*: a shape T0 must not claim (coupled fields,
-dist, soft, enum, randc, rand-sized arrays, non-analyzable expressions) has to
+dist, soft, randc, rand-sized arrays, non-analyzable expressions) has to
 stay on the solver. Those tests assert the promotion did not happen, not merely
 that the answer was right -- a wrong answer is not the only failure mode; a
 right answer reached by accident is a latent one.
@@ -290,6 +290,31 @@ class Enumerated(vdc.RandClass):
     c1: Color = vdc.rand()
 
 
+class Reg(IntEnum):
+    """Gapped member values (6 and 7 are not members), like riscv_reg_t
+    restricted to a few registers."""
+    ZERO = 0
+    RA = 1
+    SP = 2
+    TP = 4
+    T0 = 5
+    S0 = 8
+    S1 = 9
+    A0 = 10
+
+
+@vdc.dataclass
+class EnumConstrained(vdc.RandClass):
+    """pygen's register rule: rd inside a set of registers, minus reserved
+    ones. The range T0..A0 spans the non-members 6 and 7."""
+    r: Reg = vdc.rand()
+
+    @vdc.constraint
+    def c(self):
+        self.r.inside(vdc.rangelist(Reg.RA, Reg.SP, Reg.TP, (Reg.T0, Reg.A0)))
+        self.r != Reg.SP
+
+
 @vdc.dataclass
 class Cyclic(vdc.RandClass):
     a: vdc.u4 = vdc.randc()
@@ -359,10 +384,15 @@ class TestT0Eligibility(DcTestCase):
     def test_soft_stays_on_solver(self):
         self.assertEqual(tiers(Soft), (0, 1))
 
-    def test_enum_stays_on_solver(self):
-        # An enum field's domain comes from its member set, not its width; T0
-        # would draw values outside the enum.
+    def test_unconstrained_enum_has_no_randset(self):
+        # An enum no constraint mentions is drawn as an unconstrained field
+        # already; there is no RandSet to promote.
         self.assertEqual(tiers(Enumerated), (0, 0))
+
+    def test_constrained_enum_is_promoted(self):
+        # The domain is the enum's member set intersected with the
+        # constraints (separability.width_ranges), so T0 can draw it.
+        self.assertEqual(tiers(EnumConstrained), (1, 0))
 
     def test_unsat_stays_on_solver(self):
         # An empty domain is deferred so the solver reports it through the
@@ -436,6 +466,12 @@ class TestT0Equivalence(DcTestCase):
         on, _ = self._agree(NotEqual, "a")
         self.assertNotIn(5, on)
         self.assertEqual(set(on), set(range(16)) - {5})
+
+    def test_enum_members_only(self):
+        # 6 and 7 lie inside the constrained range but are not members.
+        on, _ = self._agree(EnumConstrained, "r")
+        self.assertEqual(set(on), {Reg.RA, Reg.TP, Reg.T0, Reg.S0, Reg.S1,
+                                   Reg.A0})
 
     def test_signed(self):
         on, _ = self._agree(Signed, "a")
@@ -596,6 +632,26 @@ class TestT0Classic(DcTestCase):
                 self.assertTrue(3 <= int(o.a) <= 249)
         self.assertGreater(len(log), 0)
         self.assertEqual(log[0], (1, 0))
+
+    def test_classic_enum_is_promoted(self):
+        @vsc.randobj
+        class A(object):
+            def __init__(s):
+                s.r = vsc.rand_enum_t(Reg)
+
+            @vsc.constraint
+            def c(s):
+                s.r.inside(vsc.rangelist(Reg.RA, Reg.TP, (Reg.T0, Reg.A0)))
+                s.r != Reg.S0
+
+        seen = set()
+        with t0(True), no_plan_cache(), promotion_spy() as log:
+            o = A()
+            for _ in range(200):
+                o.randomize()
+                seen.add(o.r)
+        self.assertEqual(log[0], (1, 0))
+        self.assertEqual(seen, {Reg.RA, Reg.TP, Reg.T0, Reg.S1, Reg.A0})
 
     def test_classic_array_is_promoted(self):
         @vsc.randobj

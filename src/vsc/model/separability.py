@@ -44,6 +44,7 @@ makes the RandSet ineligible, and it falls back to the solver. Everything it
 
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.constraint_expr_model import ConstraintExprModel
+from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_in_model import ExprInModel
@@ -173,7 +174,11 @@ def width_ranges(f):
     """The field's value range from its width and signedness, intersected with
     its declared domain (``vdc.rand(domain=...)``). This is the same rule
     VariableBoundScalarModel applies -- both are properties of the *variable*,
-    which is exactly why T0 can reproduce them without the solver."""
+    which is exactly why T0 can reproduce them without the solver.
+
+    An enum field's values are its members, as in VariableBoundEnumModel."""
+    if isinstance(f, EnumFieldModel):
+        return _compact([[v, v] for v in set(int(e) for e in f.enums)])
     if f.is_signed:
         base = [[-(1 << (f.width - 1)), (1 << (f.width - 1)) - 1]]
     else:
@@ -299,9 +304,10 @@ def expr_ranges(e, f, lo, hi):
 # ---------------------------------------------------------------------------
 
 def _t0_field_ok(f):
-    # Exact type: a subclass (EnumFieldModel) takes its domain from its member
-    # set rather than its width, and an array/composite is not a direct draw.
-    if type(f) is not FieldScalarModel:
+    # Exact types: an array/composite is not a direct draw. An enum field takes
+    # its domain from its member set (width_ranges), and the general draw loop
+    # assigns its value like any other unconstrained enum field's.
+    if type(f) is not FieldScalarModel and type(f) is not EnumFieldModel:
         return False
     # The unconstrained draw does not call post_randomize, so a field with a
     # rand_if would lose its callback. Requiring None is what makes promotion
