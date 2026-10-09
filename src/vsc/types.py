@@ -1055,6 +1055,46 @@ class rand_int64_t(rand_int_t):
     def __init__(self, i=0):
         super().__init__(64, i)        
         
+
+# Iterators for list_t. Defined once here, not per __iter__ call.
+class _list_scalar_it(object):
+    def __init__(self, l):
+        self.l = l
+        self.model = l._int_field_info.model
+        self.idx = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        if self.idx >= int(self.model.size.get_val()):
+            raise StopIteration()
+        else:
+            # The model's view is always masked 2's complement
+            v = int(self.model.field_l[self.idx].get_val())
+
+            if self.l.t.is_signed:
+                if (v & (1 << (self.l.t.width-1))) != 0:
+                    v = -((~v & self.l.mask)+1)
+
+            self.idx += 1
+            return int(v)
+
+class _list_object_it(object):
+    def __init__(self, l):
+        self.l = l
+        self.model = l._int_field_info.model
+        self.idx = 0
+
+    def __next__(self):
+        if self.idx >= int(self.model.size.get_val()):
+            raise StopIteration()
+        else:
+            v = self.l.backing_arr[self.idx]
+            self.idx += 1
+            return v
+
+
 class list_t(object):
     
     def __init__(self, 
@@ -1248,47 +1288,10 @@ class list_t(object):
             return False
 
     def __iter__(self):
-        class list_scalar_it(object):
-            def __init__(self, l):
-                self.l = l
-                self.model = l._int_field_info.model
-                self.idx = 0
-
-            def __iter__(self):
-                return self
-                
-            def __next__(self):
-                if self.idx >= int(self.model.size.get_val()):
-                    raise StopIteration()
-                else:
-                    # The model's view is always masked 2's complement
-                    v = int(self.model.field_l[self.idx].get_val())
-                    
-                    if self.l.t.is_signed:
-                        if (v & (1 << (self.l.t.width-1))) != 0:
-                            v = -((~v & self.l.mask)+1)
-                        
-                    self.idx += 1
-                    return int(v)
-
-        class list_object_it(object):
-            def __init__(self, l):
-                self.l = l
-                self.model = l._int_field_info.model
-                self.idx = 0
-                
-            def __next__(self):
-                if self.idx >= int(self.model.size.get_val()):
-                    raise StopIteration()
-                else:
-                    v = self.l.backing_arr[self.idx]
-                    self.idx += 1
-                    return v
-                
         if self.is_scalar:
-            return list_scalar_it(self)
+            return _list_scalar_it(self)
         else:
-            return list_object_it(self)
+            return _list_object_it(self)
     
     def __getitem__(self, k):
         model = self.get_model()
