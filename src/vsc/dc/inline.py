@@ -10,20 +10,39 @@ inline ``ConstraintBlockModel`` appended for that single solve.
 
 See ``doc/notes/dataclass-pyvsc-design.md`` §4.6.
 """
+import os
 import sys
 
 from vsc.impl.ctor import pop_constraint_scope, pop_expr, push_constraint_scope
 from vsc.impl.expr_mode import enter_expr_mode, is_expr_mode, leave_expr_mode
 from vsc.model.constraint_block_model import ConstraintBlockModel
+from vsc.model.constraint_expr_model import ConstraintExprModel
+from vsc.model.constraint_if_else_model import ConstraintIfElseModel
+from vsc.model.constraint_implies_model import ConstraintImpliesModel
+from vsc.model.constraint_scope_model import ConstraintScopeModel
+from vsc.model.constraint_soft_model import ConstraintSoftModel
+from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_cond_model import ExprCondModel
+from vsc.model.expr_in_model import ExprInModel
+from vsc.model.expr_literal_model import ExprLiteralModel
+from vsc.model.expr_range_model import ExprRangeModel
+from vsc.model.expr_rangelist_model import ExprRangelistModel
+from vsc.model.expr_unary_model import ExprUnaryModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
-from vsc.model.randomizer import Randomizer
+from vsc.model.randomizer import Randomizer, _plan_set
 from vsc.model.solve_failure import SolveFailure
 from vsc.model.source_info import SourceInfo
 from vsc.types import expr, to_expr
 
 from . import cyclic, ir_lower, solve_view
 from .constraint_ir import IRConst, IRModelLiteral
+
+# Reuse an unchanged inline block across calls from one call site, so the
+# randomizer's plan cache applies to randomize_with (V7). VSC_DC_INLINE_REUSE=0
+# turns it off.
+_INLINE_REUSE = os.environ.get("VSC_DC_INLINE_REUSE", "1") != "0"
 
 
 class _FieldExpr(expr):
@@ -119,6 +138,87 @@ class _GenericInlineRef:
             % (self._name, type(v).__name__))
 
 
+class _NoSig(Exception):
+    """The block holds a node `_sig` does not know, so it is never reused."""
+
+
+def _sig(n):
+    """A hashable description of an inline-constraint tree: node types,
+    operators, literal values and the identity of each referenced field model.
+    Two blocks with equal signatures constrain the solve identically.
+
+    Node types not listed here raise `_NoSig`. Such a block is not reused and
+    takes the per-call path, so the list only needs to cover what is common;
+    a missing type costs speed, not correctness."""
+    if n is None:
+        return None
+    t = type(n)
+    if t is ExprFieldRefModel:
+        return (t, id(n.fm))
+    if t is ExprLiteralModel:
+        return (t, int(n._val.v), n.signed, n._width)
+    if t is ExprBinModel:
+        return (t, n.op, _sig(n.lhs), _sig(n.rhs))
+    if t is ExprInModel:
+        return (t, _sig(n.lhs), _sig(n.rhs))
+    if t is ExprRangelistModel:
+        return (t,) + tuple(_sig(r) for r in n.rl)
+    if t is ExprRangeModel or t is ExprArraySubscriptModel:
+        return (t, _sig(n.lhs), _sig(n.rhs))
+    if t is ExprUnaryModel:
+        return (t, n.op, _sig(n.expr))
+    if t is ExprPartselectModel:
+        return (t, _sig(n.lhs), _sig(n.upper), _sig(n.lower))
+    if t is ExprCondModel:
+        return (t, _sig(n.cond_e), _sig(n.true_e), _sig(n.false_e))
+    if t is ConstraintExprModel:
+        return (t, _sig(n.e))
+    if t is ConstraintSoftModel:
+        return (t, _sig(n.expr))
+    if t is ConstraintImpliesModel:
+        return (t, _sig(n.cond)) + tuple(_sig(c) for c in n.constraint_l)
+    if t is ConstraintIfElseModel:
+        return (t, _sig(n.cond), _sig(n.true_c), _sig(n.false_c))
+    if t is ConstraintScopeModel or t is ConstraintBlockModel:
+        return (t,) + tuple(_sig(c) for c in n.constraint_l)
+    raise _NoSig(t.__name__)
+
+
+#: Attribute on a shared solve composite: {(code, line): (signature, block)}.
+_SITES_ATTR = "_vsc_inline_sites"
+
+
+def _reuse_block(composite, frame, block):
+    """Return the block to solve with: the one this call site passed last time
+    if ``block`` has the same content, otherwise ``block`` itself.
+
+    Passing the same block object lets the randomizer reuse its plan (V7).
+    Before this, an inline constraint disabled the plan cache, so every
+    ``randomize_with`` rebuilt and re-translated the whole problem: 602 us
+    against 30 us for the same rules written as a class constraint.
+
+    A call site holds one block. When the content changes, the new block
+    replaces the old one and the plan is rebuilt for it."""
+    try:
+        sig = _sig(block)
+    except _NoSig:
+        return block
+    sites = getattr(composite, _SITES_ATTR, None)
+    if sites is None:
+        sites = {}
+        setattr(composite, _SITES_ATTR, sites)
+    key = (frame.f_code, frame.f_lineno)
+    prev = sites.get(key)
+    if prev is not None:
+        if prev[0] == sig:
+            return prev[1]
+        # The site's old block is no longer passed, so its plan is dead.
+        _plan_set(composite, (prev[1],), None)
+    block._vsc_reusable = True
+    sites[key] = (sig, block)
+    return block
+
+
 class RandomizeWith:
     """Context manager returned by ``RandClass.randomize_with()``."""
 
@@ -145,6 +245,8 @@ class RandomizeWith:
             # Propagate the user's exception; scopes already cleaned up.
             return False
         frame = sys._getframe(1)
+        if _INLINE_REUSE:
+            block = _reuse_block(self._composite, frame, block)
         # Writeback + post_randomize run inside do_randomize via the model rand_if.
         # The inline block is applied alongside the randc cyclic exclusions.
         cyclic.do_randomize_cyclic(

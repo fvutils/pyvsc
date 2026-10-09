@@ -82,6 +82,34 @@ from vsc.model import opt_flags
 # ---------------------------------------------------------------------------
 _PLAN_CACHE_ENABLED = os.environ.get("VSC_DVSOLVE_PLAN_CACHE", "1") != "0"
 _PLAN_ATTR = "_vsc_rand_plan"
+# Plans for calls that also pass reusable inline blocks (V7), keyed by the
+# tuple of those block objects. Kept apart from _PLAN_ATTR so that a plain
+# randomize() and a randomize_with() of the same root don't evict each other.
+_INLINE_PLANS_ATTR = "_vsc_inline_plans"
+#: Most inline plans kept per root; the oldest is dropped beyond this.
+_INLINE_PLANS_MAX = 8
+
+
+def _plan_get(root, inline_key):
+    if not inline_key:
+        return getattr(root, _PLAN_ATTR, None)
+    plans = getattr(root, _INLINE_PLANS_ATTR, None)
+    return plans.get(inline_key) if plans else None
+
+
+def _plan_set(root, inline_key, plan):
+    if not inline_key:
+        setattr(root, _PLAN_ATTR, plan)
+        return
+    plans = getattr(root, _INLINE_PLANS_ATTR, None)
+    if plans is None:
+        plans = {}
+        setattr(root, _INLINE_PLANS_ATTR, plans)
+    plans.pop(inline_key, None)
+    if plan is not None:
+        plans[inline_key] = plan
+        while len(plans) > _INLINE_PLANS_MAX:
+            del plans[next(iter(plans))]
 
 # Extend the Tier-A plan cache to fixed-size array / `foreach` models (default
 # on; kill-switch VSC_DVSOLVE_ARRAY_PLAN_CACHE=0). Without it, `foreach` expansion
@@ -1260,12 +1288,19 @@ class Randomizer(RandIF):
         # VariableBoundVisitor / array expansion / RandInfoBuilder. Those passes
         # are pure functions of structure + referenced non-rand values for an
         # eligible object; the per-RandSet compiled-problem cache (P1) sits below.
+        #
+        # Inline blocks are allowed when the front-end marks them reusable
+        # (`_vsc_reusable`): the same block object is passed again only when its
+        # content is unchanged, so block identity is a sound plan key (V7). Any
+        # other inline block is built per call and disables the cache, as before.
         plan_ok = (_PLAN_CACHE_ENABLED
                    and getattr(backend, "name", None) == "dv-solve"
-                   and len(constraint_l) == 0
-                   and len(field_model_l) == 1)
+                   and len(field_model_l) == 1
+                   and all(getattr(c, "_vsc_reusable", False)
+                           for c in constraint_l))
         root = field_model_l[0] if plan_ok else None
-        plan = getattr(root, _PLAN_ATTR, None) if root is not None else None
+        inline_key = tuple(constraint_l) if plan_ok else ()
+        plan = _plan_get(root, inline_key) if root is not None else None
 
         if plan is not None and plan.is_fresh():
             # Tier-A hit: reuse the cached plan, skip the pre-solve passes.
@@ -1282,7 +1317,7 @@ class Randomizer(RandIF):
             plan.restore_soft_priorities()
         else:
             if root is not None:
-                setattr(root, _PLAN_ATTR, None)   # drop any stale plan
+                _plan_set(root, inline_key, None)   # drop any stale plan
 
             # Zero soft priorities before RandInfoBuilder re-accumulates them.
             # Cold path only: see the Tier-A-hit branch above. 7.2 us/solve on a
@@ -1318,7 +1353,8 @@ class Randomizer(RandIF):
             # collecting post-expansion (no expansion happens).
             _t = PT.now()
             if root is not None:
-                _plan_blocks = _collect_constraint_blocks(field_model_l)
+                _plan_blocks = (_collect_constraint_blocks(field_model_l)
+                                + list(inline_key))
                 _plan_rangelist_state = _collect_rangelist_state(_plan_blocks)
                 _plan_dist_state = _collect_dist_state(_plan_blocks)
             else:
@@ -1434,10 +1470,10 @@ class Randomizer(RandIF):
                                  [rlm for rlm, _ in rangelist_state],
                                  [s for s, _ in dist_state],
                                  [fm for fm, _ in array_state])
-                    setattr(root, _PLAN_ATTR,
-                            _RandPlan(bound_m, ri, field_state, block_state,
-                                      rangelist_state, dist_state, keepalive,
-                                      array_state=array_state))
+                    _plan_set(root, inline_key,
+                              _RandPlan(bound_m, ri, field_state, block_state,
+                                        rangelist_state, dist_state, keepalive,
+                                        array_state=array_state))
 
         r = Randomizer(
             randstate,
@@ -1449,7 +1485,8 @@ class Randomizer(RandIF):
 
         # The whole-problem merged solve reuses a ctx cached on the plan, so it is
         # available whenever this object is plan-cached (hit or freshly built).
-        plan_for_merge = getattr(root, _PLAN_ATTR, None) if root is not None else None
+        plan_for_merge = (_plan_get(root, inline_key)
+                          if root is not None else None)
 
         try:
             r.randomize(ri, bound_m, plan=plan_for_merge)
