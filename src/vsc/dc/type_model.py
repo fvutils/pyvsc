@@ -10,6 +10,7 @@ import typing
 import warnings
 from enum import EnumMeta
 
+from . import class_const
 from . import constraint_ir as _ir
 from .constraint_parser import ConstraintParseError, parse_constraint
 from .fields import get_field_meta, META_KEY
@@ -504,6 +505,13 @@ def build_type_model(cls):
                        klass.__qualname__))
 
     constraints, generic_constraints = _collect_constraints(cls)
+
+    # Reads of class-level constants (self.instr_name on a per-opcode subclass)
+    # become literals of this type, and the guards they decide are folded.
+    lookup = class_const.lookup_for(cls, field_names)
+    constraints = [class_const.fold_program(p, lookup) for p in constraints]
+    generic_constraints = {n: class_const.fold_program(p, lookup)
+                           for n, p in generic_constraints.items()}
 
     # A constraint method and a field cannot share a name: the method would shadow
     # the field's dataclass default and corrupt both. Catch it with a clear error

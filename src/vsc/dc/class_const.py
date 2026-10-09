@@ -1,0 +1,192 @@
+"""
+Class-level constants in constraints.
+
+A constraint may read a class attribute that is not a field. For example,
+per-opcode subclasses can each fix ``instr_name = Op.SLLI`` on the class,
+while the shared base class's constraints guard on
+``self.instr_name.inside(...)``. Such a read is a constant of the subclass,
+not solver state.
+
+When a type model is built, :func:`fold_program` replaces each of these
+reads with its value, then folds the if/else, implies and expression
+statements that the replacement decides. Each subclass therefore gets its
+own programs, with a guard either removed or its body kept
+unconditionally, and the guard costs nothing per randomize.
+
+Only plain int, bool and Enum class attributes qualify. Fields, methods,
+properties, dotted paths and foreach loop variables are left alone, so an
+unknown name still fails at lowering as before.
+"""
+import enum
+
+from . import constraint_ir as ir
+
+_MISSING = object()
+
+
+def lookup_for(cls, field_names):
+    """Return ``name -> int or None``: the solver value of class attribute
+    ``name`` of ``cls`` when it is a constant (see the module doc)."""
+    cache = {}
+
+    def lookup(name):
+        if name in cache:
+            return cache[name]
+        val = None
+        if name not in field_names and not name.startswith("__"):
+            v = getattr(cls, name, _MISSING)
+            if isinstance(v, enum.Enum):
+                from vsc.impl.enum_info import EnumInfo
+                val = EnumInfo.get(type(v)).e2v(v)
+            elif isinstance(v, (bool, int)):
+                val = int(v)
+        cache[name] = val
+        return val
+    return lookup
+
+
+def fold_program(prog, lookup):
+    """Return ``prog`` with class constants replaced and folded, or ``prog``
+    itself when it reads none."""
+    f = _Folder(lookup)
+    if prog.kind == "value":
+        ret = f.expr(prog.ret, frozenset(prog.params))
+        stmts = prog.stmts
+    else:
+        ret = prog.ret
+        stmts = f.stmts(prog.stmts, frozenset(prog.params))
+    if not f.hit:
+        return prog
+    return ir.ConstraintProgram(prog.name, stmts, kind=prog.kind,
+                                params=prog.params, ret=ret,
+                                param_defaults=prog.param_defaults)
+
+
+# Folded only when both operands are constants. Comparisons give 0/1, as the
+# solver does. Arithmetic is folded only where 32-bit signed literals and
+# Python ints agree (see _Folder._bin).
+_CMP = {
+    "==": lambda a, b: a == b, "!=": lambda a, b: a != b,
+    "<": lambda a, b: a < b, "<=": lambda a, b: a <= b,
+    ">": lambda a, b: a > b, ">=": lambda a, b: a >= b,
+}
+_ARITH = {
+    "+": lambda a, b: a + b, "-": lambda a, b: a - b,
+    "*": lambda a, b: a * b, "&": lambda a, b: a & b,
+    "|": lambda a, b: a | b, "^": lambda a, b: a ^ b,
+}
+_I32 = range(-(1 << 31), 1 << 31)
+
+
+class _Folder:
+    def __init__(self, lookup):
+        self.lookup = lookup
+        self.hit = False
+
+    # -- expressions ---------------------------------------------------------
+
+    def expr(self, n, bound):
+        if isinstance(n, ir.IRField):
+            if len(n.path) == 1 and n.path[0] not in bound:
+                v = self.lookup(n.path[0])
+                if v is not None:
+                    self.hit = True
+                    return ir.IRConst(v)
+            return n
+        if isinstance(n, ir.IRBin):
+            return self._bin(n.op, self.expr(n.lhs, bound), self.expr(n.rhs, bound))
+        if isinstance(n, ir.IRUnary):
+            o = self.expr(n.operand, bound)
+            if n.op == "~" and isinstance(o, ir.IRConst):
+                # '~' lowers to UnaryExprType.Not, a logical not.
+                return ir.IRConst(int(not o.value))
+            return ir.IRUnary(n.op, o)
+        if isinstance(n, ir.IRInside):
+            lhs = self.expr(n.lhs, bound)
+            ranges = [ir.IRRange(self.expr(r.lo, bound),
+                                 None if r.hi is None else self.expr(r.hi, bound))
+                      for r in n.ranges]
+            if isinstance(lhs, ir.IRConst) and all(
+                    isinstance(r.lo, ir.IRConst)
+                    and (r.hi is None or isinstance(r.hi, ir.IRConst))
+                    for r in ranges):
+                v = lhs.value
+                hit = any(v == r.lo.value if r.hi is None
+                          else r.lo.value <= v <= r.hi.value for r in ranges)
+                return ir.IRConst(int(hit != bool(n.negate)))
+            return ir.IRInside(lhs, ranges, n.negate)
+        if isinstance(n, ir.IRIndex):
+            return ir.IRIndex(self.expr(n.base, bound), self.expr(n.index, bound))
+        if isinstance(n, ir.IRPartSelect):
+            return ir.IRPartSelect(self.expr(n.base, bound),
+                                   self.expr(n.upper, bound),
+                                   self.expr(n.lower, bound))
+        if isinstance(n, ir.IRAttr):
+            return ir.IRAttr(self.expr(n.base, bound), n.name)
+        if isinstance(n, ir.IRConstraintRef):
+            return self._ref(n, bound)
+        return n
+
+    def _bin(self, op, lhs, rhs):
+        if isinstance(lhs, ir.IRConst) and isinstance(rhs, ir.IRConst):
+            a, b = lhs.value, rhs.value
+            if op in _CMP:
+                return ir.IRConst(int(_CMP[op](a, b)))
+            if op in _ARITH and a in _I32 and b in _I32:
+                v = _ARITH[op](a, b)
+                if v in _I32:
+                    return ir.IRConst(v)
+        return ir.IRBin(op, lhs, rhs)
+
+    def _ref(self, n, bound):
+        return ir.IRConstraintRef(
+            n.name, [self.expr(a, bound) for a in n.args], n.lineno,
+            {k: self.expr(v, bound) for k, v in n.kwargs.items()})
+
+    # -- statements ----------------------------------------------------------
+
+    def stmts(self, stmts, bound):
+        out = []
+        for s in stmts:
+            self._stmt(s, bound, out)
+        return out
+
+    def _stmt(self, s, bound, out):
+        if isinstance(s, ir.IRConstraintExpr):
+            e = self.expr(s.expr, bound)
+            if isinstance(e, ir.IRConst) and e.value:
+                return              # always true: nothing to solve
+            out.append(ir.IRConstraintExpr(e))
+        elif isinstance(s, ir.IRIfElse):
+            c = self.expr(s.cond, bound)
+            if isinstance(c, ir.IRConst):
+                taken = s.true_body if c.value else s.false_body
+                if taken is not None:
+                    out.extend(self.stmts(taken, bound))
+                return
+            fb = None if s.false_body is None else self.stmts(s.false_body, bound)
+            out.append(ir.IRIfElse(c, self.stmts(s.true_body, bound), fb))
+        elif isinstance(s, ir.IRImplies):
+            c = self.expr(s.cond, bound)
+            if isinstance(c, ir.IRConst):
+                if c.value:
+                    out.extend(self.stmts(s.body, bound))
+                return
+            out.append(ir.IRImplies(c, self.stmts(s.body, bound)))
+        elif isinstance(s, ir.IRSoft):
+            out.append(ir.IRSoft(self.expr(s.expr, bound)))
+        elif isinstance(s, ir.IRUnique):
+            out.append(ir.IRUnique([self.expr(t, bound) for t in s.terms]))
+        elif isinstance(s, ir.IRDist):
+            out.append(ir.IRDist(
+                self.expr(s.lhs, bound),
+                [ir.IRWeight(w.lo, w.hi, self.expr(w.weight, bound), w.per_value)
+                 for w in s.weights]))
+        elif isinstance(s, ir.IRForeach):
+            inner = bound | {n for n in (s.idx_name, s.it_name) if n is not None}
+            out.append(ir.IRForeach(s.array, s.idx_name, s.it_name,
+                                    self.stmts(s.body, inner)))
+        elif isinstance(s, ir.IRConstraintRef):
+            out.append(self._ref(s, bound))
+        else:
+            out.append(s)           # IRSolveOrder: field references only
