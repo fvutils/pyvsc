@@ -213,10 +213,32 @@ def _build_array(fd):
     enums = EnumInfo.get(fd.enum_cls).enums if fd.enum_cls is not None else None
     arr = FieldArrayModel(fd.name, type_t, True, enums,
                           fd.bits, fd.signed, fd.is_rand, fd.is_rand_sz)
-    if not fd.is_rand_sz:
+    # A non-rand array is sized from the instance by _apply_node on every solve.
+    if fd.is_rand and not fd.is_rand_sz:
         for _ in range(fd.size):
             arr.add_field()
     return arr
+
+
+def _resize_state_array(fm, n):
+    """Make a non-rand array model hold exactly ``n`` elements.
+
+    A non-rand list is state, so the model follows the instance (V4). Before
+    this, the model kept the length of the first instance's default and either
+    padded the table with zeros or dropped entries -- silently, so
+    ``x.inside(rangelist(self.tbl))`` produced illegal values. A length change
+    alters the array's element count, which the plan cache's ``array_state``
+    already treats as stale."""
+    fl = fm.field_l
+    if len(fl) == n:
+        return
+    if len(fl) > n:
+        del fl[n:]
+        fm._bulk = None
+        fm._set_size(n)
+    else:
+        while len(fl) < n:
+            fm.add_field()
 
 
 def _build_composite_array(obj, fd, parent_rand=True):
@@ -310,6 +332,8 @@ def _apply_node(node, obj):
             enabled = False
         if fd.is_array:
             cur = getattr(obj, fd.name, None) or []
+            if not fd.is_rand:
+                _resize_state_array(fm, len(cur))
             ei = EnumInfo.get(fd.enum_cls) if fd.enum_cls is not None else None
             for i, e in enumerate(fm.field_l):
                 v = cur[i] if i < len(cur) else 0

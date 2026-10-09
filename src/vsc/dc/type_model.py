@@ -151,9 +151,9 @@ def _array_decl(name, meta, elem_ann):
     is_rand = meta.is_rand if meta is not None else False
     size = meta.size if meta is not None else None
     max_size = meta.max_size if meta is not None else None
-    # Phase 2: fixed-size arrays (size given). Random-size (max_size / unbounded)
-    # is a follow-on; flag it so the solve view can reject clearly for now.
-    is_rand_sz = (size is None)
+    # Only a *rand* list without size= is random-size. A non-rand list is
+    # state: its length is whatever the instance holds at solve time (V4).
+    is_rand_sz = is_rand and (size is None)
     return FieldDecl(
         name=name, bits=bits, signed=signed, is_rand=is_rand,
         rand_kind=(meta.role if (meta is not None and meta.is_rand) else ""),
@@ -175,7 +175,7 @@ def _enum_array_decl(name, meta, enum_cls):
         rand_kind=(meta.role if (meta is not None and meta.is_rand) else ""),
         role=(meta.role if meta is not None else ""),
         size=size, max_size=(meta.max_size if meta is not None else None),
-        is_array=True, is_rand_sz=(size is None), enum_cls=enum_cls)
+        is_array=True, is_rand_sz=(is_rand and size is None), enum_cls=enum_cls)
 
 
 def _composite_array_decl(name, meta, elem_cls):

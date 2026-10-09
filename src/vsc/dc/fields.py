@@ -97,20 +97,11 @@ def field(*, default=_MISSING, default_factory=_MISSING, width=None, signed=None
     """A plain (non-rand) field: covergroup/random state that constraints and
     coverpoints may reference but the solver does not assign.
 
-    ``size`` declares a **fixed-size non-rand array** (a lookup table the solver
-    reads but never assigns) — e.g. ``tbl: list[u8] = vdc.field(size=4)`` or, with
-    values, ``vdc.field(default_factory=lambda: [10, 20, 30, 40])``. When ``size``
-    is omitted but a ``default_factory`` producing a list is given, the size is
-    inferred from that list's length, so a fixed table need only supply its
-    contents. Without a size a ``list`` field would be modelled as a random-size
-    array and rejected by the array builder."""
-    if size is None and default_factory is not _MISSING:
-        try:
-            sample = default_factory()
-        except Exception:
-            sample = None
-        if isinstance(sample, list):
-            size = len(sample)
+    ``size`` on a ``list`` field gives the default a zero-filled list of that
+    length. A non-rand list is a table the solver reads but never assigns, e.g.
+    ``tbl: list[u8] = vdc.field(default_factory=lambda: [10, 20, 30, 40])``.
+    Its length is taken from the instance at every solve, so a table may
+    differ in length between instances and between calls."""
     return _mk(default, default_factory,
                FieldMeta(role="", width=width, signed=signed, size=size))
 
