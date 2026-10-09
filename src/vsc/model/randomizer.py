@@ -36,6 +36,7 @@ from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
 from vsc.model.field_model import FieldModel
 from vsc.model.field_scalar_model import FieldScalarModel
+from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.rand_if import RandIF
 from vsc.model.rand_info import RandInfo
@@ -375,6 +376,18 @@ def _bound_snap(e):
     return int(e.val())
 
 
+def _array_snap(arr):
+    """Snapshot an array used as a rangelist item: its element values, or
+    `_SOLVER_OWNED` if the solver assigns any element this call (same reasoning
+    as `_bound_snap`). The element count is part of the tuple, and
+    `array_state` tracks it as well."""
+    fl = arr.field_l
+    for f in fl:
+        if f.is_used_rand:
+            return _SOLVER_OWNED
+    return ("arr",) + tuple(int(f.get_val()) for f in fl)
+
+
 def _snapshot_rangelist(rlm):
     """A hashable snapshot of a rangelist's current range bounds, or None if a
     bound can't be evaluated to an int (→ caller treats the object as
@@ -384,6 +397,13 @@ def _snapshot_rangelist(rlm):
     narrow = opt_flags.NARROW_PLAN_SIG
     snap = []
     for item in rlm.rl:
+        arr = getattr(item, "fm", None)
+        if isinstance(arr, FieldArrayModel):
+            # `x inside rangelist(self.tbl)`: the item is the whole array, which
+            # has no single int value. Snapshot its element values (V6); before
+            # this the snapshot failed and the object was never plan-cached.
+            snap.append(_array_snap(arr))
+            continue
         lhs = getattr(item, "lhs", None)
         rhs = getattr(item, "rhs", None)
         try:

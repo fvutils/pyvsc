@@ -1,18 +1,24 @@
 """Non-rand ``list`` fields as constraint inputs (the riscv-dv ``randomize_gpr``
 shape: ``rd inside avail_regs``, ``rd != reserved[i]``).
 
-A defect found while porting riscv-dv pygen to vdc
+Defects found while porting riscv-dv pygen to vdc
 (``doc/notes/riscv_dv_vdc_port_plan.md`` §7):
 
 - **V4.** A non-rand list's length was fixed from the class default
   (``vdc.field`` called the ``default_factory`` once), not taken from the
   instance. An empty default dropped the constraint; a shorter default dropped
   table entries; a longer one padded the table with zeros. No error was raised.
+- **V6.** ``x.inside(rangelist(self.tbl))`` could not be snapshotted for the
+  plan cache, so the problem was rebuilt on every call (385 -> 38 us in the
+  ``gpr_variants`` benchmark).
 """
 from enum import IntEnum
 
 from dc_test_case import DcTestCase
 import vsc.dc as vdc
+from vsc.dc import solve_view
+from vsc.impl import ctor
+from vsc.model.randomizer import _PLAN_ATTR
 
 
 class reg(IntEnum):
@@ -40,6 +46,11 @@ class EnumTbl(vdc.RandClass):
         self.r.inside(vdc.rangelist(self.avail))
         with vdc.foreach(self.reserved, idx=True) as k:
             self.r != self.reserved[k]
+
+
+def _plan(cls):
+    node = cls.__dict__.get(solve_view._SOLVE_MODEL_ATTR)
+    return getattr(node.composite, _PLAN_ATTR, None) if node else None
 
 
 class TestStateList(DcTestCase):
@@ -74,3 +85,31 @@ class TestStateList(DcTestCase):
                 o.randomize()
                 self.assertIn(o.r, avail)
                 self.assertNotIn(o.r, reserved)
+
+    # ---- V6: the plan is kept, and still invalidated by a change ----------- #
+    def test_table_keeps_its_plan(self):
+        # The plan cache is dv-solve only; pin it rather than skip.
+        try:
+            ctor.set_solver_backend("dv-solve")
+        except Exception:
+            self.skipTest("dv-solve back-end not available")
+        try:
+            o = Tbl(tbl=[4, 5, 6])
+            o.randomize()
+            plan = _plan(Tbl)
+            self.assertIsNotNone(plan, "rangelist over a list was not cached")
+            for _ in range(15):
+                o = Tbl(tbl=[4, 5, 6])
+                o.randomize()
+                self.assertIs(plan, _plan(Tbl), "plan was rebuilt")
+                self.assertIn(int(o.x), (4, 5, 6))
+        finally:
+            ctor.set_solver_backend(None)
+
+    def test_same_length_value_change_invalidates(self):
+        a, b = [1, 2, 3], [11, 12, 13]
+        for k in range(60):
+            tbl = a if k % 2 else b
+            o = Tbl(tbl=list(tbl))
+            o.randomize()
+            self.assertIn(int(o.x), tbl)
