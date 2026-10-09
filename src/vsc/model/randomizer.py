@@ -111,6 +111,113 @@ def _plan_set(root, inline_key, plan):
         while len(plans) > _INLINE_PLANS_MAX:
             del plans[next(iter(plans))]
 
+
+def _plan_rebind(root, inline_key):
+    """Give ``inline_key`` the plan of the key it replaces, when the front-end
+    marked one of its blocks as a copy of an earlier block with only literal
+    values changed (``_vsc_rebind_from``). Returns the plan, or None. Either
+    way the mark is consumed and the earlier key's plan is no longer cached.
+
+    Runs inside do_randomize, after set_used_rand, because which fields are
+    random this call decides the T0 analysis."""
+    new_block = None
+    for b in inline_key:
+        old_block = getattr(b, "_vsc_rebind_from", None)
+        if old_block is not None:
+            b._vsc_rebind_from = None
+            new_block = b
+            break
+    if new_block is None:
+        return None
+    old_key = tuple(old_block if b is new_block else b for b in inline_key)
+    if _rebind_blocks(root, old_key, old_block, new_block):
+        plan = _plan_get(root, old_key)
+        _plan_set(root, old_key, None)
+        _plan_set(root, inline_key, plan)
+        return plan
+    _plan_set(root, old_key, None)
+    return None
+
+
+def _rebind_blocks(root, old_key, old_block, new_block):
+    """Move the plan cached for ``old_key`` from ``old_block`` to ``new_block``,
+    a block with the same structure whose literal values may differ. Returns
+    False, changing nothing, when that can't be done exactly.
+
+    A literal value only reaches the plan through the T0 domains of the
+    RandSets that hold the statement (bounds for other fields, partitioning
+    and expansion depend on structure alone). So this is done only when every
+    statement of the block is a plain ``ConstraintExprModel`` held by a
+    T0-promoted RandSet: those RandSets take ``new_block``'s statements and
+    their domains are recomputed. The result is what a rebuild gives.
+
+    The plan moves to the new objects rather than having the new values
+    written into the old ones: the native compiled-problem cache keys on
+    constraint identity, so changing a constraint's values in place could make
+    a problem cached for it stale."""
+    from vsc.model.constraint_expr_model import ConstraintExprModel
+    from vsc.model.separability import analyze_randset, t0_bounds
+    plan = _plan_get(root, old_key)
+    if plan is None:
+        return False
+    old_l = old_block.constraint_l
+    new_l = new_block.constraint_l
+    if len(old_l) != len(new_l):
+        return False
+    swap = {}
+    for o, n in zip(old_l, new_l):
+        if type(o) is not ConstraintExprModel or type(n) is not ConstraintExprModel:
+            return False
+        swap[id(o)] = n
+    ri = plan.ri
+    touched = []
+    found = set()
+    for rs in getattr(ri, "t0_randset_l", None) or ():
+        hit = [id(c) for c in rs.constraint_l if id(c) in swap]
+        if hit:
+            touched.append(rs)
+            found.update(hit)
+    if len(found) != len(swap):
+        return False    # a statement sits in a solver RandSet, or in none
+
+    # New domains, computed before anything is changed.
+    new_cls = []
+    new_bounds = {}
+    for rs in touched:
+        cl = [swap.get(id(c), c) for c in rs.constraint_l]
+        saved = rs.constraint_l
+        rs.constraint_l = cl
+        try:
+            dom = analyze_randset(rs)
+        finally:
+            rs.constraint_l = saved
+        if dom is None:
+            return False
+        new_cls.append(cl)
+        new_bounds.update(t0_bounds(dom))
+
+    old_rl = _RangelistCollector()
+    old_block.accept(old_rl)
+    old_rl = set(id(r) for r in old_rl.rangelists)
+    new_rl_state = _collect_rangelist_state([new_block])
+    if new_rl_state is None:
+        return False
+
+    for rs, cl in zip(touched, new_cls):
+        rs.constraint_l = cl
+        rs.constraint_s = set(cl)
+    plan.bound_m.update(new_bounds)
+    plan.draw_plan = None
+    plan.block_state = [((new_block, new_block.enabled) if b is old_block
+                         else (b, en)) for b, en in plan.block_state]
+    plan.rangelist_state = [s for s in plan.rangelist_state
+                            if id(s[0]) not in old_rl] + new_rl_state
+    keep = list(plan._keepalive)
+    keep[1] = [new_block if b is old_block else b for b in keep[1]]
+    keep[3] = [rlm for rlm, _ in plan.rangelist_state]
+    plan._keepalive = tuple(keep)
+    return True
+
 # Extend the Tier-A plan cache to fixed-size array / `foreach` models (default
 # on; kill-switch VSC_DVSOLVE_ARRAY_PLAN_CACHE=0). Without it, `foreach` expansion
 # rebuilds fresh constraint objects every randomize() so the compiled-problem
@@ -1305,6 +1412,8 @@ class Randomizer(RandIF):
         root = field_model_l[0] if plan_ok else None
         inline_key = tuple(constraint_l) if plan_ok else ()
         plan = _plan_get(root, inline_key) if root is not None else None
+        if plan is None and inline_key:
+            plan = _plan_rebind(root, inline_key)
 
         if plan is not None and plan.is_fresh():
             # Tier-A hit: reuse the cached plan, skip the pre-solve passes.

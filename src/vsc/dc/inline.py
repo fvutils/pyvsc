@@ -184,6 +184,16 @@ def _sig(n):
     raise _NoSig(t.__name__)
 
 
+def _shape(sig):
+    """``sig`` with every literal value blanked: equal shapes mean two blocks
+    differ at most in their literal values."""
+    if type(sig) is not tuple:
+        return sig
+    if sig and sig[0] is ExprLiteralModel:
+        return (ExprLiteralModel,)
+    return tuple(_shape(s) for s in sig)
+
+
 #: Attribute on a shared solve composite: {(code, line): (signature, block)}.
 _SITES_ATTR = "_vsc_inline_sites"
 
@@ -198,7 +208,9 @@ def _reuse_block(composite, frame, block):
     against 30 us for the same rules written as a class constraint.
 
     A call site holds one block. When the content changes, the new block
-    replaces the old one and the plan is rebuilt for it."""
+    replaces the old one. If only literal values changed, the old block's plan
+    may be moved to the new block (`_plan_rebind`); otherwise the plan is
+    rebuilt for it."""
     try:
         sig = _sig(block)
     except _NoSig:
@@ -212,8 +224,16 @@ def _reuse_block(composite, frame, block):
     if prev is not None:
         if prev[0] == sig:
             return prev[1]
-        # The site's old block is no longer passed, so its plan is dead.
-        _plan_set(composite, (prev[1],), None)
+        if _shape(prev[0]) == _shape(sig):
+            # Only literal values changed: the randomizer may move the old
+            # block's plan to this one (`_plan_rebind`), or drops it.
+            block._vsc_rebind_from = prev[1]
+            # A mark is consumed only when the plan cache runs (dv-solve);
+            # clear the old block's so blocks don't chain.
+            prev[1]._vsc_rebind_from = None
+        else:
+            # The site's old block is no longer passed, so its plan is dead.
+            _plan_set(composite, (prev[1],), None)
     block._vsc_reusable = True
     sites[key] = (sig, block)
     return block

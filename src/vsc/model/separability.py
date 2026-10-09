@@ -391,14 +391,22 @@ def t0_promote(ri):
             keep.append(rs)
             continue
         promoted.append(rs)
-        for f, ranges in dom:
-            bm = VariableBoundModel(f)
-            for lo, hi in ranges:
-                bm.domain.add_range(lo, hi)
-            bm.constrained = True
-            bounds[f] = bm
+        bounds.update(t0_bounds(dom))
+        for f, _ in dom:
             ri.unconstrained_l.append(f)
     if promoted:
         ri.randset_l = keep
         ri.t0_randset_l = promoted
+    return bounds
+
+
+def t0_bounds(dom):
+    """``field -> VariableBoundModel`` for an `analyze_randset` result."""
+    bounds = {}
+    for f, ranges in dom:
+        bm = VariableBoundModel(f)
+        for lo, hi in ranges:
+            bm.domain.add_range(lo, hi)
+        bm.constrained = True
+        bounds[f] = bm
     return bounds

@@ -16,6 +16,7 @@ from dc_test_case import DcTestCase
 import vsc.dc as vdc
 from vsc.dc import solve_view
 from vsc.impl import ctor
+from vsc.model.rand_state import RandState
 from vsc.model.randomizer import _INLINE_PLANS_ATTR
 
 
@@ -124,3 +125,111 @@ class TestInlineReuse(DcTestCase):
                 site_a(i, avail, [reg.SP])
                 self.assertEqual(i.rd, reg.RA)
                 self.assertIn(i.rs1, avail)
+
+
+def site_c(i, avail, k):
+    # Each statement constrains one rand field, so all are T0.
+    with i.randomize_with() as it:
+        it.rd.inside(vdc.rangelist(*avail))
+        it.imm < k
+
+
+def site_d(i, k):
+    # `rs1 != rd` ties two rand fields, which keeps that RandSet on the solver.
+    with i.randomize_with() as it:
+        it.rs1 != it.rd
+        it.imm < k
+
+
+class TestInlineRebind(DcTestCase):
+    """A literal-only change at a call site moves the plan to the new block
+    (`randomizer._plan_rebind`) instead of rebuilding it, when every inline
+    statement is in a T0 RandSet. The values must be what a rebuild gives."""
+
+    def setUp(self):
+        super().setUp()
+        try:
+            ctor.set_solver_backend("dv-solve")
+        except Exception:
+            self.skipTest("dv-solve back-end not available")
+
+    def tearDown(self):
+        ctor.set_solver_backend(None)
+        super().tearDown()
+
+    def _run(self, calls):
+        """[(rs1, rd, imm)] for a fixed-seed sequence of site_c calls."""
+        out = []
+        i = Instr()
+        i.set_randstate(RandState.mkFromSeed(7))
+        for avail, k in calls:
+            site_c(i, avail, k)
+            out.append((i.rs1, i.rd, i.imm))
+            self.assertIn(i.rd, avail)
+            self.assertLess(i.imm, k)
+        return out
+
+    # Same rangelist length throughout: a different length is a structural
+    # change, which is rebuilt.
+    CALLS = [([reg.RA, reg.SP], 10), ([reg.T0, reg.T2], 3),
+             ([reg.GP, reg.T1], 200), ([reg.RA, reg.TP], 1)] * 5
+
+    def test_literal_change_moves_the_plan(self):
+        import vsc.model.randomizer as rz
+        calls = []
+        orig = rz._rebind_blocks
+
+        def spy(*a):
+            r = orig(*a)
+            calls.append(r)
+            return r
+        rz._rebind_blocks = spy
+        try:
+            self._run(self.CALLS)
+        finally:
+            rz._rebind_blocks = orig
+        # The site's plans live on the class, so a block left by an earlier
+        # test can count as one more.
+        self.assertGreaterEqual(len(calls), len(self.CALLS) - 1)
+        self.assertTrue(all(calls), "a literal-only change was rebuilt")
+
+    def test_same_values_as_a_rebuild(self):
+        import vsc.model.randomizer as rz
+        with_rebind = self._run(self.CALLS)
+        orig = rz._rebind_blocks
+        rz._rebind_blocks = lambda *a: False
+        try:
+            without = self._run(self.CALLS)
+        finally:
+            rz._rebind_blocks = orig
+        self.assertEqual(with_rebind, without)
+
+    def test_solver_randset_is_rebuilt(self):
+        import vsc.model.randomizer as rz
+        calls = []
+        orig = rz._rebind_blocks
+
+        def spy(*a):
+            r = orig(*a)
+            calls.append(r)
+            return r
+        rz._rebind_blocks = spy
+        try:
+            for k in (5, 9, 2, 30, 1):
+                i = Instr()
+                site_d(i, k)
+                self.assertNotEqual(i.rs1, i.rd)
+                self.assertLess(i.imm, k)
+        finally:
+            rz._rebind_blocks = orig
+        self.assertTrue(calls)
+        self.assertFalse(any(calls), "statement in a solver RandSet was rebound")
+
+    def test_empty_domain_after_change_reports_failure(self):
+        site_c(Instr(), [reg.RA], 10)
+        with self.assertRaises(vdc.SolveFailure):
+            site_c(Instr(), [reg.RA], 0)     # imm < 0 has no unsigned value
+        i = Instr()
+        site_c(i, [reg.SP], 4)               # and the site still works after
+        self.assertEqual(i.rd, reg.SP)
+        self.assertLess(i.imm, 4)
