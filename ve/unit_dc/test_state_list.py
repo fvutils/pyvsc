@@ -1,7 +1,7 @@
 """Non-rand ``list`` fields as constraint inputs (the riscv-dv ``randomize_gpr``
 shape: ``rd inside avail_regs``, ``rd != reserved[i]``).
 
-Defects found while porting riscv-dv pygen to vdc
+Three defects found while porting riscv-dv pygen to vdc
 (``doc/notes/riscv_dv_vdc_port_plan.md`` §7):
 
 - **V4.** A non-rand list's length was fixed from the class default
@@ -11,6 +11,9 @@ Defects found while porting riscv-dv pygen to vdc
 - **V6.** ``x.inside(rangelist(self.tbl))`` could not be snapshotted for the
   plan cache, so the problem was rebuilt on every call (385 -> 38 us in the
   ``gpr_variants`` benchmark).
+- **V8.** ``self.sub.arr[k]`` (a subscript reached through a nested object) was
+  lowered as a bit-select of the array: inside a ``foreach`` it compared against
+  the index, and a constant subscript crashed the translator.
 """
 from enum import IntEnum
 
@@ -46,6 +49,35 @@ class EnumTbl(vdc.RandClass):
         self.r.inside(vdc.rangelist(self.avail))
         with vdc.foreach(self.reserved, idx=True) as k:
             self.r != self.reserved[k]
+
+
+@vdc.dataclass
+class Stream(vdc.RandClass):
+    avail: list[reg] = vdc.field(default_factory=list)
+    reserved: list[reg] = vdc.field(default_factory=list)
+
+
+@vdc.dataclass
+class Instr(vdc.RandClass):
+    r: reg = vdc.rand()
+    stream: Stream = vdc.field()
+
+    @vdc.constraint
+    def c(self):
+        self.r.inside(vdc.rangelist(self.stream.avail))
+        with vdc.foreach(self.stream.reserved, idx=True) as k:
+            self.r != self.stream.reserved[k]
+
+
+@vdc.dataclass
+class ConstIdx(vdc.RandClass):
+    x: vdc.u8 = vdc.rand(domain=(0, 7))
+    stream: Stream = vdc.field()
+
+    @vdc.constraint
+    def c(self):
+        self.x != self.stream.reserved[0]
+        self.x != self.stream.reserved[1]
 
 
 def _plan(cls):
@@ -113,3 +145,35 @@ class TestStateList(DcTestCase):
             o = Tbl(tbl=list(tbl))
             o.randomize()
             self.assertIn(int(o.x), tbl)
+
+    # ---- V8: subscripts through a nested object ---------------------------- #
+    def test_nested_foreach_subscript(self):
+        s = Stream(avail=[reg.RA, reg.SP, reg.GP, reg.TP], reserved=[reg.SP, reg.TP])
+        seen = set()
+        for _ in range(60):
+            o = Instr(stream=s)
+            o.randomize()
+            self.assertIn(o.r, (reg.RA, reg.GP))
+            seen.add(o.r)
+        self.assertEqual(seen, {reg.RA, reg.GP})
+
+    def test_nested_stream_mutated_between_calls(self):
+        s = Stream(avail=[reg.RA, reg.SP], reserved=[reg.SP])
+        for avail, reserved in (([reg.RA, reg.SP], [reg.SP]),
+                                ([reg.T0, reg.T1, reg.T2], [reg.T0, reg.T2]),
+                                ([reg.GP], [])):
+            s.avail, s.reserved = list(avail), list(reserved)
+            for _ in range(15):
+                o = Instr(stream=s)
+                o.randomize()
+                self.assertIn(o.r, avail)
+                self.assertNotIn(o.r, reserved)
+
+    def test_nested_constant_subscript(self):
+        s = Stream(reserved=[1, 2])
+        seen = set()
+        for _ in range(60):
+            o = ConstIdx(stream=s)
+            o.randomize()
+            seen.add(int(o.x))
+        self.assertEqual(seen, {0, 3, 4, 5, 6, 7})

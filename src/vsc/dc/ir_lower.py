@@ -501,12 +501,13 @@ def _field(node, ctx):
 
 def _index(node, ctx):
     # Decide array-subscript vs scalar bit-select from the base's resolved model.
-    base_model = None
-    if isinstance(node.base, ir.IRField) and len(node.base.path) == 1:
-        base_model = ctx.model(node.base.path[0])
+    # Look at the *lowered* base, so a nested path (self.sub.arr[k]) is seen as
+    # an array too. Checking only a one-segment name lowered self.sub.arr[k] as
+    # a bit-select of the array (V8): in a foreach it compared against the
+    # index instead of the element, and a constant subscript crashed.
     base_e = _expr(node.base, ctx)
     idx_e = _expr(node.index, ctx)
-    if isinstance(base_model, FieldArrayModel):
+    if isinstance(getattr(base_e, "fm", None), FieldArrayModel):
         return ExprArraySubscriptModel(base_e, idx_e)
     return ExprPartselectModel(base_e, idx_e)
 
