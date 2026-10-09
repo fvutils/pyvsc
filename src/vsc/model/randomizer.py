@@ -397,6 +397,10 @@ def _bound_snap(e):
     freshness, only state the *user* can change between calls (literals, or
     refs to non-rand fields, which `field_state` tracks separately).
     """
+    if type(e) is ExprLiteralModel:
+        # The common case, and it reads no field: skip the visitor walk, which
+        # cost more than the rest of a hit on a plan with `inside` rangelists.
+        return int(e.val())
     v = _RefsUsedRand()
     e.accept(v)
     if v.found:
