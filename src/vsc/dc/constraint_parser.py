@@ -308,6 +308,8 @@ class _Parser:
             return self._parse_native_if(stmt), 1
         if isinstance(stmt, ast.For):
             return self._parse_for(stmt), 1
+        if isinstance(stmt, getattr(ast, "Match", ())):
+            return self._parse_match(stmt), 1
         if isinstance(stmt, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
             self._assignment(stmt)
         if isinstance(stmt, ast.Assert):
@@ -436,6 +438,53 @@ class _Parser:
             else:
                 break
         return consumed
+
+    def _parse_match(self, stmt):
+        """``match``/``case`` as an if/elif chain. A case pattern is a literal,
+        a dotted constant (``E.A``), an or-pattern of those, or ``_``; the
+        first matching case applies, and no match constrains nothing."""
+        subject = self._expr(stmt.subject)
+        chain = []                  # (cond or None for '_', body)
+        for case in stmt.cases:
+            if case.guard is not None:
+                self._err(case.guard, "a case guard ('if') is not supported in "
+                                      "a constraint; nest an 'if' in the body")
+            values = self._case_values(case.pattern)
+            cond = None if values is None else (
+                IRBin("==", subject, values[0]) if len(values) == 1
+                else IRInside(subject, [IRRange(v) for v in values]))
+            chain.append((cond, self.parse_body(case.body)))
+        out = None
+        for cond, body in reversed(chain):
+            if cond is None:
+                out = body
+            else:
+                out = [IRIfElse(cond, body, out)]
+        return out
+
+    def _case_values(self, pat):
+        """The values a case pattern matches, or None for '_'."""
+        if isinstance(pat, ast.MatchAs) and pat.pattern is None and pat.name is None:
+            return None
+        if isinstance(pat, ast.MatchOr):
+            vals = []
+            for p in pat.patterns:
+                v = self._case_values(p)
+                if v is None:
+                    self._err(p, "'_' inside an or-pattern is not supported")
+                vals.extend(v)
+            return vals
+        if isinstance(pat, ast.MatchSingleton) and isinstance(pat.value, bool):
+            return [IRConst(int(pat.value))]
+        if isinstance(pat, ast.MatchValue):
+            v = self._expr(pat.value)
+            if isinstance(v, (IRConst, IRClassConst)):
+                return [v]
+        if isinstance(pat, ast.MatchAs):
+            self._err(pat, "a capture pattern binds a name; match a value: a "
+                           "literal or a dotted constant such as E.A")
+        self._err(pat, "a case pattern in a constraint is a literal, a dotted "
+                       "constant (E.A), an or-pattern of those, or '_'")
 
     def _assignment(self, stmt):
         """Reject an assignment with what was probably meant."""

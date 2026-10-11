@@ -33,7 +33,7 @@ G_ROWS = {
     57: None, 58: None, 59: None, 60: None, 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: None, 69: None,
     70: None, 71: None, 72: None, 73: None, 74: None, 75: None,
-    76: None, 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
+    76: None, 77: None, 78: None, 79: None, 80: None, 81: None, 82: None,
     83: None, 84: None, 85: None, 86: None, 87: None, 88: None, 89: None,
     90: None, 91: None, 92: None, 93: None,
 }
@@ -1265,6 +1265,53 @@ class TestConstraintGrammar(GrammarCase):
                 self.b == 3
         """, lambda t: t.a == 0 or t.b == 3,
             witness=lambda it: it.a == 0x80)
+
+    def test_G80_match(self):
+        self.accept("""
+            match self.e:
+                case E.A:
+                    self.a == 1
+                case E.B | E.C:
+                    self.a == 2
+        """, lambda t: t.a == (1 if t.e == 1 else 2))
+        self.same_model("""
+            match self.e:
+                case E.A:
+                    self.a == 1
+                case E.B:
+                    self.a == 2
+                case _:
+                    self.a == 3
+        """, """
+            if self.e == E.A:
+                self.a == 1
+            elif self.e == E.B:
+                self.a == 2
+            else:
+                self.a == 3
+        """)
+        # No case matches: nothing is constrained.
+        self.accept("""
+            match self.b:
+                case 0 | 1:
+                    self.a == 9
+        """, lambda t: t.b > 1 or t.a == 9, witness=lambda it: it.b == 5)
+        self.accept("""
+            match self.flag:
+                case True:
+                    self.a < 10
+                case False:
+                    self.a > 200
+        """, lambda t: (t.a < 10) if t.flag else (t.a > 200))
+        for body, msg in (
+                ("match self.a:\n    case x:\n        self.b == x",
+                 "a capture pattern binds a name"),
+                ("match self.a:\n    case 1 if self.b > 2:\n        self.c == 1",
+                 "a case guard ('if') is not supported"),
+                ("match self.a:\n    case [1, 2]:\n        self.c == 1",
+                 "a case pattern in a constraint is a literal")):
+            with self.subTest(body=body):
+                self.reject(body, msg, line=2)
 
     def test_G81_with_if_then(self):
         self.accept("""
