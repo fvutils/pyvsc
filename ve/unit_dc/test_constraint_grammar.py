@@ -24,7 +24,7 @@ from grammar_util import GrammarCase
 G_ROWS = {
     1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
     9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: "1.6",
-    16: None, 17: None, 18: None, 19: None, 20: "1.4", 21: "1.4", 22: None,
+    16: None, 17: None, 18: None, 19: None, 20: None, 21: None, 22: None,
     23: None, 24: None, 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
     37: None, 38: "1.8", 39: "1.7", 40: "1.7", 41: None, 42: None, 43: None,
@@ -189,6 +189,21 @@ class TestConstraintGrammar(GrammarCase):
         # On a comparison, ~ is logical not.
         self.accept("~(self.a == 5)", lambda t: t.a != 5,
                     witness=lambda it: it.a == 6)
+
+    def test_G20_unary_minus(self):
+        self.accept("-self.s == 5", lambda t: t.s == -5)
+        self.accept("self.a == -self.b + 10", lambda t: t.a == 10 - t.b)
+        self.accept("-(-self.a) == 3", lambda t: t.a == 3)
+        self.accept("self.s == -self.MAXV", lambda t: t.s == -20)
+        self.accept("self.s == -LIMIT", lambda t: t.s == -10)
+        # Python's value, not an 8-bit wrap: -a of a u8 is never 0xFF.
+        self.accept("-self.a == 0xFF", unsat=True)
+        # Unchanged for a literal, including where a constant is required.
+        self.accept("self.s in [(-3, -1), -7]", lambda t: -3 <= t.s <= -1 or t.s == -7)
+
+    def test_G21_unary_plus(self):
+        self.accept("+self.a == 3", lambda t: t.a == 3)
+        self.same_model("+self.a == +3", "self.a == 3")
 
     # -- 2.3 logical --------------------------------------------------------
 

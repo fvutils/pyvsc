@@ -417,8 +417,15 @@ class _Parser:
             if isinstance(node.op, ast.Not):
                 # Not '~': that inverts every bit of a wide operand.
                 return IRBin("==", _bool(self._expr(node.operand)), IRConst(0))
-            if isinstance(node.op, (ast.USub, ast.UAdd)):
-                return IRConst(self._const(node))
+            if isinstance(node.op, ast.UAdd):
+                return self._expr(node.operand)
+            if isinstance(node.op, ast.USub):
+                # '0 - x': the 32-bit literal widens the result, so it keeps
+                # Python's value (a u8 'a' gives -a in [-255, 0], never 0xFF).
+                o = self._expr(node.operand)
+                if isinstance(o, IRConst):
+                    return IRConst(-o.value)
+                return IRBin("-", IRConst(0), o)
         if isinstance(node, ast.Call):
             return self._call_expr(node)
         if isinstance(node, ast.Subscript):
