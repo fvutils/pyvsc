@@ -1652,6 +1652,10 @@ class Randomizer(RandIF):
                 _t = PT.now()
                 for fm in field_model_l:
                     ConstraintOverrideRollbackVisitor.rollback(fm)
+                # The caller's blocks too (randomize_with): one passed again
+                # on the next call must not keep this call's expansion.
+                for c in constraint_l:
+                    ConstraintOverrideRollbackVisitor.rollback(c)
                 PT.add("rollback", _t)
 
         _t = PT.now()

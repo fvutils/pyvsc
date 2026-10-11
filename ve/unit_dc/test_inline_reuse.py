@@ -231,3 +231,33 @@ class TestInlineRebind(DcTestCase):
         site_c(i, [reg.SP], 4)               # and the site still works after
         self.assertEqual(i.rd, reg.SP)
         self.assertLess(i.imm, 4)
+
+
+class TestInlineExpansionRollback(DcTestCase):
+    """A reused inline block is passed again on the next call, so the array
+    expansion a solve installs in it (a foreach replaced by its unrolled
+    copy) must be rolled back, as it is for the object's own constraints.
+    A parsed body reuses its block whenever its host values repeat."""
+
+    def test_foreach_restored_after_solve(self):
+        from vsc.dc import inline
+        from vsc.model.constraint_foreach_model import ConstraintForeachModel
+
+        @vdc.dataclass
+        class T(vdc.RandClass):
+            arr: list[vdc.u8] = vdc.rand(size=4)
+
+        saved = inline._INLINE_PARSE
+        inline._INLINE_PARSE = True
+        self.addCleanup(setattr, inline, "_INLINE_PARSE", saved)
+        t = T()
+        comp = solve_view.get_solve_model(t, t._get_type_model())[0]
+        for _ in range(3):
+            with t.randomize_with() as it:
+                for x in it.arr:
+                    x < 5
+            self.assertTrue(all(x < 5 for x in t.arr))
+            cache = getattr(comp, inline._PARSED_ATTR)
+            self.assertEqual(
+                [type(c) for _, b in cache.values() for c in b.constraint_l],
+                [ConstraintForeachModel])
