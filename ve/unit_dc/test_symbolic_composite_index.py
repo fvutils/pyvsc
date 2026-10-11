@@ -13,18 +13,15 @@ bare bound, relational, functional lookup) now works one level up over object ar
 Before this, ``arr[idx].field`` with a non-constant index died in DC lowering with
 ``NotImplementedError: composite-array subscripts must be constant``.
 
-These are **dv-solve** capabilities: boolector snapshots the index at build time and
-cannot co-solve a symbolic index (it produces a stale-snapshot, self-inconsistent
-model), so the correctness tests skip on boolector — its role is the XCHECK oracle,
-validating the finished dv-solve model when the index is concrete. The fixed
-*declaration* + constant-index element access works on both backends. See
+Both back-ends co-solve a symbolic index: Boolector selects symbolically too
+since the first-solve fix (B1 in doc/notes/vdc_constraint_python_grammar.md),
+so these tests run on both. See
 ``doc/notes/dv_solve_symbolic_array_index_plan.md`` (Workstream C).
 """
 import random
 
 from dc_test_case import DcTestCase, known_gap_without_boolector
 import vsc.dc as vdc
-from vsc.impl import ctor
 import vsc.model.randomizer as rnd
 from vsc.model.solve_failure import SolveFailure
 
@@ -37,10 +34,6 @@ class Item(vdc.RandClass):
 class TestSymbolicCompositeIndex(DcTestCase):
 
     # ---- helpers --------------------------------------------------------- #
-    def _require_dvsolve(self):
-        if ctor.get_solver_backend() != "dv-solve":
-            self.skipTest("symbolic object-array select is a dv-solve capability "
-                          "(boolector is the XCHECK oracle only)")
 
     def _no_fallback(self):
         snap = rnd.snapshot_fallback_tally()
@@ -72,7 +65,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
     # ---- symbolic select over the sub-field column (dv-solve) ------------ #
     def test_object_select_eq(self):
         # arr[idx].a == K : idx spreads its domain, correctness every draw, native.
-        self._require_dvsolve()
         self._no_fallback()
 
         @vdc.dataclass
@@ -102,7 +94,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
     def test_object_select_bare_bound(self):
         # arr[idx].a < K : the headline reach — was NotImplementedError in lowering.
         # A bare bound on the selected member forces every column element live.
-        self._require_dvsolve()
         self._no_fallback()
 
         @vdc.dataclass
@@ -130,7 +121,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
 
     def test_object_select_relational_two_indices(self):
         # arr[i].a > arr[j].a with two independent rand indices.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class Top(vdc.RandClass):
@@ -156,7 +146,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
     def test_object_select_functional_lookup(self):
         # arr[idx].a == val (val rand): a functional lookup — val follows the
         # selected element, and idx covers its whole domain.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class Top(vdc.RandClass):
@@ -182,7 +171,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
     def test_object_select_picks_named_column(self):
         # An element with two members — the select must resolve the *named* column
         # (b), leaving a free, and correctly report the selected element.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class Two(vdc.RandClass):
@@ -213,7 +201,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
     @known_gap_without_boolector
     def test_object_select_unsat(self):
         # arr[idx].a == 30 but every element pinned to 0 -> UNSAT.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class Top(vdc.RandClass):
@@ -235,7 +222,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
     def test_object_select_multilevel_defers(self):
         # arr[idx].sub.field — more than one symbolic level — must raise a clean,
         # documented error, never a silent mis-lower.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class Leaf(vdc.RandClass):
@@ -261,7 +247,6 @@ class TestSymbolicCompositeIndex(DcTestCase):
 
     # ---- lock the rewrite is actually taken ------------------------------ #
     def test_object_select_path_is_taken(self):
-        self._require_dvsolve()
         from vsc.dc import ir_lower as _il
 
         orig = _il._try_symbolic_composite_select

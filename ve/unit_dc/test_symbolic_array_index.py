@@ -6,11 +6,10 @@ in ``RandInfoBuilder``) makes *every* candidate element a free solver var — no
 the snapshot element — so arbitrary constraints on ``arr[idx]`` (bounds, arithmetic,
 relational, two independent indices) co-solve with the index in a single solve.
 
-These are **dv-solve** capabilities. Boolector-as-solver snapshots the index at
-build time (``ExprArraySubscriptModel.build`` reads ``int(rhs.val())``) and cannot
-co-solve a symbolic index, so the correctness tests skip on boolector. Boolector's
-role is the XCHECK oracle: it validates the *finished* dv-solve model when the index
-is concrete — locked by ``test_select_xcheck_parity``.
+The correctness tests run on both back-ends: Boolector selects symbolically
+too since the first-solve fix (B1 in doc/notes/vdc_constraint_python_grammar.md).
+The tests of dv-solve's native select path, and its XCHECK parity with
+Boolector (``test_select_xcheck_parity``), still need dv-solve.
 
 Parallels the classic gate ``ve/unit/test_dvsolve_array_select_native.py``; see
 ``doc/notes/dv_solve_symbolic_array_index_plan.md`` (Workstream A).
@@ -43,7 +42,6 @@ class TestSymbolicArrayIndex(DcTestCase):
     def test_select_eq(self):
         # arr[idx] == val, rand in-range index + free companion. Index spreads its
         # whole domain, correctness holds, and it serves natively (no fallback).
-        self._require_dvsolve()
         self._no_fallback()
 
         @vdc.dataclass
@@ -75,7 +73,6 @@ class TestSymbolicArrayIndex(DcTestCase):
         # THE headline fix: arr[idx] < K with nothing else tying the array to idx.
         # Before Workstream A this was a SolveFailure (only arr[snapshot] was free,
         # the chosen arm was a baked constant). Now every arm is a free var.
-        self._require_dvsolve()
         self._no_fallback()
 
         @vdc.dataclass
@@ -104,7 +101,6 @@ class TestSymbolicArrayIndex(DcTestCase):
     def test_select_in_expr(self):
         # The selected element inside a bounded expression: arr[idx] + 5 == other,
         # other < 50. Also a SolveFailure before Workstream A.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class my_c(vdc.RandClass):
@@ -129,7 +125,6 @@ class TestSymbolicArrayIndex(DcTestCase):
 
     def test_select_relational_two_indices(self):
         # Two independent rand indices related through the array: arr[i] > arr[j].
-        self._require_dvsolve()
 
         @vdc.dataclass
         class my_c(vdc.RandClass):
@@ -154,7 +149,6 @@ class TestSymbolicArrayIndex(DcTestCase):
     def test_select_two_indices_equal(self):
         # Two symbolic selects tied together: arr[i] == arr[j] with i != j — forces
         # a duplicate value at two solver-chosen positions.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class my_c(vdc.RandClass):
@@ -181,7 +175,6 @@ class TestSymbolicArrayIndex(DcTestCase):
     def test_select_argmax(self):
         # arr[idx] >= every element -> idx is an arg-max. A genuinely symbolic,
         # relational select over the whole array (index co-solves with the maximum).
-        self._require_dvsolve()
         self._no_fallback()
 
         @vdc.dataclass
@@ -285,7 +278,6 @@ class TestSymbolicArrayIndex(DcTestCase):
         # was quietly not enforced (wrong answers, no fallback, no crash). A
         # 96-element array is well past that cliff; it must solve correctly and
         # still serve natively (fallback-free).
-        self._require_dvsolve()
         self._no_fallback()
 
         @vdc.dataclass
@@ -317,7 +309,6 @@ class TestSymbolicArrayIndex(DcTestCase):
         # fixed decisions/level_marks arrays — an out-of-bounds write that
         # segfaulted the interpreter. The depth guard must degrade this to a
         # clean defer (SolveFailure at worst) instead of crashing the process.
-        self._require_dvsolve()
 
         @vdc.dataclass
         class my_c(vdc.RandClass):
@@ -344,7 +335,6 @@ class TestSymbolicArrayIndex(DcTestCase):
     def test_select_unsat(self):
         # arr[idx] == 5 while every element is pinned to 0 -> genuinely UNSAT for
         # any in-range idx. Must fail (not silently mis-solve).
-        self._require_dvsolve()
 
         @vdc.dataclass
         class my_c(vdc.RandClass):
