@@ -115,3 +115,40 @@ class TestParsedInline(_ParseOn, DcTestCase):
         with self.assertRaisesRegex(ConstraintParseError, "use '//'"):
             with p.randomize_with() as it:
                 it.a / 2 == 1
+
+
+class TestInlineSiteKey(DcTestCase):
+    """Two files whose randomize_with code is byte-for-byte the same (their
+    bodies differ only in constants the compiler drops) are two sites: code
+    objects compare equal across files."""
+
+    def test_equal_code_in_two_files(self):
+        import importlib.util
+        import os
+        import tempfile
+        src = ("def run(obj):\n"
+               "    with obj.randomize_with() as it:\n"
+               "        %s\n")
+        mods = []
+        with tempfile.TemporaryDirectory() as d:
+            for i, body in enumerate(("1", "0")):
+                path = os.path.join(d, "site_key_%d.py" % i)
+                with open(path, "w") as f:
+                    f.write(src % body)
+                spec = importlib.util.spec_from_file_location(
+                    "site_key_%d" % i, path)
+                m = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(m)
+                mods.append(m)
+            self.assertEqual(mods[0].run.__code__, mods[1].run.__code__)
+            saved = inline._INLINE_PARSE
+            inline._INLINE_PARSE = True
+            try:
+                # Each error names its own file and constant.
+                for i, m in enumerate(mods):
+                    with self.assertRaisesRegex(
+                            ConstraintParseError,
+                            r"site_key_%d\.py:3\): a bare constant %d " % (i, 1 - i)):
+                        m.run(P())
+            finally:
+                inline._INLINE_PARSE = saved

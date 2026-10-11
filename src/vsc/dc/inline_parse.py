@@ -54,7 +54,10 @@ def locate(frame):
     """The ``with`` statement whose ``__enter__`` ``frame`` is executing, or
     None when its source is not available or the item has no ``as`` name.
     Cached per call site."""
-    key = (frame.f_code, frame.f_lasti)
+    code = frame.f_code
+    # Code objects compare equal across files when their bytecode does (the
+    # file name is not compared), so the key names the file and line too.
+    key = (code, code.co_filename, code.co_firstlineno, frame.f_lasti)
     try:
         return _SITES[key]
     except KeyError:
