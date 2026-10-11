@@ -33,7 +33,7 @@ G_ROWS = {
     57: None, 58: None, 59: None, 60: None, 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
     70: None, 71: None, 72: None, 73: None, 74: None, 75: None,
-    76: "2.3", 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
+    76: None, 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
     83: None, 84: None, 85: None, 86: None, 87: None, 88: "2.5", 89: None,
     90: None, 91: None, 92: None, 93: None,
 }
@@ -1146,6 +1146,34 @@ class TestConstraintGrammar(GrammarCase):
 
     def test_G77_while(self):
         self.reject("while self.a < 3:\n    pass", "While")
+
+    def test_G76_rejected_for(self):
+        forms = "a constraint loop runs over an array field: 'for x in self.arr'"
+        for body in ("for x in zip(self.arr, self.arr):\n    x > 1",
+                     "for x in reversed(self.arr):\n    x > 1",
+                     "for x in sorted(self.arr):\n    x > 1",
+                     "for x in self.arr[1:]:\n    x > 1",
+                     "for i, x in self.arr:\n    x > 1",
+                     "for self.a in self.arr:\n    self.a > 1",
+                     "for x in self.a:\n    x > 1",
+                     "for i in range(len(self.arr), 0, -1):\n    self.arr[i] > 1",
+                     "for i in range(self.a):\n    self.arr[i] > 1"):
+            with self.subTest(body=body):
+                self.reject(body, forms)
+        self.reject("""
+            for x in self.arr:
+                x > 1
+            else:
+                self.a == 1
+        """, "a constraint 'for' has no 'else'")
+        for kw in ("break", "continue"):
+            with self.subTest(kw=kw):
+                self.reject("""
+                    for x in self.arr:
+                        if x > 1:
+                            %s
+                """ % kw, "'%s' has no meaning in a constraint loop" % kw,
+                            line=3)
 
     def test_G78_if_elif_else(self):
         self.accept("""

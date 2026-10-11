@@ -297,6 +297,10 @@ class _Parser:
             return self._parse_native_if(stmt), 1
         if isinstance(stmt, ast.For):
             return self._parse_for(stmt), 1
+        if isinstance(stmt, (ast.Break, ast.Continue)):
+            self._err(stmt, "'%s' has no meaning in a constraint loop: every "
+                            "iteration's constraints hold; guard them with "
+                            "'if'" % type(stmt).__name__.lower())
         if isinstance(stmt, ast.With):
             return self._parse_with(stmt, body, i)
         self._err(stmt, "unsupported statement %s (constraints are declarative)"
