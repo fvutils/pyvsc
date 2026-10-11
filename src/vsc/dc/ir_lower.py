@@ -21,6 +21,7 @@ from vsc.model.constraint_solve_order_model import ConstraintSolveOrderModel
 from vsc.model.constraint_unique_model import ConstraintUniqueModel
 from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
+from vsc.model.expr_array_product_model import ExprArrayProductModel
 from vsc.model.expr_array_sum_model import ExprArraySumModel
 from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_cond_model import ExprCondModel
@@ -343,6 +344,8 @@ def _attr(node, ctx):
     base = _resolve_model(node.base, ctx)
     if isinstance(base, FieldArrayModel) and node.name == "sum":
         return ExprArraySumModel(base)
+    if isinstance(base, FieldArrayModel) and node.name == "product":
+        return ExprArrayProductModel(base)
     return ExprFieldRefModel(_descend(base, node.name))
 
 
@@ -497,6 +500,8 @@ def _field(node, ctx):
                 continue
             if seg == "sum":
                 return ExprArraySumModel(model)
+            if seg == "product":
+                return ExprArrayProductModel(model)
             raise NotImplementedError("array attribute %r" % seg)
         if isinstance(model, FieldCompositeModel):
             child = model.find_field(seg)

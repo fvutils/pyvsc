@@ -29,8 +29,8 @@ G_ROWS = {
     30: None, 31: None, 32: None, 33: None, 34: None, 35: None, 36: None,
     37: None, 38: None, 39: None, 40: None, 41: None, 42: None, 43: None,
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
-    51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: None,
-    57: "1.10", 58: None, 59: "1.11", 60: "1.11", 61: None, 62: None,
+    51: None, 52: None, 53: None, 54: None, 55: None, 56: None,
+    57: None, 58: None, 59: "1.11", 60: "1.11", 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
     70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
     76: "2.3", 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
@@ -631,6 +631,48 @@ class TestConstraintGrammar(GrammarCase):
         self.accept("self.arr.size == 4", lambda t: len(t.arr) == 4)
         self.accept("self.arr.sum == 10", lambda t: sum(t.arr) == 10)
 
+    def test_G53_len(self):
+        self.accept("len(self.arr) == 4", lambda t: len(t.arr) == 4)
+        self.same_model("len(self.arr) == 4", "self.arr.size == 4")
+        self.accept(None, lambda t: 2 <= len(t.arr) <= 3, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                arr: list[vdc.u8] = vdc.rand(max_size=4)
+
+                @vdc.constraint
+                def c_probe(self):
+                    len(self.arr) > 1
+                    len(self.arr) < 4
+        """)
+        self.reject("len(self.a) == 1", "len() in a constraint takes an array field")
+
+    def test_G54_sum(self):
+        self.accept("sum(self.arr) == 10", lambda t: sum(t.arr) == 10)
+        self.same_model("sum(self.arr) == 10", "self.arr.sum == 10")
+        self.reject("sum(self.arr, 1) == 10", "sum() in a constraint takes one array")
+        self.reject("sum([self.a, self.b]) == 3", "takes an array field")
+
+    def test_G55_product(self):
+        self.accept("self.arr.product == 24",
+                    lambda t: t.arr[0] * t.arr[1] * t.arr[2] * t.arr[3] == 24)
+        self.same_model("math.prod(self.arr) == 6", "self.arr.product == 6")
+        self.accept(None, lambda t: t.arr[0] * t.arr[1] * t.arr[2] == 30,
+                    src="""
+            from math import prod
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                arr: list[vdc.u8] = vdc.rand(size=3)
+
+                @vdc.constraint
+                def c_probe(self):
+                    prod(self.arr) == 30
+        """)
+        self.reject("math.prod(self.a) == 1", "takes an array field")
+
     def test_G56_scalar_min_max(self):
         self.accept("min(self.a, self.b) == 3", lambda t: min(t.a, t.b) == 3,
                     witness=lambda it: it.b == 3)
@@ -639,7 +681,7 @@ class TestConstraintGrammar(GrammarCase):
                     witness=lambda it: it.c == 7)
         self.accept("min(self.s, 0) == -4", lambda t: t.s == -4)
         self.accept("max(self.a, 10) == 10", lambda t: t.a <= 10)
-        self.reject("min(self.a) == 3", "needs two or more arguments")
+        self.reject("min(self.a) == 3", "scalar min() needs two or more arguments")
         self.reject("max(self.a, self.b, key=abs) == 3", "no keyword arguments")
         self.reject("max(*self.arr) == 3", "no *arguments")
         # A name the module rebinds is not the builtin.
@@ -657,6 +699,10 @@ class TestConstraintGrammar(GrammarCase):
                 def c_probe(self):
                     max(self.a, 1) == 3
         """)
+
+    def test_G57_array_min_max(self):
+        self.reject("min(self.arr) == 3", "min() over an array is not supported yet")
+        self.reject("max(self.arr) > 3", "max() over an array is not supported yet")
 
     def test_G58_abs(self):
         self.accept("abs(self.s) == 5", lambda t: t.s in (5, -5),

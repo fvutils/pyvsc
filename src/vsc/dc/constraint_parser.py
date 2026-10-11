@@ -154,7 +154,7 @@ def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
 
 
 # Builtins a constraint expression may call (when not shadowed).
-_BUILTINS = frozenset(("abs", "bool", "min", "max"))
+_BUILTINS = frozenset(("abs", "bool", "len", "max", "min", "sum"))
 
 
 def _is_bool(e):
@@ -619,7 +619,30 @@ class _Parser:
         builtin = self._builtin(node)
         if builtin is not None:
             return self._builtin_call(node, builtin)
+        if self._is_math_prod(node.func):
+            if len(node.args) != 1 or node.keywords:
+                self._err(node, "math.prod() in a constraint takes one array")
+            return self._array_reduction(node, node.args[0], "product",
+                                         "math.prod")
         self._err(node, "unsupported call in expression")
+
+    def _is_math_prod(self, func):
+        """``math.prod`` (or ``prod`` imported from it)."""
+        import math
+        if isinstance(func, ast.Attribute):
+            return (func.attr == "prod" and isinstance(func.value, ast.Name)
+                    and self._names.get(func.value.id) is math)
+        return (isinstance(func, ast.Name) and func.id not in self._params
+                and func.id not in self._bound
+                and self._names.get(func.id) is math.prod)
+
+    def _array_reduction(self, node, arg, attr, name):
+        """``len``/``sum``/``math.prod`` of ``self.<array>``: its ``.size``,
+        ``.sum`` or ``.product``."""
+        if not self._is_array(arg):
+            self._err(node, "%s() in a constraint takes an array field "
+                            "(self.<array>)" % name)
+        return IRField(self._dotted(arg) + (attr,))
 
     def _builtin(self, node):
         """The name of the builtin ``node`` calls, or None. A name the
@@ -639,6 +662,15 @@ class _Parser:
         args = node.args
         if any(isinstance(a, ast.Starred) for a in args):
             self._err(node, "%s() in a constraint takes no *arguments" % name)
+        if name in ("len", "sum"):
+            if len(args) != 1:
+                self._err(node, "%s() in a constraint takes one array" % name)
+            return self._array_reduction(node, args[0],
+                                         "size" if name == "len" else "sum",
+                                         name)
+        if name in ("min", "max") and len(args) == 1 and self._is_array(args[0]):
+            self._err(node, "%s() over an array is not supported yet; use a "
+                            "foreach with an auxiliary field" % name)
         if name in ("abs", "bool"):
             if len(args) != 1:
                 self._err(node, "%s() takes one argument" % name)
@@ -648,8 +680,7 @@ class _Parser:
             return IRCond(IRBin("<", x, IRConst(0)), IRBin("-", IRConst(0), x), x)
         # min / max
         if len(args) < 2:
-            self._err(node, "%s() over an array is not supported yet; scalar "
-                            "%s() needs two or more arguments" % (name, name))
+            self._err(node, "scalar %s() needs two or more arguments" % name)
         op = "<" if name == "min" else ">"
         terms = [self._expr(a) for a in args]
         result = terms[0]
