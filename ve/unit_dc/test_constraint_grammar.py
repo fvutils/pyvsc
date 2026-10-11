@@ -32,7 +32,7 @@ G_ROWS = {
     51: None, 52: None, 53: None, 54: None, 55: None, 56: None,
     57: None, 58: None, 59: None, 60: None, 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
-    70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
+    70: None, 71: None, 72: None, 73: None, 74: "2.2", 75: None,
     76: "2.3", 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
     83: None, 84: None, 85: None, 86: None, 87: None, 88: "2.5", 89: None,
     90: None, 91: None, 92: None, 93: None,
@@ -1002,6 +1002,87 @@ class TestConstraintGrammar(GrammarCase):
             self.a == 5
             self.MAXV == 21
         """, unsat=True)
+
+    def test_G70_for_element(self):
+        self.accept("""
+            for x in self.arr:
+                x > 100
+        """, lambda t: all(x > 100 for x in t.arr))
+        self.same_model("""
+            for x in self.arr:
+                x > 100
+        """, """
+            with vdc.foreach(self.arr) as x:
+                x > 100
+        """)
+        self.accept("""
+            for x in self.arr:
+                if x > 128:
+                    x % 2 == 0
+                x != self.a
+        """, lambda t: all((x <= 128 or x % 2 == 0) and x != t.a for x in t.arr))
+
+    def test_G71_for_index(self):
+        self.accept("""
+            for i in range(len(self.arr)):
+                self.arr[i] == i * 3
+        """, lambda t: list(t.arr) == [0, 3, 6, 9])
+        self.same_model("""
+            for i in range(self.arr.size):
+                self.arr[i] == i
+        """, """
+            with vdc.foreach(self.arr, idx=True) as i:
+                self.arr[i] == i
+        """)
+        # Neighbours: the classic idiom.
+        self.accept("""
+            for i in range(len(self.arr)):
+                if i > 0:
+                    self.arr[i] > self.arr[i - 1]
+        """, lambda t: all(t.arr[k] > t.arr[k - 1] for k in range(1, 4)))
+
+    def test_G72_for_enumerate(self):
+        self.accept("""
+            for i, x in enumerate(self.arr):
+                x == i + 10
+        """, lambda t: list(t.arr) == [10, 11, 12, 13])
+        self.same_model("""
+            for i, x in enumerate(self.arr):
+                x == i
+        """, """
+            with vdc.foreach(self.arr, idx=True, it=True) as (i, x):
+                x == i
+        """)
+
+    def test_G73_for_composite(self):
+        self.accept("""
+            for o in self.objs:
+                o.x < 10
+                o.x != self.a
+        """, lambda t: all(o.x < 10 and o.x != t.a for o in t.objs))
+        self.accept("""
+            for i, o in enumerate(self.objs):
+                o.x == i + 1
+        """, lambda t: [o.x for o in t.objs] == [1, 2])
+
+    def test_G75_nested_for(self):
+        self.accept("""
+            for i in range(len(self.arr)):
+                for j in range(len(self.arr)):
+                    if i < j:
+                        self.arr[i] < self.arr[j]
+        """, lambda t: list(t.arr) == sorted(t.arr) and len(set(t.arr)) == 4)
+        self.accept("""
+            for o in self.objs:
+                for x in self.arr:
+                    o.x != x
+        """, lambda t: not {o.x for o in t.objs} & set(t.arr))
+        # The loop name is bound only inside its body.
+        self.reject("""
+            for x in self.arr:
+                x > 1
+            x < 5
+        """, "reference to local/global 'x'", line=3)
 
     def test_G77_while(self):
         self.reject("while self.a < 3:\n    pass", "While")

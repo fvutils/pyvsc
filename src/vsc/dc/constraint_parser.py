@@ -288,6 +288,8 @@ class _Parser:
             return self._parse_expr_stmt(stmt.value), 1
         if isinstance(stmt, ast.If):
             return self._parse_native_if(stmt), 1
+        if isinstance(stmt, ast.For):
+            return self._parse_for(stmt), 1
         if isinstance(stmt, ast.With):
             return self._parse_with(stmt, body, i)
         self._err(stmt, "unsupported statement %s (constraints are declarative)"
@@ -402,6 +404,19 @@ class _Parser:
             else:
                 break
         return consumed
+
+    def _parse_for(self, stmt):
+        """``for`` over an array field: a foreach (forms in _LOOP_FORMS)."""
+        if stmt.orelse:
+            self._err(stmt, "a constraint 'for' has no 'else'")
+        array, idx, it = self._loop(stmt, stmt.target, stmt.iter)
+        saved = set(self._bound)
+        self._bound.update(n for n in (idx, it) if n is not None)
+        try:
+            body = self.parse_body(stmt.body)
+        finally:
+            self._bound = saved
+        return IRForeach(array, idx, it, body)
 
     def _parse_foreach(self, stmt, ctx):
         args = self._helper_args(ctx)
