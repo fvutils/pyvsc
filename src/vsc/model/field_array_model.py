@@ -135,8 +135,11 @@ class FieldArrayModel(FieldCompositeModel):
                     f.post_randomize(visited)
         else:
             FieldCompositeModel.post_randomize(self, visited)
+        # The Boolector nodes belong to this solve's instance.
         self.sum_expr = None
         self.sum_expr_btor = None
+        self.product_expr = None
+        self.product_expr_btor = None
         
     def add_field(self) -> FieldScalarModel:
         fid = len(self.field_l)
