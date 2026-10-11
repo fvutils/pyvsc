@@ -10,6 +10,7 @@ from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
 from vsc.model.value_scalar import ValueScalar
+from vsc.visitors.refs_used_rand_visitor import refs_used_rand
 
 class ForeachRefExpander(ModelVisitor):
     """Expand index-variable references in a foreach constraint"""
@@ -97,9 +98,18 @@ class ForeachRefExpander(ModelVisitor):
             base = self._field
 
             # Check to see whether this includes an index reference
+            outer_refs = self._refs_index_var
+            self._refs_index_var = False
             s.rhs.accept(self)
-            
-            self._field = base.field_l[int(s.rhs.val())]
+            rhs_refs = self._refs_index_var
+            self._refs_index_var = outer_refs or rhs_refs
+
+            if not rhs_refs and refs_used_rand(s.rhs):
+                # A random index has no value before the solve (it may even
+                # be out of range); the back-end selects the element.
+                self._field = None
+            else:
+                self._field = base.field_l[int(s.rhs.val())]
             
         # Propagate the _field up, but not the _expr
         self._expr = None

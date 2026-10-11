@@ -96,3 +96,26 @@ class TestSymbolicIndexFirstSolve(VscTestCase):
         for _ in range(40):
             o.randomize()
             self.assertEqual((o.a >> o.i) & 1, 1, "a=%#x i=%d" % (o.a, o.i))
+
+
+class TestSymbolicIndexOutOfRange(VscTestCase):
+    """A random index whose current value is out of range must not be read
+    as an element (B16): the array expansion and the randset builder did,
+    and raised IndexError before solving."""
+
+    def test_out_of_range_current_value(self):
+        for _ in range(10):
+            o = ArrIdxFree()
+            o.i = 200
+            o.randomize()
+            self.assertLess(o.i, 4)
+            self.assertEqual(o.arr[o.i], 9)
+
+    def test_out_of_range_inline(self):
+        o = ArrIdxFree()
+        for _ in range(10):
+            o.i = 200
+            with o.randomize_with() as it:
+                it.i < 2
+            self.assertLess(o.i, 2)
+            self.assertEqual(o.arr[o.i], 9)

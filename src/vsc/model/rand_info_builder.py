@@ -377,6 +377,10 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 if getattr(f, "is_used_rand", False):
                     self.process_fieldref(f)       # rand element -> same randset
             return
+        if self._pass != 1 and self._index_is_used_rand(s.rhs):
+            # A random index has no value yet (it may be out of range); pass 0
+            # needs no element.
+            return
         fm = s.getFieldModel()
         if self._pass == 1:
             # During pass 1, build out randsets based on constraint
