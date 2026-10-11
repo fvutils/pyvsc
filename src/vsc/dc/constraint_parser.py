@@ -99,23 +99,32 @@ def parse_constraint(name, func, kind="fixed"):
         if sp.default is not inspect.Parameter.empty:
             param_defaults[sp.name] = IRConst(p._as_int(fn, sp.default))
 
+    # A docstring documents the constraint; it is not part of it.
+    body = [s for s in fn.body if not _is_string_stmt(s)]
+
     # Value generic: a single ``return <expr>`` body (or explicit @constraint.value).
     is_value = (kind == "value") or (
-        len(fn.body) == 1 and isinstance(fn.body[0], ast.Return))
+        len(body) == 1 and isinstance(body[0], ast.Return))
     if is_value:
-        if not (len(fn.body) == 1 and isinstance(fn.body[0], ast.Return)
-                and fn.body[0].value is not None):
+        if not (len(body) == 1 and isinstance(body[0], ast.Return)
+                and body[0].value is not None):
             raise ConstraintParseError(
                 "constraint %r: a value generic must be a single 'return <expr>'"
                 % name)
-        ret = p._expr(fn.body[0].value)
+        ret = p._expr(body[0].value)
         return ConstraintProgram(name, [], kind="value", params=params, ret=ret,
                                  param_defaults=param_defaults)
 
-    stmts = p.parse_body(fn.body)
+    stmts = p.parse_body(body)
     eff_kind = "generic" if (params and kind == "fixed") else kind
     return ConstraintProgram(name, stmts, kind=eff_kind, params=params,
                              param_defaults=param_defaults)
+
+
+def _is_string_stmt(stmt):
+    """A bare string statement, such as a docstring."""
+    return (isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant)
+            and isinstance(stmt.value.value, str))
 
 
 class _Parser:
@@ -168,7 +177,7 @@ class _Parser:
 
     def _parse_stmt(self, stmt, body, i):
         """Return (ir_node_or_None, num_siblings_consumed>=1)."""
-        if isinstance(stmt, ast.Pass):
+        if isinstance(stmt, ast.Pass) or _is_string_stmt(stmt):
             return None, 1
         if isinstance(stmt, ast.Expr):
             return self._parse_expr_stmt(stmt.value), 1

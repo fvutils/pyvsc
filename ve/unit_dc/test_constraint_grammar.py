@@ -34,7 +34,7 @@ G_ROWS = {
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
     70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
     76: "2.3", 77: None, 78: None, 79: "1.3", 80: "2.7", 81: None, 82: None,
-    83: None, 84: None, 85: None, 86: None, 87: "0.5", 88: "2.5", 89: None,
+    83: None, 84: None, 85: None, 86: None, 87: None, 88: "2.5", 89: None,
     90: None, 91: None, 92: None, 93: None,
 }
 
@@ -462,6 +462,31 @@ class TestConstraintGrammar(GrammarCase):
             pass
             self.a == 5
         """, lambda t: t.a == 5)
+
+    def test_G87_string_statement(self):
+        self.accept('''
+            """A docstring."""
+            self.a == 5
+            "a note"
+            self.b == 6
+        ''', lambda t: (t.a, t.b) == (5, 6))
+        # A value generic may have a docstring too.
+        self.accept(None, lambda t: t.a == 4, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint.value
+                def twice(self, v):
+                    'Twice v.'
+                    return v + v
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.twice(self.a) == 8
+        """)
 
     def test_G89_assignment(self):
         for body in ("self.a = 5", "self.a += 1", "x: int = 1"):
