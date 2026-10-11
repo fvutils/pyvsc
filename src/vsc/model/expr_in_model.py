@@ -101,6 +101,26 @@ class ExprInModel(ExprModel):
 
         from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
         return expr.build(btor) if expr is not None else None
+    def val(self):
+        # Same membership as build(): a range is inclusive, an array matches
+        # any of its first `size` elements, and no entry at all is true.
+        from vsc.model.value_bool import ValueBool
+        v = int(self.lhs.val())
+        if not self.rhs.rl:
+            return ValueBool(True)
+        for r in self.rhs.rl:
+            if isinstance(r, ExprRangeModel):
+                if int(r.lhs.val()) <= v <= int(r.rhs.val()):
+                    return ValueBool(True)
+            elif isinstance(r, ExprFieldRefModel) and isinstance(r.fm, FieldArrayModel):
+                arr = r.fm
+                n = min(int(arr.size.get_val()), len(arr.field_l))
+                if any(int(f.val) == v for f in arr.field_l[:n]):
+                    return ValueBool(True)
+            elif int(r.val()) == v:
+                return ValueBool(True)
+        return ValueBool(False)
+
     def is_signed(self):
         return False
     

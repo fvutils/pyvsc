@@ -25,7 +25,7 @@ import platform
 import sys
 from pathlib import Path
 
-from . import builds, calib, run, schema, suites
+from . import builds, calib, riscv_dv, run, schema, suites
 from .arms import ARMS
 
 NOISY_LOAD = 4.0             # host 1-min load above this marks the run noisy
@@ -46,8 +46,11 @@ def _dvs_state(dv_file):
     """Version, commit and dirty flag of the dv-solve the head children loaded."""
     state = {"v": None, "commit": os.environ.get("DVS_COMMIT"), "dirty": False}
     if dv_file:
+        # The whole repository, not just the Python package directory: the
+        # native library is built from src/c, and a patch there is what
+        # makes a dv-solve build differ from its commit.
         root = Path(dv_file).resolve().parent
-        t = builds.tree_state(root)
+        t = builds.tree_state(root, ":/")
         if t["commit"]:
             state["commit"], state["dirty"] = t["commit"], t["dirty"]
     return state
@@ -94,6 +97,16 @@ def _log(row):
           f"{row['arm']:<13} {val}", file=sys.stderr, flush=True)
 
 
+def _log_app(r):
+    if r.get("status") == "ok":
+        val = (f"{r['cpu_s']:.2f} s, {r['instrs']} instrs"
+               + (f", {r['violations']} violations" if r.get("violations") else ""))
+    else:
+        val = f"{r.get('status')} {r.get('error', '')}"
+    print(f"  riscv-dv {r['test']} seed {r['seed']:<5} {r['arm']:<13} "
+          f"{'validate ' if r['validate'] else ''}{val}", file=sys.stderr, flush=True)
+
+
 def collect(kind: str, suite_names: list, a) -> dict:
     load0 = calib.loadavg()
     utc = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
@@ -129,12 +142,20 @@ def collect(kind: str, suite_names: list, a) -> dict:
         for spec in specs:
             print(f"suite {spec['name']}:", file=sys.stderr)
             rec["manifests"][spec["name"]] = spec["manifest"]
-            rec["cells"] += run.run_suite(spec, a.workers, log=_log)
+            if spec.get("app") == "riscv-dv":
+                if riscv_dv.uses_port(spec):
+                    raise SystemExit(f"suite {spec['name']} runs the unpinned riscv-dv port "
+                                     "(a dc arm); use python -m perf.riscv_dv instead")
+                rec["cells"] += riscv_dv.run_suite(spec, a.workers, log=_log_app)
+                rec.setdefault("apps", {})["riscv-dv"] = {"commit": riscv_dv.pin()}
+            else:
+                rec["cells"] += run.run_suite(spec, a.workers, log=_log)
         rec["builds"] = _provenance(rec["cells"])
         for b in needed:
             rec["builds"].setdefault(b, {})["pins"] = builds.LOCK["builds"][b]
-            if b == "stock":
-                rec["builds"][b]["pyvsc"] = builds.LOCK["builds"][b][0].split("==")[1]
+            pv = [p for p in builds.LOCK["builds"][b] if p.startswith("pyvsc==")]
+            if pv:
+                rec["builds"][b]["pyvsc"] = pv[0].split("==")[1]
         errs = _check_builds(rec["builds"])
         if errs:
             raise RuntimeError("; ".join(errs))

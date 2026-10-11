@@ -54,13 +54,12 @@ jobs:
           echo "authority=$auth" >> "$GITHUB_OUTPUT"
 
   ci-linux:
-    needs: gate
     runs-on: ubuntu-latest
-    # Run the full ve/unit suite once per solver back-end. VSC_SOLVER is read at
-    # import time, so each back-end needs its own process/job. The boolector leg
-    # is the canonical one that also builds docs and publishes on a release tag
-    # (see the guards below); the dv-solve leg exercises the suite under the
-    # native back-end.
+    # Run the full ve/unit and ve/unit_dc suites once per solver back-end.
+    # VSC_SOLVER is read at import time, so each back-end needs its own
+    # process/job. The boolector leg is the canonical one that also builds docs
+    # and hands its distributions to publish-pypi (see the guards below); the
+    # dv-solve leg exercises the suites under the native back-end.
     strategy:
       fail-fast: false
       matrix:
@@ -73,14 +72,16 @@ jobs:
     - name: Configure Python
       run: |
         python3 -m venv python
-        ./python/bin/python3 -m pip install wheel twine
+        ./python/bin/python3 -m pip install build twine
         ./python/bin/python3 -m pip install pip setuptools --upgrade
         ./python/bin/python3 -m pip install -r requirements_dev.txt
-        # THE TAG IS THE VERSION. setup.py takes the version from etc/ivpm.info
-        # and appends "." + $BUILD_NUM when it is set. A tag build leaves it
-        # unset, so a release carries exactly the number in ivpm.info (checked
-        # against the tag before publishing). Every other build is stamped with
-        # a PEP 440 dev + local segment:
+    - name: Build Package
+      run: |
+        # THE TAG IS THE VERSION. pyproject.toml takes the version from
+        # src/vsc/__version__.py (BASE + SUFFIX). A tag build leaves SUFFIX
+        # empty, so a release carries exactly BASE (checked against the tag in
+        # publish-pypi). Every other build stamps SUFFIX with a PEP 440 dev +
+        # local segment:
         #
         #   0.9.6.dev37412289187+gh.g7775f37
         #
@@ -89,10 +90,13 @@ jobs:
         # built it (run ids collide across forges); and PyPI rejects any local
         # segment, so a branch build can never be published.
         case "$GITHUB_REF" in
-          refs/tags/v*) unset BUILD_NUM ;;
-          *) export BUILD_NUM="dev${GITHUB_RUN_ID}+gh.g$(git rev-parse --short=7 HEAD)" ;;
+          refs/tags/v*) echo "tag build -- leaving version clean" ;;
+          *) sed -i 's/^SUFFIX = ""$/SUFFIX = ".dev'"${GITHUB_RUN_ID}"'+gh.g'"$(git rev-parse --short=7 HEAD)"'"/' src/vsc/__version__.py ;;
         esac
-        ./python/bin/python3 setup.py bdist_wheel --universal
+        grep "^SUFFIX = " src/vsc/__version__.py
+        rm -rf dist/
+        ./python/bin/python3 -m build .
+        ./python/bin/python3 -m twine check dist/*
         ls dist/
     - name: Install dv-solve
       if: matrix.solver == 'dv-solve'
@@ -120,16 +124,10 @@ jobs:
         export PYTHONPATH=`pwd`/src
         tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
         ./python/bin/python3 -m pytest --no-cov -v $tests
-        #        for test in $tests; do 
-        #    echo "Test file: $test"
-        #    ./python/bin/python3 -m pytest --no-cov -v $test
-        #    if test $? -eq 0; then
-        #       echo "Status 0"
-        #    else
-        #       echo "Status non-0"
-        #    fi
-        #done
-        echo "Final status: $?"
+        # The dataclass front-end's suite. Its own directory: ve/unit_dc has a
+        # conftest.py and its own base class, and shares test module names
+        # with ve/unit.
+        (cd ve/unit_dc && ../../python/bin/python3 -m pytest --no-cov -q .)
     - name: Build Docs
       # Built once, from the canonical boolector leg only, as a CI check.
       if: matrix.solver == 'boolector'
@@ -155,19 +153,157 @@ jobs:
     # THE DOCS BUILD ABOVE STAYS, as a CI check. A broken cross-reference should fail
     # here, not render as a dead link on dvkit.org.
 
+    - name: Upload distributions
+      # Handed to publish-pypi, from the canonical leg only. Uploaded on every
+      # build so a branch's wheel is reviewable; only a tag publishes it.
+      if: matrix.solver == 'boolector'
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-pyvsc
+        path: dist/*
+        if-no-files-found: error
+
+  # ---------------------------------------------------------------------- #
+  # NO-BOOLECTOR. The configuration a Windows user gets: pyboolector has no
+  # Windows wheel, so pyproject.toml installs dv-solve alone there, and the
+  # default back-end resolves to dv-solve (src/vsc/impl/ctor.py). Run on Linux
+  # because it is the same code path and Linux CI is the one this repo trusts;
+  # ci-windows below adds the platform itself.
+  #
+  # What it guards: nothing imports pyboolector at module scope; the default
+  # back-end resolves without VSC_SOLVER (deliberately UNSET here); dv-solve
+  # serves alone what `auto` would otherwise hand to Boolector (the self-served
+  # path that hid the c32 == a16 + b16 carry bug); solve-failure diagnostics
+  # work without Boolector. Tests that need Boolector itself are marked
+  # requires_boolector / known_gap_without_boolector and skip or xfail here.
+  # ---------------------------------------------------------------------- #
+  ci-no-boolector:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Configure Python
+      run: |
+        python3 -m venv python
+        ./python/bin/python3 -m pip install pip setuptools wheel --upgrade
+        # requirements_dev.txt minus pyboolector: install pyvsc's other runtime
+        # deps by hand, and pyvsc itself --no-deps (its markers would pull
+        # pyboolector in on Linux).
+        ./python/bin/python3 -m pip install pytest toposort 'git+https://github.com/fvutils/pyucis.git#egg=pyucis'
+        git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        cadical_tag=$(sed -n '/name: cadical/,/tag:/s/.*tag: *//p' packages/dv-solve/ivpm.yaml)
+        git -c advice.detachedHead=false clone -q --depth 1 -b "$cadical_tag" https://github.com/arminbiere/cadical.git packages/cadical
+        ./python/bin/python3 -m pip install ./packages/dv-solve
+        ./python/bin/python3 -m pip install --no-deps -e .
+        if ./python/bin/python3 -c 'import pyboolector' 2>/dev/null; then
+          echo "::error::pyboolector is installed; this job must run without it"
+          exit 1
+        fi
+    - name: Run Tests
+      env:
+        VSC_DVSOLVE_VALIDATE: '1'
+      run: |
+        test "$(./python/bin/python3 -c 'import vsc; print(vsc.get_solver_backend())')" = dv-solve
+        tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
+        ./python/bin/python3 -m pytest -v $tests
+        (cd ve/unit_dc && ../../python/bin/python3 -m pytest -q .)
+
+  # ---------------------------------------------------------------------- #
+  # WINDOWS. The platform itself, dv-solve only. dv-solve is built from source
+  # here because PyPI has no Windows dv-solve wheel yet (its wheels.yml builds
+  # one but publishes linux-x86_64 only) -- so this proves pyvsc runs on
+  # Windows, not that `pip install pyvsc` does. The build setup mirrors
+  # dv-solve's own Windows wheel job: Ninja + MSVC, and no CaDiCaL (MSVC builds
+  # force DVS_WITH_CADICAL=OFF).
+  #
+  # NOT YET A RELEASE GATE: publish-pypi does not need this job. Add it to
+  # publish-pypi's `needs` once it has run green.
+  # ---------------------------------------------------------------------- #
+  ci-windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: bash
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Install ninja
+      run: choco install ninja --no-progress
+    - name: Set up MSVC
+      uses: ilammy/msvc-dev-cmd@v1
+      with:
+        arch: x64
+    - name: Configure Python
+      run: |
+        python -m pip install pip setuptools wheel --upgrade
+        python -m pip install pytest toposort 'git+https://github.com/fvutils/pyucis.git#egg=pyucis'
+        git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        python -m pip install ./packages/dv-solve
+        python -m pip install --no-deps -e .
+    - name: Run Tests
+      env:
+        VSC_DVSOLVE_VALIDATE: '1'
+      run: |
+        test "$(python -c 'import vsc; print(vsc.get_solver_backend())')" = dv-solve
+        tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
+        python -m pytest -v $tests
+        (cd ve/unit_dc && python -m pytest -q .)
+
+  # ---------------------------------------------------------------------- #
+  # PUBLISHING. Its own job because `needs` is the only thing in Actions that
+  # can make a release WAIT for other jobs. When publishing was a step in the
+  # boolector leg of ci-linux, a red dv-solve leg (fail-fast: false) did not
+  # stop the release.
+  #
+  # needs: a red -- or skipped -- gating job blocks the upload. Failing closed
+  # on a release is this repo's standing preference; see the gate job.
+  # ---------------------------------------------------------------------- #
+  publish-pypi:
+    needs: [gate, ci-linux, ci-no-boolector]
+    runs-on: ubuntu-latest
+    # GATED 2026-08-31 (wave 3b). Two clauses, and both are load-bearing:
+    #
+    #   refs/tags/v*   this repo is mirrored to Forgejo and back on a five-minute
+    #                  cron, and git-sync moves the DEFAULT BRANCH. The condition
+    #                  replaced here was `refs/heads/master` (or main), which a sync
+    #                  cycle satisfies by construction -- so mirroring was a release
+    #                  trigger. A tag is a deliberate act; a cycle never creates one.
+    #
+    #   authority      the release-authority master switch at
+    #                  dvkit.org/.well-known/release-authority.json, so that which
+    #                  forge may publish is one decision in one place rather than
+    #                  fourteen workflow files.
+    #
+    # WHAT THIS COSTS. The per-push `.<run-id>` dev wheel is gone: a push to the
+    # default branch no longer publishes anything to PyPI. That is the same trade
+    # already made for the eight mballance-utils repos, and it is the one
+    # sync-policy.toml describes as outstanding for exactly this shape.
+    if: >-
+      needs.gate.outputs.authority == 'github' &&
+      startsWith(github.ref, 'refs/tags/v')
+    steps:
+    - uses: actions/checkout@v4
+    - name: Download distributions
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-pyvsc
+        path: dist
     - name: Check the tag IS the version
       # REQUIRED before publishing: the tag alone decides the published version.
-      # Asserts the source (etc/ivpm.info) agrees with the tag AND that every
-      # built artifact agrees with the source -- a build that read a stale
-      # version, or picked up a BUILD_NUM stamp, passes the first and fails the
+      # Asserts the source (src/vsc/__version__.py) agrees with the tag AND that
+      # every built artifact agrees with the source -- a build that read a stale
+      # version, or picked up a SUFFIX stamp, passes the first and fails the
       # second. v0.9.6 shipped as 0.9.6.37412289187 for want of this check.
-      if: matrix.solver == 'boolector' && startsWith(github.ref, 'refs/tags/v')
       run: |
         tag="${GITHUB_REF#refs/tags/v}"
-        base=$(sed -n 's/^version=//p' etc/ivpm.info | tr -d '[:space:]')
+        base=$(python3 -c 'import re; print(re.search(r"^BASE\s*=\s*\"([^\"]+)\"", open("src/vsc/__version__.py").read(), re.M).group(1))')
         echo "tag=$tag  source=$base"
         if [ "$tag" != "$base" ]; then
-          echo "::error::tag v$tag does not match version=$base in etc/ivpm.info"
+          echo "::error::tag v$tag does not match BASE=$base in src/vsc/__version__.py"
           exit 1
         fi
         for f in dist/*; do
@@ -177,31 +313,7 @@ jobs:
           esac
         done
         echo "OK: tag, source version and every artifact agree on ${base}"
-
     - name: Publish to PyPi
-      # GATED 2026-08-31 (wave 3b). Two clauses, and both are load-bearing:
-      #
-      #   refs/tags/v*   this repo is mirrored to Forgejo and back on a five-minute
-      #                  cron, and git-sync moves the DEFAULT BRANCH. The condition
-      #                  replaced here was `refs/heads/master` (or main), which a sync
-      #                  cycle satisfies by construction -- so mirroring was a release
-      #                  trigger. A tag is a deliberate act; a cycle never creates one.
-      #
-      #   authority      the release-authority master switch at
-      #                  dvkit.org/.well-known/release-authority.json, so that which
-      #                  forge may publish is one decision in one place rather than
-      #                  fourteen workflow files.
-      #
-      # WHAT THIS COSTS. The per-push `.<run-id>` dev wheel is gone: a push to the
-      # default branch no longer publishes anything to PyPI. That is the same trade
-      # already made for the eight mballance-utils repos, and it is the one
-      # sync-policy.toml describes as outstanding for exactly this shape.
-      #
-      # matrix.solver: publish once, from the canonical boolector leg only.
-      if: >-
-        matrix.solver == 'boolector' &&
-        needs.gate.outputs.authority == 'github' &&
-        startsWith(github.ref, 'refs/tags/v')
       uses: pypa/gh-action-pypi-publish@release/v1
       with:
         user: __token__

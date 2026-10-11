@@ -5,7 +5,6 @@ Created on Apr 28, 2020
 '''
 from vsc.model.expr_model import ExprModel
 from vsc.model.unary_expr_type import UnaryExprType
-from pyboolector import Boolector
 
 class ExprUnaryModel(ExprModel):
     
@@ -14,7 +13,7 @@ class ExprUnaryModel(ExprModel):
         self.expr = e
         self.op = op
         
-    def build(self, btor : Boolector, ctx_width=-1):
+    def build(self, btor : "Boolector", ctx_width=-1):
         ret = None
         
         e_w = self.expr.width()

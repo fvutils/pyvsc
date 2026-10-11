@@ -175,5 +175,8 @@ def select_backend(name: str) -> SolverBackendIF:
     cls = _load_backend_cls(canon)
     if not cls.available():
         raise Exception(
-            "Solver back-end '%s' is not available in this environment" % canon)
+            "Solver back-end '%s' is not available in this environment "
+            "(install it with `pip install pyvsc[%s]`, or select another "
+            "back-end with VSC_SOLVER / vsc.set_solver_backend())" % (
+                canon, canon))
     return cls()

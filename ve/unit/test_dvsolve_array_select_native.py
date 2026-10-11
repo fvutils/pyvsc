@@ -32,7 +32,7 @@ from vsc.impl import ctor
 from vsc.model.solver.backend import select_backend
 import vsc.model.randomizer as rnd
 from vsc.model.solver import xcheck
-from vsc_test_case import VscTestCase
+from vsc_test_case import VscTestCase, requires_boolector
 
 
 def _dvsolve_available():
@@ -139,6 +139,7 @@ class TestDvSolveArraySelectNative(VscTestCase):
     # EF-1a.2 — XCHECK parity (the soundness gate). Boolector validates     #
     # every dv-solve model, including the co-solved-index shapes.           #
     # ------------------------------------------------------------------ #
+    @requires_boolector
     def test_select_xcheck_parity(self):
         prev = xcheck.set_xcheck(True)
         self.addCleanup(xcheck.restore_xcheck, prev)

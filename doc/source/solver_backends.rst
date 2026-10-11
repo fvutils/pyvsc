@@ -9,9 +9,12 @@ form its underlying engine understands, solving it, and writing the solved
 values back into the fields.
 
 .. note::
-   During the dv-solve integration the default back-end is **Boolector**, the
-   engine PyVSC has always used. Additional back-ends (``dv-solve``) are being
-   introduced incrementally and are opt-in until conformance is demonstrated.
+   The default back-end is **Boolector**, the engine PyVSC has always used,
+   whenever ``pyboolector`` is installed, so a given seed keeps producing the
+   values it always has. Where it is not installed -- Windows, which has no
+   ``pyboolector`` wheel -- the default is **dv-solve**. ``pip install pyvsc``
+   installs whichever solvers publish a wheel for the platform; the extras
+   ``pyvsc[boolector]`` and ``pyvsc[dv-solve]`` request one explicitly.
 
 Selecting a back-end
 ====================
@@ -20,7 +23,7 @@ Two mechanisms select the back-end, in increasing precedence:
 
 * **Environment variable** ``VSC_SOLVER`` -- set to ``boolector``,
   ``dv-solve``, or ``auto``. Read once at import time. Defaults to
-  ``boolector``.
+  ``boolector`` when ``pyboolector`` is installed, otherwise ``dv-solve``.
 * **Programmatically** via the Python API below, which overrides the
   environment value.
 
@@ -57,7 +60,7 @@ constructing randomized objects.
 
 The precedence, highest first, is: programmatic override
 (:func:`vsc.set_solver_backend`) → ``VSC_SOLVER`` → built-in default
-(``boolector``).
+(``boolector`` if installed, else ``dv-solve``).
 
 Available back-ends
 ====================
@@ -104,9 +107,10 @@ On that fallback:
   now authoritative for unsatisfiability on its own.
 * **SAT** from BV-SAT confirms the problem is solvable, but the BV-SAT engine's
   *model distribution* is clustered (good for "find a solution", not for
-  coverage stimulus). By default dv-solve therefore defers the actual value
-  selection for such a RandSet to the distribution-preserving fallback rather
-  than emitting BV-SAT's biased model.
+  coverage stimulus). When Boolector is installed, dv-solve therefore defers
+  the actual value selection for such a RandSet to it rather than emitting
+  BV-SAT's biased model. Without Boolector, dv-solve serves the RandSet
+  itself, drawing the values through a uniform (XOR-hashing) sampler.
 
 Soft constraints
 ================
@@ -143,10 +147,10 @@ Environment toggles (advanced / debugging)
 
 * ``VSC_DVSOLVE_BVSAT=0`` — disable the internal BV-SAT engine entirely
   (revert to deferring un-decidable RandSets to the external fallback).
-* ``VSC_DVSOLVE_BVSAT_SERVE_SAT=1`` — let BV-SAT also *serve* satisfiable
-  fallback problems (write their values). Off by default because its
-  distribution is not uniform; intended for non-coverage uses or once a uniform
-  sampler is added.
+* ``VSC_DVSOLVE_BVSAT_SERVE_SAT`` — whether BV-SAT also *serves* satisfiable
+  fallback problems (writes their values, via the uniform sampler). ``auto``
+  (the default) serves only when no Boolector is installed to serve them;
+  ``1`` always serves; ``0`` never does.
 * ``VSC_DVSOLVE_NO_FALLBACK=1`` — strict mode: the Randomizer raises instead of
   falling back to another back-end on ``BackendIncomplete``, so any residual
   dependence on the fallback (e.g. Boolector) surfaces loudly. A diagnostic for

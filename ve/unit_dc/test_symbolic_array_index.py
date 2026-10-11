@@ -17,7 +17,7 @@ Parallels the classic gate ``ve/unit/test_dvsolve_array_select_native.py``; see
 """
 import random
 
-from dc_test_case import DcTestCase
+from dc_test_case import DcTestCase, requires_boolector
 import vsc.dc as vdc
 from vsc.impl import ctor
 import vsc.model.randomizer as rnd
@@ -363,6 +363,7 @@ class TestSymbolicArrayIndex(DcTestCase):
             c.randomize()
 
     # ---- soundness: XCHECK parity (boolector validates dv-solve models) --- #
+    @requires_boolector
     def test_select_xcheck_parity(self):
         # With XCHECK forced on, Boolector validates every finished dv-solve model
         # (idx concrete at validation time), including the co-solved-index shapes.

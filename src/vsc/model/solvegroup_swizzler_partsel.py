@@ -9,6 +9,7 @@ from vsc.model.expr_bin_model import ExprBinModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_literal_model import ExprLiteralModel
 from vsc.model.expr_model import ExprModel
+from vsc.model.enum_field_model import EnumFieldModel
 from vsc.model.expr_partselect_model import ExprPartselectModel
 from vsc.model.field_model import FieldModel
 from vsc.model.field_scalar_model import FieldScalarModel
@@ -233,6 +234,25 @@ class SolveGroupSwizzlerPartsel(object):
         
         if self.debug:
             print("range_l: %d (%s)" % (len(range_l), str(range_l)))
+        if isinstance(f, EnumFieldModel):
+            # An enum targets one of its values, each equally likely, as one
+            # equality. (Its domain was once always one range per value, which
+            # the multi-range branch below turns into exactly this; it is now
+            # one range per contiguous run, which the slicing branch would
+            # spread over a Sat call per bit.) Same draw as that branch: one
+            # randint over the value count, the k-th value in order.
+            n = 0
+            for lo, hi in range_l:
+                n += hi - lo + 1
+            k = self.randstate.randint(0, n - 1) if n > 1 else 0
+            for lo, hi in range_l:
+                if k <= hi - lo:
+                    break
+                k -= hi - lo + 1
+            return [ExprBinModel(
+                ExprFieldRefModel(f),
+                BinExprType.Eq,
+                ExprLiteralModel(lo + k, False, 32))]
         if len(range_l) > 1:
             # If we have a multi-part domain, select from one 
             # of the slices

@@ -1,0 +1,61 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pyvsc"
+dynamic = ["version"]
+description = "pyvsc (Verification Stimulus and Coverage) is a Python package for generating randomized stimulus and defining and collecting functional coverage."
+readme = "README.md"
+requires-python = ">=3.10"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Matthew Ballance", email = "matt.ballance@gmail.com"},
+]
+keywords = ["Python", "Functional Verification", "Constraints", "Coverage"]
+classifiers = [
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+# THE SOLVERS ARE PLATFORM-CONDITIONAL, and each marker tracks where that
+# solver actually publishes an installable distribution on PyPI. pyvsc needs at
+# least one of them; when both are installed, Boolector is the default (see
+# src/vsc/impl/ctor.py) and VSC_SOLVER / vsc.set_solver_backend() choose.
+#
+#   pyboolector  every platform but Windows, where it has no wheel.
+#   dv-solve     Linux x86_64 and Windows AMD64. dv-solve builds wheels for
+#                more platforms than it publishes, and has no sdist, so a
+#                platform named here that it does not publish for fails
+#                `pip install pyvsc`. Windows is named AHEAD of dv-solve's
+#                Windows publish (its wheels.yml ships linux-x86_64 only today):
+#                Windows installs fail without it anyway, for want of
+#                pyboolector, and this way they start working the day dv-solve
+#                publishes, with no pyvsc release. Widen as its publish set does.
+#
+# The extras below install a solver on any platform, unconditionally, for
+# anyone building one from source.
+dependencies = [
+    "pyboolector>=3.2.2; sys_platform != 'win32'",
+    "dv-solve>=0.2.2; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
+    "pyucis>=0.1.4",
+    "toposort",
+]
+
+[project.optional-dependencies]
+boolector = ["pyboolector>=3.2.2"]
+dv-solve = ["dv-solve>=0.2.2"]
+
+[project.urls]
+Homepage = "https://github.com/fvutils/pyvsc"
+Documentation = "https://dvkit.org/fvutils/pyvsc/"
+Source = "https://github.com/fvutils/pyvsc"
+
+[tool.setuptools.dynamic]
+version = {attr = "vsc.__version__._pkg_version"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+include = ["vsc*"]

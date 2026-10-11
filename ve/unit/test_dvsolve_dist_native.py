@@ -28,7 +28,7 @@ from contextlib import contextmanager
 import vsc
 from vsc.impl import ctor
 from vsc.model.solver.backend import select_backend
-from vsc_test_case import VscTestCase
+from vsc_test_case import VscTestCase, requires_boolector
 
 from distribution_score import score
 
@@ -256,10 +256,11 @@ class TestDvSolveDistNative(VscTestCase):
             def d(s):
                 vsc.dist(s.a, [vsc.weight(1, 80), vsc.weight(2, 20)])
 
-        # A static dist compiles once, then reuses the cached plan/problem.
+        # A static dist compiles twice (a plan is retained only once the same
+        # problem recurs), then reuses the cached plan/problem.
         builds = self._count_builds(C(), "a", n=8)
-        self.assertEqual(builds, 1,
-                         "static dist should compile once, rebuilt %d times" % builds)
+        self.assertEqual(builds, 2,
+                         "static dist should compile twice, rebuilt %d times" % builds)
 
     def test_tb8_plan_cache_rebuild_on_weight_change(self):
         @vsc.randobj
@@ -549,6 +550,7 @@ class TestDvSolveDistNative(VscTestCase):
     # ------------------------------------------------------------------ #
     # T-B9 — distribution parity: native dv-solve vs Boolector             #
     # ------------------------------------------------------------------ #
+    @requires_boolector
     def test_tb9_distribution_parity_vs_boolector(self):
         """Native dv-solve dist must be no worse than Boolector at realizing the
         requested weights. Compare per-range mass on the same weighted dist; both

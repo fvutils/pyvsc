@@ -38,7 +38,7 @@ import vsc
 from vsc.impl import ctor
 from vsc.model.solver.backend import select_backend
 import vsc.model.randomizer as rnd
-from vsc_test_case import VscTestCase
+from vsc_test_case import VscTestCase, requires_boolector
 
 
 def _dvsolve_available():
@@ -493,6 +493,7 @@ class TestDvSolveFallbackHistogram(VscTestCase):
     # ------------------------------------------------------------------ #
     # T-E0b — each residual shape defers with its documented reason code   #
     # ------------------------------------------------------------------ #
+    @requires_boolector
     def test_residual_corpus_reason_codes(self):
         for label, expect_code, factory in _residual_corpus():
             with _tally() as tally:
@@ -543,6 +544,7 @@ class TestDvSolveFallbackHistogram(VscTestCase):
     # ------------------------------------------------------------------ #
     # T-E0c — the dashboard: full corpus histogram vs the allowlist        #
     # ------------------------------------------------------------------ #
+    @requires_boolector
     def test_histogram_dashboard(self):
         with _tally() as tally:
             for label, factory in _native_corpus():

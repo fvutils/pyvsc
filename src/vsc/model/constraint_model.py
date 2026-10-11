@@ -19,8 +19,6 @@
 #
 # @author: ballance
 
-from pyboolector import BoolectorNode
-
 class ConstraintModel(object):
     """Base class for all constraint models"""
     
@@ -32,7 +30,7 @@ class ConstraintModel(object):
     def dispose(self):
         self.node = None
     
-    def build(self, btor, soft=False)->BoolectorNode:
+    def build(self, btor, soft=False)->"BoolectorNode":
         raise Exception("build unimplemented for constraint " + str(type(self)))
     
     def get_nodes(self, node_l):

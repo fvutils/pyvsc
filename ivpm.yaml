@@ -26,7 +26,11 @@ package:
       url: https://github.com/fvutils/pyucis.git
     - name: riscv-dv
       url: https://github.com/google/riscv-dv.git
+    - name: riscv-dv-new
+      url: https://github.com/mballance/riscv-dv.git
+      type: raw
     - name: dv-solve
+      dep-set: use
       url: https://github.com/fvutils/dv-solve.git
 
 

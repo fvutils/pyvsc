@@ -1,0 +1,366 @@
+# Per-stage baseline -- vdc front-end + dv-solve back-end
+#
+# RE-RECORDED at the end of Phase 1 (declared domains). The previous recording of
+# this file is VOID and was discarded: it was taken with VSC_PHASE_TIMERS=1, and
+# at that time bench_stage_profile.py could not turn the timers off for its
+# "headline" pass (PT.ENABLED was bound at import), so every headline rate in it
+# was instrumented and ~2x pessimistic. Its per-stage *shares* were still valid
+# -- they came from the instrumented pass either way -- but its stage mix for
+# arr128 (apply_node ~28us, a rollback stage, post_randomize x2, no
+# merged_finalize) does not reproduce on this tree under VSC_DVSOLVE_MERGE=0 or
+# =1, and the cause was not identified. Treat only the numbers below as the
+# baseline for Phase 2+.
+#
+# Headline = timers off (PT.set_enabled(False)); breakdown = second pass, timers on.
+# Command:
+#   PYTHONPATH=src:benchmarks:<crlib> VSC_PHASE_TIMERS=1 \
+#     python benchmarks/bench_stage_profile.py
+vdc front-end + dv-solve back-end
+
+========================================================================
+basic
+  warm   118869.2 solves/s  (   8.41 us/solve)
+      apply_node               0.24 us/solve    2.3%  1.00 calls
+      set_used_rand            0.39 us/solve    3.8%  1.00 calls
+      pre_randomize            0.31 us/solve    3.1%  1.00 calls
+      unconstrained_draw       1.07 us/solve   10.5%  1.00 calls
+      solve                    1.50 us/solve   14.7%  1.00 calls
+      readback                 0.86 us/solve    8.4%  1.00 calls
+      merged_finalize          0.19 us/solve    1.9%  1.00 calls
+      post_randomize           1.06 us/solve   10.3%  1.00 calls
+      writeback                0.56 us/solve    5.5%  1.00 calls
+      (unattributed)           4.04 us/solve   39.5%  0.00 calls
+  cold    74560.4 solves/s  (  13.41 us/solve)
+      apply_node               0.36 us/solve    2.3%  1.00 calls
+      set_used_rand            0.45 us/solve    2.9%  1.00 calls
+      pre_randomize            0.35 us/solve    2.3%  1.00 calls
+      unconstrained_draw       1.35 us/solve    8.8%  1.00 calls
+      solve                    1.57 us/solve   10.2%  1.00 calls
+      readback                 0.90 us/solve    5.9%  1.00 calls
+      merged_finalize          0.22 us/solve    1.5%  1.00 calls
+      post_randomize           1.12 us/solve    7.3%  1.00 calls
+      writeback                0.59 us/solve    3.9%  1.00 calls
+      (unattributed)           8.44 us/solve   54.9%  0.00 calls
+========================================================================
+in_kw
+  warm     5153.5 solves/s  ( 194.04 us/solve)
+      apply_node               0.56 us/solve    0.3%  1.00 calls
+      set_used_rand            0.89 us/solve    0.4%  1.00 calls
+      clear_soft_pri           3.28 us/solve    1.6%  1.00 calls
+      pre_randomize            0.66 us/solve    0.3%  1.00 calls
+      bounds_1                21.33 us/solve   10.7%  1.00 calls
+      plan_snapshot            7.25 us/solve    3.6%  1.00 calls
+      array_dist_expand       18.38 us/solve    9.2%  1.00 calls
+      bounds_2                18.75 us/solve    9.4%  1.00 calls
+      randinfo_build          19.09 us/solve    9.6%  1.00 calls
+      unconstrained_draw       0.41 us/solve    0.2%  1.00 calls
+      solve                    3.00 us/solve    1.5%  1.00 calls
+      readback                 3.69 us/solve    1.9%  1.00 calls
+      merged_finalize          0.63 us/solve    0.3%  1.00 calls
+      post_randomize           2.03 us/solve    1.0%  1.00 calls
+      writeback                1.01 us/solve    0.5%  1.00 calls
+      (unattributed)          98.06 us/solve   49.3%  0.00 calls
+  cold     4938.7 solves/s  ( 202.48 us/solve)
+      apply_node               0.73 us/solve    0.4%  1.00 calls
+      set_used_rand            0.90 us/solve    0.4%  1.00 calls
+      clear_soft_pri           3.32 us/solve    1.6%  1.00 calls
+      pre_randomize            0.69 us/solve    0.3%  1.00 calls
+      bounds_1                21.59 us/solve   10.4%  1.00 calls
+      plan_snapshot            7.28 us/solve    3.5%  1.00 calls
+      array_dist_expand       18.45 us/solve    8.9%  1.00 calls
+      bounds_2                18.89 us/solve    9.1%  1.00 calls
+      randinfo_build          19.33 us/solve    9.3%  1.00 calls
+      unconstrained_draw       0.41 us/solve    0.2%  1.00 calls
+      solve                    3.20 us/solve    1.5%  1.00 calls
+      readback                 3.74 us/solve    1.8%  1.00 calls
+      merged_finalize          0.64 us/solve    0.3%  1.00 calls
+      post_randomize           2.02 us/solve    1.0%  1.00 calls
+      writeback                1.00 us/solve    0.5%  1.00 calls
+      (unattributed)         105.66 us/solve   50.8%  0.00 calls
+========================================================================
+ldinstr
+  warm   101816.4 solves/s  (   9.82 us/solve)
+      apply_node               0.23 us/solve    2.0%  1.00 calls
+      set_used_rand            0.36 us/solve    3.2%  1.00 calls
+      pre_randomize            0.31 us/solve    2.7%  1.00 calls
+      unconstrained_draw       0.23 us/solve    2.0%  1.00 calls
+      solve                    3.47 us/solve   30.5%  1.00 calls
+      readback                 0.98 us/solve    8.6%  1.00 calls
+      merged_finalize          0.30 us/solve    2.6%  1.00 calls
+      post_randomize           1.05 us/solve    9.2%  1.00 calls
+      writeback                0.57 us/solve    5.0%  1.00 calls
+      (unattributed)           3.88 us/solve   34.1%  0.00 calls
+  cold    71845.1 solves/s  (  13.92 us/solve)
+      apply_node               0.32 us/solve    2.0%  1.00 calls
+      set_used_rand            0.40 us/solve    2.5%  1.00 calls
+      pre_randomize            0.33 us/solve    2.1%  1.00 calls
+      unconstrained_draw       0.23 us/solve    1.5%  1.00 calls
+      solve                    3.68 us/solve   23.1%  1.00 calls
+      readback                 1.03 us/solve    6.5%  1.00 calls
+      merged_finalize          0.31 us/solve    1.9%  1.00 calls
+      post_randomize           1.10 us/solve    6.9%  1.00 calls
+      writeback                0.59 us/solve    3.7%  1.00 calls
+      (unattributed)           7.94 us/solve   49.8%  0.00 calls
+========================================================================
+listsum
+  warm    83156.0 solves/s  (  12.03 us/solve)
+      apply_node               0.23 us/solve    1.7%  1.00 calls
+      set_used_rand            1.10 us/solve    7.9%  1.00 calls
+      pre_randomize            0.85 us/solve    6.1%  1.00 calls
+      unconstrained_draw       0.27 us/solve    1.9%  1.00 calls
+      solve                    2.59 us/solve   18.7%  1.00 calls
+      readback                 1.38 us/solve   10.0%  1.00 calls
+      merged_finalize          0.43 us/solve    3.1%  1.00 calls
+      post_randomize           1.84 us/solve   13.3%  1.00 calls
+      writeback                0.90 us/solve    6.5%  1.00 calls
+      (unattributed)           4.26 us/solve   30.8%  0.00 calls
+  cold    60282.2 solves/s  (  16.59 us/solve)
+      apply_node               0.36 us/solve    1.9%  1.00 calls
+      set_used_rand            1.14 us/solve    6.1%  1.00 calls
+      pre_randomize            0.89 us/solve    4.7%  1.00 calls
+      unconstrained_draw       0.28 us/solve    1.5%  1.00 calls
+      solve                    2.80 us/solve   15.0%  1.00 calls
+      readback                 1.43 us/solve    7.6%  1.00 calls
+      merged_finalize          0.44 us/solve    2.4%  1.00 calls
+      post_randomize           1.89 us/solve   10.1%  1.00 calls
+      writeback                0.92 us/solve    4.9%  1.00 calls
+      (unattributed)           8.55 us/solve   45.7%  0.00 calls
+========================================================================
+listuniq
+  warm    58478.6 solves/s  (  17.10 us/solve)
+      apply_node               0.21 us/solve    1.1%  1.00 calls
+      set_used_rand            1.06 us/solve    5.5%  1.00 calls
+      pre_randomize            0.83 us/solve    4.3%  1.00 calls
+      unconstrained_draw       0.26 us/solve    1.4%  1.00 calls
+      solve                    8.41 us/solve   43.8%  1.00 calls
+      readback                 1.28 us/solve    6.7%  1.00 calls
+      merged_finalize          0.42 us/solve    2.2%  1.00 calls
+      post_randomize           1.75 us/solve    9.1%  1.00 calls
+      writeback                0.82 us/solve    4.3%  1.00 calls
+      (unattributed)           4.18 us/solve   21.7%  0.00 calls
+  cold    46003.0 solves/s  (  21.74 us/solve)
+      apply_node               0.32 us/solve    1.3%  1.00 calls
+      set_used_rand            1.16 us/solve    4.8%  1.00 calls
+      pre_randomize            0.88 us/solve    3.7%  1.00 calls
+      unconstrained_draw       0.29 us/solve    1.2%  1.00 calls
+      solve                    8.37 us/solve   34.8%  1.00 calls
+      readback                 1.31 us/solve    5.5%  1.00 calls
+      merged_finalize          0.44 us/solve    1.8%  1.00 calls
+      post_randomize           1.84 us/solve    7.7%  1.00 calls
+      writeback                0.86 us/solve    3.6%  1.00 calls
+      (unattributed)           8.58 us/solve   35.7%  0.00 calls
+========================================================================
+wide32
+  warm   143293.5 solves/s  (   6.98 us/solve)
+      apply_node               0.20 us/solve    2.3%  1.00 calls
+      set_used_rand            0.27 us/solve    3.1%  1.00 calls
+      pre_randomize            0.25 us/solve    2.9%  1.00 calls
+      unconstrained_draw       0.22 us/solve    2.6%  1.00 calls
+      solve                    1.54 us/solve   17.8%  1.00 calls
+      readback                 0.87 us/solve   10.1%  1.00 calls
+      merged_finalize          0.19 us/solve    2.1%  1.00 calls
+      post_randomize           0.79 us/solve    9.1%  1.00 calls
+      writeback                0.35 us/solve    4.1%  1.00 calls
+      (unattributed)           3.99 us/solve   46.0%  0.00 calls
+  cold    90885.6 solves/s  (  11.00 us/solve)
+      apply_node               0.29 us/solve    2.2%  1.00 calls
+      set_used_rand            0.29 us/solve    2.2%  1.00 calls
+      pre_randomize            0.25 us/solve    1.9%  1.00 calls
+      unconstrained_draw       0.23 us/solve    1.8%  1.00 calls
+      solve                    1.70 us/solve   13.2%  1.00 calls
+      readback                 0.90 us/solve    7.0%  1.00 calls
+      merged_finalize          0.19 us/solve    1.5%  1.00 calls
+      post_randomize           0.79 us/solve    6.1%  1.00 calls
+      writeback                0.35 us/solve    2.7%  1.00 calls
+      (unattributed)           7.91 us/solve   61.4%  0.00 calls
+========================================================================
+wide64
+  warm   143291.4 solves/s  (   6.98 us/solve)
+      apply_node               0.20 us/solve    2.3%  1.00 calls
+      set_used_rand            0.27 us/solve    3.1%  1.00 calls
+      pre_randomize            0.25 us/solve    2.9%  1.00 calls
+      unconstrained_draw       0.22 us/solve    2.6%  1.00 calls
+      solve                    1.53 us/solve   17.8%  1.00 calls
+      readback                 0.87 us/solve   10.0%  1.00 calls
+      merged_finalize          0.19 us/solve    2.2%  1.00 calls
+      post_randomize           0.77 us/solve    9.0%  1.00 calls
+      writeback                0.35 us/solve    4.1%  1.00 calls
+      (unattributed)           3.98 us/solve   46.1%  0.00 calls
+  cold    91976.3 solves/s  (  10.87 us/solve)
+      apply_node               0.27 us/solve    2.1%  1.00 calls
+      set_used_rand            0.28 us/solve    2.2%  1.00 calls
+      pre_randomize            0.25 us/solve    2.0%  1.00 calls
+      unconstrained_draw       0.22 us/solve    1.8%  1.00 calls
+      solve                    1.68 us/solve   13.3%  1.00 calls
+      readback                 0.87 us/solve    6.9%  1.00 calls
+      merged_finalize          0.19 us/solve    1.5%  1.00 calls
+      post_randomize           0.76 us/solve    6.0%  1.00 calls
+      writeback                0.34 us/solve    2.7%  1.00 calls
+      (unattributed)           7.74 us/solve   61.4%  0.00 calls
+========================================================================
+tight
+  warm     9836.7 solves/s  ( 101.66 us/solve)
+      apply_node               0.20 us/solve    0.2%  1.00 calls
+      set_used_rand            0.28 us/solve    0.3%  1.00 calls
+      pre_randomize            0.25 us/solve    0.2%  1.00 calls
+      unconstrained_draw       0.23 us/solve    0.2%  1.00 calls
+      solve                   96.72 us/solve   93.0%  1.00 calls
+      readback                 0.88 us/solve    0.8%  1.00 calls
+      merged_finalize          0.19 us/solve    0.2%  1.00 calls
+      post_randomize           0.79 us/solve    0.8%  1.00 calls
+      writeback                0.36 us/solve    0.3%  1.00 calls
+      (unattributed)           4.09 us/solve    3.9%  0.00 calls
+  cold     9411.9 solves/s  ( 106.25 us/solve)
+      apply_node               0.28 us/solve    0.3%  1.00 calls
+      set_used_rand            0.30 us/solve    0.3%  1.00 calls
+      pre_randomize            0.26 us/solve    0.2%  1.00 calls
+      unconstrained_draw       0.24 us/solve    0.2%  1.00 calls
+      solve                   96.22 us/solve   89.4%  1.00 calls
+      readback                 0.89 us/solve    0.8%  1.00 calls
+      merged_finalize          0.20 us/solve    0.2%  1.00 calls
+      post_randomize           0.80 us/solve    0.7%  1.00 calls
+      writeback                0.36 us/solve    0.3%  1.00 calls
+      (unattributed)           8.05 us/solve    7.5%  0.00 calls
+========================================================================
+alu
+  warm   122312.7 solves/s  (   8.18 us/solve)
+      apply_node               0.23 us/solve    2.3%  1.00 calls
+      set_used_rand            0.34 us/solve    3.4%  1.00 calls
+      pre_randomize            0.28 us/solve    2.8%  1.00 calls
+      unconstrained_draw       0.23 us/solve    2.3%  1.00 calls
+      solve                    1.70 us/solve   16.9%  1.00 calls
+      readback                 1.00 us/solve    9.9%  1.00 calls
+      merged_finalize          0.26 us/solve    2.6%  1.00 calls
+      post_randomize           0.95 us/solve    9.5%  1.00 calls
+      writeback                0.49 us/solve    4.8%  1.00 calls
+      (unattributed)           4.58 us/solve   45.5%  0.00 calls
+  cold    79045.5 solves/s  (  12.65 us/solve)
+      apply_node               0.34 us/solve    2.2%  1.00 calls
+      set_used_rand            0.39 us/solve    2.6%  1.00 calls
+      pre_randomize            0.31 us/solve    2.1%  1.00 calls
+      unconstrained_draw       0.25 us/solve    1.6%  1.00 calls
+      solve                    1.95 us/solve   12.9%  1.00 calls
+      readback                 1.06 us/solve    7.0%  1.00 calls
+      merged_finalize          0.29 us/solve    1.9%  1.00 calls
+      post_randomize           1.02 us/solve    6.8%  1.00 calls
+      writeback                0.51 us/solve    3.4%  1.00 calls
+      (unattributed)           8.96 us/solve   59.5%  0.00 calls
+========================================================================
+dist
+  warm    67489.3 solves/s  (  14.82 us/solve)
+      apply_node               0.27 us/solve    1.6%  1.00 calls
+      set_used_rand            0.34 us/solve    2.0%  1.00 calls
+      pre_randomize            0.32 us/solve    1.9%  1.00 calls
+      unconstrained_draw       0.27 us/solve    1.6%  1.00 calls
+      solve                    1.36 us/solve    8.1%  1.00 calls
+      readback                 0.98 us/solve    5.8%  1.00 calls
+      post_randomize           0.89 us/solve    5.3%  1.00 calls
+      writeback                0.35 us/solve    2.1%  1.00 calls
+      (unattributed)          12.02 us/solve   71.6%  0.00 calls
+  cold    51271.9 solves/s  (  19.50 us/solve)
+      apply_node               0.37 us/solve    1.7%  1.00 calls
+      set_used_rand            0.37 us/solve    1.7%  1.00 calls
+      pre_randomize            0.33 us/solve    1.5%  1.00 calls
+      unconstrained_draw       0.27 us/solve    1.3%  1.00 calls
+      solve                    1.39 us/solve    6.5%  1.00 calls
+      readback                 1.00 us/solve    4.7%  1.00 calls
+      post_randomize           0.90 us/solve    4.2%  1.00 calls
+      writeback                0.36 us/solve    1.7%  1.00 calls
+      (unattributed)          16.54 us/solve   76.8%  0.00 calls
+========================================================================
+arr32
+  warm    52925.3 solves/s  (  18.89 us/solve)
+      apply_node               0.22 us/solve    1.1%  1.00 calls
+      set_used_rand            2.24 us/solve   10.5%  1.00 calls
+      pre_randomize            1.54 us/solve    7.3%  1.00 calls
+      unconstrained_draw       0.28 us/solve    1.3%  1.00 calls
+      solve                    3.44 us/solve   16.2%  1.00 calls
+      readback                 2.43 us/solve   11.4%  1.00 calls
+      merged_finalize          1.99 us/solve    9.4%  1.00 calls
+      post_randomize           3.44 us/solve   16.2%  1.00 calls
+      writeback                1.75 us/solve    8.2%  1.00 calls
+      (unattributed)           3.90 us/solve   18.4%  0.00 calls
+  cold    42263.3 solves/s  (  23.66 us/solve)
+      apply_node               0.38 us/solve    1.5%  1.00 calls
+      set_used_rand            2.30 us/solve    8.9%  1.00 calls
+      pre_randomize            1.52 us/solve    5.9%  1.00 calls
+      unconstrained_draw       0.30 us/solve    1.1%  1.00 calls
+      solve                    3.59 us/solve   13.9%  1.00 calls
+      readback                 2.44 us/solve    9.5%  1.00 calls
+      merged_finalize          1.99 us/solve    7.7%  1.00 calls
+      post_randomize           3.40 us/solve   13.2%  1.00 calls
+      writeback                1.75 us/solve    6.8%  1.00 calls
+      (unattributed)           8.15 us/solve   31.6%  0.00 calls
+========================================================================
+arr128
+  warm    13923.2 solves/s  (  71.82 us/solve)
+      apply_node               0.22 us/solve    0.3%  1.00 calls
+      set_used_rand            6.75 us/solve    9.1%  1.00 calls
+      pre_randomize            4.06 us/solve    5.4%  1.00 calls
+      unconstrained_draw       0.28 us/solve    0.4%  1.00 calls
+      solve                   31.90 us/solve   42.8%  1.00 calls
+      readback                 7.13 us/solve    9.6%  1.00 calls
+      merged_finalize          7.13 us/solve    9.6%  1.00 calls
+      post_randomize          10.12 us/solve   13.6%  1.00 calls
+      writeback                5.60 us/solve    7.5%  1.00 calls
+      (unattributed)           1.28 us/solve    1.7%  0.00 calls
+  cold    13004.0 solves/s  (  76.90 us/solve)
+      apply_node               0.42 us/solve    0.5%  1.00 calls
+      set_used_rand            6.83 us/solve    8.7%  1.00 calls
+      pre_randomize            4.24 us/solve    5.4%  1.00 calls
+      unconstrained_draw       0.31 us/solve    0.4%  1.00 calls
+      solve                   31.00 us/solve   39.4%  1.00 calls
+      readback                 6.99 us/solve    8.9%  1.00 calls
+      merged_finalize          7.17 us/solve    9.1%  1.00 calls
+      post_randomize          10.30 us/solve   13.1%  1.00 calls
+      writeback                5.60 us/solve    7.1%  1.00 calls
+      (unattributed)           5.80 us/solve    7.4%  0.00 calls
+========================================================================
+packet16
+  warm    64461.0 solves/s  (  15.51 us/solve)
+      apply_node               0.29 us/solve    1.7%  1.00 calls
+      set_used_rand            1.68 us/solve    9.6%  1.00 calls
+      pre_randomize            1.13 us/solve    6.4%  1.00 calls
+      unconstrained_draw       0.27 us/solve    1.6%  1.00 calls
+      solve                    2.44 us/solve   13.9%  1.00 calls
+      readback                 1.89 us/solve   10.7%  1.00 calls
+      merged_finalize          1.26 us/solve    7.2%  1.00 calls
+      post_randomize           2.70 us/solve   15.4%  1.00 calls
+      writeback                1.46 us/solve    8.3%  1.00 calls
+      (unattributed)           4.46 us/solve   25.4%  0.00 calls
+  cold    48073.5 solves/s  (  20.80 us/solve)
+      apply_node               0.44 us/solve    1.9%  1.00 calls
+      set_used_rand            1.79 us/solve    7.9%  1.00 calls
+      pre_randomize            1.18 us/solve    5.2%  1.00 calls
+      unconstrained_draw       0.30 us/solve    1.3%  1.00 calls
+      solve                    2.64 us/solve   11.6%  1.00 calls
+      readback                 1.96 us/solve    8.6%  1.00 calls
+      merged_finalize          1.28 us/solve    5.6%  1.00 calls
+      post_randomize           2.75 us/solve   12.1%  1.00 calls
+      writeback                1.50 us/solve    6.6%  1.00 calls
+      (unattributed)           8.97 us/solve   39.3%  0.00 calls
+========================================================================
+nested
+  warm    99104.0 solves/s  (  10.09 us/solve)
+      apply_node               0.54 us/solve    4.3%  1.00 calls
+      set_used_rand            0.66 us/solve    5.3%  1.00 calls
+      pre_randomize            0.68 us/solve    5.5%  1.00 calls
+      unconstrained_draw       1.18 us/solve    9.5%  1.00 calls
+      solve                    1.45 us/solve   11.7%  1.00 calls
+      readback                 0.90 us/solve    7.2%  1.00 calls
+      merged_finalize          0.22 us/solve    1.7%  1.00 calls
+      post_randomize           2.01 us/solve   16.2%  1.00 calls
+      writeback                0.85 us/solve    6.8%  3.00 calls
+      (unattributed)           3.94 us/solve   31.7%  0.00 calls
+  cold    63335.2 solves/s  (  15.79 us/solve)
+      apply_node               0.72 us/solve    3.9%  1.00 calls
+      set_used_rand            0.76 us/solve    4.1%  1.00 calls
+      pre_randomize            0.74 us/solve    4.0%  1.00 calls
+      unconstrained_draw       1.50 us/solve    8.2%  1.00 calls
+      solve                    1.55 us/solve    8.4%  1.00 calls
+      readback                 0.97 us/solve    5.3%  1.00 calls
+      merged_finalize          0.25 us/solve    1.4%  1.00 calls
+      post_randomize           2.13 us/solve   11.6%  1.00 calls
+      writeback                0.89 us/solve    4.9%  3.00 calls
+      (unattributed)           8.86 us/solve   48.3%  0.00 calls
+========================================================================

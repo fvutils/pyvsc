@@ -61,13 +61,30 @@ if "VSC_SOLVEFAIL_DEBUG" in os.environ.keys() and os.environ["VSC_SOLVEFAIL_DEBU
 else:
     glbl_solvefail_debug = 0
 
+def _default_solver():
+    """The back-end used when neither VSC_SOLVER nor set_solver_backend()
+    names one: Boolector when it is installed, so a given seed keeps producing
+    the values it always has (design §10.1), else dv-solve.
+
+    pyvsc's install markers give each platform whichever solver publishes a
+    wheel there -- on Windows that is dv-solve alone -- so this is what lets
+    those platforms work with no configuration. find_spec locates the module
+    without importing it.
+
+    Resolved to a concrete name, never "auto", because callers compare
+    get_solver_backend() against "dv-solve" / "boolector"."""
+    import importlib.util
+    if importlib.util.find_spec("pyboolector") is not None:
+        return "boolector"
+    return "dv-solve"
+
+
 # Solver back-end selection. VSC_SOLVER selects which solver pyvsc uses:
 #   boolector | dv-solve | auto
-# Default is "boolector" during the dv-solve integration (design §10.1).
 if "VSC_SOLVER" in os.environ.keys() and os.environ["VSC_SOLVER"] != "":
     glbl_solver = os.environ["VSC_SOLVER"]
 else:
-    glbl_solver = "boolector"
+    glbl_solver = _default_solver()
 
 # Programmatic override set via set_solver_backend(); takes precedence over
 # the VSC_SOLVER environment default.

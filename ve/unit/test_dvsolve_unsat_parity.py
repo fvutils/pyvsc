@@ -20,7 +20,7 @@ import vsc
 from vsc.impl import ctor
 from vsc.model.solver.backend import select_backend
 from vsc.model.solve_failure import SolveFailure
-from vsc_test_case import VscTestCase
+from vsc_test_case import VscTestCase, requires_boolector
 
 
 def _dvsolve_available():
@@ -164,6 +164,7 @@ class TestDvSolveUnsatParity(VscTestCase):
         dvs = _verdict(cls)
         return btor, dvs
 
+    @requires_boolector
     def test_unsat_verdict_parity(self):
         for cls in UNSAT_CLASSES:
             btor, dvs = self._verdicts(cls)
@@ -174,6 +175,7 @@ class TestDvSolveUnsatParity(VscTestCase):
                 "dv-solve produced a 'solution' to an infeasible problem"
                 % (cls.__name__, "SAT" if dvs else "UNSAT"))
 
+    @requires_boolector
     def test_sat_verdict_parity(self):
         for cls in SAT_CLASSES:
             btor, dvs = self._verdicts(cls)

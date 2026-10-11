@@ -24,7 +24,7 @@ from vsc.model.solver.backend import select_backend
 from vsc.model.solver.dvsolve_backend import DvSolveBackend
 import vsc.model.randomizer as rnd
 import vsc.model.solver.dvsolve_backend as dvb
-from vsc_test_case import VscTestCase
+from vsc_test_case import VscTestCase, requires_boolector
 
 
 def _dvsolve_available():
@@ -124,6 +124,7 @@ class TestDvSolveServeSatAuto(VscTestCase):
             rnd.restore_fallback_tally(snap)
         return {k for k in hist if k.split(":")[0] == "bvsat-sat-deferred"}
 
+    @requires_boolector
     def test_auto_defers_while_fallback_present(self):
         # Normal config: Boolector is the fallback, so `auto` == `"0"` — the SAT
         # shape defers (served by the net), behavior unchanged from pre-F-1.
@@ -131,6 +132,7 @@ class TestDvSolveServeSatAuto(VscTestCase):
         self.assertNotEqual(self._deferred_codes(), set(),
                             "auto with a fallback present should defer SAT")
 
+    @requires_boolector
     def test_explicit_off_defers(self):
         dvb._BVSAT_SERVE_SAT_MODE = "off"
         self.assertNotEqual(self._deferred_codes(), set(),
@@ -141,6 +143,34 @@ class TestDvSolveServeSatAuto(VscTestCase):
         dvb._BVSAT_SERVE_SAT_MODE = "on"
         self.assertEqual(self._deferred_codes(), set(),
                          "on should serve SAT natively (no bvsat-sat-deferred)")
+
+    def test_served_sum_keeps_carry_into_wider_lhs(self):
+        # `c32 == a16 + b16` must hold at 32 bits. The translator materialized
+        # the sum into a 32-bit aux and then zero-extended it "from 16 bits",
+        # dropping the carry, so ~half of the served solutions had
+        # c == (a + b) mod 2**16. Only the self-served path (no Boolector, or
+        # mode "on") saw it -- `auto` defers this shape to Boolector -- and
+        # VSC_DVSOLVE_VALIDATE could not, since it checks the model against the
+        # same mistranslated formula.
+        dvb._BVSAT_SERVE_SAT_MODE = "on"
+
+        @vsc.randobj
+        class Sum(object):
+            def __init__(self):
+                self.a = vsc.rand_bit_t(16)
+                self.b = vsc.rand_bit_t(16)
+                self.c = vsc.rand_bit_t(32)
+
+            @vsc.constraint
+            def cc(self):
+                self.c == self.a + self.b
+                self.a > 0
+                self.b > 0
+
+        obj = Sum()
+        for _ in range(100):
+            obj.randomize()
+            self.assertEqual(int(obj.c), int(obj.a) + int(obj.b))
 
 
 if __name__ == "__main__":

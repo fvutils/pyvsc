@@ -564,15 +564,16 @@ class TestT0Backends(DcTestCase):
     either one -- including when a back-end would never have seen the model."""
 
     def _backends(self):
-        cur = vsc.get_solver_backend()
+        # select_backend, not set_solver_backend: the latter only records the
+        # name, so it never fails and an absent back-end would be "found".
+        from vsc.model.solver.backend import select_backend
         out = []
         for name in ("dv-solve", "boolector"):
             try:
-                vsc.set_solver_backend(name)
+                select_backend(name)
                 out.append(name)
             except Exception:
                 pass
-        vsc.set_solver_backend(cur)
         return out
 
     def test_promotion_is_backend_independent(self):

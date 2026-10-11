@@ -319,9 +319,17 @@ def restore_fallback_tally(snap):
 class _RandPlan(object):
     """Cached pre-solve plan for one root model object (Tier-A)."""
 
+    # A copied model object rebuilds its own plan on first use rather than
+    # deep-copying this one's bound map and RandInfo.
+    def __copy__(self):
+        return None
+
+    def __deepcopy__(self, memo):
+        return None
+
     __slots__ = ("bound_m", "ri", "field_state", "block_state",
                  "rangelist_state", "dist_state", "soft_priority_state",
-                 "array_state", "merged", "draw_plan", "_keepalive")
+                 "array_state", "merged", "draw_plan", "_keepalive", "__weakref__")
 
     def __init__(self, bound_m, ri, field_state, block_state, rangelist_state,
                  dist_state, keepalive, array_state=()):
@@ -1203,8 +1211,11 @@ class Randomizer(RandIF):
         return ret
 
     def create_diagnostics(self, active_randsets) -> str:
-        import pyboolector
-        from pyboolector import Boolector
+        try:
+            import pyboolector
+            from pyboolector import Boolector
+        except ImportError:
+            return self._create_diagnostics_unminimized(active_randsets)
 
         btor = Boolector()
         btor.Set_opt(pyboolector.BtorOption.BTOR_OPT_INCREMENTAL, True)
@@ -1297,6 +1308,27 @@ class Randomizer(RandIF):
             
         return ret            
     
+    def _create_diagnostics_unminimized(self, active_randsets) -> str:
+        """Solve-failure report for an environment without pyboolector.
+
+        create_diagnostics narrows a failure to the conflicting constraint
+        sets by re-solving subsets with Boolector. Without it, list every hard
+        constraint in the failing RandSets instead, so the report still points
+        at source locations rather than dying on an ImportError."""
+        ret = ("Problem constraints could not be narrowed (that needs "
+               "pyboolector; `pip install pyvsc[boolector]`). Hard constraints "
+               "in the failing RandSets:\n")
+        for rs in active_randsets:
+            for c in rs.constraints():
+                if isinstance(c, ConstraintSoftModel):
+                    continue
+                ret += "  %s:\n" % SourceInfo.toString(c.srcinfo)
+                ret += "    %s" % ModelPrettyPrinter.print(c, print_values=False)
+        for rs in active_randsets:
+            for f in rs.all_fields():
+                f.dispose()
+        return ret
+
     def _collect_failing_constraints(self,
                                      btor,
                                      src_constraint_l,

@@ -80,6 +80,51 @@ Boolector solve loop) and the machine class, so a change of machine or
 interpreter is visible rather than mistaken for a change in pyvsc. Runs on a
 busy host are marked; the history keeps bad runs too, flagged.
 
+riscv-dv
+--------
+
+The ``riscv-dv`` suite runs someone else's real program: the Python generator
+(``pygen``) of `riscv-dv <https://github.com/chipsalliance/riscv-dv>`_, which
+models RISC-V instructions as ``@vsc.randobj`` classes and randomizes one per
+generated instruction, mostly with inline ``randomize_with()`` constraints. It
+uses the classic front-end, so it measures what an existing pyvsc user gets
+without changing their code: the latest release (pyvsc 0.9.6 from PyPI),
+today's pyvsc on Boolector, and today's pyvsc on dv-solve.
+
+- **Test.** ``riscv_arithmetic_basic_test`` with its testlist options
+  (``instr_cnt=10000``, one numeric-corner directed stream), target
+  ``rv32imc``. It is the one test riscv-dv's own CI runs on pygen; the other
+  testlist entries stop inside pygen on every pyvsc version (unported
+  features). riscv-dv is pinned to one commit in ``tools.lock.json``.
+- **Process.** Each (seed, arm) generates one program in a fresh process,
+  calling the test's ``_run_phase`` directly rather than through ``run.py``
+  and pygen's process pool, so only generation is timed (not Python start-up
+  or imports). Every (seed, arm) runs twice and keeps the faster; both runs
+  must write byte-identical programs.
+- **Metric.** CPU time per generated instruction (instruction lines in the
+  ``.S``), pooled over the seeds. pygen draws the main program's length at
+  random, so the length differs per seed and per arm, and a per-program time
+  would compare different amounts of work.
+- **Two riscv-dv fixes**, applied when the child imports pygen, never to
+  riscv-dv's files: a stand-in for the ``imp`` module, which Python 3.12
+  removed; and ``get_rand_instr`` honouring its exclude lists, as SV
+  riscv-dv does. Without the second, the numeric-corner stream draws
+  compressed instructions it excluded, among them ``c.addi16sp``, whose
+  ``rd == sp`` contradicts the stream's own register list. pyvsc 0.9.6 only
+  completed that ``randomize_with()`` because it ignored the register list.
+- **Correctness.** The child re-checks the solver's answers in plain
+  Python. After every instruction's ``randomize_with()`` it checks the inline
+  register constraints (operands inside the stream's ``avail_regs``, ``rd``
+  off the reserved registers) and that the stream's ``avail_regs`` size still
+  matches its contents. Every instruction's own constraints are checked too:
+  the shift-amount masks, the compressed-format register sets, and the
+  nonzero-immediate and no-hint rules. So are the numeric-corner stream's
+  register list (ten unique registers, none reserved or zero) and its sizes.
+  Today's arms must
+  have no violation and first pass a validation run with dv-solve's own model
+  check and its Boolector cross-check on; the release is recorded as it
+  behaves, with its violation count beside its time.
+
 Reproducing a number
 --------------------
 
@@ -95,8 +140,15 @@ From a pyvsc checkout with its development environment (dv-solve built in
    PYTHONPATH=src:benchmarks python3 -P benchmarks/perf/child.py \
        '{"workload": "alu", "frontend": "dc", "backend": "dv-solve", "pattern": "cold"}'
 
-``stock`` and ``cr`` are side-installed under ``build/perf/builds/`` on first
-use, pinned in ``benchmarks/perf/tools.lock.json``.
+   # the riscv-dv suite, about 10 minutes
+   PYTHONPATH=benchmarks python3 -m perf.collect --kind manual --suites riscv-dv
+
+   # a quick look, nothing recorded: two seeds, short programs
+   PYTHONPATH=benchmarks python3 -m perf.riscv_dv --seeds 999,1 --instr-cnt 1000
+
+``stock``, ``stock-0.9.6`` and ``cr`` are side-installed, and riscv-dv checked
+out, under ``build/perf/builds/`` on first use, pinned in
+``benchmarks/perf/tools.lock.json``.
 
 Where the data lives
 --------------------

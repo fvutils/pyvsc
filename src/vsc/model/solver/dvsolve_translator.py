@@ -31,6 +31,8 @@
 #     is equivalent to logical and/or (matches the Boolector path, which uses
 #     bitwise And/Or on width-1 nodes).
 
+import os
+
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.bin_expr_type import BinExprType
 from vsc.model.unary_expr_type import UnaryExprType
@@ -38,6 +40,16 @@ from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.field_array_model import FieldArrayModel
 from vsc.model.solver.backend import BackendIncomplete
+
+# Fold an implication / if-else guard that reads only fields this RandSet does
+# not solve (non-rand state, or vars an earlier RandSet already solved) to its
+# constant value, for every guard rather than only those enclosing a dist. Such
+# a guard is a solve-time constant, and the fold records its fields as
+# const_fields so a later call with different values rebuilds. Without it, a
+# multi-statement branch under a state guard (riscv-dv's instruction
+# constraints, guarded by instr_name / format / has_rd) sends the whole RandSet
+# to BV-SAT. VSC_DVSOLVE_GUARD_FOLD=0 restores the dist-only fold.
+_GUARD_FOLD = os.environ.get("VSC_DVSOLVE_GUARD_FOLD", "1") != "0"
 
 from dv_solve.problem import (
     BIN_ADD, BIN_SUB, BIN_MUL, BIN_DIV, BIN_MOD,
@@ -527,10 +539,17 @@ class DvSolveExprTranslator(ModelVisitor):
             rhs = self.translate(e.rhs, ctx_width, want_var=extend)
             rhs_simple = self._last_simple
             if extend:
-                if lhs_w < ctx_width:
+                # Extend from the operand's DECLARED width only when the ref
+                # still has it. A value-op operand (`c32 == a16 + b16`) was just
+                # materialized into an aux AT ctx_width, carry included;
+                # extending that aux "from 16 bits" would keep its low 16 and
+                # drop the carry, so c == a + b would hold only mod 2**16.
+                if (lhs_w < ctx_width
+                        and not self._materialized_at_ctx(e.lhs, ctx_width)):
                     lhs = self._b.expr_extend(
                         lhs, lhs_w, ctx_width, e.lhs.is_signed())
-                if rhs_w < ctx_width:
+                if (rhs_w < ctx_width
+                        and not self._materialized_at_ctx(e.rhs, ctx_width)):
                     rhs = self._b.expr_extend(
                         rhs, rhs_w, ctx_width, e.rhs.is_signed())
             elif not lhs_simple and not rhs_simple:
@@ -678,12 +697,10 @@ class DvSolveExprTranslator(ModelVisitor):
                 term = ExprBinModel(e.lhs, BinExprType.Eq, r)
             expr = term if expr is None else ExprBinModel(expr, BinExprType.Or, term)
         if expr is None:
-            if e.rhs.rl:
-                # Every rangelist entry reduced away (all empty arrays): this is
-                # membership over the empty set. Defer for the degenerate semantics
-                # rather than fabricate a constant (the prior conservative path).
-                raise BackendIncomplete(
-                    "dv-solve: 'in' over empty set", reason_code="array")
+            # No entry left (no rangelist, or only empty arrays). pyvsc gives
+            # this the literal true (ExprInModel.build), so dv-solve does too
+            # rather than defer. riscv-dv guards `rd.inside(avail_regs)` with
+            # `avail_regs.size > 0`, so every main-stream instruction hits this.
             self._result = self._b.expr_const(1)
         else:
             self._result = self.translate(expr)
@@ -967,6 +984,8 @@ class DvSolveExprTranslator(ModelVisitor):
         except Exception:
             return None
         for f in fields:
+            if isinstance(f, FieldArrayModel):
+                continue          # its elements and size are in `fields`
             try:
                 self.const_fields[f] = int(f.val)
             except Exception:
@@ -986,6 +1005,11 @@ class DvSolveExprTranslator(ModelVisitor):
 
             def visit_expr_fieldref(self, e):
                 self.fields.append(e.fm)
+                if isinstance(e.fm, FieldArrayModel):
+                    # `x in arr`: the guard reads the elements and the size,
+                    # which may be solved here even when the array isn't.
+                    self.fields.extend(e.fm.field_l)
+                    self.fields.append(e.fm.size)
 
         c = _Collect()
         try:
@@ -1027,7 +1051,8 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def visit_constraint_implies(self, c):
         folded = self._const_cond(
-            c.cond, allow_field_fold=self._branch_contains_dist(c.constraint_l))
+            c.cond, allow_field_fold=(
+                _GUARD_FOLD or self._branch_contains_dist(c.constraint_l)))
         if folded == 0:
             # Guard is constant-false: the implication is vacuously satisfied.
             self._result = self._b.expr_const(1)
@@ -1060,7 +1085,8 @@ class DvSolveExprTranslator(ModelVisitor):
     def visit_constraint_if_else(self, c):
         branches = [c.true_c] + ([c.false_c] if c.false_c is not None else [])
         folded = self._const_cond(
-            c.cond, allow_field_fold=self._branch_contains_dist(branches))
+            c.cond, allow_field_fold=(
+                _GUARD_FOLD or self._branch_contains_dist(branches)))
         if folded == 1:
             # Constant-true guard: only the then-branch applies.
             self._result = self.translate(c.true_c)

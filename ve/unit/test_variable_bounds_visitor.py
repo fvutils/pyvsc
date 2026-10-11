@@ -229,15 +229,10 @@ class TestVariableBoundsVisitor(VscTestCase):
         
         a_bounds = visitor.bound_m[a_model]
 
-        self.assertEqual(3, len(a_bounds.domain.range_l))
-
-        # a in 1, 4, 8
-        self.assertEqual(0, a_bounds.domain.range_l[0][0])
-        self.assertEqual(0, a_bounds.domain.range_l[0][1])
-        self.assertEqual(1, a_bounds.domain.range_l[1][0])
-        self.assertEqual(1, a_bounds.domain.range_l[1][1])
-        self.assertEqual(2, a_bounds.domain.range_l[2][0])
-        self.assertEqual(2, a_bounds.domain.range_l[2][1])
+        # a in {0, 1, 2}; a contiguous enum's domain is one range, so compare
+        # the values, not the representation
+        vals = [v for lo, hi in a_bounds.domain.range_l for v in range(lo, hi + 1)]
+        self.assertEqual([0, 1, 2], vals)
         
 #     def test_var2var_max(self):
 #         @vsc.randobj

@@ -78,6 +78,9 @@ def trend_lines(rec: dict, artifact: str) -> list:
         "machine": rec["machine"]["id"], "py": ".".join(rec["python"].split(".")[:2]),
         "dvs": head.get("dvs"), "btor": head.get("pyboolector"),
         "stock": rec["builds"].get("stock", {}).get("pyvsc"),
+        "rel": {b: d["pyvsc"] for b, d in rec["builds"].items()
+                if b not in ("head", "stock") and d.get("pyvsc")} or None,
+        "rdv": rec.get("apps", {}).get("riscv-dv", {}).get("commit"),
         "cr": rec["builds"].get("cr", {}).get("constrainedrandom"),
         "lock": rec.get("lock"), "harness": rec["run"].get("harness_sha"),
         "calib": rec["calib"].get("kernel_cpu_ms", {}), "artifact": artifact,
@@ -107,6 +110,15 @@ def trend_lines(rec: dict, artifact: str) -> list:
                 rows.append(row)
             w[wl["name"]] = rows
         perf[name] = {"m": man["hash"], "arms": man["arms"], "pat": man["patterns"], "w": w}
+        if man.get("app"):
+            # App cells: what the per-instruction time was measured over, and
+            # how many generated values broke the app's own constraints.
+            perf[name]["x"] = {
+                wl["name"]: {arm: {k: by[(wl["name"], pat, arm)].get(k) for k in
+                                   ("instrs", "randomize_calls", "violations")}
+                             for pat in man["patterns"] for arm in man["arms"]
+                             if (wl["name"], pat, arm) in by}
+                for wl in man["workloads"]}
     line["perf"] = perf
     line["fail"] = fail
     return [line]

@@ -6,8 +6,25 @@ ctor setup/teardown) so results are directly comparable to the classic suite.
 """
 from unittest import TestCase
 import random
+import unittest
 
 from vsc.impl import ctor
+from vsc.model.solver.boolector_backend import BoolectorBackend
+
+# Mirrors ve/unit/vsc_test_case.requires_boolector: for a test whose subject is
+# Boolector itself (an XCHECK oracle, a Boolector reference solve).
+requires_boolector = unittest.skipUnless(
+    BoolectorBackend.available(), "needs pyboolector")
+
+
+def known_gap_without_boolector(fn):
+    """A test dv-solve passes today only because it hands the RandSet to
+    Boolector. Without pyboolector it is an EXPECTED failure rather than a skip:
+    the gap stays visible, and closing it turns the run red (unexpected success)
+    so the marker gets removed."""
+    if BoolectorBackend.available():
+        return fn
+    return unittest.expectedFailure(fn)
 
 
 class DcTestCase(TestCase):

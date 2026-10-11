@@ -33,7 +33,10 @@ class FieldCompositeModel(FieldModel):
         # Captures whether this field was declared rand
         self.is_declared_rand = is_rand
         # Captures whether this field is being used as rand
-        self.is_used_rand = is_rand
+        # Not used-rand until a randomize() call marks it (set_used_rand). A
+        # declared-rand field of an object that is never randomized is state
+        # when another object's constraint references it.
+        self.is_used_rand = False
         self.rand_mode = is_rand
         self.rand_if = rand_if
         self.field_l = []

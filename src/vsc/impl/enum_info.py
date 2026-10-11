@@ -7,8 +7,22 @@ from typing import Dict
 from enum import IntEnum, EnumMeta, Flag, Enum
 from vsc.model.expr_literal_model import ExprLiteralModel
 
+class _EnumValues(list):
+    """An enum type's value list, shared by every field of that type.
+
+    Read-only once built. Copying an object copies its fields, and each
+    enum field's model holds this list: without sharing, `copy.deepcopy` of
+    an instruction in riscv-dv duplicated a 497-entry list per field."""
+
+    def __deepcopy__(self, memo):
+        return self
+
+
 class EnumInfo(object):
-    """Collects information needed by VSC"""
+    """Collects information needed by VSC.
+
+    One per enum type (EnumInfo.get interns them) and read-only, so a copied
+    object shares its fields' EnumInfo instead of duplicating the maps."""
     
     _info_map : Dict[object,'EnumInfo'] = {}
     
@@ -31,6 +45,13 @@ class EnumInfo(object):
                 i += 1
         else:
             raise Exception("unsupported enum type " + str(e))
+        self.enums = _EnumValues(self.enums)
+
+    def __copy__(self):
+        return self
+
+    def __deepcopy__(self, memo):
+        return self
         
     def e2v(self, ev)->int:
         return self.e2v_m[ev]

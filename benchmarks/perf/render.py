@@ -73,8 +73,8 @@ def _manifest(line: dict, root: Path) -> dict:
     return json.loads(p.read_text())
 
 
-def current(lines: list):
-    good = [l for l in lines if l["valid"] and not l.get("dirty") and SUITE in l.get("perf", {})]
+def current(lines: list, suite: str = SUITE):
+    good = [l for l in lines if l["valid"] and not l.get("dirty") and suite in l.get("perf", {})]
     return good[-1] if good else None
 
 
@@ -148,6 +148,7 @@ def index_page(lines: list, root: Path) -> str:
             "pyvsc headline. T, B and F are the ratios defined above.", ""]
 
     out += trend_section(lines, root, man)
+    out += riscv_dv_section(lines, root)
     out += ["Run history", "-----------", "",
             "Every recorded run, newest first.", ""]
     rows = []
@@ -217,6 +218,94 @@ def trend_section(lines: list, root: Path, man: dict) -> list:
     return out
 
 
+RDV = "riscv-dv"
+RDV_ARMS = {"stock-0.9.6": "pyvsc 0.9.6 (latest release)",
+            "classic-btor": "today, Boolector", "classic-dvs": "today, dv-solve"}
+
+
+def _manifest_of(line: dict, suite: str, root: Path) -> dict:
+    h = line["perf"][suite]["m"]
+    return json.loads((root / "manifests" / f"{h}.json").read_text())
+
+
+def riscv_dv_section(lines: list, root: Path) -> list:
+    """riscv-dv's Python generator (pygen), run unmodified on each arm."""
+    cur = current(lines, RDV)
+    if cur is None:
+        return []
+    man = _manifest_of(cur, RDV, root)
+    p = cur["perf"][RDV]
+    out = ["riscv-dv", "--------", "",
+           "`riscv-dv <https://github.com/chipsalliance/riscv-dv>`_'s Python generator",
+           "(``pygen``) generating RISC-V test programs, unchanged except for two riscv-dv",
+           "bug fixes (see :doc:`methodology`). The test is ``riscv_arithmetic_basic_test``",
+           "with its testlist options, the one test riscv-dv's own CI runs on pygen;",
+           f"seeds {', '.join(str(x) for x in man['seeds'])}. The number is CPU time per",
+           "generated instruction, pooled over the seeds (pygen draws each program's length",
+           "at random, so it differs per seed and per arm). Measured "
+           + _date(cur["utc"]) + f" at pyvsc ``{_short(cur['commit'])}``.", ""]
+    rows = []
+    c = normalize.cells(cur, RDV)
+    for w in man["workloads"]:
+        x = p.get("x", {}).get(w["name"], {})
+        for a in man["arms"]:
+            us = c.get((w["name"], "program", a))
+            xa = x.get(a, {})
+            calls = xa.get("randomize_calls")
+            n = xa.get("instrs")
+            rows.append([RDV_ARMS.get(a, a),
+                         f"{1e6 / us:,.0f}" if us else "n/a",
+                         f"{us / 1000:.2f}" if us else "n/a",
+                         f"{us * n / calls / 1000:.2f}" if us and n and calls else "n/a",
+                         f"{n:,}" if n else "n/a",
+                         f"{xa['violations']:,}" if "violations" in xa else "?"])
+    out += _table(["arm", "instructions/s", "ms/instr", "ms/randomize()", "instructions",
+                   "wrong values"], rows, widths=[3, 2, 2, 2, 2, 2])
+    r = [(n, normalize.ratio(c, man["workloads"][0]["name"], "program", n)) for n in ("R0", "R", "B")]
+    txt = {"R0": "today with Boolector vs 0.9.6", "R": "today with dv-solve vs 0.9.6",
+           "B": "dv-solve vs Boolector, today"}
+    out += ["Speed-ups: " + "; ".join(f"{txt[n]} **{_fmt_x(v)}**" for n, v in r) + ".", "",
+            "*Wrong values* counts generated values that break pygen's own constraints,",
+            "re-checked in plain Python: the register rules of each instruction's",
+            "``randomize_with()`` (registers inside the stream's ``avail_regs``, ``rd`` off the",
+            "reserved registers), each instruction's own immediate and compressed-register",
+            "rules, and the numeric-corner stream's register list; plus calls where the",
+            "stream's ``avail_regs`` size no longer matched its contents. Today's arms must",
+            "have none, or the run is invalid; the",
+            "release is measured as it behaves.", "",
+            ".. image:: trend-riscv-dv.svg",
+            "   :alt: riscv-dv instructions per second over time", "",
+            "Instructions per second over time (higher is faster). Data: "
+            ":download:`trend-riscv-dv.csv <trend-riscv-dv.csv>`.", ""]
+    return out
+
+
+def riscv_dv_trend(lines: list, root: Path) -> dict:
+    runs = [l for l in lines if l["valid"] and RDV in l.get("perf", {})]
+    labels, hollow, breaks, rows = [], set(), set(), []
+    series = {}
+    prev = None
+    for i, l in enumerate(runs):
+        p = l["perf"][RDV]
+        if prev is not None and p["m"] != prev:
+            breaks.add(i)
+        prev = p["m"]
+        labels.append(f"{l['utc'][4:6]}-{l['utc'][6:8]}\n{_short(l['commit'])}")
+        if l.get("noisy") or l.get("dirty"):
+            hollow.add(i)
+        c = normalize.cells(l, RDV)
+        w = next(iter(p["w"]))
+        row = [l["utc"], l["commit"], p["m"], int(bool(l.get("noisy"))), int(bool(l.get("dirty")))]
+        for a in RDV_ARMS:
+            us = c.get((w, "program", a))
+            series.setdefault(RDV_ARMS[a], []).append(1e6 / us if us else None)
+            row.append(f"{1e6 / us:.2f}" if us else "")
+        rows.append(row)
+    return {"labels": labels, "hollow": hollow, "breaks": breaks, "series": series,
+            "csv_header": ["utc", "commit", "manifest", "noisy", "dirty"] + list(RDV_ARMS),
+            "rows": rows}
+
+
 def render(out_dir: Path, root: Path = HISTORY) -> list:
     lines = committed_lines(root)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -236,6 +325,15 @@ def render(out_dir: Path, root: Path = HISTORY) -> list:
             cp.write_text("\n".join(",".join(str(x) for x in r)
                                     for r in [d["csv_header"]] + d["rows"]) + "\n")
             written += [sp, cp]
+    if current(lines, RDV) is not None:
+        d = riscv_dv_trend(lines, root)
+        sp = out_dir / "trend-riscv-dv.svg"
+        sp.write_text(svg.trend(d["labels"], d["series"], "riscv-dv instructions per second",
+                                hollow=d["hollow"], breaks=d["breaks"]))
+        cp = out_dir / "trend-riscv-dv.csv"
+        cp.write_text("\n".join(",".join(str(x) for x in r)
+                                for r in [d["csv_header"]] + d["rows"]) + "\n")
+        written += [sp, cp]
     return written
 
 

@@ -1,8 +1,19 @@
 {
- "_comment": "Pins for perf runs (design §5.4, §8.6). The anchor and the external reference are side installs (pip --target) under build/perf/builds/. Changing anything here changes the lock hash every run record carries; a change of python minor version starts a new epoch.",
+ "_comment": "Pins for perf runs (design \u00a75.4, \u00a78.6). The anchor and the external reference are side installs (pip --target) under build/perf/builds/. Changing anything here changes the lock hash every run record carries; a change of python minor version starts a new epoch. riscv-dv is checked out at its pinned commit under build/perf/builds/riscv-dv-<sha>.",
  "python": "3.12",
  "builds": {
-  "stock": ["pyvsc==0.9.5.27214109393"],
-  "cr": ["constrainedrandom==1.3.0"]
+  "stock": [
+   "pyvsc==0.9.5.27214109393"
+  ],
+  "cr": [
+   "constrainedrandom==1.3.0"
+  ],
+  "stock-0.9.6": [
+   "pyvsc==0.9.6.37412289187"
+  ]
+ },
+ "riscv-dv": {
+  "commit": "0d71c2b666dec48dde0b804a2138426da56aa252",
+  "_comment": "chipsalliance/riscv-dv master as of 2026-09-21 (merge of PR #1014). pygen is unmaintained upstream; bump deliberately, it changes the program."
  }
 }

@@ -8,6 +8,11 @@ same run, so >1 means the second arm is faster:
     T  = classic-btor / dc-dvs          what the whole stack buys
     S  = stock        / dc-dvs          today's stack vs pyvsc 0.9.5 as installed
     S0 = stock        / classic-btor    today vs 0.9.5 for a user who changes nothing
+    R  = stock-0.9.6  / classic-dvs     today's classic + dv-solve vs the latest release
+    R0 = stock-0.9.6  / classic-btor    today vs the latest release, changing nothing
+
+`stock-0.9.6` is the latest release, measured where an app suite (riscv-dv)
+needs it; `stock` stays the 0.9.5 anchor of the core history.
 
 `dc-btor` completes the 2×2 so F can be checked independently of the back-end.
 `cr` is constrainedrandom: recorded where it can express the workload, never
@@ -32,6 +37,7 @@ ARMS = {a.name: a for a in (
     Arm("dc-btor", "dc", "boolector", "head"),
     Arm("dc-dvs", "dc", "dv-solve", "head"),
     Arm("stock", "classic", None, "stock"),
+    Arm("stock-0.9.6", "classic", None, "stock-0.9.6"),
     Arm("cr", "cr", None, "cr"),
 )}
 
@@ -44,5 +50,7 @@ RATIOS = {
     "S0": ("stock", "classic-btor"),
     "B_dc": ("dc-btor", "dc-dvs"),
     "F_btor": ("classic-btor", "dc-btor"),
+    "R": ("stock-0.9.6", "classic-dvs"),
+    "R0": ("stock-0.9.6", "classic-btor"),
 }
 HEADLINE = ("T", "B", "F", "S", "S0")

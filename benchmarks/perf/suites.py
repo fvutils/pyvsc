@@ -27,6 +27,10 @@ def load(name: str) -> dict:
     unknown = [a for a in spec["arms"] if a not in ARMS]
     if unknown:
         raise ValueError(f"suite {name}: unknown arms {unknown}")
+    if spec.get("app") == "riscv-dv":
+        from . import riscv_dv
+        spec["manifest"] = riscv_dv.manifest(spec)
+        return spec
     reg = workloads.all_workloads()
     missing = [w for w in spec["workloads"] if w not in reg]
     if missing:

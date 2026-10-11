@@ -15,7 +15,7 @@ import vsc
 from vsc.impl import ctor
 from vsc.model.solve_failure import SolveFailure
 from vsc.model.solver.backend import select_backend
-from vsc_test_case import VscTestCase
+from vsc_test_case import VscTestCase, requires_boolector
 
 
 def _dvsolve_available():
@@ -51,6 +51,7 @@ class TestBVSatIntegration(VscTestCase):
         cls.solve_randset = spy
         return (lambda: setattr(cls, "solve_randset", orig)), counter
 
+    @requires_boolector
     def test_joint_unsat_authoritative_no_boolector(self):
         """A jointly-unsatisfiable system (individual field domains fine) must
         raise SolveFailure, decided by dv-solve's BV-SAT engine — the Boolector

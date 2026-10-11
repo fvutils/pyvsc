@@ -1,0 +1,11 @@
+{
+ "_comment": "Development suite for the pygen -> vdc port (doc/notes/riscv_dv_vdc_port_plan.md). Same test and protocol as riscv-dv; the dc arms run packages/riscv-dv-new, the classic arm runs pinned upstream with the harness fixes. Not recordable (the port tree is unpinned): run with PYTHONPATH=benchmarks python3 -m perf.riscv_dv --suite riscv-dv-port.",
+ "app": "riscv-dv",
+ "tests": [{"name": "arith_basic", "test": "riscv_arithmetic_basic_test"}],
+ "seeds": [999, 1, 2, 3, 4],
+ "arms": ["classic-dvs", "dc-dvs", "dc-btor"],
+ "validate_seeds": [999, 7],
+ "validate_instr_cnt": 1000,
+ "rounds": 1,
+ "timeout_s": 900
+}

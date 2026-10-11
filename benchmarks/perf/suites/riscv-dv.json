@@ -1,0 +1,11 @@
+{
+ "_comment": "riscv-dv pygen (perf.riscv_dv). The one test riscv-dv's own CI runs on pygen, with its testlist gen_opts (instr_cnt=10000), on the latest release and today's classic front-end on each back-end. Seed 999 is riscv-dv CI's seed; the others pool more program length. Validation: every arm generates validate_seeds at validate_instr_cnt first, dv-solve with VSC_DVSOLVE_VALIDATE and XCHECK on.",
+ "app": "riscv-dv",
+ "tests": [{"name": "arith_basic", "test": "riscv_arithmetic_basic_test"}],
+ "seeds": [999, 1, 2, 3, 4],
+ "arms": ["stock-0.9.6", "classic-btor", "classic-dvs"],
+ "validate_seeds": [999, 7],
+ "validate_instr_cnt": 1000,
+ "rounds": 2,
+ "timeout_s": 900
+}

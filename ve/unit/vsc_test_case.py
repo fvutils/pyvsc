@@ -5,8 +5,17 @@ Created on Mar 7, 2020
 '''
 
 from unittest import TestCase
+import unittest
 from vsc.impl import ctor
+from vsc.model.solver.boolector_backend import BoolectorBackend
 import random
+
+# For a test whose subject needs Boolector itself -- a Boolector reference
+# solve, an XCHECK oracle, or the dv-solve -> Boolector fallback -- rather than
+# just *a* solver. Platforms without pyboolector (Windows, the no-Boolector CI
+# job) skip these instead of failing.
+requires_boolector = unittest.skipUnless(
+    BoolectorBackend.available(), "needs pyboolector")
 
 
 class VscTestCase(TestCase):

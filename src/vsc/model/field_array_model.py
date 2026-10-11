@@ -159,6 +159,9 @@ class FieldArrayModel(FieldCompositeModel):
         dd = getattr(self.type_t, "declared_domain", None)
         if dd is not None:
             ret.declared_domain = dd
+        # A random-size expansion adds elements after set_used_rand() has
+        # walked the array, so take the array's state here.
+        ret.is_used_rand = self.is_used_rand and ret.is_declared_rand and ret.rand_mode
         self._bulk = None
         # Update the size
         self._set_size(len(self.field_l))

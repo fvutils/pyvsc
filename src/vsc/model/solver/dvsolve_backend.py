@@ -173,6 +173,92 @@ _BVSAT_SAMPLER = os.environ.get("VSC_DVSOLVE_BVSAT_SAMPLER", "1") != "0"
 
 # Attribute under which a RandSet's compiled plan is cached on its anchor field.
 _PLAN_ATTR = "_dvsolve_plan"
+# The signature of the last problem an anchor compiled without keeping it: a
+# plan is retained only when the same anchor compiles the same problem twice.
+_SEEN_ATTR = "_dvsolve_seen"
+
+# Retained plans are bounded process-wide (least recently used evicted first)
+# by the native memory they hold: each keeps a compiled SolveCtx, 64 KiB and up.
+# Without a bound, a program that keeps many randomized objects alive (riscv-dv
+# keeps every generated instruction) keeps every one's context: ~500 KB per
+# instruction. VSC_DVSOLVE_PLAN_CACHE_MB sets the budget; 0 retains nothing.
+_PLAN_CACHE_BYTES = int(float(os.environ.get("VSC_DVSOLVE_PLAN_CACHE_MB", "64")) * (1 << 20))
+
+
+class _PlanCache(object):
+    """LRU bookkeeping for the plans retained on anchor fields.
+
+    A plan still lives on its owner (an anchor field for a per-RandSet plan,
+    the randomizer's _RandPlan for a merged one), so its lifetime is never
+    longer than its object's and a lookup stays one getattr; this only tracks
+    the retained set and evicts from it. Entries hold weak references, so an
+    object's garbage collection frees its plan as before."""
+
+    def __init__(self, budget):
+        import collections
+        self.budget = budget
+        self.bytes = 0
+        self._lru = collections.OrderedDict()     # id(plan) -> (weakref plan, weakref anchor)
+        self.evictions = 0
+
+    def add(self, owner, attr, plan):
+        """Track `plan`, held as `owner.<attr>`; False if it alone exceeds the
+        budget (the caller then doesn't keep it). Evicting a plan clears the
+        attribute and frees the native context."""
+        import weakref
+        if plan.nbytes > self.budget:
+            return False
+        plan.cached = True
+        self._lru[id(plan)] = (weakref.ref(plan), weakref.ref(owner), attr)
+        self.bytes += plan.nbytes
+        self._trim()
+        return True
+
+    def set_budget(self, nbytes):
+        """Change the budget, evicting at once down to it."""
+        self.budget = int(nbytes)
+        self._trim()
+
+    def _trim(self):
+        while self.bytes > self.budget and self._lru:
+            _, (pr, orf, at) = self._lru.popitem(last=False)
+            p = pr()
+            if p is None:
+                continue
+            self.bytes -= p.nbytes
+            p.cached = False
+            o = orf()
+            if o is not None and getattr(o, at, None) is p:
+                setattr(o, at, None)
+            p.destroy()
+            self.evictions += 1
+
+    def touch(self, plan):
+        k = id(plan)
+        if k in self._lru:
+            self._lru.move_to_end(k)
+
+    def forget(self, plan):
+        if self._lru.pop(id(plan), None) is not None:
+            self.bytes -= plan.nbytes
+
+    def stats(self):
+        return {"plans": len(self._lru), "bytes": self.bytes, "budget": self.budget,
+                "evictions": self.evictions}
+
+
+_PLAN_CACHE = _PlanCache(_PLAN_CACHE_BYTES)
+
+
+def plan_cache_stats():
+    """Retained compiled plans: count, bytes held, budget, evictions so far."""
+    return _PLAN_CACHE.stats()
+
+
+def set_plan_cache_budget(nbytes):
+    """Bound the native memory retained compiled plans may hold (bytes; 0 keeps
+    none). Takes effect at once. The default is VSC_DVSOLVE_PLAN_CACHE_MB (64)."""
+    _PLAN_CACHE.set_budget(nbytes)
 
 
 def _guard_references_rand(cond_l):
@@ -279,9 +365,13 @@ class _CompiledPlan(object):
     """
 
     __slots__ = ("ctx", "readback", "struct_sig", "const_fields", "_keepalive",
-                 "bulk")
+                 "bulk", "nbytes", "cached", "__weakref__")
 
     def __init__(self, ctx, readback, struct_sig, const_fields, keepalive):
+        # Native memory this plan keeps alive: the context's working buffer and
+        # the problem buffer (the block allocator's growth isn't visible here).
+        self.nbytes = _ctx_nbytes(ctx)
+        self.cached = False
         # Lazily-built _BulkReadback for `readback` (S1.2). Built on the first
         # reuse rather than here, so a plan that is never reused pays nothing.
         self.bulk = None
@@ -308,6 +398,9 @@ class _CompiledPlan(object):
         return True
 
     def destroy(self):
+        if self.cached:
+            self.cached = False
+            _PLAN_CACHE.forget(self)
         ctx = self.ctx
         self.ctx = None
         if ctx is not None:
@@ -318,6 +411,16 @@ class _CompiledPlan(object):
 
     def __del__(self):
         self.destroy()
+
+    # A copied model object gets no plan: the native context can't be copied
+    # (ctypes pointers), and the copy's fields aren't the ones it reads back.
+    # Its first randomize() compiles its own. (riscv-dv deep-copies randomized
+    # instruction streams.)
+    def __copy__(self):
+        return None
+
+    def __deepcopy__(self, memo):
+        return None
 
 
 # The solver's static pool (compiled-problem storage) is bump-allocated in a
@@ -388,6 +491,52 @@ def _oracle_label(fields):
         except Exception:
             names.append(getattr(f, "name", "?"))
     return " ".join(names[:16]) + (" ..." if len(names) > 16 else "")
+
+
+class _MergedPlan(object):
+    """The whole-problem merged solve's compiled context, cached on the
+    randomizer's _RandPlan.merged (see DvSolveBackend.solve_merged)."""
+
+    __slots__ = ("ctx", "readback", "bulk", "nbytes", "cached", "__weakref__")
+
+    def __init__(self, ctx, readback):
+        self.ctx = ctx
+        self.readback = readback
+        self.bulk = None            # _BulkReadback, built on first readback (S1.2)
+        self.nbytes = _ctx_nbytes(ctx)
+        self.cached = False
+
+    def destroy(self):
+        if self.cached:
+            self.cached = False
+            _PLAN_CACHE.forget(self)
+        ctx, self.ctx = self.ctx, None
+        if ctx is not None:
+            try:
+                ctx.destroy()
+            except Exception:
+                pass
+
+    def __del__(self):
+        self.destroy()
+
+    def __copy__(self):
+        return None
+
+    def __deepcopy__(self, memo):
+        return None
+
+
+def _ctx_nbytes(ctx):
+    import ctypes
+    n = 0
+    for attr in ("_ctx_buf", "_problem"):
+        b = getattr(ctx, attr, None)
+        try:
+            n += ctypes.sizeof(b)
+        except TypeError:
+            n += len(getattr(b, "raw", b"") or b"") if b is not None else 0
+    return n
 
 
 def _make_solve_ctx(buf, problem_sz=0, label=None):
@@ -541,6 +690,7 @@ class DvSolveBackend(SolverBackendIF):
             plan = getattr(anchor, _PLAN_ATTR, None)
             if plan is not None:
                 if plan.struct_sig == sig and plan.values_unchanged():
+                    _PLAN_CACHE.touch(plan)
                     plan.ctx.reset()
                     # The cached SolveCtx keeps its own problem buffer
                     # (SolveCtx._problem); pass it so a non-OK re-solve can fall
@@ -806,15 +956,27 @@ class DvSolveBackend(SolverBackendIF):
             # `ctx` (which keeps its own problem buffer alive); it is freed when
             # the plan is evicted (signature change) or its anchor field is
             # garbage-collected.
+            # Admission: keep the plan only when this anchor already compiled
+            # this same problem once. An object randomized once, or a RandSet
+            # rebuilt every call (randomize_with's inline constraints are new
+            # objects each time, so the signature never repeats), would hold a
+            # context that can never be reused. A repeated randomize() pays one
+            # extra compile, then reuses.
             if solved_by_primary and anchor is not None and sig is not None:
-                # Keep the constraint objects whose ids are in `sig` alive so
-                # Python can't recycle a freed id into the next RandSet and cause
-                # a false signature match (see _CompiledPlan._keepalive).
-                keepalive = (list(rs.constraints()), list(rs.soft_constraints()))
-                plan = _CompiledPlan(
-                    ctx, readback, sig, list(tr.const_fields.items()), keepalive)
-                setattr(anchor, _PLAN_ATTR, plan)
-                cached = True
+                if getattr(anchor, _SEEN_ATTR, None) != sig:
+                    setattr(anchor, _SEEN_ATTR, sig)
+                else:
+                    # Keep the constraint objects whose ids are in `sig` alive so
+                    # Python can't recycle a freed id into the next RandSet and
+                    # cause a false signature match (see _CompiledPlan._keepalive).
+                    keepalive = (list(rs.constraints()), list(rs.soft_constraints()))
+                    plan = _CompiledPlan(
+                        ctx, readback, sig, list(tr.const_fields.items()), keepalive)
+                    if _PLAN_CACHE.add(anchor, _PLAN_ATTR, plan):
+                        setattr(anchor, _PLAN_ATTR, plan)
+                        cached = True
+                    else:
+                        plan.ctx = None      # the finally below frees ctx
 
             return SolveResult(status=0)
         finally:
@@ -859,10 +1021,17 @@ class DvSolveBackend(SolverBackendIF):
             return False                       # known non-mergeable
         if merged is None:
             merged = self._build_merged(randsets, bound_m)
-            plan.merged = merged               # cache (ctx,readback,bulk) or False
             if merged is False:
+                plan.merged = False
                 return False
-        ctx, readback, bulk = merged
+            # Built on first use (the merged solve is also the faster cold
+            # path), retained within the plan-cache budget; an evicted plan is
+            # rebuilt here on its next use.
+            if _PLAN_CACHE.add(plan, "merged", merged):
+                plan.merged = merged
+        else:
+            _PLAN_CACHE.touch(merged)
+        ctx, readback = merged.ctx, merged.readback
 
         _t = PT.now()
         ctx.reset()
@@ -877,10 +1046,9 @@ class DvSolveBackend(SolverBackendIF):
         _validate_model(ctx, "merged solve")
         _t = PT.now()
         if opt_flags.BULK_READBACK:
-            if bulk is None:
-                bulk = _BulkReadback(readback)
-                plan.merged = (ctx, readback, bulk)
-            bulk.read_into_fields(ctx)
+            if merged.bulk is None:
+                merged.bulk = _BulkReadback(readback)
+            merged.bulk.read_into_fields(ctx)
         else:
             for f, vid, w, s in readback:
                 f.set_val(self._as_field_value(ctx.get_value(vid), w, s))
@@ -949,7 +1117,7 @@ class DvSolveBackend(SolverBackendIF):
             ok = True
             # bulk is built lazily on first readback (S1.2), so a merged plan
             # that is never actually solved costs nothing extra.
-            return (ctx, readback, None)
+            return _MergedPlan(ctx, readback)
         except (CompileUnsatError, CompileIncompleteError, RuntimeError,
                 BackendIncomplete):
             return False

@@ -44,10 +44,10 @@ def child_env(build: str) -> dict:
     return env
 
 
-def run_child(spec: dict, env: dict, timeout_s: float) -> dict:
+def run_child(spec: dict, env: dict, timeout_s: float, script: str = CHILD) -> dict:
     """Run one cell. Adds peak RSS and the child's own CPU from wait4."""
     with tempfile.TemporaryFile() as fout, tempfile.TemporaryFile() as ferr:
-        p = subprocess.Popen([sys.executable, "-P", CHILD, json.dumps(spec)],
+        p = subprocess.Popen([sys.executable, "-P", script, json.dumps(spec)],
                              env=env, stdout=fout, stderr=ferr, cwd=str(builds.REPO))
         timer = threading.Timer(timeout_s, p.kill)
         timer.start()
