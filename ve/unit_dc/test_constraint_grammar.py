@@ -24,8 +24,8 @@ from grammar_util import GrammarCase
 G_ROWS = {
     1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
     9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: "1.6",
-    16: None, 17: None, 18: None, 19: None, 20: "1.4", 21: "1.4", 22: "1.3",
-    23: "1.3", 24: None, 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
+    16: None, 17: None, 18: None, 19: None, 20: "1.4", 21: "1.4", 22: None,
+    23: None, 24: None, 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
     37: None, 38: "1.8", 39: "1.7", 40: "1.7", 41: None, 42: None, 43: None,
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
@@ -33,7 +33,7 @@ G_ROWS = {
     57: "1.10", 58: "1.5", 59: "1.11", 60: "1.11", 61: "1.5", 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
     70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
-    76: "2.3", 77: None, 78: None, 79: "1.3", 80: "2.7", 81: None, 82: None,
+    76: "2.3", 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
     83: None, 84: None, 85: None, 86: None, 87: None, 88: "2.5", 89: None,
     90: None, 91: None, 92: None, 93: None,
 }
@@ -189,6 +189,56 @@ class TestConstraintGrammar(GrammarCase):
         # On a comparison, ~ is logical not.
         self.accept("~(self.a == 5)", lambda t: t.a != 5,
                     witness=lambda it: it.a == 6)
+
+    # -- 2.3 logical --------------------------------------------------------
+
+    def test_G22_and_or(self):
+        self.accept("self.a > 3 and self.a < 6", lambda t: 3 < t.a < 6,
+                    witness=lambda it: it.a == 5)
+        self.same_model("self.a > 3 and self.a < 6", "(self.a > 3) & (self.a < 6)")
+        self.accept("self.a == 1 or self.a == 7", lambda t: t.a in (1, 7),
+                    witness=lambda it: it.a == 7)
+        self.accept("self.a > 1 and self.a < 9 and self.a != 5",
+                    lambda t: 1 < t.a < 9 and t.a != 5)
+        self.same_model("self.a == 1 or self.a == 2 or self.a == 3",
+                        "(self.a == 1) | (self.a == 2) | (self.a == 3)")
+        # 'and' binds tighter than 'or'.
+        self.accept("self.a == 1 or self.b == 2 and self.c == 3",
+                    lambda t: t.a == 1 or (t.b == 2 and t.c == 3),
+                    witness=lambda it: (it.a == 1, it.b == 0))
+        # Across lines, inside parentheses.
+        self.accept("""
+            (self.a == 4
+             or self.a == 8)
+        """, lambda t: t.a in (4, 8))
+        # A non-boolean operand is tested for truth: a != 0, not bit 0.
+        self.accept("self.a and self.b == 0", lambda t: t.a != 0 and t.b == 0,
+                    witness=lambda it: it.a == 0x80)
+        self.accept("self.a == 0 or self.b", lambda t: t.a == 0 or t.b != 0,
+                    witness=lambda it: (it.a == 1, it.b == 0x40))
+        # A class constant folds away.
+        self.accept("self.ON and self.a == 3", lambda t: t.a == 3)
+        self.accept("self.a == 3 and False", unsat=True)
+        # In an expression, not only as a statement.
+        self.accept("self.flag == (self.a > 3 and self.a < 6)",
+                    lambda t: t.flag == (3 < t.a < 6),
+                    witness=lambda it: it.a == 4)
+
+    def test_G23_not(self):
+        self.accept("not (self.a == 5)", lambda t: t.a != 5,
+                    witness=lambda it: it.a == 4)
+        self.accept("not self.flag", lambda t: t.flag == 0)
+        # On a wide operand, 'not' is a truth test, where '~' inverts each bit.
+        self.accept("not self.a", lambda t: t.a == 0)
+        self.accept("not (self.a > 3 and self.a < 6)",
+                    lambda t: not 3 < t.a < 6, witness=lambda it: it.a == 6)
+        self.accept("not not (self.a == 5)", lambda t: t.a == 5)
+        self.accept("not self.ON", unsat=True)
+        # '~' on a comparison is logical not, so its 'not' undoes it.
+        self.accept("not ~(self.a > 3)", lambda t: t.a > 3,
+                    witness=lambda it: it.a == 4)
+        self.accept("self.a > 3 and ~(self.a > 5)", lambda t: 3 < t.a <= 5,
+                    witness=lambda it: it.a == 5)
 
     # -- 2.4 comparisons ----------------------------------------------------
 
@@ -442,6 +492,32 @@ class TestConstraintGrammar(GrammarCase):
             else:
                 self.a == 2
         """, lambda t: t.a == (1 if t.b else 2))
+
+    def test_G79_if_condition_logical(self):
+        self.accept("""
+            if self.a > 3 and self.flag:
+                self.b == 1
+            else:
+                self.b == 2
+        """, lambda t: t.b == (1 if t.a > 3 and t.flag else 2),
+            witness=lambda it: (it.a == 9, it.flag == 1, it.b == 1))
+        self.accept("""
+            if not self.flag:
+                self.b == 1
+            elif self.a == 1 or self.a == 2:
+                self.b == 2
+        """, lambda t: (t.b == 1) if not t.flag else
+            (t.b == 2 if t.a in (1, 2) else True),
+            witness=lambda it: (it.flag == 1, it.a == 2))
+        self.accept("""
+            with vdc.if_then(self.a < 5 or not self.flag):
+                self.b == 7
+        """, lambda t: t.b == 7 if (t.a < 5 or not t.flag) else True)
+        self.accept("""
+            with vdc.implies(not (self.a == 0)):
+                self.b == 3
+        """, lambda t: t.a == 0 or t.b == 3,
+            witness=lambda it: it.a == 0x80)
 
     def test_G81_with_if_then(self):
         self.accept("""

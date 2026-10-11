@@ -40,6 +40,8 @@ _CMPOP = {
     ast.Gt: ">", ast.GtE: ">=",
 }
 
+_CMP_OPS = frozenset(_CMPOP.values())
+
 # Helper names recognized regardless of module prefix (vdc./vsc./bare).
 _IFTHEN = "if_then"
 _ELSEIF = "else_if"
@@ -122,6 +124,32 @@ def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
     eff_kind = "generic" if (params and kind == "fixed") else kind
     return ConstraintProgram(name, stmts, kind=eff_kind, params=params,
                              param_defaults=param_defaults)
+
+
+def _is_bool(e):
+    """True when IR expression ``e`` is a truth value (0 or 1)."""
+    if isinstance(e, IRBin):
+        if e.op in _CMP_OPS:
+            return True
+        if e.op in ("&", "|", "^"):
+            return _is_bool(e.lhs) and _is_bool(e.rhs)
+        return False
+    if isinstance(e, IRInside):
+        return True
+    return isinstance(e, IRConst) and e.value in (0, 1)
+
+
+def _bool(e):
+    """``e`` as a truth value: itself when it already is one, else ``e != 0``.
+
+    ``~b`` of a truth value ``b`` is taken as ``not b``, as it is in a
+    statement. Compared with 0 it would be widened first, and the invert of a
+    widened 0 or 1 is never 0."""
+    if _is_bool(e):
+        return e
+    if isinstance(e, IRUnary) and e.op == "~" and _is_bool(e.operand):
+        return IRBin("==", e.operand, IRConst(0))
+    return IRBin("!=", e, IRConst(0))
 
 
 def _is_string_stmt(stmt):
@@ -375,13 +403,22 @@ class _Parser:
                 self._err(node, "unsupported binary operator")
             return IRBin(op, self._expr(node.left), self._expr(node.right))
         if isinstance(node, ast.BoolOp):
-            self._err(node, "use '&'/'|' (not 'and'/'or') to combine constraints")
+            # Logical: each operand is tested for truth. Python's short-circuit
+            # and value-returning semantics do not apply.
+            op = "&" if isinstance(node.op, ast.And) else "|"
+            terms = [_bool(self._expr(v)) for v in node.values]
+            result = terms[0]
+            for t in terms[1:]:
+                result = IRBin(op, result, t)
+            return result
         if isinstance(node, ast.UnaryOp):
             if isinstance(node.op, ast.Invert):
                 return IRUnary("~", self._expr(node.operand))
+            if isinstance(node.op, ast.Not):
+                # Not '~': that inverts every bit of a wide operand.
+                return IRBin("==", _bool(self._expr(node.operand)), IRConst(0))
             if isinstance(node.op, (ast.USub, ast.UAdd)):
                 return IRConst(self._const(node))
-            self._err(node, "use '~' (not 'not') for logical negation")
         if isinstance(node, ast.Call):
             return self._call_expr(node)
         if isinstance(node, ast.Subscript):
@@ -463,8 +500,8 @@ class _Parser:
                     and isinstance(opnd.op, (ast.BitAnd, ast.BitOr, ast.BitXor))
                     and not self._parenthesized(opnd)):
                 self._err(node, "'%s' binds tighter than '%s', so this is a "
-                          "chained comparison; parenthesize each comparison, "
-                          "e.g. (x > 3) & (x < 6)"
+                          "chained comparison; write (x > 3) and (x < 6), or "
+                          "parenthesize each comparison: (x > 3) & (x < 6)"
                           % (_BINOP[type(opnd.op)],
                              _CMPOP.get(type(cmp_op), "in")))
 
