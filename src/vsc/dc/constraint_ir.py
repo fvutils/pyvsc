@@ -102,6 +102,22 @@ class IRReduce(IRNode):
             self.filt)
 
 
+class IRClassConst(IRNode):
+    """A class attribute read as a constant: ``T.NAME`` (``T`` the constraint's
+    own class), or ``self.NAME`` / ``T.NAME`` on the right of ``in``
+    (``as_set``: a collection). The type model replaces it with the value
+    on each subclass; ``where`` is the ``(file:line)`` for its error."""
+    __slots__ = ("name", "where", "as_set")
+
+    def __init__(self, name, where, as_set=False):
+        self.name = name
+        self.where = where
+        self.as_set = as_set
+
+    def __repr__(self):
+        return "IRClassConst(%r%s)" % (self.name, ", set" if self.as_set else "")
+
+
 class IRRange(IRNode):
     """A single entry in an inside/rangelist: a point (hi is None) or [lo,hi]."""
     __slots__ = ("lo", "hi")

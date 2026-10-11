@@ -27,31 +27,50 @@ _MISSING = object()
 def lookup_for(cls, field_names):
     """Return ``name -> int or None``: the solver value of class attribute
     ``name`` of ``cls`` when it is a constant (see the module doc). A bool
-    stays a bool, so ``~`` can treat it as one bit."""
+    stays a bool, so ``~`` can treat it as one bit. ``lookup.collection(name)``
+    is the tuple of values of a list, tuple, set, frozenset or range class
+    attribute, or None."""
     cache = {}
+
+    def attr(name):
+        if name in field_names or name.startswith("__"):
+            return _MISSING
+        return getattr(cls, name, _MISSING)
 
     def lookup(name):
         if name in cache:
             return cache[name]
-        val = None
-        if name not in field_names and not name.startswith("__"):
-            v = getattr(cls, name, _MISSING)
-            if isinstance(v, enum.Enum):
-                from vsc.impl.enum_info import EnumInfo
-                val = EnumInfo.get(type(v)).e2v(v)
-            elif isinstance(v, bool):
-                val = v
-            elif isinstance(v, int):
-                val = int(v)
+        val = _value(attr(name))
         cache[name] = val
         return val
+
+    def collection(name):
+        v = attr(name)
+        if not isinstance(v, (list, tuple, set, frozenset, range)):
+            return None
+        vals = tuple(_value(e) for e in v)
+        return None if any(x is None for x in vals) else vals
+
+    lookup.collection = collection
     return lookup
+
+
+def _value(v):
+    """The solver value of a constant, or None."""
+    if isinstance(v, enum.Enum):
+        from vsc.impl.enum_info import EnumInfo
+        return EnumInfo.get(type(v)).e2v(v)
+    if isinstance(v, bool):
+        return v
+    if isinstance(v, int):
+        return int(v)
+    return None
 
 
 def fold_program(prog, lookup):
     """Return ``prog`` with class constants replaced and folded, or ``prog``
     itself when it reads none."""
-    f = _Folder(lookup)
+    f = _Folder(lookup, prog.name)
     if prog.kind == "value":
         ret = f.expr(prog.ret, frozenset(prog.params))
         stmts = prog.stmts
@@ -82,9 +101,15 @@ _I32 = range(-(1 << 31), 1 << 31)
 
 
 class _Folder:
-    def __init__(self, lookup):
+    def __init__(self, lookup, cname):
         self.lookup = lookup
+        self.cname = cname
         self.hit = False
+
+    def _err(self, n, what):
+        from .constraint_parser import ConstraintParseError
+        raise ConstraintParseError("constraint %r %s: %r is not %s" % (
+            self.cname, n.where, n.name, what))
 
     # -- expressions ---------------------------------------------------------
 
@@ -96,6 +121,12 @@ class _Folder:
                     self.hit = True
                     return ir.IRConst(int(v))
             return n
+        if isinstance(n, ir.IRClassConst):
+            v = self.lookup(n.name)
+            if v is None:
+                self._err(n, "an int, bool or enum class attribute")
+            self.hit = True
+            return ir.IRConst(int(v))
         if isinstance(n, ir.IRBin):
             return self._bin(n.op, self.expr(n.lhs, bound), self.expr(n.rhs, bound))
         if isinstance(n, ir.IRUnary):
@@ -122,9 +153,21 @@ class _Folder:
                                None if n.filt is None else self.expr(n.filt, inner))
         if isinstance(n, ir.IRInside):
             lhs = self.expr(n.lhs, bound)
-            ranges = [ir.IRRange(self.expr(r.lo, bound),
-                                 None if r.hi is None else self.expr(r.hi, bound))
-                      for r in n.ranges]
+            ranges = []
+            for r in n.ranges:
+                if isinstance(r.lo, ir.IRClassConst) and r.lo.as_set:
+                    vals = self.lookup.collection(r.lo.name)
+                    if vals is None:
+                        self._err(r.lo, "an array field or a class attribute "
+                                        "holding int, bool or enum values")
+                    self.hit = True
+                    ranges.extend(ir.IRRange(ir.IRConst(int(v))) for v in vals)
+                    continue
+                ranges.append(ir.IRRange(
+                    self.expr(r.lo, bound),
+                    None if r.hi is None else self.expr(r.hi, bound)))
+            if not ranges:
+                return ir.IRConst(int(bool(n.negate)))
             if isinstance(lhs, ir.IRConst) and all(
                     isinstance(r.lo, ir.IRConst)
                     and (r.hi is None or isinstance(r.hi, ir.IRConst))
@@ -161,6 +204,8 @@ class _Folder:
             return False
         if isinstance(n, ir.IRUnary) and n.op == "~":
             return self._is_bool(n.operand, bound)
+        if isinstance(n, ir.IRClassConst):
+            return isinstance(self.lookup(n.name), bool)
         return False
 
     def _bin(self, op, lhs, rhs):

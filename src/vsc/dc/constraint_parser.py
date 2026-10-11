@@ -18,8 +18,8 @@ import ast
 import inspect
 import textwrap
 
-from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRCond, IRConst,
-                            IRReduce,
+from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRClassConst,
+                            IRCond, IRConst, IRReduce,
                             IRConstraintExpr, IRConstraintRef, IRDist, IRField,
                             IRForeach, IRIfElse, IRImplies, IRIndex, IRInside,
                             IRParam, IRPartSelect, IRRange, IRSoft, IRSolveOrder,
@@ -223,6 +223,10 @@ class _Parser:
                     self._names[name] = cell.cell_contents
                 except ValueError:
                     pass
+        # The name of the class the method is defined in ('T' of 'T.c').
+        parts = getattr(func, "__qualname__", "").split(".")
+        self.own_class = parts[-2] if len(parts) >= 2 and parts[-2] != "<locals>" \
+            else None
         # For decent error locations: source file/line of the enclosing function.
         self.filename = getattr(getattr(func, "__code__", None), "co_filename", "?")
         self.lineno0 = getattr(getattr(func, "__code__", None), "co_firstlineno", 0)
@@ -232,6 +236,17 @@ class _Parser:
         line = self.lineno0 + getattr(node, "lineno", 1) - 1
         raise ConstraintParseError(
             "constraint %r (%s:%d): %s" % (self.cname, self.filename, line, msg))
+
+    def _where(self, node):
+        """``(file:line)`` of ``node``, for an error raised after parsing."""
+        return "(%s:%d)" % (self.filename, self._abs_line(node))
+
+    def _is_own_class_attr(self, node):
+        """``T.NAME``, ``T`` being the class this constraint is defined in.
+        (``T`` is not bound yet when the class is decorated.)"""
+        return (isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == self.own_class)
 
     def _abs_line(self, node):
         """Absolute source line of ``node`` (for deferred decoration-time errors
@@ -517,6 +532,8 @@ class _Parser:
             if isinstance(root, ast.Name) and (
                     root.id == self.self_name or root.id in self._bound):
                 return IRAttr(self._expr(node.value), node.attr)
+            if self._is_own_class_attr(node):
+                return IRClassConst(node.attr, self._where(node))
             # e.g. MyEnum.A or module.CONST -> resolve to an int literal.
             return IRConst(self._resolve_external(node))
         if isinstance(node, ast.Constant):
@@ -847,6 +864,14 @@ class _Parser:
         elif self._is_array(node):
             # self.arr: the elements' values, as classic list_t.__contains__.
             return [IRRange(self._expr(node))]
+        elif self._is_own_class_attr(node) or (
+                isinstance(node, ast.Attribute)
+                and isinstance(node.value, ast.Name)
+                and node.value.id == self.self_name):
+            # self.NAME / T.NAME: a collection held in a class attribute,
+            # read on each subclass when its type is built.
+            return [IRRange(IRClassConst(node.attr, self._where(node),
+                                         as_set=True))]
         elif isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice):
             # vdc.r[lo:hi]
             return [self._slice_range(node.slice)]
@@ -907,7 +932,7 @@ class _Parser:
                 attrs.insert(0, cur.attr)
                 cur = cur.value
             if (not isinstance(cur, ast.Name) or cur.id == self.self_name
-                    or cur.id not in self._names):
+                    or cur.id == self.own_class or cur.id not in self._names):
                 return None
             value = self._names[cur.id]
             for a in attrs:

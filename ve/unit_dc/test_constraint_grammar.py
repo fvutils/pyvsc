@@ -23,7 +23,7 @@ from grammar_util import GrammarCase
 # G-ID -> None (tested here) or the plan ledger item that will add its test.
 G_ROWS = {
     1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
-    9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: None,
+    9: None, 10: None, 11: None, 12: None, 13: None, 14: None, 15: None,
     16: None, 17: None, 18: None, 19: None, 20: None, 21: None, 22: None,
     23: None, 24: None, 25: None, 26: None, 27: None, 28: None, 29: None,
     30: None, 31: None, 32: None, 33: None, 34: None, 35: None, 36: None,
@@ -138,6 +138,51 @@ class TestConstraintGrammar(GrammarCase):
             class U(T):
                 MAXV = 30
         """)
+
+    def test_G10_class_constant_via_class_name(self):
+        self.accept("self.a == T.MAXV", lambda t: t.a == 20)
+        self.same_model("self.a == T.MAXV", "self.a == self.MAXV")
+        # Per subclass, as self.MAXV; a bool; and a collection, by either name.
+        self.accept(None, lambda t: t.a == 30 and t.b in (7, 8) and t.c in (7, 8),
+                    cls="U", src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                MAXV = 20
+                ON = True
+                VALS = (1, 2)
+                a: vdc.u8 = vdc.rand()
+                b: vdc.u8 = vdc.rand()
+                c: vdc.u8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.a == T.MAXV
+                    if T.ON:
+                        self.b in T.VALS
+                    self.c in self.VALS
+                    self.c != 1
+
+            class U(T):
+                MAXV = 30
+                VALS = range(7, 9)
+        """)
+        self.accept(None, unsat=True, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                NONE = []
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.a in self.NONE
+        """)
+        self.reject("self.a == T.NOPE", "'NOPE' is not an int, bool or enum")
+        self.reject("self.a == T.a", "'a' is not an int, bool or enum")
+        self.reject("self.a in T.MAXV", "'MAXV' is not an array field or a class")
 
     def test_G11_unknown_name(self):
         self.reject("self.a == zz", "reference to local/global 'zz'")
@@ -472,7 +517,8 @@ class TestConstraintGrammar(GrammarCase):
                     self.arr.size <= 4
                     self.a in self.arr
         """)
-        self.reject("self.a in self.b", "value set must be")
+        self.reject("self.a in self.b", "'b' is not an array field or a class "
+                    "attribute holding")
 
     def test_G39_named_constant_collection(self):
         self.accept("self.a in ALLOWED", lambda t: t.a in (1, 3, 5),
