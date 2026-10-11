@@ -49,8 +49,9 @@ from .constraint_ir import IRConst, IRModelLiteral
 _INLINE_REUSE = os.environ.get("VSC_DC_INLINE_REUSE", "1") != "0"
 
 # Parse a randomize_with body with the @vdc.constraint grammar instead of
-# executing it (inline_parse). VSC_DC_INLINE_PARSE=1 turns it on.
-_INLINE_PARSE = os.environ.get("VSC_DC_INLINE_PARSE", "0") != "0"
+# executing it (inline_parse). On by default; VSC_DC_INLINE_PARSE=0 selects
+# the operator-overloading path, which is also used when no source is found.
+_INLINE_PARSE = os.environ.get("VSC_DC_INLINE_PARSE", "1") != "0"
 
 
 class _FieldExpr(expr):

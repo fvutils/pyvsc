@@ -1,7 +1,8 @@
 """
-``randomize_with`` with its body parsed (``VSC_DC_INLINE_PARSE=1``): the
-inline suites run again with the switch on, plus what only the parsed path
-does. The switch is off by default (plan 3.4).
+``randomize_with`` with its body parsed (the default since plan 3.7) and
+with the legacy operator path (``VSC_DC_INLINE_PARSE=0``, and any body whose
+source cannot be read): the inline suites run under both settings, plus what
+only the parsed path does.
 """
 import test_generic_constraint as _gen
 import test_inline_reuse as _reuse
@@ -26,7 +27,36 @@ class _ParseOn:
         inline._INLINE_PARSE = self._saved_parse
 
 
+class _ParseOff:
+    """Runs a TestCase on the legacy (operator) path."""
+
+    def setUp(self):
+        self._saved_parse = inline._INLINE_PARSE
+        inline._INLINE_PARSE = False
+        super().setUp()
+
+    def tearDown(self):
+        super().tearDown()
+        inline._INLINE_PARSE = self._saved_parse
+
+
 class TestRandomizeWithParsed(_ParseOn, _rw.TestRandomizeWith):
+    pass
+
+
+class TestRandomizeWithLegacy(_ParseOff, _rw.TestRandomizeWith):
+    pass
+
+
+class TestInlineReuseLegacy(_ParseOff, _reuse.TestInlineReuse):
+    pass
+
+
+class TestInlineRebindLegacy(_ParseOff, _reuse.TestInlineRebind):
+    pass
+
+
+class TestGenericInlineLegacy(_ParseOff, _gen.TestGenericConstraintInline):
     pass
 
 
