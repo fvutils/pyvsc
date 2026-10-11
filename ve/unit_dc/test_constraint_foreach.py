@@ -59,3 +59,33 @@ class TestConstraintForeach(DcTestCase):
             c.randomize()
             self.assertEqual(int(c.posit), 1)
             self.assertIn(int(c.x), (5, 6))
+
+
+class TestLoopNameShadowsField(DcTestCase):
+    """A loop name equal to a field name must not hide the field: in
+    ``for e in self.arr: e != self.e`` the two are different (B19). Both used
+    to be ``IRField(("e",))``, so the field read the element: ``e != e``."""
+
+    def test_loop_name_equal_to_field_name(self):
+
+        @vdc.dataclass
+        class T(vdc.RandClass):
+            e: vdc.u8 = vdc.rand()
+            arr: list[vdc.u8] = vdc.rand(size=3)
+
+            @vdc.constraint
+            def c(self):
+                self.e < 10
+                for e in self.arr:
+                    e != self.e
+                    e < 10
+                with vdc.foreach(self.arr, idx=True) as e:
+                    self.arr[e] != self.e + 1
+                any(e == self.e + 2 for e in self.arr)
+
+        t = T()
+        for _ in range(20):
+            t.randomize()
+            self.assertNotIn(t.e, t.arr)
+            self.assertNotIn(t.e + 1, t.arr)
+            self.assertIn(t.e + 2, t.arr)

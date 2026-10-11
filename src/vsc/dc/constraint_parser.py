@@ -23,7 +23,7 @@ from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRClassConst,
                             IRConstraintExpr, IRConstraintRef, IRDist, IRField,
                             IRForeach, IRIfElse, IRImplies, IRIndex, IRInside,
                             IRParam, IRPartSelect, IRRange, IRSoft, IRSolveOrder,
-                            IRUnary, IRUnique, IRWeight)
+                            IRUnary, IRUnique, IRWeight, local_name)
 
 
 class ConstraintParseError(Exception):
@@ -742,7 +742,7 @@ class _Parser:
                 # A generic-constraint formal — bound to its actual at the ref site.
                 return IRParam(node.id)
             if node.id in self._bound:
-                return IRField((node.id,))
+                return IRField((local_name(node.id),))
             if node.id in self._names:
                 return IRConst(self._as_int(node, self._names[node.id]))
             self._err(node, "reference to local/global %r not supported in constraints"

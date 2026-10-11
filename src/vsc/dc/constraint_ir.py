@@ -81,6 +81,15 @@ class IRCond(IRNode):
         return "IRCond(%r, %r, %r)" % (self.cond, self.t, self.f)
 
 
+def local_name(name):
+    """The IR name of a loop name (a foreach ``as`` target, a ``for`` target):
+    ``.<name>``. A field path never starts with '.', so ``IRField((".e",))``
+    (the loop's ``e``) cannot be mistaken for ``self.e``. Idempotent."""
+    if name is None or name.startswith("."):
+        return name
+    return "." + name
+
+
 class IRReduce(IRNode):
     """``all(cond for ... in arr)`` (``op`` "all") or ``any(...)`` (``op``
     "any") used as an expression. The loop binds ``idx_name``/``it_name`` as
@@ -91,8 +100,8 @@ class IRReduce(IRNode):
     def __init__(self, op, array, idx_name, it_name, cond, filt=None):
         self.op = op
         self.array = array        # IRField (path to the array)
-        self.idx_name = idx_name
-        self.it_name = it_name
+        self.idx_name = local_name(idx_name)
+        self.it_name = local_name(it_name)
         self.cond = cond
         self.filt = filt
 
@@ -354,8 +363,8 @@ class IRForeach(IRNode):
 
     def __init__(self, array, idx_name, it_name, body):
         self.array = array        # IRField (path to the array)
-        self.idx_name = idx_name
-        self.it_name = it_name
+        self.idx_name = local_name(idx_name)
+        self.it_name = local_name(it_name)
         self.body = body          # list of statements
 
 
@@ -366,7 +375,7 @@ class IRHostFor(IRNode):
     __slots__ = ("names", "slot", "body")
 
     def __init__(self, names, slot, body):
-        self.names = names        # tuple of loop names
+        self.names = tuple(local_name(n) for n in names)  # loop names
         self.slot = slot          # IRHost slot of the iterable
         self.body = body
 
