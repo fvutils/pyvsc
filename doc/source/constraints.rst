@@ -2,6 +2,14 @@
 PyVSC Constraints
 #################
 
+.. note::
+
+   This page describes constraints in the classic API (``@vsc.randobj``),
+   where a constraint method runs on every randomization, so Python's ``and``,
+   ``or``, ``not``, ``if`` and ``for`` cannot be used in it. In the dataclass
+   API they can, because constraint bodies are parsed instead of run: see
+   :doc:`dataclass/constraints`.
+
 Constraint Blocks
 =================
 

@@ -22,7 +22,14 @@ Contents:
    :maxdepth: 2
    :caption: Dataclass API (vdc)
 
+   dataclass/overview
+   dataclass/rand_classes
+   dataclass/constraints
+   dataclass/constraint_grammar
+   dataclass/inline_constraints
    dataclass/generic_constraints
+   dataclass/coverage
+   dataclass/porting
 
 .. toctree::
    :maxdepth: 1

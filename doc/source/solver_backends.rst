@@ -219,3 +219,22 @@ Behavioral notes
   primary/Boolector path and does not honor soft-constraint preferences. This is
   intentional — the BV-SAT engine exists for *completeness* (deciding hard
   SAT/UNSAT), not for distribution.
+
+Width and sign rules
+====================
+
+Both back-ends evaluate constraint expressions with SystemVerilog's width and
+sign rules, for the classic and the dataclass front-end alike:
+
+* An expression is evaluated at its **context width**: the widest operand, with
+  32 bits for an integer literal. ``a + b == 300`` with 8-bit ``a`` and ``b``
+  is satisfiable.
+* ``~a`` inverts ``a`` *after* it is widened to the context width, so
+  ``~a == 0xF0`` with an 8-bit ``a`` never holds (the upper bits of ``~a`` are
+  set). Write ``(~a & 0xFF) == 0xF0``. (Boolector inverted at ``a``'s own
+  width before pyvsc 2.0.)
+* An expression with a signed and an unsigned operand is **unsigned**: the
+  signed operand is read as its bit pattern. For a signed 8-bit ``s`` and an
+  unsigned 8-bit ``b``, ``s == b`` holds for ``s = -56, b = 200``. (dv-solve
+  compared signed values before pyvsc 2.0.)
+* Signed ``//`` and ``%`` truncate toward zero; ``>>`` is a logical shift.

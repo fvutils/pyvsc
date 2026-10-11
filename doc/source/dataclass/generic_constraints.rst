@@ -50,9 +50,9 @@ is spliced into the enclosing scope::
         def use(self):
             self.both()          # applies a < 20 AND b > 200
 
-**Boolean reference** — the reference appears inside an expression (``|``, ``&``,
-``~``, an ``if`` condition); the block stands for the conjunction of its items and
-can be composed with boolean operators.
+**Boolean reference** — the reference appears inside an expression (``or``,
+``and``, ``not``, ``|``, ``&``, an ``if`` condition); the block stands for the
+conjunction of its items and can be composed with boolean operators.
 
 .. important::
 
@@ -84,7 +84,7 @@ letting the solver choose, with full look-ahead::
 
         @vdc.constraint
         def interesting_sz_c(self):
-            self.small_pkt_c() | self.jumbo_pkt_c()
+            self.small_pkt_c() or self.jumbo_pkt_c()
 
 Each ``randomize()`` produces a ``pkt_sz`` in ``[1..100]`` *or* ``[1501..]``. This
 is something classic SystemVerilog constraints cannot express directly — ``||``
@@ -92,7 +92,7 @@ there is a boolean-expression operator, not a way to OR two constraint *blocks*.
 
 .. note::
 
-   ``a() | b()`` is a plain disjunction: the solver returns *any* satisfying
+   ``a() or b()`` is a plain disjunction: the solver returns *any* satisfying
    value, it does **not** promise a fair split between the branches. When the two
    windows differ greatly in size, the wider one dominates. Use ``vdc.dist`` (in a
    referenced statement-position generic) if you need to shape the distribution.
@@ -116,7 +116,7 @@ a generic a reusable, named *relation template*::
 
         @vdc.constraint
         def pick(self):
-            self.in_window(10, 20) | self.in_window(100, 110)
+            self.in_window(10, 20) or self.in_window(100, 110)
 
 Actual arguments may be constants *or other random fields* — e.g.
 ``self.aligned(self.addr, self.region_align)`` — giving relations parameterized by
@@ -130,7 +130,7 @@ other solved values. Parameters support positional and **keyword** arguments and
 
     @vdc.constraint
     def pick(self):
-        self.in_window(10, hi=20) | self.in_window(lo=100)   # hi defaults to 110
+        self.in_window(10, hi=20) or self.in_window(lo=100)   # hi defaults to 110
 
 
 Value generics
@@ -164,26 +164,22 @@ the same method computes the value against the concrete field values, so
 Referencing in ``randomize_with``
 =================================
 
-A generic may also be referenced inside an inline ``randomize_with`` block, to
-apply it for a single solve — the analog of a classic ``dynamic_constraint``
-reference. Use ``()`` and combine with ``|`` just as in a fixed constraint::
+A generic may also be referenced inside a ``randomize_with`` block, to apply it
+for a single solve — the analog of a classic ``dynamic_constraint`` reference.
+The block is parsed with the same grammar (:doc:`inline_constraints`)::
 
     it = send_pkt()
 
     with it.randomize_with() as h:
-        h.small_pkt_c()                    # this solve: pkt_sz <= 100
+        h.small_pkt_c()                       # this solve: pkt_sz <= 100
 
     with it.randomize_with() as h:
-        h.small_pkt_c() | h.jumbo_pkt_c()  # this solve: small OR jumbo
+        h.small_pkt_c() or h.jumbo_pkt_c()    # this solve: small or jumbo
 
-Parameterized generics may be referenced inline with constant actuals
-(``it.window(100, 110)``) or field-valued actuals built from the proxy
-(``it.ge(it.n)``, ``it.win(it.lo, it.lo + 50)``).
-
-.. note::
-
-   Inline references reify the generic as a boolean term, so the generic's body
-   must be boolean (as in the boolean-position rule above).
+Arguments may be constants, values from the caller (evaluated on each call:
+``h.window(lo, lo + 10)``), or field expressions (``h.ge(h.n)``,
+``h.win(h.lo, h.lo + 50)``). A value generic may be used in an expression:
+``h.sz == h.aligned(lo)``.
 
 
 Inheritance
@@ -209,7 +205,7 @@ time), so mistakes fail fast:
 * **Referencing an unknown name** (or a field) is an error.
 * **Reference cycles** (``a`` → ``b`` → ``a``) are rejected.
 * **Boolean position requires a boolean body.** A generic referenced under
-  ``|``/``&``/``~``/``if`` may contain only boolean items (relations, ``inside``,
+  ``or``/``and``/``not``/``|``/``&``/``if`` may contain only boolean items (relations, ``inside``,
   ``implies``, ``if``/``else``, ``unique``, nested references). A generic that
   contains ``soft``/``dist``/``solve_order``/``foreach`` can still be referenced as
   a *statement*, but not as a boolean term.

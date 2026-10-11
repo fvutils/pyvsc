@@ -1,4 +1,56 @@
 
+## 2.0.0 (unreleased)
+
+### New
+- Dataclass front-end (`import vsc.dc as vdc`): constraint bodies follow a
+  Python grammar. `and`/`or`/`not`, `if`/`elif`/`else`, `match`, `for` over
+  arrays and constants, `x in {...}` / `range(...)` / named collections,
+  `len`/`sum`/`math.prod`/`all`/`any`/`abs`/`min`/`max`, and class constants
+  read per subclass. Anything else is rejected when the class is defined, with
+  its file and line. See doc/source/dataclass/constraint_grammar.rst.
+- vdc `randomize_with` bodies are parsed with the same grammar instead of run;
+  values from the caller are read on every call. See
+  doc/source/dataclass/inline_constraints.rst.
+
+### Behavior changes
+- vdc `randomize_with` bodies are parsed by default. A body written for the
+  old operator path can behave differently (`/` is an error; `and`, `not`,
+  `if` now mean what they say; a statement without `it` is an error).
+  `VSC_DC_INLINE_PARSE=0` restores the old path. On that path (also used when
+  a body's source cannot be read), `and`/`or`/`not`/`if` on a constraint
+  expression now raise `TypeError` instead of dropping a constraint.
+- Boolector: `~a` inverts after widening to the expression's width, as
+  SystemVerilog and dv-solve do (`~a == 0xF0` with an 8-bit `a` never holds).
+- dv-solve: an expression with a signed and an unsigned operand is unsigned
+  (SystemVerilog); a signed operand is read as its bit pattern.
+- vdc: a statement-level `and` or comparison chain is split into separate
+  statements (same meaning; lets `1 < len(arr) < 4` bound a random-size array).
+
+### Fixes (classic and vdc)
+- `arr[i]` with a random `i` used `i`'s value from before the solve (fresh
+  objects put the value in `arr[0]`); a random bit-select `a[i]` likewise; an
+  out-of-range pre-solve index raised `IndexError`.
+- `x == r + k` (random `r`, non-random `k`) pinned `x` before the solve; on
+  dv-solve `r` was always 0.
+- Sum and product of a random-size array: built over the size's value before
+  the solve, so `arr.sum == K` failed in ~20% of solves, or (with the size
+  solved together with the elements) gave wrong sums silently.
+- `x in arr` and `arr.sum` over a random-size array were wrong on both
+  back-ends; classic `arr.sum == field` on a random-size array crashed.
+- Boolector reused a destroyed instance's node for `arr.product` on the next
+  randomize.
+- A reused inline constraint block kept the previous solve's array expansion.
+
+### Fixes (vdc)
+- A constant-false constraint statement was dropped; `~` of a class constant
+  was folded as logical not; a docstring in a constraint was an error; an array
+  slice crashed at randomize.
+- A loop name equal to a field name hid the field.
+- `max_size=` on a scalar array was ignored.
+- `randomize_with`: `it.arr[k]` failed.
+- `self.arr[-1]` on a random-size array read the previous solve's last
+  element.
+
 ## 0.9.6
 - (#282) - Enusre that dist weights respect randomized value of rand fields in expressions
 

@@ -42,6 +42,9 @@ G_ROWS = {
 
 _SPEC = os.path.join(os.path.dirname(__file__), "..", "..", "doc", "notes",
                      "vdc_constraint_python_grammar.md")
+_DOC = os.path.join(os.path.dirname(__file__), "..", "..", "doc", "source",
+                    "dataclass", "constraint_grammar.rst")
+_SRC = os.path.join(os.path.dirname(__file__), "..", "..", "src", "vsc", "dc")
 
 
 class TestGrammarIndex(unittest.TestCase):
@@ -61,6 +64,44 @@ class TestGrammarIndex(unittest.TestCase):
         self.assertEqual(sorted(done - tested), [], "rows without a test")
         self.assertEqual(sorted(tested - done), [],
                          "tested rows still marked pending in G_ROWS")
+
+    @unittest.skipUnless(os.path.exists(_DOC), "docs not present")
+    def test_reference_page_lists_every_row(self):
+        # doc/source/dataclass/constraint_grammar.rst names each row's ID
+        # (a run is written "G-86 to G-88").
+        with open(_DOC) as f:
+            text = f.read()
+        ids = {int(g) for g in re.findall(r"\bG-(\d\d)\b", text)}
+        for lo, hi in re.findall(r"\bG-(\d\d) to G-(\d\d)\b", text):
+            ids |= set(range(int(lo), int(hi) + 1))
+        self.assertEqual(sorted(set(G_ROWS) - ids), [],
+                         "rows missing from the reference page")
+
+    @unittest.skipUnless(os.path.exists(_DOC), "docs not present")
+    def test_quoted_messages_exist(self):
+        # Each message the reference page quotes for a rejected construct is
+        # part of a message the parser can raise, so rewording one fails here.
+        with open(_DOC) as f:
+            text = f.read()
+        block = text[text.index(".. rejected-start"):text.index(".. rejected-end")]
+        quoted = []
+        for row in re.split(r"\n   \* - ", block)[1:]:
+            last = row.rstrip().split("\n     - ")[-1]
+            quoted += re.findall(r"``(.+?)``", last, re.S)
+        self.assertGreater(len(quoted), 20)
+        import ast
+        strings = []
+        for mod in ("constraint_parser", "inline_parse", "class_const",
+                    "type_model", "ir_lower"):
+            with open(os.path.join(_SRC, mod + ".py")) as f:
+                tree = ast.parse(f.read())
+            # Implicitly concatenated literals arrive as one constant.
+            strings += [n.value for n in ast.walk(tree)
+                        if isinstance(n, ast.Constant) and isinstance(n.value, str)]
+        for q in quoted:
+            with self.subTest(message=q):
+                self.assertTrue(any(q in t for t in strings),
+                                "%r is not in any parser message" % q)
 
     @unittest.skipUnless(os.path.exists(_SPEC), "spec not present")
     def test_rows_match_spec(self):
