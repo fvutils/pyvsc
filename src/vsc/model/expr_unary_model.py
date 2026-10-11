@@ -22,7 +22,12 @@ class ExprUnaryModel(ExprModel):
         
         
         if self.op == UnaryExprType.Not:
-            ret = btor.Not(self.expr.build(btor, ctx_width))
+            # SV: the operand takes the context width before it is inverted,
+            # so ~a of a u8 'a' compared at 32 bits has its upper bits set.
+            from vsc.model.expr_bin_model import ExprBinModel
+            e = ExprBinModel.extend(self.expr.build(btor, ctx_width),
+                                    ctx_width, self.expr.is_signed(), btor)
+            ret = btor.Not(e)
         
         return ret
     

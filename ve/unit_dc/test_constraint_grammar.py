@@ -289,9 +289,12 @@ class TestConstraintGrammar(GrammarCase):
         self.accept(None, unsat=True, src=src.replace("BODY", "self.p >> 1"))
 
     def test_G19_invert(self):
-        # Masked: unmasked, ~a is taken at the comparison's width, and the
-        # solvers disagree on what that is (spec B8).
+        # ~a is taken at the comparison's width (SV), on both back-ends
+        # (B8): the upper bits of ~a are set, so it never equals 0xF0.
+        # Masking takes it back to the field's width.
+        self.accept("~self.a == 0xF0", unsat=True)
         self.accept("(~self.a & 0xFF) == 0xF0", lambda t: t.a == 0x0F)
+        self.accept("~self.a == -16", lambda t: t.a == 0x0F)
         # On a comparison, ~ is logical not.
         self.accept("~(self.a == 5)", lambda t: t.a != 5,
                     witness=lambda it: it.a == 6)
