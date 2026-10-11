@@ -39,9 +39,17 @@ def _dvsolve_available():
         return False
 
 
+def _boolector_available():
+    # select_backend raises for a back-end that is not installed.
+    try:
+        return select_backend("boolector").available()
+    except Exception:
+        return False
+
+
 def _backends():
     out = []
-    if select_backend("boolector").available():
+    if _boolector_available():
         out.append("boolector")
     if _dvsolve_available():
         out.append("dv-solve")
