@@ -87,6 +87,16 @@ class _ArrayRef:
         return expr_subscript(ExprArraySubscriptModel(
             ExprFieldRefModel(self._m), pop_expr()))
 
+    def to_expr(self):
+        # The whole array, as vdc.foreach(it.arr) and the like take it.
+        return _FieldExpr(ExprFieldRefModel(self._m))
+
+    def __iter__(self):
+        # Without this, Python iterates through __getitem__ and never stops.
+        raise TypeError(
+            "a loop over an array in randomize_with needs the body parsed "
+            "(source available, VSC_DC_INLINE_PARSE on); use vdc.foreach")
+
     @property
     def size(self):
         return expr(ExprFieldRefModel(self._m.size))

@@ -71,3 +71,32 @@ class TestRandomizeWith(DcTestCase):
             with o.randomize_with() as it:
                 it.arr.sum == 100
             self.assertEqual(sum(o.arr), 100)
+
+    def test_array_foreach(self):
+        # vdc.foreach over it.arr takes the whole array.
+        o = _Arrs()
+        for _ in range(20):
+            with o.randomize_with() as it:
+                with vdc.foreach(it.arr, idx=True) as i:
+                    it.arr[i] == i + 3
+            self.assertEqual(list(o.arr), [3, 4, 5, 6, 7])
+
+
+class TestLegacyInline(DcTestCase):
+    """The operator path, used when a body cannot be parsed."""
+
+    def setUp(self):
+        super().setUp()
+        from vsc.dc import inline
+        saved = inline._INLINE_PARSE
+        inline._INLINE_PARSE = False
+        self.addCleanup(setattr, inline, "_INLINE_PARSE", saved)
+
+    def test_loop_over_array_is_an_error(self):
+        # Iterating it.arr is an error, not a loop that never ends (Python
+        # iterates through __getitem__).
+        o = _Arrs()
+        with self.assertRaisesRegex(TypeError, "needs the body parsed"):
+            with o.randomize_with() as it:
+                for x in it.arr:
+                    x < 5
