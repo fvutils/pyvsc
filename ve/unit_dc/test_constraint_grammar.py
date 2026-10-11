@@ -28,7 +28,7 @@ G_ROWS = {
     23: "1.3", 24: "1.2", 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
     37: None, 38: "1.8", 39: "1.7", 40: "1.7", 41: None, 42: None, 43: None,
-    44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: "0.2", 50: "0.6",
+    44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: "0.6",
     51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: "1.5",
     57: "1.10", 58: "1.5", 59: "1.11", 60: "1.11", 61: "1.5", 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: "0.3",
@@ -262,6 +262,14 @@ class TestConstraintGrammar(GrammarCase):
             self.a[0] == 1
             self.a[7] == 0
         """, lambda t: t.a & 1 and not t.a & 0x80)
+        # A random bit index is chosen by the solve (B1).
+        self.accept("""
+            self.a[self.i] == 1
+            self.i == 2
+        """, lambda t: t.i == 2 and (t.a >> 2) & 1)
+        self.accept("self.a[self.i] == 0",
+                    lambda t: not (t.a >> t.i) & 1,
+                    witness=lambda it: (it.i == 3, it.a == 0xF7))
 
     def test_G45_part_select_hi_lo(self):
         self.accept("self.a[7:4] == 0xA", lambda t: t.a >> 4 == 0xA)
@@ -273,9 +281,22 @@ class TestConstraintGrammar(GrammarCase):
     def test_G47_array_constant_index(self):
         self.accept("self.arr[1] == 7", lambda t: t.arr[1] == 7)
 
+    def test_G49_array_symbolic_index(self):
+        # The first solve of a fresh type uses the solved index (B1).
+        self.accept("""
+            self.arr[self.i] == 9
+            self.i == 2
+        """, lambda t: t.i == 2 and t.arr[2] == 9)
+        self.accept("self.arr[self.i] == 9", lambda t: t.arr[t.i] == 9,
+                    witness=lambda it: it.i == 3)
+
     def test_G51_nested_composite(self):
         self.accept("self.sub.x == 4", lambda t: t.sub.x == 4)
         self.accept("self.objs[1].x == 4", lambda t: t.objs[1].x == 4)
+        self.accept("""
+            self.objs[self.i].x == 4
+            self.i == 1
+        """, lambda t: t.i == 1 and t.objs[1].x == 4)
 
     def test_G52_size_sum(self):
         self.accept("self.arr.size == 4", lambda t: len(t.arr) == 4)

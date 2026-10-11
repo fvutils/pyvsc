@@ -35,12 +35,31 @@ class ExprPartselectModel(ExprModel):
         self.lower = lower 
     
     def build(self, btor, ctx_width=-1):
+        shifted = self.symbolic_bit()
+        if shifted is not None:
+            return btor.Slice(shifted.build(btor), 0, 0)
         upper = self.upper
         lower = self.lower if self.lower is not None else self.upper 
         return btor.Slice(
             self.lhs.build(btor),
             upper.val(),
             lower.val()) 
+
+    def symbolic_bit(self):
+        """For ``a[i]`` with a random ``i``, return ``a >> i``, whose bit 0 is
+        the selected bit (``i`` has no value until the solve). Return None
+        for a constant bit or range. A random range bound is an error: the
+        result's width would depend on the solve."""
+        from vsc.visitors.refs_used_rand_visitor import refs_used_rand
+        if not refs_used_rand(self.upper) and (
+                self.lower is None or not refs_used_rand(self.lower)):
+            return None
+        if self.lower is not None:
+            raise Exception(
+                "A part-select's bounds must not depend on a random field")
+        from vsc.model.bin_expr_type import BinExprType
+        from vsc.model.expr_bin_model import ExprBinModel
+        return ExprBinModel(self.lhs, BinExprType.Srl, self.upper)
         
     def width(self):
         upper = self.upper

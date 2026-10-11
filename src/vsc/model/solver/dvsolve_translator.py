@@ -1459,9 +1459,15 @@ class DvSolveExprTranslator(ModelVisitor):
         # itself is lifted to an aux only when its consumer needs a var (e.g. as
         # an operand of arithmetic / a relational). `var == a[hi:lo]` compiles
         # directly without an aux.
-        operand = self.translate(e.lhs, want_var=True)
-        hi = int(e.upper.val())
-        lo = int(e.lower.val()) if e.lower is not None else hi
+        shifted = e.symbolic_bit()
+        if shifted is not None:
+            # a[i] with a random i: bit 0 of a >> i.
+            operand = self.translate(shifted, want_var=True)
+            hi = lo = 0
+        else:
+            operand = self.translate(e.lhs, want_var=True)
+            hi = int(e.upper.val())
+            lo = int(e.lower.val()) if e.lower is not None else hi
         ref = self._b.expr_extract(operand, hi, lo)
         w = hi - lo + 1
         if self._want_var and self._AUX_MIN_W <= w <= self._AUX_MAX_W:

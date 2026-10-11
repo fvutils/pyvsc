@@ -14,6 +14,9 @@ class ExprArraySubscriptModel(ExprModel):
         self.rhs = rhs
         
     def build(self, btor, ctx_width=-1):
+        from vsc.visitors.refs_used_rand_visitor import refs_used_rand
+        if isinstance(self.lhs, ExprFieldRefModel) and refs_used_rand(self.rhs):
+            return self._build_select(btor)
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):
             fm = self.lhs.fm.field_l[index]
@@ -22,6 +25,35 @@ class ExprArraySubscriptModel(ExprModel):
             # TODO: support array slicing
             raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
         
+    def _build_select(self, btor):
+        """``arr[idx]`` with a random ``idx``: the index has no value until the
+        solve, so select symbolically,
+        ``idx == 0 ? arr[0] : idx == 1 ? arr[1] : ... : arr[n-1]``,
+        as the dv-solve back-end does."""
+        elems = self.lhs.fm.field_l
+        if len(elems) == 0:
+            raise Exception("Variable index into the empty array %s" % (
+                self.lhs.fm.name,))
+        idx = self.rhs.build(btor)
+        idx_w = idx.width
+        n = len(elems)
+        if n > (1 << idx_w):
+            n = 1 << idx_w      # the index cannot reach the rest
+        ret = elems[n - 1].build(btor)
+        for i in range(n - 2, -1, -1):
+            ret = btor.Cond(btor.Eq(idx, btor.Const(i, idx_w)),
+                            elems[i].build(btor), ret)
+        return ret
+
+    def _type_index(self):
+        """Index of an element whose type stands for the result's. A random
+        index read before the solve may be out of range; the elements share
+        one type, so element 0 serves."""
+        from vsc.visitors.refs_used_rand_visitor import refs_used_rand
+        if isinstance(self.lhs, ExprFieldRefModel) and refs_used_rand(self.rhs):
+            return 0
+        return int(self.rhs.val())
+
     def subscript(self):
         from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
         index = int(self.rhs.val())
@@ -39,7 +71,7 @@ class ExprArraySubscriptModel(ExprModel):
         
         
     def is_signed(self):
-        index = int(self.rhs.val())
+        index = self._type_index()
         if isinstance(self.lhs, ExprFieldRefModel):
             return self.lhs.fm.field_l[index].is_signed
         else:
@@ -47,7 +79,7 @@ class ExprArraySubscriptModel(ExprModel):
             raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
         
     def width(self):
-        index = int(self.rhs.val())
+        index = self._type_index()
         if isinstance(self.lhs, ExprFieldRefModel):
             return self.lhs.fm.field_l[index].width
         else:

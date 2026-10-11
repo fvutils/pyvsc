@@ -41,6 +41,7 @@ from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
 from vsc.visitors.is_nonrand_expr_visitor import IsNonRandExprVisitor
 from vsc.visitors.model_pretty_printer import ModelPrettyPrinter
 from vsc.visitors.expr2field_visitor import Expr2FieldVisitor
+from vsc.visitors.refs_used_rand_visitor import refs_used_rand
 
 
 # Range-inequality operators whose narrow-field propagators are skippable on the
@@ -54,6 +55,11 @@ _RANGE_OPS = frozenset((
 # feasible fractions). Wider fields (esp. 64-bit) show boundary bias unless given
 # the tightened domain, so their range propagators are always kept.
 _DECLARED_ONLY_NARROW_MAX_WIDTH = 32
+
+
+def _symbolic_subscript(e):
+    """True for ``arr[idx]`` whose index the solver chooses."""
+    return isinstance(e, ExprArraySubscriptModel) and refs_used_rand(e.rhs)
 
 
 class VariableBoundVisitor(ModelVisitor):
@@ -198,6 +204,10 @@ class VariableBoundVisitor(ModelVisitor):
             if not self.process_subscript and (
                 isinstance(e.lhs, ExprArraySubscriptModel) or 
                 isinstance(e.rhs, ExprArraySubscriptModel)):
+                return
+
+            # arr[idx] with a random idx selects no particular element.
+            if _symbolic_subscript(e.lhs) or _symbolic_subscript(e.rhs):
                 return
             
             lhs_fm = Expr2FieldVisitor().field(e.lhs, fail_on_failure=False)
@@ -375,7 +385,7 @@ class VariableBoundVisitor(ModelVisitor):
 
     def visit_expr_in(self, e : ExprInModel):
         if self.phase == 1:
-            if self.depth > 0:
+            if self.depth > 0 or _symbolic_subscript(e.lhs):
                 pass
             else:
                 lhs_fm = Expr2FieldVisitor().field(e.lhs, fail_on_failure=False)
