@@ -35,7 +35,7 @@ fi
 
 # --- build the instrumented lib on demand (Debug build type turns on
 #     -fsanitize=address; see packages/dv-solve/CMakeLists.txt) ---------------
-if [ "${REBUILD:-0}" = "1" ] || [ ! -e "$BUILD/libdv_solve.so" ]; then
+if [ "${REBUILD:-0}" = "1" ] || { [ ! -e "$BUILD/lib/libdv_solve.so" ] && [ ! -e "$BUILD/libdv_solve.so" ]; }; then
     echo ">> building ASAN dv-solve in $BUILD ..."
     mkdir -p "$BUILD"
     ( cd "$BUILD" \
@@ -64,7 +64,7 @@ if [ "${#ARGS[@]}" -eq 0 ]; then
 fi
 
 echo ">> ASan runtime : $ASANLIB"
-echo ">> ASan lib     : $BUILD/libdv_solve.so"
+echo ">> ASan lib     : $(ls "$BUILD"/lib/libdv_solve.so "$BUILD"/libdv_solve.so 2>/dev/null | head -1)"
 echo ">> targets      : ${#ARGS[@]} item(s)"
 
 # ZSP_SOLVER_PATH is a DIRECTORY the loader searches (not a file). Disable
@@ -73,7 +73,14 @@ echo ">> targets      : ${#ARGS[@]} item(s)"
 #   detect_leaks=0            the Python interpreter leaks by design
 #   alloc_dealloc_mismatch=0  Python mixes allocators across the C boundary; this
 #                             is benign here and would otherwise be a false abort
-export ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0:abort_on_error=1:print_stacktrace=1:alloc_dealloc_mismatch=0}"
+#   detect_stack_use_after_return=0
+#                             with it on, ASan moves locals onto a heap "fake
+#                             stack", and dv-solve's stack-exhaustion guard
+#                             (dvs_stack_exhausted, which compares a local's
+#                             address against the stack floor) then sees every
+#                             call as out of stack: dvs_sv_elaborate fails and
+#                             dvs_bbsolver_new returns NULL, with no ASan report
+export ASAN_OPTIONS="${ASAN_OPTIONS:-detect_leaks=0:abort_on_error=1:print_stacktrace=1:alloc_dealloc_mismatch=0:detect_stack_use_after_return=0}"
 cd "$ROOT"
 PYTHONPATH="$ROOT/src${PYTHONPATH:+:$PYTHONPATH}" \
 LD_PRELOAD="$ASANLIB" \
