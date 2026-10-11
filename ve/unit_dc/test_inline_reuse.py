@@ -12,7 +12,7 @@ still yields legal values.
 """
 from enum import IntEnum
 
-from dc_test_case import DcTestCase
+from dc_test_case import DcTestCase, dvsolve_available
 import vsc.dc as vdc
 from vsc.dc import solve_view
 from vsc.impl import ctor
@@ -59,10 +59,9 @@ class TestInlineReuse(DcTestCase):
 
     def setUp(self):
         super().setUp()
-        try:
-            ctor.set_solver_backend("dv-solve")
-        except Exception:
+        if not dvsolve_available():
             self.skipTest("dv-solve back-end not available")
+        ctor.set_solver_backend("dv-solve")
 
     def tearDown(self):
         ctor.set_solver_backend(None)
@@ -148,10 +147,9 @@ class TestInlineRebind(DcTestCase):
 
     def setUp(self):
         super().setUp()
-        try:
-            ctor.set_solver_backend("dv-solve")
-        except Exception:
+        if not dvsolve_available():
             self.skipTest("dv-solve back-end not available")
+        ctor.set_solver_backend("dv-solve")
 
     def tearDown(self):
         ctor.set_solver_backend(None)

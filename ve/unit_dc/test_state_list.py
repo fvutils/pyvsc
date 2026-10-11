@@ -17,7 +17,7 @@ Three defects found while porting riscv-dv pygen to vdc
 """
 from enum import IntEnum
 
-from dc_test_case import DcTestCase
+from dc_test_case import DcTestCase, dvsolve_available
 import vsc.dc as vdc
 from vsc.dc import solve_view
 from vsc.impl import ctor
@@ -121,10 +121,9 @@ class TestStateList(DcTestCase):
     # ---- V6: the plan is kept, and still invalidated by a change ----------- #
     def test_table_keeps_its_plan(self):
         # The plan cache is dv-solve only; pin it rather than skip.
-        try:
-            ctor.set_solver_backend("dv-solve")
-        except Exception:
+        if not dvsolve_available():
             self.skipTest("dv-solve back-end not available")
+        ctor.set_solver_backend("dv-solve")
         try:
             o = Tbl(tbl=[4, 5, 6])
             o.randomize()

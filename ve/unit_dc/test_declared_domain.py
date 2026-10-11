@@ -31,7 +31,7 @@ silent empty draw.
 """
 from enum import IntEnum
 
-from dc_test_case import DcTestCase
+from dc_test_case import DcTestCase, dvsolve_available
 import vsc
 import vsc.dc as vdc
 from vsc.dc.domain import DeclaredDomain, intersect
@@ -44,7 +44,9 @@ def _backends():
     hold identically on both (domains reach Boolector by a different route than
     dv-solve: solve-time membership terms rather than ``bound_m``)."""
     from vsc.model.solver.boolector_backend import BoolectorBackend
-    out = ["dv-solve"]
+    out = []
+    if dvsolve_available():
+        out.append("dv-solve")
     if BoolectorBackend.available():
         out.append("boolector")
     return out

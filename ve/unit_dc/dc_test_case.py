@@ -10,11 +10,23 @@ import unittest
 
 from vsc.impl import ctor
 from vsc.model.solver.boolector_backend import BoolectorBackend
+from vsc.model.solver.dvsolve_backend import DvSolveBackend
 
 # Mirrors ve/unit/vsc_test_case.requires_boolector: for a test whose subject is
 # Boolector itself (an XCHECK oracle, a Boolector reference solve).
 requires_boolector = unittest.skipUnless(
     BoolectorBackend.available(), "needs pyboolector")
+
+
+# For a test that pins dv-solve (its plan cache, T0 equivalence against it). The
+# boolector CI leg does not install dv-solve. Check availability here, not with
+# a try around ctor.set_solver_backend(): that only records the name and never
+# raises, so the failure would surface later, at randomize().
+def dvsolve_available():
+    return DvSolveBackend.available()
+
+
+requires_dvsolve = unittest.skipUnless(dvsolve_available(), "needs dv-solve")
 
 
 def known_gap_without_boolector(fn):

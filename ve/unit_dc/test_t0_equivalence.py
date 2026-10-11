@@ -24,7 +24,7 @@ import vsc.model.randomizer as rnd
 import vsc.model.separability as sep
 from vsc.model.solve_failure import SolveFailure
 
-from dc_test_case import DcTestCase
+from dc_test_case import DcTestCase, requires_dvsolve
 
 
 # ---------------------------------------------------------------------------
@@ -403,6 +403,7 @@ class TestT0Eligibility(DcTestCase):
         self.assertEqual(log[0], (0, 1))
 
 
+@requires_dvsolve
 class TestT0Equivalence(DcTestCase):
     """Values and distributions must not depend on which tier answered.
 
