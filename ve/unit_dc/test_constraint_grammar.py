@@ -27,7 +27,7 @@ G_ROWS = {
     16: None, 17: None, 18: None, 19: None, 20: None, 21: None, 22: None,
     23: None, 24: None, 25: None, 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: None, 34: None, 35: None, 36: None,
-    37: None, 38: "1.8", 39: None, 40: None, 41: None, 42: None, 43: None,
+    37: None, 38: None, 39: None, 40: None, 41: None, 42: None, 43: None,
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
     51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: None,
     57: "1.10", 58: None, 59: "1.11", 60: "1.11", 61: None, 62: None,
@@ -419,6 +419,48 @@ class TestConstraintGrammar(GrammarCase):
                     lambda t: t.a == 1 or 10 <= t.a <= 12)
         self.accept("self.a in [vdc.rng(10, 12)]", lambda t: 10 <= t.a <= 12,
                     witness=lambda it: it.a == 12)
+
+    def test_G38_in_array_field(self):
+        self.accept("self.a in self.arr", lambda t: t.a in t.arr,
+                    witness=lambda it: it.a == 77)
+        self.accept("""
+            self.arr[0] == 5
+            self.arr[1] == 6
+            self.arr[2] == 5
+            self.arr[3] == 6
+            self.a in self.arr
+        """, lambda t: t.a in (5, 6))
+        self.accept("self.a not in self.arr", lambda t: t.a not in t.arr)
+        self.accept("self.a.inside(self.arr)", lambda t: t.a in t.arr)
+        # A non-rand array: membership in its current values.
+        self.accept(None, lambda t: t.a in (4, 9), src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+                vals: list[vdc.u8] = vdc.field(default_factory=lambda: [4, 9])
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.a in self.vals
+        """)
+        # A variable-size array: only the active elements count.
+        self.accept(None, lambda t: 1 <= len(t.arr) and t.a in t.arr, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+                arr: list[vdc.u8] = vdc.rand(max_size=4)
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.arr.size > 0
+                    self.arr.size <= 4
+                    self.a in self.arr
+        """)
+        self.reject("self.a in self.b", "value set must be")
 
     def test_G39_named_constant_collection(self):
         self.accept("self.a in ALLOWED", lambda t: t.a in (1, 3, 5),

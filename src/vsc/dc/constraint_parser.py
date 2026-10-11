@@ -730,6 +730,9 @@ class _Parser:
             items = node.elts
         elif self._const_collection(node) is not None:
             return self._collection_entries(node, self._const_collection(node))
+        elif self._is_array(node):
+            # self.arr: the elements' values, as classic list_t.__contains__.
+            return [IRRange(self._expr(node))]
         elif isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice):
             # vdc.r[lo:hi]
             return [self._slice_range(node.slice)]
