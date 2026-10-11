@@ -319,7 +319,8 @@ class TestConstraintGrammar(GrammarCase):
     def test_G22_and_or(self):
         self.accept("self.a > 3 and self.a < 6", lambda t: 3 < t.a < 6,
                     witness=lambda it: it.a == 5)
-        self.same_model("self.a > 3 and self.a < 6", "(self.a > 3) & (self.a < 6)")
+        # A statement 'and' is its parts as separate statements (plan F2).
+        self.same_model("self.a > 3 and self.a < 6", "self.a > 3\nself.a < 6")
         self.accept("self.a == 1 or self.a == 7", lambda t: t.a in (1, 7),
                     witness=lambda it: it.a == 7)
         self.accept("self.a > 1 and self.a < 9 and self.a != 5",
@@ -411,6 +412,20 @@ class TestConstraintGrammar(GrammarCase):
         self.accept("1 < self.a < 5", lambda t: 1 < t.a < 5,
                     witness=lambda it: it.a == 4)
         self.accept("self.a == self.b == self.c", lambda t: t.a == t.b == t.c)
+        # Statement-level parts are separate statements (plan F2), so a chain
+        # bounds a random-size array's size as two statements would.
+        self.accept(None, lambda t: 1 < len(t.arr) < 4, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                arr: list[vdc.u8] = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    1 < len(self.arr) < 4
+                    self.arr.size > 0 and self.arr.size != 3
+        """)
 
     def test_G28_in_inside_chain(self):
         # Python: 0 < a in S is (0 < a) and (a in S).
@@ -418,7 +433,9 @@ class TestConstraintGrammar(GrammarCase):
                     witness=lambda it: it.a == 9)
         self.accept("self.b < self.a not in range(0, 200)",
                     lambda t: t.b < t.a and t.a >= 200)
-        self.same_model("1 < self.a in {3, 5}", "(1 < self.a) & (self.a in {3, 5})")
+        self.same_model("1 < self.a in {3, 5}", "1 < self.a\nself.a in {3, 5}")
+        self.same_model("self.flag == (1 < self.a in {3, 5})",
+                        "self.flag == ((1 < self.a) & (self.a in {3, 5}))")
         # The set is also the left side of a later comparison, as in Python
         # (a in S == b is (a in S) and (S == b)), and a set is not a value.
         self.reject("self.a in [1, 2] < 3", "unsupported expression List")

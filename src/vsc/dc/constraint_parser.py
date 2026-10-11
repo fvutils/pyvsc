@@ -325,6 +325,30 @@ class _Parser:
                   % type(stmt).__name__)
 
     def _parse_expr_stmt(self, value):
+        # A statement 'a and b' or 'lo < x < hi' is several statements: the
+        # same meaning, and each part is seen on its own (a size bound in
+        # '1 < len(self.arr) < 4' then bounds the array).
+        if isinstance(value, ast.BoolOp) and isinstance(value.op, ast.And):
+            # Each part keeps its meaning as an operand ('self.ON' is a class
+            # constant here, not a generic-constraint reference).
+            out = []
+            for v in value.values:
+                if (isinstance(v, ast.BoolOp) and isinstance(v.op, ast.And)
+                        or isinstance(v, ast.Compare) and len(v.ops) > 1):
+                    out.extend(self._parse_expr_stmt(v))
+                else:
+                    out.append(IRConstraintExpr(_bool(self._expr(v))))
+            return out
+        if isinstance(value, ast.Compare) and len(value.ops) > 1:
+            self._check_chain_operands(value)
+            out = []
+            left = value.left
+            for op, right in zip(value.ops, value.comparators):
+                part = ast.copy_location(
+                    ast.Compare(left=left, ops=[op], comparators=[right]), value)
+                out.append(IRConstraintExpr(self._compare(part)))
+                left = right
+            return out
         # Statement-level helper calls: soft(...)/unique(...).
         if isinstance(value, ast.Call) and isinstance(value.func, ast.Attribute):
             attr = value.func.attr
