@@ -34,7 +34,10 @@ from vsc.model.expr_partselect_model import ExprPartselectModel
 from vsc.model.randomizer import Randomizer, _plan_set
 from vsc.model.solve_failure import SolveFailure
 from vsc.model.source_info import SourceInfo
-from vsc.types import expr, to_expr
+from vsc.model.expr_array_product_model import ExprArrayProductModel
+from vsc.model.expr_array_sum_model import ExprArraySumModel
+from vsc.model.field_array_model import FieldArrayModel
+from vsc.types import expr, expr_subscript, to_expr
 
 from . import class_const, cyclic, inline_parse, ir_lower, solve_view
 from .constraint_ir import IRConst, IRModelLiteral
@@ -66,6 +69,37 @@ class _FieldExpr(expr):
         return expr(ExprPartselectModel(base_e, idx))
 
 
+class _ArrayRef:
+    """``it.<array>`` inside a legacy ``randomize_with`` body: ``[k]`` is an
+    element (constant or symbolic index), and ``.size``, ``.sum`` and
+    ``.product`` are the array's. It is not an ``expr`` itself, so it pushes
+    nothing onto the expression stack until one of those is used."""
+
+    __slots__ = ("_m",)
+
+    def __init__(self, model):
+        self._m = model
+
+    def __getitem__(self, k):
+        if isinstance(k, slice):
+            raise TypeError("array slices are not supported in constraints")
+        to_expr(k)
+        return expr_subscript(ExprArraySubscriptModel(
+            ExprFieldRefModel(self._m), pop_expr()))
+
+    @property
+    def size(self):
+        return expr(ExprFieldRefModel(self._m.size))
+
+    @property
+    def sum(self):
+        return expr(ExprArraySumModel(self._m))
+
+    @property
+    def product(self):
+        return expr(ExprArrayProductModel(self._m))
+
+
 class _InlineProxy:
     """The ``it`` handle. Dual-mode, mirroring the classic front-end where ``it``
     is the object itself: inside the ``with`` block (expr mode) ``it.<field>``
@@ -94,6 +128,8 @@ class _InlineProxy:
             raise AttributeError(
                 "no rand field %r to constrain in randomize_with" % name)
         if is_expr_mode():
+            if isinstance(model, FieldArrayModel):
+                return _ArrayRef(model)
             return _FieldExpr(ExprFieldRefModel(model))
         # Outside the with-block: behave like the object (return the value).
         return getattr(object.__getattribute__(self, "_obj"), name)
