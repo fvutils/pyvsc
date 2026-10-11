@@ -267,6 +267,9 @@ class _Folder:
             inner = bound | {n for n in (s.idx_name, s.it_name) if n is not None}
             out.append(ir.IRForeach(s.array, s.idx_name, s.it_name,
                                     self.stmts(s.body, inner)))
+        elif isinstance(s, ir.IRHostFor):
+            out.append(ir.IRHostFor(s.names, s.slot,
+                                    self.stmts(s.body, bound | set(s.names))))
         elif isinstance(s, ir.IRConstraintRef):
             out.append(self._ref(s, bound))
         else:

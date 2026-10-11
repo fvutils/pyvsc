@@ -118,6 +118,21 @@ class IRClassConst(IRNode):
         return "IRClassConst(%r%s)" % (self.name, ", set" if self.as_set else "")
 
 
+class IRHost(IRNode):
+    """A ``randomize_with`` host expression: Python the caller evaluates per
+    call (``base + 4``, ``self.allowed``). ``slot`` indexes the per-call value
+    tuple; ``kind`` is "value" (an int), "set" (a collection, on the right of
+    ``in``) or "iter" (the iterable of a ``for``)."""
+    __slots__ = ("slot", "kind")
+
+    def __init__(self, slot, kind="value"):
+        self.slot = slot
+        self.kind = kind
+
+    def __repr__(self):
+        return "IRHost(%d, %s)" % (self.slot, self.kind)
+
+
 class IRRange(IRNode):
     """A single entry in an inside/rangelist: a point (hi is None) or [lo,hi]."""
     __slots__ = ("lo", "hi")
@@ -342,6 +357,18 @@ class IRForeach(IRNode):
         self.idx_name = idx_name
         self.it_name = it_name
         self.body = body          # list of statements
+
+
+class IRHostFor(IRNode):
+    """A ``randomize_with`` ``for`` over a host iterable (``for i in range(n)``):
+    the body once per value, ``names`` bound to it as constants. Unrolled at
+    lowering, since the values are known only per call."""
+    __slots__ = ("names", "slot", "body")
+
+    def __init__(self, names, slot, body):
+        self.names = names        # tuple of loop names
+        self.slot = slot          # IRHost slot of the iterable
+        self.body = body
 
 
 # --- Program ----------------------------------------------------------------

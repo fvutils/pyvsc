@@ -53,8 +53,9 @@ _BIN = {
 class Ctx:
     """Name-resolution context for lowering one constraint program."""
 
-    def __init__(self, field_models, generics=None):
+    def __init__(self, field_models, generics=None, host=()):
         self.fields = field_models           # name -> FieldModel
+        self.host = host                      # randomize_with host values
         self.locals = {}                      # name -> callable() -> ExprModel
         self.model_locals = {}               # name -> FieldModel (composite elem)
         self.const_locals = {}               # name -> int (unrolled foreach index)
@@ -65,7 +66,7 @@ class Ctx:
         return self.fields.get(name)
 
     def _child(self):
-        c = Ctx(self.fields, self.generics)
+        c = Ctx(self.fields, self.generics, self.host)
         c.locals = dict(self.locals)
         c.model_locals = dict(self.model_locals)
         c.const_locals = dict(self.const_locals)
@@ -102,11 +103,12 @@ class Ctx:
         return c
 
 
-def lower_program(prog, field_models, generics=None):
+def lower_program(prog, field_models, generics=None, host=()):
     """Build a fresh :class:`ConstraintBlockModel` from ``prog`` binding fields
     via ``field_models`` (name -> model). ``generics`` is the type's generic/value
-    constraint registry, used to resolve ``IRConstraintRef`` references."""
-    ctx = Ctx(field_models, generics)
+    constraint registry, used to resolve ``IRConstraintRef`` references. ``host``
+    holds a ``randomize_with`` body's host values (see :class:`ir.IRHost`)."""
+    ctx = Ctx(field_models, generics, host)
     block = ConstraintBlockModel(prog.name)
     for stmt in prog.stmts:
         block.constraint_l.append(_stmt(stmt, ctx))
@@ -210,7 +212,21 @@ def _stmt(node, ctx):
         return _foreach(node, ctx)
     if isinstance(node, ir.IRDist):
         return _dist(node, ctx)
+    if isinstance(node, ir.IRHostFor):
+        return _host_for(node, ctx)
     raise NotImplementedError("lower statement %r" % type(node).__name__)
+
+
+def _host_for(node, ctx):
+    """A ``for`` over a host iterable: the body once per value."""
+    scope = ConstraintScopeModel()
+    for v in ctx.host[node.slot]:
+        child = ctx
+        for name, x in zip(node.names, v if len(node.names) > 1 else (v,)):
+            child = child.with_const_local(name, x)
+        for s in node.body:
+            scope.constraint_l.append(_stmt(s, child))
+    return scope
 
 
 def _dist(node, ctx):
@@ -346,6 +362,8 @@ def _expr(node, ctx):
     if isinstance(node, ir.IRConst):
         # Match vsc.types.to_expr: int literals are signed, width 32.
         return ExprLiteralModel(node.value, True, 32)
+    if isinstance(node, ir.IRHost):
+        return ExprLiteralModel(ctx.host[node.slot], True, 32)
     if isinstance(node, ir.IRBin):
         return ExprBinModel(_expr(node.lhs, ctx), _BIN[node.op], _expr(node.rhs, ctx))
     if isinstance(node, ir.IRUnary):
@@ -599,13 +617,33 @@ def _inside(node, ctx):
     lhs = _expr(node.lhs, ctx)
     rl = ExprRangelistModel()
     for r in node.ranges:
+        if isinstance(r.lo, ir.IRHost) and r.lo.kind == "set":
+            _add_host_set(rl, ctx.host[r.lo.slot])
+            continue
         # r.lo / r.hi are IR expr nodes (IRConst for literals, IRField for rand
         # endpoints, IRBin for arithmetic) — lower each so variable ranges work.
         if r.hi is None:
             rl.add_range(_expr(r.lo, ctx))
         else:
             rl.add_range(ExprRangeModel(_expr(r.lo, ctx), _expr(r.hi, ctx)))
+    if not rl.rl:
+        # Only empty host sets: nothing is a member. (An ExprInModel with no
+        # entries reads as true.)
+        return ExprLiteralModel(int(bool(node.negate)), False, 1)
     e = ExprInModel(lhs, rl)
     if node.negate:
         return ExprUnaryModel(UnaryExprType.Not, e)
     return e
+
+
+def _add_host_set(rl, values):
+    """Add a host collection's values to ``rl``: a range of step 1 as one
+    range, anything else value by value."""
+    if isinstance(values, range) and values.step == 1:
+        if len(values):
+            rl.add_range(ExprRangeModel(
+                ExprLiteralModel(values.start, True, 32),
+                ExprLiteralModel(values.stop - 1, True, 32)))
+        return
+    for v in values:
+        rl.add_range(ExprLiteralModel(v, True, 32))

@@ -10,8 +10,13 @@ body from the caller's frame (``locate``); see
 cannot be read.
 """
 import ast
+import copy
 import dis
+import enum
 import linecache
+
+from .constraint_ir import ConstraintProgram, IRHost, IRHostFor, IRRange
+from .constraint_parser import _Parser
 
 # Opcodes that call __enter__ for a ``with`` item.
 _WITH_OPS = frozenset(("BEFORE_WITH", "SETUP_WITH"))
@@ -101,3 +106,284 @@ def _with_instrs(code):
         if ins.opname in _WITH_OPS:
             out.append((ins.offset, line))
     return out
+
+
+# -- host expressions ---------------------------------------------------------
+
+#: Prefix of the placeholder name that stands for host expression k.
+_HOST = "__vdc_host_"
+
+#: vdc helpers: never evaluated as Python, only their arguments may be.
+_HELPERS = frozenset(("rangelist", "rng", "weight", "soft", "dist", "unique",
+                      "solve_order", "if_then", "else_if", "else_then",
+                      "implies", "foreach"))
+
+# Nodes of a literal: an expression the parser reads without a name lookup.
+_LITERAL_NODES = (ast.Constant, ast.UnaryOp, ast.BinOp, ast.Tuple, ast.List,
+                  ast.Set, ast.expr_context, ast.operator, ast.unaryop)
+
+_COMPREHENSIONS = (ast.GeneratorExp, ast.ListComp, ast.SetComp, ast.DictComp,
+                   ast.Lambda)
+
+
+def _callee(node):
+    f = node.func if isinstance(node, ast.Call) else node
+    if isinstance(f, ast.Attribute):
+        return f.attr
+    if isinstance(f, ast.Name):
+        return f.id
+    return None
+
+
+def _names_of(target):
+    if isinstance(target, ast.Name):
+        return {target.id}
+    if isinstance(target, (ast.Tuple, ast.List)):
+        out = set()
+        for e in target.elts:
+            out |= _names_of(e)
+        return out
+    return set()
+
+
+class _Hosts:
+    """Replaces each maximal sub-expression of a body that names neither the
+    ``as`` target nor a loop name by a placeholder name, and keeps the
+    original: those are the host expressions, evaluated by Python per call."""
+
+    def __init__(self):
+        self.nodes = []
+
+    def stmts(self, body, bound):
+        return [self.stmt(s, bound) for s in body]
+
+    def stmt(self, s, bound):
+        if isinstance(s, ast.Expr):
+            s.value = self.expr(s.value, bound)
+        elif isinstance(s, ast.If):
+            s.test = self.expr(s.test, bound)
+            s.body = self.stmts(s.body, bound)
+            s.orelse = self.stmts(s.orelse, bound)
+        elif isinstance(s, ast.For):
+            s.iter = self.expr(s.iter, bound)
+            s.body = self.stmts(s.body, bound | _names_of(s.target))
+            s.orelse = self.stmts(s.orelse, bound)
+        elif isinstance(s, ast.With):
+            inner = set(bound)
+            for item in s.items:
+                item.context_expr = self.expr(item.context_expr, bound)
+                if item.optional_vars is not None:
+                    inner |= _names_of(item.optional_vars)
+            s.body = self.stmts(s.body, frozenset(inner))
+        elif isinstance(s, getattr(ast, "Match", ())):
+            s.subject = self.expr(s.subject, bound)
+            for case in s.cases:
+                case.body = self.stmts(case.body, bound)
+        return s
+
+    def expr(self, e, bound):
+        if self._hostable(e, bound):
+            k = len(self.nodes)
+            self.nodes.append(e)
+            return ast.copy_location(ast.Name(id=_HOST + str(k), ctx=ast.Load()), e)
+        if isinstance(e, ast.Call):
+            e.args = [self.expr(a, bound) for a in e.args]
+            for kw in e.keywords:
+                kw.value = self.expr(kw.value, bound)
+            return e
+        if isinstance(e, (ast.GeneratorExp, ast.ListComp, ast.SetComp)):
+            inner = set(bound)
+            for i, g in enumerate(e.generators):
+                g.iter = self.expr(g.iter, frozenset(inner) if i else bound)
+                inner |= _names_of(g.target)
+                g.ifs = [self.expr(c, frozenset(inner)) for c in g.ifs]
+            e.elt = self.expr(e.elt, frozenset(inner))
+            return e
+        if isinstance(e, ast.Subscript) and _callee(e.value) == "r":
+            e.slice = self.expr(e.slice, bound)     # vdc.r[lo:hi]
+            return e
+        for field, value in ast.iter_fields(e):
+            if isinstance(value, ast.expr):
+                setattr(e, field, self.expr(value, bound))
+            elif isinstance(value, list):
+                setattr(e, field, [self.expr(v, bound) if isinstance(v, ast.expr)
+                                   else v for v in value])
+        return e
+
+    @staticmethod
+    def _hostable(e, bound):
+        if not isinstance(e, ast.expr) or isinstance(e, (ast.Starred, ast.Slice)):
+            return False
+        nodes = list(ast.walk(e))
+        if all(isinstance(n, _LITERAL_NODES) for n in nodes):
+            return False                    # a literal: the parser reads it
+        for n in nodes:
+            if isinstance(n, ast.Name) and n.id in bound:
+                return False
+            if isinstance(n, ast.Call) and _callee(n) in _HELPERS:
+                return False
+            if isinstance(n, ast.Subscript) and _callee(n.value) == "r":
+                return False
+        return True
+
+
+def extract_hosts(body, it_name):
+    """``(body, hosts)``: a copy of the statements ``body`` with each host
+    expression replaced by a placeholder, and the host expressions in slot
+    order."""
+    h = _Hosts()
+    out = h.stmts(copy.deepcopy(body), frozenset((it_name,)))
+    return out, h.nodes
+
+
+# -- parsing a body -----------------------------------------------------------
+
+
+class _HostRef:
+    """A host expression used as a collection (``in``) or an iterable
+    (``for``)."""
+    __slots__ = ("slot",)
+
+    def __init__(self, slot):
+        self.slot = slot
+
+
+class _InlineParser(_Parser):
+    """The constraint parser, reading placeholders as host expressions."""
+
+    def __init__(self, it_name, names, filename, lines, arrays, fields):
+        _Parser.__init__(self, "randomize_with", it_name, None)
+        self._names = names
+        self.filename = filename
+        self.lineno0 = 1                # node line numbers are the file's
+        self._src_lines = [l.rstrip("\n") for l in lines]
+        self._arrays = arrays
+        self._fields = fields
+        self.kinds = {}
+
+    @staticmethod
+    def _slot(node):
+        if isinstance(node, ast.Name) and node.id.startswith(_HOST):
+            return int(node.id[len(_HOST):])
+        return None
+
+    def _expr(self, node):
+        k = self._slot(node)
+        if k is not None:
+            self.kinds[k] = "value"
+            return IRHost(k)
+        return _Parser._expr(self, node)
+
+    def _const_collection(self, node):
+        k = self._slot(node)
+        if k is not None:
+            return _HostRef(k)
+        return _Parser._const_collection(self, node)
+
+    def _collection_entries(self, node, coll):
+        if isinstance(coll, _HostRef):
+            self.kinds[coll.slot] = "set"
+            return [IRRange(IRHost(coll.slot, "set"))]
+        return _Parser._collection_entries(self, node, coll)
+
+    def _const_iterable(self, it):
+        k = self._slot(it)
+        if k is not None:
+            return _HostRef(k)
+        return _Parser._const_iterable(self, it)
+
+    def _unroll(self, stmt, values):
+        if not isinstance(values, _HostRef):
+            return _Parser._unroll(self, stmt, values)
+        tgt = stmt.target
+        if isinstance(tgt, ast.Name):
+            names = (tgt.id,)
+        elif (isinstance(tgt, ast.Tuple)
+                and all(isinstance(e, ast.Name) for e in tgt.elts)):
+            names = tuple(e.id for e in tgt.elts)
+        else:
+            self._err(stmt, "a constant 'for' binds a name or a tuple of names")
+        self.kinds[values.slot] = "iter"
+        saved = set(self._bound)
+        self._bound.update(names)
+        try:
+            body = self.parse_body(stmt.body)
+        finally:
+            self._bound = saved
+        return IRHostFor(names, values.slot, body)
+
+
+class Site:
+    """One ``randomize_with`` call site, parsed for one class."""
+    __slots__ = ("prog", "code", "kinds", "srcs", "merge_globals", "filename",
+                 "folded")
+
+    def __init__(self, prog, code, kinds, srcs, merge_globals, filename):
+        self.prog = prog
+        self.code = code                # evaluates the host tuple
+        self.kinds = kinds              # per slot: value / set / iter
+        self.srcs = srcs                # per slot: (source text, line)
+        self.merge_globals = merge_globals
+        self.filename = filename
+        self.folded = None
+
+    def values(self, frame):
+        """The host values for this call, checked and converted."""
+        if not self.kinds:
+            return ()
+        if self.merge_globals:
+            # A comprehension or lambda in a host expression is a nested
+            # scope, which reads the caller's locals only as globals.
+            g = dict(frame.f_globals)
+            g.update(frame.f_locals)
+            raw = eval(self.code, g)
+        else:
+            raw = eval(self.code, frame.f_globals, frame.f_locals)
+        return tuple(self._convert(k, v) for k, v in enumerate(raw))
+
+    def _convert(self, k, v):
+        kind = self.kinds[k]
+        if kind == "value":
+            return self._int(k, v)
+        if kind == "set":
+            if isinstance(v, range) and v.step == 1:
+                return v
+            if not isinstance(v, (list, tuple, set, frozenset, range)):
+                self._bad(k, v, "a list, tuple, set, frozenset or range")
+            return tuple(self._int(k, e) for e in v)
+        out = []
+        for e in v:
+            out.append(tuple(self._int(k, x) for x in e)
+                       if isinstance(e, tuple) else self._int(k, e))
+        return out
+
+    def _int(self, k, v):
+        if isinstance(v, bool):
+            return int(v)
+        if isinstance(v, int):
+            return v
+        if isinstance(v, enum.Enum):
+            from vsc.impl.enum_info import EnumInfo
+            return EnumInfo.get(type(v)).e2v(v)
+        self._bad(k, v, "an int, bool or enum")
+
+    def _bad(self, k, v, want):
+        src, line = self.srcs[k]
+        raise TypeError("randomize_with (%s:%d): '%s' is %s, not %s"
+                        % (self.filename, line, src, type(v).__name__, want))
+
+
+def compile_site(loc, frame, arrays, fields):
+    """Parse ``loc``'s body for a class with these array and field names."""
+    body, hosts = extract_hosts(loc.node.body, loc.it_name)
+    names = dict(frame.f_globals)
+    names.update(frame.f_locals)
+    lines = linecache.getlines(loc.filename, frame.f_globals)
+    p = _InlineParser(loc.it_name, names, loc.filename, lines, arrays, fields)
+    prog = ConstraintProgram("randomize_with", p.parse_body(body))
+    code = compile(ast.fix_missing_locations(ast.Expression(
+        ast.Tuple(elts=hosts, ctx=ast.Load()))), loc.filename, "eval")
+    kinds = [p.kinds.get(k, "value") for k in range(len(hosts))]
+    srcs = [(ast.unparse(h), h.lineno) for h in hosts]
+    merge = any(isinstance(n, _COMPREHENSIONS) for h in hosts for n in ast.walk(h))
+    return Site(prog, code, kinds, srcs, merge, loc.filename)

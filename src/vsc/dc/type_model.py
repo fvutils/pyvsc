@@ -312,7 +312,7 @@ def _walk_refs(stmts):
             for t in s.terms:
                 for r in _refs_in_expr(t):
                     yield (r, "expr")
-        elif isinstance(s, _ir.IRForeach):
+        elif isinstance(s, (_ir.IRForeach, _ir.IRHostFor)):
             yield from _walk_refs(s.body)
         elif isinstance(s, _ir.IRDist):
             for r in _refs_in_expr(s.lhs):
