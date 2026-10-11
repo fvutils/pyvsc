@@ -1240,7 +1240,12 @@ class DvSolveExprTranslator(ModelVisitor):
             raise BackendIncomplete(
                 "dv-solve: aggregate over a co-solved random-sized array "
                 "(size-guarded prefix not yet supported)", reason_code="array")
-        return int(arr.size.get_val())
+        n = int(arr.size.get_val())
+        if getattr(arr, "is_rand_sz", False):
+            # Baked into the problem like a non-rand field's value: a cached
+            # plan must not be reused once the size is solved differently.
+            self.const_fields[arr.size] = n
+        return n
 
     def visit_expr_array_sum(self, e):
         # arr.sum -> a result aux constrained `result == Σ elem[i]` via the native

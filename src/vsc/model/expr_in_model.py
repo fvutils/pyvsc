@@ -50,11 +50,28 @@ class ExprInModel(ExprModel):
             elif isinstance(r, ExprFieldRefModel):
                 if isinstance(r.fm, FieldArrayModel):
                     # Need to build out for each element
-                    # TODO: must handle case where size is random
                     arr : FieldArrayModel = r.fm
                     
                     if arr.is_rand_sz:
-                        pass
+                        # field_l holds the elements up to the maximum size;
+                        # only the first `size` are members. When the size is
+                        # already solved it's a constant here, and Boolector
+                        # folds the guard away.
+                        for i in range(len(arr.field_l)):
+                            t = ExprBinModel(
+                                ExprBinModel(
+                                    ExprFieldRefModel(arr.size),
+                                    BinExprType.Gt,
+                                    ExprLiteralModel(i, False, 32)),
+                                BinExprType.And,
+                                ExprBinModel(
+                                    self.lhs,
+                                    BinExprType.Eq,
+                                    ExprFieldRefModel(arr.field_l[i])))
+                            if expr is None:
+                                expr = t
+                            else:
+                                expr = ExprBinModel(expr, BinExprType.Or, t)
                     else:
                         for i in range(int(arr.size.get_val())):
                             t = ExprBinModel(
