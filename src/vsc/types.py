@@ -66,10 +66,22 @@ def signed(v, w=-1):
         w = 32
     return expr(ExprLiteralModel(v, True, w))
 
+#: Called with the expression when an ``expr`` is tested for truth (``and``,
+#: ``or``, ``not``, ``if``), or None. The vdc front-end sets it while it runs
+#: a randomize_with body on the operator path, where such a test silently
+#: drops a constraint.
+truth_hook = None
+
+
 class expr(object):
     def __init__(self, em):
         push_expr(em)
         self.em = em
+
+    def __bool__(self):
+        if truth_hook is not None:
+            truth_hook(self)
+        return True
         
     def bin_expr(self, op, rhs):
         to_expr(rhs)
@@ -338,6 +350,15 @@ class dynamic_constraint_proxy(object):
     def __call__(self):
         return expr(self.em)
     
+class _in_expr(expr):
+    """The result of ``x in <rangelist or list>``. Python tests the result of
+    ``__contains__`` for truth, so this test is how ``in`` works at all on
+    the operator path (the constraint is already recorded)."""
+
+    def __bool__(self):
+        return True
+
+
 class expr_subscript(expr):
     def __init__(self, em):
         super().__init__(em)
@@ -472,7 +493,7 @@ class rangelist(object):
                 
     def __contains__(self, lhs):
         lhs_model = _safe_to_expr_model(lhs)
-        return expr(ExprInModel(lhs_model, self.range_l))
+        return _in_expr(ExprInModel(lhs_model, self.range_l))
     
     def __invert__(self):
         print("rangelist.__invert__")
@@ -1267,7 +1288,7 @@ class list_t(object):
     def __contains__(self, lhs):
         if get_expr_mode():
             to_expr(lhs)
-            return expr(ExprInModel(
+            return _in_expr(ExprInModel(
                 pop_expr(), 
                 ExprRangelistModel(
                     [ExprFieldRefModel(self.get_model())])))

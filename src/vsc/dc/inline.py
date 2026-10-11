@@ -38,6 +38,7 @@ from vsc.model.source_info import SourceInfo
 from vsc.model.expr_array_product_model import ExprArrayProductModel
 from vsc.model.expr_array_sum_model import ExprArraySumModel
 from vsc.model.field_array_model import FieldArrayModel
+import vsc.types as vsc_types
 from vsc.types import expr, expr_subscript, to_expr
 
 from . import class_const, cyclic, inline_parse, ir_lower, solve_view
@@ -190,6 +191,15 @@ class _GenericInlineRef:
             % (self._name, type(v).__name__))
 
 
+def _truth_test(e):
+    """``vsc.types.truth_hook`` while a body runs on the operator path."""
+    raise TypeError(
+        "a constraint expression was tested for truth ('and', 'or', 'not', "
+        "'if', ...) in a randomize_with body that is not parsed: its source "
+        "is not available, or VSC_DC_INLINE_PARSE=0. Use '&', '|', '~' and "
+        "vdc.if_then there, or make the source available")
+
+
 class _NoSig(Exception):
     """The block holds a node `_sig` does not know, so it is never reused."""
 
@@ -324,6 +334,8 @@ class RandomizeWith:
                     return _InlineProxy(self._obj, self._field_models)
         enter_expr_mode()
         push_constraint_scope(ConstraintBlockModel("inline"))
+        self._saved_hook = vsc_types.truth_hook
+        vsc_types.truth_hook = _truth_test
         return _InlineProxy(self._obj, self._field_models)
 
     def __exit__(self, t, v, tb):
@@ -337,6 +349,7 @@ class RandomizeWith:
                                   self._tm, site, values, frame)
             self._solve(frame, block)
             return True             # suppress SkipBody
+        vsc_types.truth_hook = self._saved_hook
         block = pop_constraint_scope()
         leave_expr_mode()
         if t is not None:

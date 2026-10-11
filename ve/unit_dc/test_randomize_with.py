@@ -100,3 +100,40 @@ class TestLegacyInline(DcTestCase):
             with o.randomize_with() as it:
                 for x in it.arr:
                     x < 5
+
+    def test_truth_test_is_an_error(self):
+        # 'and', 'or', 'not' and 'if' test an expression for truth, which
+        # silently loses a constraint on this path (plan 3.8).
+        import vsc.types
+        o = _Arrs()
+        for name, body in (
+                ("and", lambda it: it.i > 3 and it.i < 6),
+                ("or", lambda it: it.i < 3 or it.i > 6),
+                ("not", lambda it: not (it.i == 5)),
+                ("if", lambda it: 1 if it.i > 3 else 0)):
+            with self.subTest(op=name):
+                with self.assertRaisesRegex(TypeError, "tested for truth"):
+                    with o.randomize_with() as it:
+                        body(it)
+                self.assertIsNone(vsc.types.truth_hook)
+        # '&' and 'in' a rangelist still work.
+        for _ in range(10):
+            with o.randomize_with() as it:
+                (it.i > 3) & (it.i < 6)
+                it.arr[0] in vdc.rangelist(7, 9)
+            self.assertTrue(3 < o.i < 6)
+            self.assertIn(o.arr[0], (7, 9))
+
+    def test_body_without_source(self):
+        # exec'd code has no source to parse, so it runs on this path even
+        # with parsing on; a truth test there is reported, not ignored.
+        from vsc.dc import inline
+        inline._INLINE_PARSE = True
+        o = _Arrs()
+        ns = {"o": o}
+        exec("with o.randomize_with() as it:\n"
+             "    it.i == 4\n", ns)
+        self.assertEqual(o.i, 4)
+        with self.assertRaisesRegex(TypeError, "tested for truth"):
+            exec("with o.randomize_with() as it:\n"
+                 "    it.i > 3 and it.i < 6\n", ns)
