@@ -84,6 +84,20 @@ def fold_program(prog, lookup):
                                 param_defaults=prog.param_defaults)
 
 
+def fold_host_values(prog, values):
+    """``prog`` (a parsed ``randomize_with`` body) with each host value
+    (``IRHost`` of kind "value") replaced by its value for this call, and the
+    if/else, implies and comparisons that decides folded. Host sets and
+    iterables are left for lowering."""
+    f = _HostFolder(values, prog.name)
+    stmts = f.stmts(prog.stmts, frozenset())
+    if not f.hit:
+        return prog
+    return ir.ConstraintProgram(prog.name, stmts, kind=prog.kind,
+                                params=prog.params, ret=prog.ret,
+                                param_defaults=prog.param_defaults)
+
+
 # Folded only when both operands are constants. Comparisons give 0/1, as the
 # solver does. Arithmetic is folded only where 32-bit signed literals and
 # Python ints agree (see _Folder._bin).
@@ -274,3 +288,24 @@ class _Folder:
             out.append(self._ref(s, bound))
         else:
             out.append(s)           # IRSolveOrder: field references only
+
+
+class _HostFolder(_Folder):
+    """Folds a parsed ``randomize_with`` body's host values."""
+
+    def __init__(self, values, cname):
+        _Folder.__init__(self, _no_constant, cname)
+        self.values = values
+
+    def expr(self, n, bound):
+        if isinstance(n, ir.IRHost) and n.kind == "value":
+            self.hit = True
+            return ir.IRConst(self.values[n.slot])
+        return _Folder.expr(self, n, bound)
+
+
+def _no_constant(name):
+    return None
+
+
+_no_constant.collection = _no_constant

@@ -36,13 +36,17 @@ from vsc.model.solve_failure import SolveFailure
 from vsc.model.source_info import SourceInfo
 from vsc.types import expr, to_expr
 
-from . import cyclic, ir_lower, solve_view
+from . import class_const, cyclic, inline_parse, ir_lower, solve_view
 from .constraint_ir import IRConst, IRModelLiteral
 
 # Reuse an unchanged inline block across calls from one call site, so the
 # randomizer's plan cache applies to randomize_with (V7). VSC_DC_INLINE_REUSE=0
 # turns it off.
 _INLINE_REUSE = os.environ.get("VSC_DC_INLINE_REUSE", "1") != "0"
+
+# Parse a randomize_with body with the @vdc.constraint grammar instead of
+# executing it (inline_parse). VSC_DC_INLINE_PARSE=1 turns it on.
+_INLINE_PARSE = os.environ.get("VSC_DC_INLINE_PARSE", "0") != "0"
 
 
 class _FieldExpr(expr):
@@ -254,11 +258,31 @@ class RandomizeWith:
         # block is passed separately per call and not cached on the type.
         self._composite, self._field_models = solve_view.get_solve_model(
             self._obj, self._tm)
+        self._parsed = None
+        if _INLINE_PARSE:
+            frame = sys._getframe(1)
+            site = _parsed_site(frame, self._obj, self._tm)
+            if site is not None:
+                values = site.values(frame)
+                token = inline_parse.skip_body(frame, site.body_line)
+                if token is not None:
+                    self._parsed = (site, values, token)
+                    return _InlineProxy(self._obj, self._field_models)
         enter_expr_mode()
         push_constraint_scope(ConstraintBlockModel("inline"))
         return _InlineProxy(self._obj, self._field_models)
 
     def __exit__(self, t, v, tb):
+        if self._parsed is not None:
+            site, values, token = self._parsed
+            inline_parse.release(token)
+            if t is not None and t is not inline_parse.SkipBody:
+                return False
+            frame = sys._getframe(1)
+            block = _parsed_block(self._composite, self._field_models,
+                                  self._tm, site, values, frame)
+            self._solve(frame, block)
+            return True             # suppress SkipBody
         block = pop_constraint_scope()
         leave_expr_mode()
         if t is not None:
@@ -267,6 +291,10 @@ class RandomizeWith:
         frame = sys._getframe(1)
         if _INLINE_REUSE:
             block = _reuse_block(self._composite, frame, block)
+        self._solve(frame, block)
+        return False
+
+    def _solve(self, frame, block):
         # Writeback + post_randomize run inside do_randomize via the model rand_if.
         # The inline block is applied alongside the randc cyclic exclusions.
         cyclic.do_randomize_cyclic(
@@ -275,4 +303,59 @@ class RandomizeWith:
             self._composite, self._field_models, extra_blocks=[block],
             debug=self._debug, lint=self._lint,
             solve_fail_debug=self._solve_fail_debug)
-        return False
+
+
+def _parsed_site(frame, obj, tm):
+    """The parsed body of the randomize_with ``frame`` is entering, for
+    ``obj``'s class (class constants folded, references checked), or None to
+    take the legacy path (no source, no 'as' name, a one-line body)."""
+    loc = inline_parse.locate(frame)
+    if loc is None or loc.body_line is None:
+        return None
+    cls = type(obj)
+    site = loc.sites.get(cls)
+    if site is _LEGACY:
+        return None
+    if site is None:
+        if inline_parse.delegates(loc.node.body, loc.it_name):
+            loc.sites[cls] = _LEGACY
+            return None
+        from . import class_const
+        from .type_model import _validate_refs
+        fields = frozenset(f.name for f in tm.fields)
+        arrays = frozenset(f.name for f in tm.fields if f.is_array)
+        site = inline_parse.compile_site(loc, frame, arrays, fields)
+        site.folded = class_const.fold_program(
+            site.prog, class_const.lookup_for(cls, fields))
+        _validate_refs(tm.cls_name, [site.folded], tm.generic_constraints,
+                       fields)
+        site.body_line = loc.body_line
+        loc.sites[cls] = site
+    return site
+
+
+#: Marks a call site whose body must run (see inline_parse.delegates).
+_LEGACY = object()
+
+#: Attribute on a shared solve composite: {site: (host values, block)}.
+_PARSED_ATTR = "_vsc_inline_parsed"
+
+
+def _parsed_block(composite, field_models, tm, site, values, frame):
+    """The block for a parsed body: the one this site used last time when the
+    host values are the same (so the plan is reused), else a new lowering."""
+    cache = getattr(composite, _PARSED_ATTR, None)
+    if cache is None:
+        cache = {}
+        setattr(composite, _PARSED_ATTR, cache)
+    prev = cache.get(site)
+    if prev is not None and prev[0] == values:
+        return prev[1]
+    # A host condition decides its branch here, as running the body would.
+    prog = class_const.fold_host_values(site.folded, values)
+    block = ir_lower.lower_program(prog, field_models, tm.generic_constraints,
+                                   values)
+    if _INLINE_REUSE:
+        block = _reuse_block(composite, frame, block)
+    cache[site] = (values, block)
+    return block

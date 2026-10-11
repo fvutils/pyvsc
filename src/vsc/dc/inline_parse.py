@@ -26,13 +26,21 @@ _WITH_OPS = frozenset(("BEFORE_WITH", "SETUP_WITH"))
 
 class Located:
     """The ``with`` statement of one call site, and the item that is ours."""
-    __slots__ = ("node", "item", "it_name", "filename")
+    __slots__ = ("node", "item", "it_name", "filename", "sites")
 
     def __init__(self, node, item, it_name, filename):
         self.node = node              # ast.With
         self.item = item              # ast.withitem
         self.it_name = it_name        # the ``as`` name
         self.filename = filename
+        self.sites = {}               # class -> Site (see inline.RandomizeWith)
+
+    @property
+    def body_line(self):
+        """The first line of the body, or None when it shares the ``with``
+        line (a line event cannot then tell header from body)."""
+        line = self.node.body[0].lineno
+        return None if line == self.node.lineno else line
 
 
 #: (code, lasti) -> Located, or None when the site cannot be parsed.
@@ -155,12 +163,15 @@ class _Hosts:
 
     def __init__(self):
         self.nodes = []
+        self.idle = []              # statements that name no 'it'
 
     def stmts(self, body, bound):
         return [self.stmt(s, bound) for s in body]
 
     def stmt(self, s, bound):
         if isinstance(s, ast.Expr):
+            if self._hostable(s.value, bound):
+                self.idle.append(s)
             s.value = self.expr(s.value, bound)
         elif isinstance(s, ast.If):
             s.test = self.expr(s.test, bound)
@@ -229,13 +240,50 @@ class _Hosts:
         return True
 
 
+# Builtins the grammar reads (constraint_parser._BUILTINS and the loop forms).
+_GRAMMAR_CALLS = frozenset(("abs", "all", "any", "bool", "len", "max", "min",
+                            "sum", "range", "enumerate", "prod"))
+
+
+def delegates(body, it_name):
+    """True when ``body`` passes ``it`` (or a name bound over it) to a Python
+    callable: a helper function that adds constraints, which only running the
+    body can do. Such a site keeps the legacy path."""
+    bound = {it_name}
+    for n in ast.walk(ast.Module(body=list(body), type_ignores=[])):
+        if isinstance(n, (ast.For, ast.comprehension)):
+            bound |= _names_of(n.target)
+        elif isinstance(n, ast.withitem) and n.optional_vars is not None:
+            bound |= _names_of(n.optional_vars)
+    for n in ast.walk(ast.Module(body=list(body), type_ignores=[])):
+        if not isinstance(n, ast.Call):
+            continue
+        name = _callee(n)
+        f = n.func
+        if name in _HELPERS or name in _GRAMMAR_CALLS:
+            continue
+        if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) \
+                and f.value.id in bound:
+            continue                # it.inside(...), it.foo(...)
+        args = list(n.args) + [k.value for k in n.keywords]
+        if any(isinstance(x, ast.Name) and x.id in bound
+               for a in args for x in ast.walk(a)):
+            return True
+    return False
+
+
 def extract_hosts(body, it_name):
     """``(body, hosts)``: a copy of the statements ``body`` with each host
     expression replaced by a placeholder, and the host expressions in slot
     order."""
+    out, nodes, _ = _extract(body, it_name)
+    return out, nodes
+
+
+def _extract(body, it_name):
     h = _Hosts()
     out = h.stmts(copy.deepcopy(body), frozenset((it_name,)))
-    return out, h.nodes
+    return out, h.nodes, h.idle
 
 
 # -- parsing a body -----------------------------------------------------------
@@ -318,7 +366,7 @@ class _InlineParser(_Parser):
 class Site:
     """One ``randomize_with`` call site, parsed for one class."""
     __slots__ = ("prog", "code", "kinds", "srcs", "merge_globals", "filename",
-                 "folded")
+                 "folded", "body_line")
 
     def __init__(self, prog, code, kinds, srcs, merge_globals, filename):
         self.prog = prog
@@ -327,7 +375,8 @@ class Site:
         self.srcs = srcs                # per slot: (source text, line)
         self.merge_globals = merge_globals
         self.filename = filename
-        self.folded = None
+        self.folded = None            # prog with the class's constants folded
+        self.body_line = None
 
     def values(self, frame):
         """The host values for this call, checked and converted."""
@@ -360,13 +409,11 @@ class Site:
         return out
 
     def _int(self, k, v):
-        if isinstance(v, bool):
-            return int(v)
-        if isinstance(v, int):
-            return v
-        if isinstance(v, enum.Enum):
+        if isinstance(v, enum.Enum):        # an IntEnum is an int too
             from vsc.impl.enum_info import EnumInfo
-            return EnumInfo.get(type(v)).e2v(v)
+            return int(EnumInfo.get(type(v)).e2v(v))
+        if isinstance(v, int):
+            return int(v)                   # bool, or an int subclass
         self._bad(k, v, "an int, bool or enum")
 
     def _bad(self, k, v, want):
@@ -377,11 +424,16 @@ class Site:
 
 def compile_site(loc, frame, arrays, fields):
     """Parse ``loc``'s body for a class with these array and field names."""
-    body, hosts = extract_hosts(loc.node.body, loc.it_name)
+    body, hosts, idle = _extract(loc.node.body, loc.it_name)
     names = dict(frame.f_globals)
     names.update(frame.f_locals)
     lines = linecache.getlines(loc.filename, frame.f_globals)
     p = _InlineParser(loc.it_name, names, loc.filename, lines, arrays, fields)
+    for s in idle:
+        # Evaluating it would run Python (a call, say) for no constraint.
+        p._err(s, "this statement does not mention '%s', so it constrains "
+                  "nothing; a randomize_with body is parsed, not run"
+                  % loc.it_name)
     prog = ConstraintProgram("randomize_with", p.parse_body(body))
     code = compile(ast.fix_missing_locations(ast.Expression(
         ast.Tuple(elts=hosts, ctx=ast.Load()))), loc.filename, "eval")

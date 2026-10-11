@@ -164,7 +164,7 @@ class TestConstraintExpr(DcTestCase):
 
         my_i = my_c()
         with my_i.randomize_with() as it:
-            it.c == (it.a / it.b)
+            it.c == (it.a // it.b)
         self.assertEqual(my_i.c, int(my_i.a / my_i.b))
 
     def test_sdiv(self):
@@ -181,7 +181,7 @@ class TestConstraintExpr(DcTestCase):
 
         my_i = my_c()
         with my_i.randomize_with() as it:
-            it.c == (it.a / it.b)
+            it.c == (it.a // it.b)
         self.assertEqual(my_i.c, int(my_i.a / my_i.b))
 
     def test_mul(self):
