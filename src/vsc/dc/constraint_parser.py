@@ -294,6 +294,14 @@ class _Parser:
         """Return (ir_node_or_None, num_siblings_consumed>=1)."""
         if isinstance(stmt, ast.Pass) or _is_string_stmt(stmt):
             return None, 1
+        if isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant):
+            v = stmt.value.value
+            if v is Ellipsis:
+                return None, 1              # '...': a placeholder, like pass
+            if not isinstance(v, bool):
+                self._err(stmt, "a bare constant %r is not a constraint; "
+                                "only True (no-op) and False (unsatisfiable) "
+                                "are" % (v,))
         if isinstance(stmt, ast.Expr):
             return self._parse_expr_stmt(stmt.value), 1
         if isinstance(stmt, ast.If):

@@ -34,7 +34,7 @@ G_ROWS = {
     63: None, 64: None, 65: None, 66: None, 67: None, 68: None, 69: None,
     70: None, 71: None, 72: None, 73: None, 74: None, 75: None,
     76: None, 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
-    83: None, 84: None, 85: None, 86: None, 87: None, 88: "2.5", 89: None,
+    83: None, 84: None, 85: None, 86: None, 87: None, 88: None, 89: None,
     90: None, 91: None, 92: None, 93: None,
 }
 
@@ -1033,6 +1033,11 @@ class TestConstraintGrammar(GrammarCase):
             self.a == 5
             self.MAXV == 21
         """, unsat=True)
+        # Any other bare literal is a mistake.
+        for body in ("1", "0", "None", "0x10"):
+            with self.subTest(body=body):
+                self.reject(body, "is not a constraint; only True (no-op) and "
+                                  "False")
 
     def test_G70_for_element(self):
         self.accept("""
@@ -1358,6 +1363,16 @@ class TestConstraintGrammar(GrammarCase):
                 def c_probe(self):
                     self.twice(self.a) == 8
         """)
+
+    def test_G88_ellipsis(self):
+        self.accept("""
+            ...
+            self.a == 5
+        """, lambda t: t.a == 5)
+        self.same_model("""
+            ...
+            self.a == 5
+        """, "self.a == 5")
 
     def test_G89_assignment(self):
         for body in ("self.a = 5", "self.a += 1", "x: int = 1"):
