@@ -67,6 +67,9 @@ class _Stepped:
                                         IRConst(0)))
 
 
+# Most iterations a 'for' over a constant iterable unrolls to.
+_MAX_UNROLL = 1024
+
 # Largest exponent '**' expands into products.
 _MAX_POW = 8
 
@@ -227,6 +230,8 @@ class _Parser:
         # Names bound by enclosing foreach loops (idx/it), referenceable as bare
         # Names in the body and resolved to IRField at lowering.
         self._bound = set()
+        # Names bound by an unrolled constant 'for' to the current value.
+        self._loop_consts = {}
         # Names visible to the constraint body (module globals + closure), used to
         # resolve enum members (MyEnum.A) and int constants to literals at parse time.
         self._names = dict(getattr(func, "__globals__", {}) or {})
@@ -275,7 +280,9 @@ class _Parser:
         while i < len(body):
             stmt = body[i]
             node, consumed = self._parse_stmt(stmt, body, i)
-            if node is not None:
+            if isinstance(node, list):
+                out.extend(node)            # an unrolled constant 'for'
+            elif node is not None:
                 out.append(node)
             i += consumed
         return out
@@ -406,9 +413,13 @@ class _Parser:
         return consumed
 
     def _parse_for(self, stmt):
-        """``for`` over an array field: a foreach (forms in _LOOP_FORMS)."""
+        """``for`` over an array field: a foreach (forms in _LOOP_FORMS). Over
+        a constant iterable: the body once per value, unrolled here."""
         if stmt.orelse:
             self._err(stmt, "a constraint 'for' has no 'else'")
+        values = self._const_iterable(stmt.iter)
+        if values is not None:
+            return self._unroll(stmt, values)
         array, idx, it = self._loop(stmt, stmt.target, stmt.iter)
         saved = set(self._bound)
         self._bound.update(n for n in (idx, it) if n is not None)
@@ -417,6 +428,67 @@ class _Parser:
         finally:
             self._bound = saved
         return IRForeach(array, idx, it, body)
+
+    def _const_iterable(self, it):
+        """The values of a constant ``range(...)`` or named collection, or
+        None when ``it`` is not one."""
+        if self._is_builtin_call(it, "range") and not it.keywords \
+                and 1 <= len(it.args) <= 3:
+            args = [_const_value(self._expr(a)) for a in it.args]
+            if all(a is not None for a in args) and (len(args) < 3 or args[2]):
+                return list(range(*args))
+            return None
+        if isinstance(it, (ast.List, ast.Tuple, ast.Set)):
+            vals = [self._const_literal(e) for e in it.elts]
+            return None if any(v is None for v in vals) else vals
+        coll = self._const_collection(it)
+        if coll is None:
+            return None
+        if isinstance(coll, (set, frozenset)):
+            coll = sorted(coll, key=repr)
+        return list(coll)
+
+    def _const_literal(self, node):
+        """A constant element of a literal iterable: an int or enum constant,
+        or a tuple of them. None otherwise."""
+        if isinstance(node, ast.Tuple):
+            vals = [self._const_literal(e) for e in node.elts]
+            return None if any(v is None for v in vals) else tuple(vals)
+        if isinstance(node, (ast.Constant, ast.Attribute, ast.Name,
+                             ast.UnaryOp, ast.BinOp)) \
+                and not self._is_self_rooted(node):
+            try:
+                return _const_value(self._expr(node))
+            except ConstraintParseError:
+                return None
+        return None
+
+    def _unroll(self, stmt, values):
+        if len(values) > _MAX_UNROLL:
+            self._err(stmt, "a constant 'for' unrolls to at most %d iterations"
+                            % _MAX_UNROLL)
+        tgt = stmt.target
+        if isinstance(tgt, ast.Name):
+            names = [tgt.id]
+        elif (isinstance(tgt, ast.Tuple)
+                and all(isinstance(e, ast.Name) for e in tgt.elts)):
+            names = [e.id for e in tgt.elts]
+        else:
+            self._err(stmt, "a constant 'for' binds a name or a tuple of names")
+        out = []
+        saved = dict(self._loop_consts)
+        try:
+            for v in values:
+                vs = (v,) if len(names) == 1 else v
+                if not isinstance(vs, (tuple, list)) or len(vs) != len(names):
+                    self._err(stmt, "cannot unpack %r into %d names"
+                                    % (v, len(names)))
+                for n, x in zip(names, vs):
+                    self._loop_consts[n] = self._as_int(stmt, x)
+                out.extend(self.parse_body(stmt.body))
+        finally:
+            self._loop_consts = saved
+        return out
 
     def _parse_foreach(self, stmt, ctx):
         args = self._helper_args(ctx)
@@ -577,6 +649,8 @@ class _Parser:
                 return IRConst(node.value)
             self._err(node, "unsupported constant %r" % (node.value,))
         if isinstance(node, ast.Name):
+            if node.id in self._loop_consts:
+                return IRConst(self._loop_consts[node.id])
             if node.id in self._params:
                 # A generic-constraint formal — bound to its actual at the ref site.
                 return IRParam(node.id)

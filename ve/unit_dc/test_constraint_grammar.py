@@ -32,7 +32,7 @@ G_ROWS = {
     51: None, 52: None, 53: None, 54: None, 55: None, 56: None,
     57: None, 58: None, 59: None, 60: None, 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
-    70: None, 71: None, 72: None, 73: None, 74: "2.2", 75: None,
+    70: None, 71: None, 72: None, 73: None, 74: None, 75: None,
     76: "2.3", 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
     83: None, 84: None, 85: None, 86: None, 87: None, 88: "2.5", 89: None,
     90: None, 91: None, 92: None, 93: None,
@@ -1064,6 +1064,66 @@ class TestConstraintGrammar(GrammarCase):
             for i, o in enumerate(self.objs):
                 o.x == i + 1
         """, lambda t: [o.x for o in t.objs] == [1, 2])
+
+    def test_G74_for_constant_iterable(self):
+        # Unrolled: the body once per value, the name a constant in it.
+        self.accept("""
+            for i in range(3):
+                self.arr[i] == i + 1
+        """, lambda t: list(t.arr[:3]) == [1, 2, 3])
+        self.same_model("""
+            for i in range(2):
+                self.arr[i] == i
+        """, """
+            self.arr[0] == 0
+            self.arr[1] == 1
+        """)
+        self.accept("""
+            for v in ALLOWED:
+                self.a != v
+        """, lambda t: t.a not in (1, 3, 5))
+        self.accept("""
+            for i in range(1, LIMIT - 6):
+                self.arr[i] > self.arr[i - 1]
+        """, lambda t: t.arr[0] < t.arr[1] < t.arr[2] < t.arr[3])
+        self.accept("""
+            for k in range(0, 8, 2):
+                self.a[k] == 0
+        """, lambda t: t.a & 0x55 == 0)
+        self.accept("""
+            for e in [E.A, E.C]:
+                self.e != e
+        """, lambda t: t.e == 2)
+        self.accept("""
+            for lo, hi in ((0, 1), (2, 3)):
+                self.arr[lo] < self.arr[hi]
+        """, lambda t: t.arr[0] < t.arr[1] and t.arr[2] < t.arr[3])
+        # Tuple targets; nested inside a foreach.
+        self.accept(None, lambda t: t.a == 4 and t.b == 9, src="""
+            import vsc.dc as vdc
+
+            PAIRS = [(4, 9)]
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+                b: vdc.u8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    for x, y in PAIRS:
+                        self.a == x
+                        self.b == y
+        """)
+        self.accept("""
+            for x in self.arr:
+                for v in ALLOWED_SET:
+                    x != v
+        """, lambda t: not set(t.arr) & {1, 3, 5})
+        self.reject("""
+            for i in range(2000):
+                self.a != i
+        """, "at most 1024 iterations")
 
     def test_G75_nested_for(self):
         self.accept("""
