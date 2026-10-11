@@ -42,6 +42,30 @@ _CMPOP = {
 
 _CMP_OPS = frozenset(_CMPOP.values())
 
+# Constant collections a value set may name.
+_COLLECTIONS = (list, tuple, set, frozenset, range)
+
+
+class _Stepped:
+    """``range(lo, hi, step)`` with a step other than 1, as a value-set entry."""
+
+    def __init__(self, lo, hi, step):
+        self.lo, self.hi, self.step = lo, hi, step
+
+    def test(self, x):
+        """``x in range(lo, hi, step)``."""
+        if self.step > 0:
+            lo, hi, k = self.lo, self.hi, self.step
+            bounds = IRBin("&", IRBin("<=", lo, x), IRBin("<", x, hi))
+            off = IRBin("-", x, lo)
+        else:
+            lo, hi, k = self.lo, self.hi, -self.step
+            bounds = IRBin("&", IRBin("<", hi, x), IRBin("<=", x, lo))
+            off = IRBin("-", lo, x)
+        return IRBin("&", bounds, IRBin("==", IRBin("%", off, IRConst(k)),
+                                        IRConst(0)))
+
+
 # Largest exponent '**' expands into products.
 _MAX_POW = 8
 
@@ -521,9 +545,9 @@ class _Parser:
             op0 = node.ops[0]
             # 'x in rangelist{...}' / 'x not in {...}' -> inside.
             if isinstance(op0, (ast.In, ast.NotIn)):
-                return IRInside(self._expr(node.left),
-                                self._ranges(node.comparators[0]),
-                                negate=isinstance(op0, ast.NotIn))
+                return self._membership(self._expr(node.left),
+                                        self._ranges(node.comparators[0]),
+                                        isinstance(op0, ast.NotIn))
             op = _CMPOP.get(type(op0))
             if op is None:
                 self._err(node, "unsupported comparison")
@@ -579,8 +603,8 @@ class _Parser:
                 lhs = self._expr(node.func.value)
                 if len(node.args) != 1:
                     self._err(node, "%s expects a single rangelist/list" % attr)
-                ranges = self._ranges(node.args[0])
-                return IRInside(lhs, ranges, negate=(attr != "inside"))
+                return self._membership(lhs, self._ranges(node.args[0]),
+                                        attr != "inside")
             # A generic-constraint reference used as a boolean/value term:
             # self.<name>(...) directly on self.
             if (isinstance(node.func.value, ast.Name)
@@ -650,11 +674,16 @@ class _Parser:
         """
         if len(node.args) == 1:
             lo, hi = IRConst(0), self._expr(node.args[0])
-        elif len(node.args) == 2:
+        elif len(node.args) in (2, 3):
             lo, hi = self._expr(node.args[0]), self._expr(node.args[1])
         else:
-            self._err(node, "range() in a constraint takes 1 or 2 arguments "
-                            "(a step is not supported)")
+            self._err(node, "range() takes 1 to 3 arguments")
+        if len(node.args) == 3:
+            step = self._expr(node.args[2])
+            if not isinstance(step, IRConst) or step.value == 0:
+                self._err(node, "range() step must be a non-zero constant")
+            if step.value != 1:
+                return _Stepped(lo, hi, step.value)
         if isinstance(hi, IRConst):
             hi = IRConst(hi.value - 1)
         else:
@@ -697,8 +726,10 @@ class _Parser:
                                 "(half-open) or vdc.r[lo:hi] (inclusive)"
                                 % (callee or "<expr>"))
             items = node.args
-        elif isinstance(node, (ast.List, ast.Tuple)):
+        elif isinstance(node, (ast.List, ast.Tuple, ast.Set)):
             items = node.elts
+        elif self._const_collection(node) is not None:
+            return self._collection_entries(node, self._const_collection(node))
         elif isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice):
             # vdc.r[lo:hi]
             return [self._slice_range(node.slice)]
@@ -733,9 +764,62 @@ class _Parser:
             elif isinstance(it, ast.List):
                 for e in it.elts:
                     out.append(IRRange(self._expr(e)))
+            elif isinstance(it, ast.Starred):
+                coll = self._const_collection(it.value)
+                if coll is None:
+                    self._err(it, "only a constant collection can be unpacked "
+                                  "with '*' in a value set")
+                out.extend(self._collection_entries(it, coll))
             else:
                 out.append(IRRange(self._expr(it)))
         return out
+
+    def _const_collection(self, node):
+        """The list, tuple, set, frozenset or range a module global, closure
+        variable or ``module.NAME`` / ``Class.NAME`` path names, or None. Read
+        when the class is defined, as int constants are."""
+        if isinstance(node, ast.Name):
+            if (node.id in self._params or node.id in self._bound
+                    or node.id not in self._names):
+                return None
+            value = self._names[node.id]
+        elif isinstance(node, ast.Attribute):
+            attrs = []
+            cur = node
+            while isinstance(cur, ast.Attribute):
+                attrs.insert(0, cur.attr)
+                cur = cur.value
+            if (not isinstance(cur, ast.Name) or cur.id == self.self_name
+                    or cur.id not in self._names):
+                return None
+            value = self._names[cur.id]
+            for a in attrs:
+                value = getattr(value, a, None)
+        else:
+            return None
+        return value if isinstance(value, _COLLECTIONS) else None
+
+    def _collection_entries(self, node, coll):
+        if isinstance(coll, range):
+            if coll.step == 1:
+                return [IRRange(IRConst(coll.start), IRConst(coll.stop - 1))] \
+                    if len(coll) else []
+            return [_Stepped(IRConst(coll.start), IRConst(coll.stop), coll.step)]
+        return [IRRange(IRConst(self._as_int(node, v))) for v in coll]
+
+    def _membership(self, lhs, entries, negate):
+        """``lhs in entries``: an IRInside for the value and range entries, ORed
+        with a test for each stepped range."""
+        plain = [e for e in entries if isinstance(e, IRRange)]
+        stepped = [e for e in entries if isinstance(e, _Stepped)]
+        if not stepped and plain:
+            return IRInside(lhs, plain, negate=negate)
+        terms = [IRInside(lhs, plain)] if plain else []
+        terms.extend(e.test(lhs) for e in stepped)
+        result = terms[0] if terms else IRConst(0)
+        for t in terms[1:]:
+            result = IRBin("|", result, t)
+        return IRBin("==", result, IRConst(0)) if negate else result
 
     def _parse_weights(self, node):
         """Parse the weight-list argument of dist(): [vdc.weight(val, w[, per_value]), ...]."""

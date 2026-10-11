@@ -26,8 +26,8 @@ G_ROWS = {
     9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: None,
     16: None, 17: None, 18: None, 19: None, 20: None, 21: None, 22: None,
     23: None, 24: None, 25: None, 26: None, 27: None, 28: "1.9", 29: None,
-    30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
-    37: None, 38: "1.8", 39: "1.7", 40: "1.7", 41: None, 42: None, 43: None,
+    30: None, 31: None, 32: None, 33: None, 34: None, 35: None, 36: None,
+    37: None, 38: "1.8", 39: None, 40: None, 41: None, 42: None, 43: None,
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
     51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: None,
     57: "1.10", 58: None, 59: "1.11", 60: "1.11", 61: None, 62: None,
@@ -368,6 +368,13 @@ class TestConstraintGrammar(GrammarCase):
                     lambda t: t.a == 1 or 10 <= t.a <= 12,
                     witness=lambda it: it.a == 12)
 
+    def test_G33_set_literal(self):
+        self.accept("self.a in {1, 2, 3}", lambda t: t.a in (1, 2, 3),
+                    witness=lambda it: it.a == 3)
+        self.accept("self.a not in {0, 1}", lambda t: t.a > 1)
+        self.same_model("self.a in {1, 2}", "self.a in [1, 2]")
+        self.accept("self.a in {self.b, 7}", lambda t: t.a in (t.b, 7))
+
     def test_G34_range_is_half_open(self):
         self.accept("self.a in range(3, 6)", lambda t: 3 <= t.a < 6,
                     witness=lambda it: it.a == 5)
@@ -376,6 +383,31 @@ class TestConstraintGrammar(GrammarCase):
             self.a in range(3, 6)
             self.a == 6
         """, unsat=True)
+
+    def test_G35_stepped_range(self):
+        self.accept("self.a in range(0, 20, 4)", lambda t: t.a in range(0, 20, 4),
+                    witness=lambda it: it.a == 16)
+        self.accept("""
+            self.a in range(0, 20, 4)
+            self.a == 20
+        """, unsat=True)
+        self.accept("self.a in range(3, 30, 9)", lambda t: t.a in (3, 12, 21),
+                    witness=lambda it: it.a == 21)
+        self.accept("self.a in range(10, 0, -3)", lambda t: t.a in (10, 7, 4, 1),
+                    witness=lambda it: it.a == 1)
+        self.accept("self.s in range(-8, 8, 4)", lambda t: t.s in (-8, -4, 0, 4),
+                    witness=lambda it: it.s == -8)
+        self.accept("self.a not in range(0, 256, 2)", lambda t: t.a % 2 == 1)
+        self.accept("self.a in [range(0, 10, 5), 7]", lambda t: t.a in (0, 5, 7),
+                    witness=lambda it: it.a == 7)
+        self.accept("self.a.inside(range(1, 9, 2))", lambda t: t.a in (1, 3, 5, 7))
+        # A field endpoint; a step of 1 is a plain range.
+        self.accept("self.a in range(self.b, self.b + 9, 3)",
+                    lambda t: t.a in range(t.b, t.b + 9, 3))
+        self.same_model("self.a in range(2, 5, 1)", "self.a in range(2, 5)")
+        self.reject("self.a in range(0, 10, self.b)",
+                    "step must be a non-zero constant")
+        self.reject("self.a in range(0, 10, 0)", "step must be a non-zero constant")
 
     def test_G36_r_slice_is_inclusive(self):
         self.accept("self.a in vdc.r[3:6]", lambda t: 3 <= t.a <= 6,
@@ -387,6 +419,83 @@ class TestConstraintGrammar(GrammarCase):
                     lambda t: t.a == 1 or 10 <= t.a <= 12)
         self.accept("self.a in [vdc.rng(10, 12)]", lambda t: 10 <= t.a <= 12,
                     witness=lambda it: it.a == 12)
+
+    def test_G39_named_constant_collection(self):
+        self.accept("self.a in ALLOWED", lambda t: t.a in (1, 3, 5),
+                    witness=lambda it: it.a == 5)
+        self.accept("self.a in ALLOWED_SET", lambda t: t.a in (1, 3, 5))
+        self.accept("self.a in ALLOWED_RANGE", lambda t: t.a in (1, 2, 3),
+                    witness=lambda it: it.a == 3)
+        self.accept("self.a not in ALLOWED", lambda t: t.a not in (1, 3, 5))
+        self.accept("self.a.inside(ALLOWED)", lambda t: t.a in (1, 3, 5))
+        # Enum members; a closure; a class attribute by class name; a frozenset.
+        self.accept(None, lambda t: t.a in (2, 4) and t.b in (8, 9) and t.c == 6,
+                    src="""
+            import enum
+            import vsc.dc as vdc
+
+            class E(enum.IntEnum):
+                A = 2
+                B = 4
+
+            class K:
+                EVENS = frozenset({6})
+
+            def make():
+                PAIR = (8, 9)
+
+                @vdc.dataclass
+                class T(vdc.RandClass):
+                    a: vdc.u8 = vdc.rand()
+                    b: vdc.u8 = vdc.rand()
+                    c: vdc.u8 = vdc.rand()
+
+                    @vdc.constraint
+                    def c_probe(self):
+                        self.a in [E.A, E.B]
+                        self.b in PAIR
+                        self.c in K.EVENS
+                return T
+
+            T = make()
+        """)
+        # Read when the class is defined.
+        self.accept(None, lambda t: t.a in (1, 2), src="""
+            import vsc.dc as vdc
+
+            VALS = [1, 2]
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.a in VALS
+
+            VALS.append(3)
+        """)
+        self.accept(None, unsat=True, src="""
+            import vsc.dc as vdc
+
+            NONE = []
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.a in NONE
+        """)
+        self.reject("self.a in LIMIT", "value set must be")
+
+    def test_G40_starred_collection(self):
+        self.accept("self.a in [*ALLOWED, 9]", lambda t: t.a in (1, 3, 5, 9),
+                    witness=lambda it: it.a == 9)
+        self.accept("self.a in {*ALLOWED_RANGE, *ALLOWED_SET}",
+                    lambda t: t.a in (1, 2, 3, 5))
+        self.reject("self.a in [*self.arr, 9]", "only a constant collection")
 
     def test_G41_enum_class(self):
         self.reject("self.e in E", "value set must be")
