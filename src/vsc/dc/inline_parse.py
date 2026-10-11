@@ -14,6 +14,8 @@ import copy
 import dis
 import enum
 import linecache
+import sys
+import types
 
 from .constraint_ir import ConstraintProgram, IRHost, IRHostFor, IRRange
 from .constraint_parser import _Parser
@@ -387,3 +389,110 @@ def compile_site(loc, frame, arrays, fields):
     srcs = [(ast.unparse(h), h.lineno) for h in hosts]
     merge = any(isinstance(n, _COMPREHENSIONS) for h in hosts for n in ast.walk(h))
     return Site(prog, code, kinds, srcs, merge, loc.filename)
+
+
+# -- not executing the body ---------------------------------------------------
+
+
+class SkipBody(Exception):
+    """Raised at the first line of a parsed ``randomize_with`` body, so the
+    body does not run; ``RandomizeWith.__exit__`` suppresses it."""
+
+
+#: How a body is skipped: "monitoring" (sys.monitoring, 3.12+) or "settrace".
+#: Private; tests set it to run both on one interpreter.
+_SKIP_MODE = "monitoring" if hasattr(sys, "monitoring") else "settrace"
+
+_TOOL = None            # our sys.monitoring tool id, once claimed
+_NO_TOOL = -1           # every free tool id was taken
+_armed = {}             # code -> {id(frame): (frame, first body line)}
+
+
+def skip_body(frame, body_line):
+    """Arm a hook that raises SkipBody when ``frame`` reaches ``body_line`` or
+    a later line. Returns a token for ``release``, or None when no hook can be
+    armed (then the body must run on the legacy path)."""
+    if _SKIP_MODE == "monitoring" and _tool() != _NO_TOOL:
+        code = frame.f_code
+        frames = _armed.get(code)
+        if frames is None:
+            frames = _armed[code] = {}
+            sys.monitoring.set_local_events(_TOOL, code, sys.monitoring.events.LINE)
+        frames[id(frame)] = (frame, body_line)
+        return ("monitoring", frame)
+    return _trace_arm(frame, body_line)
+
+
+def release(token):
+    """Disarm the hook ``skip_body`` returned ``token`` for."""
+    if token[0] == "monitoring":
+        frame = token[1]
+        code = frame.f_code
+        frames = _armed.get(code)
+        if frames is not None:
+            frames.pop(id(frame), None)
+            if not frames:
+                del _armed[code]
+                sys.monitoring.set_local_events(_TOOL, code, 0)
+    else:
+        _, frame, prev_global, prev_local = token
+        frame.f_trace = prev_local
+        sys.settrace(prev_global)
+
+
+def _tool():
+    global _TOOL
+    if _TOOL is None:
+        M = sys.monitoring
+        _TOOL = _NO_TOOL
+        for tid in (4, 3):          # the ids CPython leaves unassigned
+            if M.get_tool(tid) is None:
+                M.use_tool_id(tid, "vsc.dc randomize_with")
+                M.register_callback(tid, M.events.LINE, _on_line)
+                _TOOL = tid
+                break
+    return _TOOL
+
+
+def _on_line(code, line):
+    frames = _armed.get(code)
+    if frames is None:
+        return None
+    frame = sys._getframe(1)
+    hit = frames.get(id(frame))
+    # Another thread or a recursive call can run the same code: only the
+    # armed frame is skipped. The 'with' header's own lines (storing 'as it')
+    # come before the body.
+    if hit is None or hit[0] is not frame or line < hit[1]:
+        return None
+    raise SkipBody()
+
+
+def _trace_arm(frame, body_line):
+    prev_global = sys.gettrace()
+    if prev_global is not None and not isinstance(
+            prev_global, (types.FunctionType, types.MethodType)):
+        # A C tracer (coverage's CTracer) does not call frame.f_trace.
+        return None
+    prev_local = frame.f_trace
+    chained = [prev_local]
+
+    def tracer(fr, event, arg):
+        if fr is frame and event == "line" and fr.f_lineno >= body_line:
+            raise SkipBody()
+        if chained[0] is not None:
+            # A debugger or coverage tracer was tracing this frame.
+            chained[0] = chained[0](fr, event, arg)
+        return tracer
+
+    frame.f_trace = tracer
+    frame.f_trace_lines = True
+    if prev_global is None:
+        # f_trace runs only while a global trace function is set; this one
+        # traces no other frame.
+        sys.settrace(_no_trace)
+    return ("settrace", frame, prev_global, prev_local)
+
+
+def _no_trace(frame, event, arg):
+    return None
