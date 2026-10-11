@@ -3,6 +3,7 @@
 inline suites run again with the switch on, plus what only the parsed path
 does. The switch is off by default (plan 3.4).
 """
+import test_generic_constraint as _gen
 import test_inline_reuse as _reuse
 import test_randomize_with as _rw
 from dc_test_case import DcTestCase
@@ -34,6 +35,10 @@ class TestInlineReuseParsed(_ParseOn, _reuse.TestInlineReuse):
 
 
 class TestInlineRebindParsed(_ParseOn, _reuse.TestInlineRebind):
+    pass
+
+
+class TestGenericInlineParsed(_ParseOn, _gen.TestGenericConstraintInline):
     pass
 
 
@@ -217,3 +222,79 @@ class TestInlineSiteKey(DcTestCase):
                         m.run(P())
             finally:
                 inline._INLINE_PARSE = saved
+
+
+@vdc.dataclass
+class G(vdc.RandClass):
+    x: vdc.u16 = vdc.rand()
+    n: vdc.u8 = vdc.rand()
+
+    @vdc.constraint
+    def base(self):
+        self.x < 1000
+
+    @vdc.constraint
+    def window(self, lo, hi=2000):
+        self.x >= lo
+        self.x <= hi
+
+    @vdc.constraint.value
+    def twice(self, v):
+        return v * 2
+
+    @vdc.constraint.generic
+    def small(self):
+        self.x < 10
+
+
+class TestGenericRefParsed(_ParseOn, DcTestCase):
+    """Generic references in a parsed body (plan 3.6): an argument naming no
+    'it' is a host expression, evaluated per call; one naming 'it' is a
+    field expression."""
+
+    def setUp(self):
+        super().setUp()
+        self._hits = [0]
+        orig = inline._parsed_site
+
+        def counting(*a):
+            site = orig(*a)
+            self._hits[0] += site is not None
+            return site
+        inline._parsed_site = counting
+        self.addCleanup(setattr, inline, "_parsed_site", orig)
+
+    def tearDown(self):
+        self.assertGreater(self._hits[0], 0, "never took the parsed path")
+        super().tearDown()
+
+    def test_host_arguments_per_call(self):
+        g = G()
+        for lo in (100, 300, 700):
+            with g.randomize_with() as it:
+                it.window(lo, lo + 10)
+            self.assertTrue(lo <= g.x <= lo + 10, (lo, g.x))
+        with g.randomize_with() as it:
+            it.window(hi=5, lo=2)       # keywords
+        self.assertTrue(2 <= g.x <= 5, g.x)
+
+    def test_value_generic(self):
+        g = G()
+        for k in (5, 9):
+            with g.randomize_with() as it:
+                it.x == it.twice(k)
+            self.assertEqual(g.x, 2 * k)
+        with g.randomize_with() as it:
+            it.x == it.twice(it.n)
+            it.n == 7
+        self.assertEqual((g.x, g.n), (14, 7))
+
+    def test_logical_composition(self):
+        g = G()
+        for _ in range(20):
+            with g.randomize_with() as it:
+                it.small() or it.window(lo=500, hi=505)
+            self.assertTrue(g.x < 10 or 500 <= g.x <= 505, g.x)
+            with g.randomize_with() as it:
+                not it.small()
+            self.assertGreaterEqual(g.x, 10)
