@@ -116,6 +116,71 @@ class TestParsedInline(_ParseOn, DcTestCase):
             with p.randomize_with() as it:
                 it.a / 2 == 1
 
+    def test_structural_host_reparses_per_value(self):
+        # An '**' exponent and part-select bounds must be constants: a host
+        # there is fixed when the body is parsed, and a new value parses the
+        # body again (plan 3.5).
+        p = P()
+        for k in (2, 3, 2):
+            with p.randomize_with() as it:
+                it.a ** k == 8 ** k // 8 ** (k - 1) * 0 + 2 ** k
+            self.assertEqual(p.a, 2)
+        for hi in (7, 3):
+            with p.randomize_with() as it:
+                it.a[hi:0] == 5
+            self.assertEqual(p.a & ((1 << (hi + 1)) - 1), 5)
+
+    def test_host_for_unroll_cap(self):
+        p = P()
+        for n in (4, 2000):
+            if n > 1024:
+                with self.assertRaisesRegex(ConstraintParseError,
+                                            "at most 1024 iterations"):
+                    with p.randomize_with() as it:
+                        for i in range(n):
+                            it.a != i
+            else:
+                with p.randomize_with() as it:
+                    for i in range(n):
+                        it.a != i
+                self.assertGreaterEqual(p.a, n)
+
+    def test_host_set_with_stepped_range(self):
+        p = P()
+        for step in (5, 3):
+            s = [range(0, 30, step), 99]
+            for _ in range(20):
+                with p.randomize_with() as it:
+                    it.a in s
+                self.assertTrue(p.a == 99 or (p.a < 30 and p.a % step == 0),
+                                p.a)
+        pairs = [(10, 12)]
+        for _ in range(20):
+            with p.randomize_with() as it:
+                it.a in pairs           # a (lo, hi) pair is an interval
+            self.assertIn(p.a, (10, 11, 12))
+
+    def test_value_passed_to_a_call_is_parsed(self):
+        # sorted(it.arr) passes a value, not 'it': the body is parsed, and
+        # the grammar rejects the call (it used to run on the legacy path).
+        p = P()
+        with self.assertRaisesRegex(ConstraintParseError,
+                                    "a constraint loop runs over an array "
+                                    "field: 'for x in it.arr'"):
+            with p.randomize_with() as it:
+                all(x > 1 for x in sorted(it.arr))
+
+    def test_inert_body(self):
+        # A body with no code: nothing to skip, and nothing constrained.
+        p = P()
+        with p.randomize_with() as it:
+            """Nothing to add."""
+        with p.randomize_with() as it:
+            pass
+        with self.assertRaises(vdc.SolveFailure):
+            with p.randomize_with() as it:
+                False
+
 
 class TestInlineSiteKey(DcTestCase):
     """Two files whose randomize_with code is byte-for-byte the same (their

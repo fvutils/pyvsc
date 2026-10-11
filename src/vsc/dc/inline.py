@@ -310,7 +310,13 @@ class RandomizeWith:
             site = _parsed_site(frame, self._obj, self._tm)
             if site is not None:
                 values = site.values(frame)
-                token = inline_parse.skip_body(frame, site.body_line)
+                if not site.fits(values):
+                    # A structural host changed: the body for its new value.
+                    site = _parsed_site(frame, self._obj, self._tm,
+                                        site.struct_key(values))
+                    values = site.values(frame)
+                token = inline_parse.NO_SKIP if site.inert else \
+                    inline_parse.skip_body(frame, site.body_line)
                 if token is not None:
                     self._parsed = (site, values, token)
                     return _InlineProxy(self._obj, self._field_models)
@@ -351,14 +357,17 @@ class RandomizeWith:
             solve_fail_debug=self._solve_fail_debug)
 
 
-def _parsed_site(frame, obj, tm):
+def _parsed_site(frame, obj, tm, struct_key=None):
     """The parsed body of the randomize_with ``frame`` is entering, for
     ``obj``'s class (class constants folded, references checked), or None to
-    take the legacy path (no source, no 'as' name, a one-line body)."""
+    take the legacy path (no source, no 'as' name, a one-line body).
+
+    ``struct_key`` selects the body parsed for those structural host values
+    (see ``inline_parse.Site.fits``); it is parsed now if it is new."""
     loc = inline_parse.locate(frame)
     if loc is None or loc.body_line is None:
         return None
-    cls = type(obj)
+    cls = type(obj) if struct_key is None else (type(obj), struct_key)
     site = loc.sites.get(cls)
     if site is _LEGACY:
         return None
@@ -372,10 +381,11 @@ def _parsed_site(frame, obj, tm):
         arrays = frozenset(f.name for f in tm.fields if f.is_array)
         site = inline_parse.compile_site(loc, frame, arrays, fields)
         site.folded = class_const.fold_program(
-            site.prog, class_const.lookup_for(cls, fields))
+            site.prog, class_const.lookup_for(type(obj), fields))
         _validate_refs(tm.cls_name, [site.folded], tm.generic_constraints,
                        fields)
         site.body_line = loc.body_line
+        site.inert = inline_parse.inert(loc.node.body)
         loc.sites[cls] = site
     return site
 

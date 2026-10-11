@@ -111,7 +111,12 @@ def lower_program(prog, field_models, generics=None, host=()):
     ctx = Ctx(field_models, generics, host)
     block = ConstraintBlockModel(prog.name)
     for stmt in prog.stmts:
-        block.constraint_l.append(_stmt(stmt, ctx))
+        if isinstance(stmt, ir.IRHostFor):
+            # As a constant 'for' unrolled by the parser: the body's
+            # statements, one copy per value, directly in the block.
+            block.constraint_l.extend(_host_for(stmt, ctx).constraint_l)
+        else:
+            block.constraint_l.append(_stmt(stmt, ctx))
     return block
 
 
@@ -616,9 +621,10 @@ def _index(node, ctx):
 def _inside(node, ctx):
     lhs = _expr(node.lhs, ctx)
     rl = ExprRangelistModel()
+    stepped = []
     for r in node.ranges:
         if isinstance(r.lo, ir.IRHost) and r.lo.kind == "set":
-            _add_host_set(rl, ctx.host[r.lo.slot])
+            stepped.extend(_add_host_set(rl, ctx.host[r.lo.slot]))
             continue
         # r.lo / r.hi are IR expr nodes (IRConst for literals, IRField for rand
         # endpoints, IRBin for arithmetic) — lower each so variable ranges work.
@@ -626,11 +632,19 @@ def _inside(node, ctx):
             rl.add_range(_expr(r.lo, ctx))
         else:
             rl.add_range(ExprRangeModel(_expr(r.lo, ctx), _expr(r.hi, ctx)))
-    if not rl.rl:
+    terms = [ExprInModel(lhs, rl)] if rl.rl else []
+    for s in stepped:
+        # As the parser tests a stepped range(...) in a set (_Stepped).
+        from .constraint_parser import _Stepped
+        terms.append(_expr(_Stepped(ir.IRConst(s.start), ir.IRConst(s.stop),
+                                    s.step).test(node.lhs), ctx))
+    if not terms:
         # Only empty host sets: nothing is a member. (An ExprInModel with no
         # entries reads as true.)
         return ExprLiteralModel(int(bool(node.negate)), False, 1)
-    e = ExprInModel(lhs, rl)
+    e = terms[0]
+    for t in terms[1:]:
+        e = ExprBinModel(e, BinExprType.Or, t)
     if node.negate:
         return ExprUnaryModel(UnaryExprType.Not, e)
     return e
@@ -638,12 +652,19 @@ def _inside(node, ctx):
 
 def _add_host_set(rl, values):
     """Add a host collection's values to ``rl``: a range of step 1 as one
-    range, anything else value by value."""
-    if isinstance(values, range) and values.step == 1:
-        if len(values):
-            rl.add_range(ExprRangeModel(
-                ExprLiteralModel(values.start, True, 32),
-                ExprLiteralModel(values.stop - 1, True, 32)))
-        return
+    range, a value as itself. Returns the ranges of another step, which a
+    rangelist cannot hold."""
+    if isinstance(values, range):
+        values = (values,)
+    stepped = []
     for v in values:
-        rl.add_range(ExprLiteralModel(v, True, 32))
+        if isinstance(v, range):
+            if v.step != 1:
+                stepped.append(v)
+            elif len(v):
+                rl.add_range(ExprRangeModel(
+                    ExprLiteralModel(v.start, True, 32),
+                    ExprLiteralModel(v.stop - 1, True, 32)))
+        else:
+            rl.add_range(ExprLiteralModel(v, True, 32))
+    return stepped

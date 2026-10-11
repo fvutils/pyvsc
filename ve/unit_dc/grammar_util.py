@@ -9,15 +9,24 @@ Every case uses the same class, ``T`` (see ``HEADER``), and the body under test
 becomes its ``c_probe`` constraint. ``BODY_LINE0`` is the file line of the body's
 first line, so a rejection can be checked against an exact ``file:line``.
 
+With ``INLINE = True`` (``InlineGrammarCase``) the same body is instead the body
+of a parsed ``randomize_with`` block, with ``self`` renamed to the block's ``as``
+name, and ``c_probe`` is empty. So every grammar test also runs inline, on the
+parsed path (a fall-back to the legacy path fails the test). A case built from
+``src=`` (a whole module) is not converted; it runs as a class constraint.
+
 The grammar itself is specified in ``doc/notes/vdc_constraint_python_grammar.md``.
 """
 import enum
 import importlib
 import os
+import re
 import shutil
 import sys
+import io
 import tempfile
 import textwrap
+import tokenize
 
 from dc_test_case import DcTestCase
 from vsc.dc.constraint_parser import ConstraintParseError
@@ -75,13 +84,47 @@ class T(vdc.RandClass):
 BODY_LINE0 = HEADER.count("\n") + 1
 _INDENT = " " * 8
 
+#: The ``as`` name of the inline block; ``self`` in a body is renamed to it.
+INLINE_NAME = "me"
+
+INLINE_HEADER = HEADER + _INDENT + "pass\n" + """
+
+def run(obj):
+    with obj.randomize_with() as %s:
+""" % INLINE_NAME
+
+INLINE_BODY_LINE0 = INLINE_HEADER.count("\n") + 1
+
+
+def rename_self(body, name=INLINE_NAME):
+    """``body`` with every ``self`` name token replaced by ``name``; layout,
+    strings and comments are kept, so line numbers do not change."""
+    toks = list(tokenize.generate_tokens(io.StringIO(body).readline))
+    lines = body.splitlines(keepends=True)
+    for t in reversed(toks):
+        if t.type == tokenize.NAME and t.string == "self":
+            (r, c), (_, c2) = t.start, t.end
+            ln = lines[r - 1]
+            lines[r - 1] = ln[:c] + name + ln[c2:]
+    return "".join(lines)
+
 
 class GrammarCase(DcTestCase):
     """Base class for the grammar tests: build a case from a body, then accept,
     reject or compare it."""
 
+    INLINE = False
+
+    #: Inline mode: body -> (exception type, message fragment) for a body
+    #: whose error differs inline, e.g. a host expression that Python
+    #: evaluates and that raises Python's own error; None for a body that is
+    #: not an error inline; "n/a" for one that cannot be an inline body.
+    INLINE_DIFF = {}
+
     def setUp(self):
         super().setUp()
+        if self.INLINE:
+            self._inline_setup()
         self._dir = tempfile.mkdtemp(prefix="vdc_grammar_")
         sys.path.insert(0, self._dir)
         self._mods = []
@@ -100,8 +143,14 @@ class GrammarCase(DcTestCase):
     # -- building ------------------------------------------------------------
 
     def source(self, body):
-        return HEADER + textwrap.indent(textwrap.dedent(body).strip("\n"),
-                                        _INDENT) + "\n"
+        body = textwrap.dedent(body).strip("\n")
+        if self.INLINE:
+            return INLINE_HEADER + textwrap.indent(rename_self(body),
+                                                   _INDENT) + "\n"
+        return HEADER + textwrap.indent(body, _INDENT) + "\n"
+
+    def body_line0(self):
+        return INLINE_BODY_LINE0 if self.INLINE else BODY_LINE0
 
     def build(self, body=None, *, src=None):
         """Write a case module and import it. ``body`` goes into ``T.c_probe``;
@@ -128,6 +177,8 @@ class GrammarCase(DcTestCase):
         asserts the pinned problem still solves (non-vacuity)."""
         mod = self.build(body, src=src)
         obj = getattr(mod, cls)()
+        if self.INLINE and src is None:
+            return self._accept_inline(mod.run, obj, check, n, unsat, witness)
         if unsat:
             with self.assertRaises(SolveFailure):
                 obj.randomize()
@@ -149,14 +200,44 @@ class GrammarCase(DcTestCase):
         ``randomize()``), with a message containing ``fragment`` and naming
         ``<file>:<line>``. ``line`` is 1-based within ``body`` (or within ``src``
         when given)."""
-        with self.assertRaises(ConstraintParseError) as cm:
+        exc = ConstraintParseError
+        key = textwrap.dedent(body or "").strip()
+        if self.INLINE and src is None and key in self.INLINE_DIFF:
+            diff = self.INLINE_DIFF[key]
+            if diff == "n/a":
+                return None         # cannot be a randomize_with body
+            if diff is None:
+                # Not an error inline (see INLINE_DIFF): it must run.
+                mod = self.build(body)
+                self._run_parsed(mod.run, getattr(mod, cls)())
+                return None
+            # Inline, the body's error is a different one.
+            exc, fragment = diff
+        # Not assertRaises: it drops the traceback, which is checked below.
+        try:
             mod = self.build(body, src=src)
-            getattr(mod, cls)()     # some rejections come from the type model
-        msg = str(cm.exception)
+            obj = getattr(mod, cls)()  # some rejections come from the type model
+            if self.INLINE and src is None:
+                mod.run(obj)        # raised from __enter__: the body never runs
+        except exc as e:
+            err = e
+        else:
+            self.fail("%s not raised" % exc.__name__)
+        msg = str(err)
+        if self.INLINE and src is None:
+            fragment = re.sub(r"\bself\b", INLINE_NAME, fragment)
         self.assertIn(fragment, msg)
         name = self._mods[-1]
-        abs_line = line if src is not None else BODY_LINE0 + line - 1
-        self.assertIn("%s.py:%d)" % (name, abs_line), msg)
+        abs_line = line if src is not None else self.body_line0() + line - 1
+        where = "%s.py:%d)" % (name, abs_line)
+        if where not in msg:
+            # Python's own error (a host expression, inline): the traceback
+            # names the line.
+            import traceback
+            tb = traceback.extract_tb(err.__traceback__)
+            self.assertTrue(any(f.filename.endswith(name + ".py")
+                                and f.lineno == abs_line for f in tb),
+                            "%r names neither %s nor its traceback" % (msg, where))
         return msg
 
     def same_model(self, body_a, body_b, cls="T"):
@@ -165,10 +246,107 @@ class GrammarCase(DcTestCase):
 
     def model_dump(self, body, cls="T"):
         from vsc.dc import solve_view
-        obj = getattr(self.build(body), cls)()
+        mod = self.build(body)
+        obj = getattr(mod, cls)()
+        if self.INLINE:
+            blocks = []
+            with self._extra_blocks(None, blocks):
+                self._run_parsed(mod.run, obj)
+            return [dump_model(blocks[0])]
         node = solve_view.build_solve_node(obj, obj._get_type_model())
         return [dump_model(b) for b in node.composite.constraint_model_l
                 if b.name == "c_probe"]
+
+    # -- inline mode -----------------------------------------------------------
+
+    def _inline_setup(self):
+        from vsc.dc import inline
+        saved_parse, saved_site = inline._INLINE_PARSE, inline._parsed_site
+        self._parsed = [0]
+
+        def counting_site(frame, obj, tm):
+            site = saved_site(frame, obj, tm)
+            if site is not None:
+                self._parsed[0] += 1
+            return site
+
+        inline._INLINE_PARSE = True
+        inline._parsed_site = counting_site
+
+        def restore():
+            inline._INLINE_PARSE = saved_parse
+            inline._parsed_site = saved_site
+        self.addCleanup(restore)
+
+    def _run_parsed(self, run, obj):
+        """``run(obj)``, asserting the body took the parsed path."""
+        before = self._parsed[0]
+        try:
+            run(obj)
+        finally:
+            self.assertEqual(self._parsed[0], before + 1,
+                             "randomize_with fell back to the legacy path")
+
+    def _accept_inline(self, run, obj, check, n, unsat, witness):
+        if unsat:
+            with self.assertRaises(SolveFailure):
+                self._run_parsed(run, obj)
+            return obj
+        for k in range(n):
+            self._run_parsed(run, obj)
+            if check is not None:
+                self.assertTrue(check(obj), "sample %d violates: %s" % (
+                    k, _show(obj)))
+        if witness is not None:
+            with self._extra_blocks(_witness_block(obj, witness), None):
+                self._run_parsed(run, obj)
+            if check is not None:
+                self.assertTrue(check(obj), "witness violates: %s" % _show(obj))
+        return obj
+
+    def _extra_blocks(self, add, record):
+        """A context in which each inline solve also gets block ``add`` (when
+        not None), and appends its inline block to ``record`` (when not None)."""
+        import contextlib
+        from vsc.dc import cyclic
+
+        @contextlib.contextmanager
+        def ctx():
+            orig = cyclic.do_randomize_cyclic
+
+            def wrapped(*args, extra_blocks=None, **kw):
+                if record is not None:
+                    record.append(extra_blocks[0])
+                if add is not None:
+                    extra_blocks = list(extra_blocks) + [add]
+                return orig(*args, extra_blocks=extra_blocks, **kw)
+            cyclic.do_randomize_cyclic = wrapped
+            try:
+                yield
+            finally:
+                cyclic.do_randomize_cyclic = orig
+        return ctx()
+
+
+class InlineGrammarCase(GrammarCase):
+    INLINE = True
+
+
+def _witness_block(obj, witness):
+    """The constraints ``witness(it)`` builds, as a block (legacy path)."""
+    from vsc.dc import inline, solve_view
+    from vsc.impl.ctor import pop_constraint_scope, push_constraint_scope
+    from vsc.impl.expr_mode import enter_expr_mode, leave_expr_mode
+    from vsc.model.constraint_block_model import ConstraintBlockModel
+    _, fms = solve_view.get_solve_model(obj, obj._get_type_model())
+    enter_expr_mode()
+    push_constraint_scope(ConstraintBlockModel("witness"))
+    try:
+        witness(inline._InlineProxy(obj, fms))
+    finally:
+        block = pop_constraint_scope()
+        leave_expr_mode()
+    return block
 
 
 def _show(obj):
@@ -178,7 +356,8 @@ def _show(obj):
 
 # Back-references, source info and lazily computed caches: not part of the tree.
 _SKIP_ATTRS = frozenset(("parent", "srcinfo", "rand_if", "srcinfo_decl",
-                         "_width_valid", "equality_ops", "relational_ops"))
+                         "_width_valid", "equality_ops", "relational_ops",
+                         "_vsc_reusable", "_vsc_rebind_from"))
 
 
 def dump_model(m):

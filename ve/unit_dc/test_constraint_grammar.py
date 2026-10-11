@@ -19,6 +19,7 @@ import unittest
 
 from dc_test_case import known_gap_without_boolector
 from grammar_util import GrammarCase
+from vsc.dc.constraint_parser import ConstraintParseError
 
 
 # G-ID -> None (tested here) or the plan ledger item that will add its test.
@@ -1480,3 +1481,35 @@ class TestConstraintGrammar(GrammarCase):
                            ("async def f():\n    pass", "AsyncFunctionDef")):
             with self.subTest(body=body):
                 self.reject(body, frag)
+
+
+class TestConstraintGrammarInline(TestConstraintGrammar):
+    """Every grammar row again, as the body of a parsed ``randomize_with``
+    block (plan 3.5). ``INLINE_DIFF`` records where a rejection differs inline.
+
+    Inline, a sub-expression that names neither ``it`` nor a loop name is a
+    host expression: Python evaluates it on every call, so a mistake in it
+    raises Python's own error (NameError, AttributeError, ...), and a value
+    of the wrong kind raises TypeError, each naming the body's file:line. A
+    statement that names no ``it`` is rejected as constraining nothing."""
+    INLINE = True
+
+    _NOTHING = "does not mention 'me', so it constrains nothing"
+
+    INLINE_DIFF = {
+        "self.a == T.NOPE": (AttributeError, "has no attribute 'NOPE'"),
+        "self.a == zz": (NameError, "'zz' is not defined"),
+        "self.a in ALLOWED == self.b": (TypeError, "'ALLOWED' is list, not an int"),
+        "self.a in range(0, 10, 0)": (ValueError, "must not be zero"),
+        "self.a in LIMIT": (TypeError, "'LIMIT' is int, not a list"),
+        "self.e in E": (TypeError, "'E' is EnumType, not a list"),
+        "self.a in helper(1)": (TypeError, "'helper(1)' is int, not a list"),
+        "all(x > 1 for x in [1, 2])": (ConstraintParseError, _NOTHING),
+        "all(x > 1 for x in range(4))": (ConstraintParseError, _NOTHING),
+        "for x in self.arr:\n    x > 1\nx < 5": (ConstraintParseError, _NOTHING),
+        # T.a is the class attribute, the field's default (0): a host value.
+        "self.a == T.a": None,
+        "self.a in T.MAXV": (TypeError, "'T.MAXV' is int, not a list"),
+        # 'yield' makes the enclosing function a generator; not a body.
+        "yield self.a": "n/a",
+    }

@@ -18,7 +18,7 @@ import sys
 import types
 
 from .constraint_ir import ConstraintProgram, IRHost, IRHostFor, IRRange
-from .constraint_parser import _Parser
+from .constraint_parser import _MAX_UNROLL, ConstraintParseError, _Parser
 
 # Opcodes that call __enter__ for a ``with`` item.
 _WITH_OPS = frozenset(("BEFORE_WITH", "SETUP_WITH"))
@@ -187,7 +187,13 @@ class _Hosts:
         elif isinstance(s, ast.With):
             inner = set(bound)
             for item in s.items:
-                item.context_expr = self.expr(item.context_expr, bound)
+                # The context manager (vdc.if_then, vdc.else_then, ...) is
+                # the parser's to read; only its arguments may be hosts.
+                ce = item.context_expr
+                if isinstance(ce, ast.Call):
+                    ce.args = [self.expr(a, bound) for a in ce.args]
+                    for kw in ce.keywords:
+                        kw.value = self.expr(kw.value, bound)
                 if item.optional_vars is not None:
                     inner |= _names_of(item.optional_vars)
             s.body = self.stmts(s.body, frozenset(inner))
@@ -231,6 +237,8 @@ class _Hosts:
         if not isinstance(e, ast.expr) or isinstance(e, (ast.Starred, ast.Slice)):
             return False
         nodes = list(ast.walk(e))
+        if any(isinstance(n, ast.Slice) for n in nodes):
+            return False                    # vdc.r[1:2, 8:9]: the parser's
         if all(isinstance(n, _LITERAL_NODES) for n in nodes):
             return False                    # a literal: the parser reads it
         for n in nodes:
@@ -268,9 +276,12 @@ def delegates(body, it_name):
         if isinstance(f, ast.Attribute) and isinstance(f.value, ast.Name) \
                 and f.value.id in bound:
             continue                # it.inside(...), it.foo(...)
+        # Only ``it`` itself (or a loop name) handed over: ``helper(it)``.
+        # ``sorted(it.arr)`` passes a value, and the grammar rejects it.
         args = list(n.args) + [k.value for k in n.keywords]
-        if any(isinstance(x, ast.Name) and x.id in bound
-               for a in args for x in ast.walk(a)):
+        if any(isinstance(a, ast.Starred) and isinstance(a.value, ast.Name)
+               and a.value.id in bound
+               or isinstance(a, ast.Name) and a.id in bound for a in args):
             return True
     return False
 
@@ -302,9 +313,16 @@ class _HostRef:
 
 
 class _InlineParser(_Parser):
-    """The constraint parser, reading placeholders as host expressions."""
+    """The constraint parser, reading placeholders as host expressions.
 
-    def __init__(self, it_name, names, filename, lines, arrays, fields):
+    Where the grammar needs a constant (an ``**`` exponent, part-select
+    bounds, a ``range`` step, a ``match`` value), a host expression is
+    evaluated when the site is parsed, and its value is fixed in the parsed
+    body: a *structural* host. ``Site.fits`` checks per call that it still
+    has that value; if not, the site is parsed again for the new value."""
+
+    def __init__(self, it_name, names, filename, lines, arrays, fields,
+                 hosts=()):
         _Parser.__init__(self, "randomize_with", it_name, None)
         self._names = names
         self.filename = filename
@@ -312,7 +330,41 @@ class _InlineParser(_Parser):
         self._src_lines = [l.rstrip("\n") for l in lines]
         self._arrays = arrays
         self._fields = fields
+        self._hosts = hosts
         self.kinds = {}
+        self.struct = {}                # slot -> value fixed at parse time
+
+    def _fix(self, node):
+        """``node`` as a constant when it is a host placeholder: evaluated
+        now, and recorded as structural. Other nodes are returned as is."""
+        k = self._slot(node)
+        if k is None:
+            return node
+        if k not in self.struct:
+            h = self._hosts[k]
+            code = compile(ast.fix_missing_locations(ast.Expression(
+                copy.deepcopy(h))), self.filename, "eval")
+            v = eval(code, self._names)
+            if not isinstance(v, (int, enum.Enum)):
+                self._err(node, "%r is %s, not an int, bool or enum constant"
+                          % (ast.unparse(h), type(v).__name__))
+            self.struct[k] = _to_int(v)
+            self.kinds[k] = "value"
+        return ast.copy_location(ast.Constant(self.struct[k]), node)
+
+    def _const(self, node):
+        return _Parser._const(self, self._fix(node))
+
+    def _pow(self, node):
+        node = copy.copy(node)
+        node.right = self._fix(node.right)
+        return _Parser._pow(self, node)
+
+    def _range_call(self, node):
+        if len(node.args) == 3:
+            node = copy.copy(node)
+            node.args = node.args[:2] + [self._fix(node.args[2])]
+        return _Parser._range_call(self, node)
 
     @staticmethod
     def _slot(node):
@@ -323,8 +375,16 @@ class _InlineParser(_Parser):
     def _expr(self, node):
         k = self._slot(node)
         if k is not None:
+            if k in self.struct:
+                return _Parser._expr(self, self._fix(node))
             self.kinds[k] = "value"
             return IRHost(k)
+        if isinstance(node, ast.Subscript) and isinstance(node.slice, ast.Slice):
+            # Part-select bounds are checked (hi:lo order) at parse time.
+            sl = copy.copy(node.slice)
+            sl.lower, sl.upper = self._fix(sl.lower), self._fix(sl.upper)
+            node = copy.copy(node)
+            node.slice = sl
         return _Parser._expr(self, node)
 
     def _const_collection(self, node):
@@ -369,10 +429,13 @@ class _InlineParser(_Parser):
 class Site:
     """One ``randomize_with`` call site, parsed for one class."""
     __slots__ = ("prog", "code", "kinds", "srcs", "merge_globals", "filename",
-                 "folded", "body_line")
+                 "folded", "body_line", "struct", "inert")
 
-    def __init__(self, prog, code, kinds, srcs, merge_globals, filename):
+    def __init__(self, prog, code, kinds, srcs, merge_globals, filename,
+                 struct=()):
         self.prog = prog
+        self.struct = struct            # ((slot, value), ...) fixed when parsed
+        self.inert = False              # the body compiles to no code
         self.code = code                # evaluates the host tuple
         self.kinds = kinds              # per slot: value / set / iter
         self.srcs = srcs                # per slot: (source text, line)
@@ -395,28 +458,55 @@ class Site:
             raw = eval(self.code, frame.f_globals, frame.f_locals)
         return tuple(self._convert(k, v) for k, v in enumerate(raw))
 
+    def fits(self, values):
+        """True when this call's ``values`` keep every structural host at the
+        value it was parsed with."""
+        for k, v in self.struct:
+            if values[k] != v:
+                return False
+        return True
+
+    def struct_key(self, values):
+        return tuple(values[k] for k, _ in self.struct)
+
     def _convert(self, k, v):
         kind = self.kinds[k]
         if kind == "value":
             return self._int(k, v)
         if kind == "set":
-            if isinstance(v, range) and v.step == 1:
-                return v
-            if not isinstance(v, (list, tuple, set, frozenset, range)):
+            # A tuple of entries: ints, and ranges (step 1: an interval;
+            # another step: tested as range membership at lowering). A
+            # (lo, hi) pair inside the collection is the interval lo..hi,
+            # as in a list literal (a top-level tuple is a set of values).
+            if isinstance(v, range):
+                return v if v.step == 1 else (v,)
+            if not isinstance(v, (list, tuple, set, frozenset)):
                 self._bad(k, v, "a list, tuple, set, frozenset or range")
-            return tuple(self._int(k, e) for e in v)
+            out = []
+            for e in v:
+                if isinstance(e, range):
+                    out.append(e)
+                elif isinstance(e, tuple) and len(e) == 2:
+                    lo, hi = self._int(k, e[0]), self._int(k, e[1])
+                    out.append(range(lo, hi + 1))
+                else:
+                    out.append(self._int(k, e))
+            return tuple(out)
         out = []
         for e in v:
             out.append(tuple(self._int(k, x) for x in e)
                        if isinstance(e, tuple) else self._int(k, e))
+            if len(out) > _MAX_UNROLL:
+                src, line = self.srcs[k]
+                raise ConstraintParseError(
+                    "constraint 'randomize_with' (%s:%d): a constant 'for' "
+                    "unrolls to at most %d iterations ('%s')"
+                    % (self.filename, line, _MAX_UNROLL, src))
         return out
 
     def _int(self, k, v):
-        if isinstance(v, enum.Enum):        # an IntEnum is an int too
-            from vsc.impl.enum_info import EnumInfo
-            return int(EnumInfo.get(type(v)).e2v(v))
-        if isinstance(v, int):
-            return int(v)                   # bool, or an int subclass
+        if isinstance(v, (int, enum.Enum)):
+            return _to_int(v)
         self._bad(k, v, "an int, bool or enum")
 
     def _bad(self, k, v, want):
@@ -425,13 +515,22 @@ class Site:
                         % (self.filename, line, src, type(v).__name__, want))
 
 
+def _to_int(v):
+    """A host value (an int, bool or enum member) as the solver's int."""
+    if isinstance(v, enum.Enum):            # an IntEnum is an int too
+        from vsc.impl.enum_info import EnumInfo
+        return int(EnumInfo.get(type(v)).e2v(v))
+    return int(v)                           # bool, or an int subclass
+
+
 def compile_site(loc, frame, arrays, fields):
     """Parse ``loc``'s body for a class with these array and field names."""
     body, hosts, idle = _extract(loc.node.body, loc.it_name)
     names = dict(frame.f_globals)
     names.update(frame.f_locals)
     lines = linecache.getlines(loc.filename, frame.f_globals)
-    p = _InlineParser(loc.it_name, names, loc.filename, lines, arrays, fields)
+    p = _InlineParser(loc.it_name, names, loc.filename, lines, arrays, fields,
+                      hosts)
     for s in idle:
         # Evaluating it would run Python (a call, say) for no constraint.
         p._err(s, "this statement does not mention '%s', so it constrains "
@@ -443,7 +542,8 @@ def compile_site(loc, frame, arrays, fields):
     kinds = [p.kinds.get(k, "value") for k in range(len(hosts))]
     srcs = [(ast.unparse(h), h.lineno) for h in hosts]
     merge = any(isinstance(n, _COMPREHENSIONS) for h in hosts for n in ast.walk(h))
-    return Site(prog, code, kinds, srcs, merge, loc.filename)
+    return Site(prog, code, kinds, srcs, merge, loc.filename,
+                tuple(sorted(p.struct.items())))
 
 
 # -- not executing the body ---------------------------------------------------
@@ -463,6 +563,18 @@ _NO_TOOL = -1           # every free tool id was taken
 _armed = {}             # code -> {id(frame): (frame, first body line)}
 
 
+def inert(body):
+    """True when ``body`` compiles to no code (``pass``, ``...``, constants
+    and strings only), so it runs nothing and needs no skip. Arming the hook
+    for it would fire in the ``with`` statement's exit code instead."""
+    return all(isinstance(s, ast.Pass) or (isinstance(s, ast.Expr)
+               and isinstance(s.value, ast.Constant)) for s in body)
+
+
+#: The token of a body that needs no skip (see ``inert``).
+NO_SKIP = ("none",)
+
+
 def skip_body(frame, body_line):
     """Arm a hook that raises SkipBody when ``frame`` reaches ``body_line`` or
     a later line. Returns a token for ``release``, or None when no hook can be
@@ -480,6 +592,8 @@ def skip_body(frame, body_line):
 
 def release(token):
     """Disarm the hook ``skip_body`` returned ``token`` for."""
+    if token is NO_SKIP:
+        return
     if token[0] == "monitoring":
         frame = token[1]
         code = frame.f_code

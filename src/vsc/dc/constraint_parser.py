@@ -888,6 +888,10 @@ class _Parser:
                 and node.func.id == name and name not in self._names
                 and name not in self._params and name not in self._bound)
 
+    def _loop_forms(self):
+        """_LOOP_FORMS, spelled with this body's name for ``self``."""
+        return _LOOP_FORMS.replace("self.", self.self_name + ".")
+
     def _loop(self, node, target, it):
         """The array and loop names of ``for <target> in <it>``: ``(array,
         idx_name, it_name)``. Only the forms in _LOOP_FORMS."""
@@ -907,14 +911,14 @@ class _Parser:
             return (self._loop_array(node, it.args[0]), target.elts[0].id,
                     target.elts[1].id)
         self._err(node, "a constraint loop runs over an array field: %s"
-                        % _LOOP_FORMS)
+                        % self._loop_forms())
 
     def _loop_array(self, node, arr):
         array = self._expr(arr) if isinstance(arr, ast.Attribute) else None
         if not isinstance(array, IRField) or (
                 len(array.path) == 1 and array.path[0] not in self._arrays):
             self._err(node, "a constraint loop runs over an array field: %s"
-                            % _LOOP_FORMS)
+                            % self._loop_forms())
         return array
 
     def _generator(self, node, gen):
@@ -922,7 +926,7 @@ class _Parser:
         generator: one ``for`` over an array, with optional ``if``s."""
         if len(gen.generators) != 1 or gen.generators[0].is_async:
             self._err(node, "a generator in a constraint has one 'for' over "
-                            "an array: %s" % _LOOP_FORMS)
+                            "an array: %s" % self._loop_forms())
         comp = gen.generators[0]
         array, idx, it = self._loop(node, comp.target, comp.iter)
         saved = set(self._bound)
