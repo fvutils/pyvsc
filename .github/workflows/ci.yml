@@ -139,7 +139,14 @@ jobs:
         # The results pages come from the committed history, as on Forgejo.
         PYTHONPATH=benchmarks ./python/bin/python3 -m perf.render --out doc/source/results --require-run
         cd doc
-        make html
+        set -o pipefail
+        make html 2>&1 | tee build-html.log
+        # The dataclass pages build without warnings (the classic pages still
+        # have unresolved cross-references). Keep it that way.
+        if grep "source/dataclass/" build-html.log; then
+          echo "::error::Sphinx warnings in doc/source/dataclass (above)"
+          exit 1
+        fi
         touch build/html/.nojekyll
         cp -r build/html ../
     # The GitHub Pages deploy step WAS HERE and is deliberately gone (2026-08-31).
