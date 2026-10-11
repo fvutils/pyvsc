@@ -172,7 +172,7 @@ def build_solve_node(obj, type_model, parent_rand=True):
             children[fd.name] = elem_nodes
             if fd.is_rand_sz:
                 composite.add_constraint(
-                    _composite_array_size_bound(arr, fd.max_size))
+                    _array_size_bound(arr, fd.max_size))
             continue
         if fd.is_array:
             # Regular (scalar or enum-element) array — enum arrays carry enum_cls.
@@ -183,6 +183,9 @@ def build_solve_node(obj, type_model, parent_rand=True):
             fm = FieldScalarModel(fd.name, fd.bits, fd.signed, fd.is_rand)
         composite.add_field(fm)
         field_models[fd.name] = fm
+        if fd.is_array and fd.is_rand_sz and fd.max_size is not None:
+            composite.add_constraint(
+                _array_size_bound(fm, fd.max_size))
 
     # Lower the cached constraint programs against this instance's field models.
     # Generic/value programs are not added here (they apply only when referenced);
@@ -207,7 +210,8 @@ def _build_array(fd):
     """Build a scalar- or enum-element FieldArrayModel. Fixed-size arrays
     (``size=N``) are pre-populated with N elements; random-size arrays start empty
     and are extended by the array-constraint builder up to the size field's solved
-    bound (so the user must constrain ``arr.size``). For enum arrays, ``enums``
+    bound (``max_size=M`` bounds it, see `_array_size_bound`; without it the user
+    must constrain ``arr.size``). For enum arrays, ``enums``
     makes ``add_field`` build EnumFieldModels constrained to the enum's values."""
     type_t = FieldScalarModel("<primitive>", fd.bits, fd.signed, fd.is_rand)
     enums = EnumInfo.get(fd.enum_cls).enums if fd.enum_cls is not None else None
@@ -266,9 +270,10 @@ def _build_composite_array(obj, fd, parent_rand=True):
     return arr, elem_nodes
 
 
-def _composite_array_size_bound(arr, max_size):
-    """A 0 <= size <= max_size constraint pinning a random-size composite array's
-    size to its pre-allocated element count (the user constrains it further)."""
+def _array_size_bound(arr, max_size):
+    """A 0 <= size <= max_size constraint on a random-size array. For a
+    composite array, max_size is its pre-allocated element count; for a scalar
+    array it is the declared bound. The user constrains the size further."""
     block = ConstraintBlockModel("__arrsz_%s__" % arr.name)
     size_ref = ExprFieldRefModel(arr.size)
     block.constraint_l.append(ConstraintExprModel(ExprBinModel(

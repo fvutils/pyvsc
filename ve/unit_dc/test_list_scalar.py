@@ -62,3 +62,41 @@ class TestListScalar(DcTestCase):
         for i in range(len(it.l)):
             if i > 0:
                 self.assertEqual(it.l[i], it.l[i - 1] + 1)
+
+    def test_randsz_max_size_bounds(self):
+        # B15: max_size= on a scalar array was ignored. Without a size
+        # constraint randomize() failed ("exceeds 100000"); with a looser one
+        # the size went past max_size.
+
+        @vdc.dataclass
+        class unbounded(vdc.RandClass):
+            l: list[vdc.u8] = vdc.rand(max_size=6)
+
+        @vdc.dataclass
+        class loose(vdc.RandClass):
+            l: list[vdc.u8] = vdc.rand(max_size=6)
+
+            @vdc.constraint
+            def c(self):
+                self.l.size >= 3
+                self.l.size < 20
+
+        @vdc.dataclass
+        class over(vdc.RandClass):
+            l: list[vdc.u8] = vdc.rand(max_size=6)
+
+            @vdc.constraint
+            def c(self):
+                self.l.size == 7
+
+        u, lo = unbounded(), loose()
+        sizes = set()
+        for _ in range(40):
+            u.randomize()
+            self.assertLessEqual(len(u.l), 6)
+            lo.randomize()
+            self.assertTrue(3 <= len(lo.l) <= 6, len(lo.l))
+            sizes.add(len(lo.l))
+        self.assertEqual(sizes, {3, 4, 5, 6})
+        with self.assertRaises(vdc.SolveFailure):
+            over().randomize()
