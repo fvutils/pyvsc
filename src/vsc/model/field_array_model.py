@@ -218,17 +218,53 @@ class FieldArrayModel(FieldCompositeModel):
     
     def get_sum_width(self):
         result_bits = self.type_t.width
-        overflow_val = int(self.size.get_val())-1
+        # A random-size array's sum may be over any of its pre-allocated
+        # elements (see _size_cosolved), so size it for all of them.
+        n = int(self.size.get_val())
+        if self.is_rand_sz:
+            n = max(n, len(self.field_l))
+        overflow_val = n - 1
             
         while overflow_val > 0:
             result_bits += 1
             overflow_val >>= 1
 
         return result_bits
-        
+
+    def _size_cosolved(self):
+        """True when this random-size array's ``size`` is solved together with
+        the aggregate being built (it has a solver var in this solve), so its
+        value is not known yet. A size solved earlier has been disposed."""
+        return self.is_rand_sz and getattr(self.size, "var", None) is not None
+
+    def _build_guarded(self, btor, ctx_width, unit, width):
+        """The sum (``unit`` 0) or product (``unit`` 1) of the pre-allocated
+        elements, each counted only when its index is below ``size``:
+        Σ (size > i ? e_i : 0). Used when ``size`` is solved with it."""
+        w = max(width, ctx_width)
+        size_n = self.size.var
+        acc = btor.Const(unit, w)
+        for i, f in enumerate(self.field_l):
+            e = f.var if f.var is not None else btor.Const(int(f.get_val()), f.width)
+            if w > f.width:
+                e = (btor.Sext(e, w - f.width) if self.is_signed
+                     else btor.Uext(e, w - f.width))
+            take = btor.Ugt(size_n, btor.Const(i, self.size.width))
+            term = btor.Cond(take, e, btor.Const(unit, w))
+            acc = btor.Add(acc, term) if unit == 0 else btor.Mul(acc, term)
+        if unit == 1:
+            # The product of no elements is 0 here, as in get_product_expr.
+            acc = btor.Cond(btor.Eq(size_n, btor.Const(0, self.size.width)),
+                            btor.Const(0, w), acc)
+        return acc
+
     def build_sum_expr(self, btor, ctx_width=-1):
         if self.sum_expr_btor is None:
-            self.sum_expr_btor = self.get_sum_expr().build(btor, ctx_width)
+            if self._size_cosolved():
+                self.sum_expr_btor = self._build_guarded(
+                    btor, ctx_width, 0, self.get_sum_width())
+            else:
+                self.sum_expr_btor = self.get_sum_expr().build(btor, ctx_width)
         return self.sum_expr_btor
     
     def get_product_expr(self):
@@ -254,7 +290,10 @@ class FieldArrayModel(FieldCompositeModel):
         
     def build_product_expr(self, btor, ctx_width=-1):
         if self.product_expr_btor is None:
-            self.product_expr_btor = self.get_product_expr().build(btor, ctx_width)
+            if self._size_cosolved():
+                self.product_expr_btor = self._build_guarded(btor, ctx_width, 1, 64)
+            else:
+                self.product_expr_btor = self.get_product_expr().build(btor, ctx_width)
         return self.product_expr_btor    
         
     def accept(self, v):

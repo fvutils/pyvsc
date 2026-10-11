@@ -425,9 +425,22 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 self._field_m.pop(fm)
 
     def visit_expr_array_sum(self, e):
-        # Summing the array relates all array elements
-        for f in e.arr.field_l:
+        self._relate_array(e.arr)
+
+    def visit_expr_array_product(self, e):
+        self._relate_array(e.arr)
+
+    def _relate_array(self, arr):
+        # A sum or product relates all array elements, and the size of a
+        # random-size array, which decides how many of them count. Solved
+        # apart (first), the size could be one that makes the aggregate
+        # unsatisfiable (size 0 for sum == 30). Solved together, both
+        # back-ends guard each element by the size
+        # (FieldArrayModel._build_guarded, DvSolveTranslator._array_terms).
+        for f in arr.field_l:
             self.process_fieldref(f)
+        if getattr(arr, "is_rand_sz", False):
+            self.process_fieldref(arr.size)
 
     def visit_expr_fieldref(self, e):
         # If the field is already referenced by an existing randset

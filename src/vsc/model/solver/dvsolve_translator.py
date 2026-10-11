@@ -726,8 +726,10 @@ class DvSolveExprTranslator(ModelVisitor):
                 # can't represent as a model node without spuriously reading as
                 # always-true when it is the sole rangelist entry.
                 from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
+                from vsc.model.expr_literal_model import ExprLiteralModel as _Lit
                 arr = r.fm
-                n = self._array_elem_count(arr)
+                guard = self._cosolved_size(arr)
+                n = self._array_elem_count(arr, all_elems=True)
                 if n < 1:
                     # An empty array is the empty set for this entry, i.e. the
                     # constant False as a membership-OR leaf — skip it; it changes
@@ -738,6 +740,12 @@ class DvSolveExprTranslator(ModelVisitor):
                 term = None
                 for i in range(n):
                     eq = ExprBinModel(e.lhs, BinExprType.Eq, _FR(arr.field_l[i]))
+                    if guard:
+                        # The size is solved here: element i counts only
+                        # when it is within it.
+                        eq = ExprBinModel(ExprBinModel(
+                            _FR(arr.size), BinExprType.Gt, _Lit(i, False, 32)),
+                            BinExprType.And, eq)
                     term = eq if term is None \
                         else ExprBinModel(term, BinExprType.Or, eq)
             else:
@@ -849,7 +857,7 @@ class DvSolveExprTranslator(ModelVisitor):
         if is_const(sub.rhs):
             return None
         try:
-            n = self._array_elem_count(arr)
+            n = self._array_elem_count(arr, all_elems=True)
         except Exception:
             return None
         if n < 1:
@@ -1297,7 +1305,11 @@ class DvSolveExprTranslator(ModelVisitor):
     # The native n-ary sum propagator (EXPR_SUM) caps the summand count.
     _MAX_SUM_VARS = 64
 
-    def _array_elem_count(self, arr):
+    def _cosolved_size(self, arr):
+        """True when ``arr``'s random size is solved in this RandSet."""
+        return getattr(arr, "is_rand_sz", False) and self._m.has(arr.size)
+
+    def _array_elem_count(self, arr, all_elems=False):
         """The active element count of ``arr`` for an aggregate.
 
         Fixed-size: the declared size. Random-sized (Phase C-3): pyvsc partitions
@@ -1309,7 +1321,11 @@ class DvSolveExprTranslator(ModelVisitor):
         guard: if ``size`` is instead *co-solved* in this same RandSet (in the
         idmap), its value is not yet known here, so the aggregate would need a
         size-guarded ``ite``-prefix — defer rather than read a stale size."""
-        if getattr(arr, "is_rand_sz", False) and self._m.has(arr.size):
+        if self._cosolved_size(arr):
+            if all_elems:
+                # Every pre-allocated element; the caller guards by the size
+                # or the index is constrained below it.
+                return len(arr.field_l)
             raise BackendIncomplete(
                 "dv-solve: aggregate over a co-solved random-sized array "
                 "(size-guarded prefix not yet supported)", reason_code="array")
@@ -1320,12 +1336,55 @@ class DvSolveExprTranslator(ModelVisitor):
             self.const_fields[arr.size] = n
         return n
 
+    def _array_terms(self, arr, w, unit, signed):
+        """The element refs an aggregate over ``arr`` combines, at ``w`` bits,
+        and the size's ref when the size is co-solved (else None).
+
+        A co-solved size has no value yet, so every pre-allocated element is a
+        term, guarded by its index: ``size > i ? e_i : unit`` (``unit`` is 0
+        for a sum, 1 for a product), as Boolector builds it
+        (FieldArrayModel._build_guarded)."""
+        from vsc.model.expr_fieldref_model import ExprFieldRefModel
+        if getattr(arr, "is_rand_sz", False) and self._m.has(arr.size):
+            size_ref = self._ref_for_field(arr.size)
+            out = []
+            for i, f in enumerate(arr.field_l):
+                e = self.translate(ExprFieldRefModel(f), ctx_width=w,
+                                   want_var=True)
+                if int(f.width) < w:
+                    e = self._b.expr_extend(e, int(f.width), w, bool(signed))
+                take = self._b.expr_binary(BIN_GT, size_ref,
+                                           self._b.expr_const(i))
+                out.append(self._materialize(self._b.expr_ite(
+                    take, e, self._b.expr_const(unit, bool(signed), w)),
+                    w, signed))
+            return out, size_ref
+        n = self._array_elem_count(arr)
+        return [self.translate(ExprFieldRefModel(arr.field_l[i]), ctx_width=w,
+                               want_var=True) for i in range(n)], None
+
     def visit_expr_array_sum(self, e):
         # arr.sum -> a result aux constrained `result == Σ elem[i]` via the native
         # n-ary sum propagator. The result is returned as a plain var so the
         # enclosing constraint (`arr.sum == X`, `arr.sum < K`) compiles directly.
         from vsc.model.expr_fieldref_model import ExprFieldRefModel
         arr = e.arr
+        if getattr(arr, "is_rand_sz", False) and self._m.has(arr.size):
+            rw = int(e.width())
+            if rw > self._AUX_MAX_W or len(arr.field_l) > self._MAX_SUM_VARS:
+                raise BackendIncomplete(
+                    "dv-solve: guarded sum over %d elements, %d bits"
+                    % (len(arr.field_l), rw), reason_code="array")
+            terms, _ = self._array_terms(arr, rw, 0, e.is_signed())
+            if not terms:
+                self._result = self._b.expr_const(0)
+                self._last_simple = True
+                return
+            result_ref = self._new_aux(rw, e.is_signed())
+            self._b.add_constraint(self._b.expr_sum(result_ref, terms))
+            self._result = result_ref
+            self._last_simple = True
+            return
         n = self._array_elem_count(arr)
         if n == 0:
             self._result = self._b.expr_const(0)
@@ -1359,8 +1418,25 @@ class DvSolveExprTranslator(ModelVisitor):
         # below 2^aux_w (documented caveat for very large products).
         from vsc.model.expr_fieldref_model import ExprFieldRefModel
         arr = e.arr
-        n = self._array_elem_count(arr)
         signed = e.is_signed()
+        if getattr(arr, "is_rand_sz", False) and self._m.has(arr.size):
+            fw = min(int(e.width()), self._AUX_MAX_W)
+            terms, size_ref = self._array_terms(arr, fw, 1, signed)
+            if not terms:
+                self._result = self._b.expr_const(0)
+                self._last_simple = True
+                return
+            acc = terms[0]
+            for t in terms[1:]:
+                acc = self._materialize(self._b.expr_binary(BIN_MUL, acc, t),
+                                        fw, signed)
+            # The product of no elements is 0, as in get_product_expr.
+            empty = self._b.expr_binary(BIN_EQ, size_ref, self._b.expr_const(0))
+            self._result = self._materialize(self._b.expr_ite(
+                empty, self._b.expr_const(0, bool(signed), fw), acc), fw, signed)
+            self._last_simple = True
+            return
+        n = self._array_elem_count(arr)
         if n == 0:
             self._result = self._b.expr_const(0)
             self._last_simple = True
@@ -1506,7 +1582,7 @@ class DvSolveExprTranslator(ModelVisitor):
                 "dv-solve: variable-indexed subscript over a non-array lvalue",
                 reason_code="array")
         arr = e.lhs.fm
-        n = self._array_elem_count(arr)
+        n = self._array_elem_count(arr, all_elems=True)
         if n < 1:
             raise BackendIncomplete(
                 "dv-solve: variable-indexed select over an empty array",

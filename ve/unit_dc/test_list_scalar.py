@@ -100,3 +100,41 @@ class TestListScalar(DcTestCase):
         self.assertEqual(sizes, {3, 4, 5, 6})
         with self.assertRaises(vdc.SolveFailure):
             over().randomize()
+
+    def test_randsz_aggregates_with_size_solved(self):
+        # B18: with the size solved together with the elements (a random index,
+        # or [-1], which reads the size), sum/product/'in' were taken over the
+        # size's value before the solve, and were silently wrong. dv-solve
+        # serves these itself (no fall-back to Boolector).
+        import vsc.model.randomizer as rnd
+
+        @vdc.dataclass
+        class F(vdc.RandClass):
+            data: list[vdc.u8] = vdc.rand(max_size=8)
+            idx: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                4 <= len(self.data) <= 8
+                sum(self.data) == 120
+                self.idx < len(self.data)
+                self.data[self.idx] == 7
+                self.data[-1] > 50
+                3 in self.data
+
+        snap = rnd.snapshot_fallback_tally()
+        rnd.set_fallback_tally(True)
+        rnd.reset_fallback_tally()
+        self.addCleanup(rnd.restore_fallback_tally, snap)
+        f = F()
+        sizes = set()
+        for _ in range(30):
+            f.randomize()
+            d = list(f.data)
+            sizes.add(len(d))
+            self.assertEqual(sum(d), 120, d)
+            self.assertEqual(d[f.idx], 7)
+            self.assertGreater(d[-1], 50)
+            self.assertIn(3, d)
+        self.assertGreater(len(sizes), 2)
+        self.assertEqual(rnd.get_fallback_tally(), {})
