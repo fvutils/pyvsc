@@ -1144,10 +1144,16 @@ class DvSolveBackend(SolverBackendIF):
         seed = randstate.randint(0, (1 << 63) - 1)
         if solve_info is not None:
             solve_info.n_sat_calls += 1
-        # fair_pick=True: uniform marginals / full coverage — the correct
-        # distribution for constrained-random stimulus.
+        # fair_pick=True: the stimulus distribution. Without a solve order the
+        # engine draws uniformly over solutions, as IEEE 1800 specifies. A
+        # solve order (`solve a before b`) defines its distribution by the
+        # order the values are drawn in, so it asks for the sequential draw
+        # (seq_pick).
         _t = PT.now()
-        rc = ctx.solve(seed=seed, fair_pick=True)
+        if has_order:
+            rc = ctx.solve(seed=seed, fair_pick=True, seq_pick=True)
+        else:
+            rc = ctx.solve(seed=seed, fair_pick=True)
         PT.add("solve", _t)
         if rc == SOLVE_OK:
             _validate_model(ctx, "per-RandSet solve")
