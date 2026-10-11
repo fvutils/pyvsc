@@ -42,6 +42,9 @@ _CMPOP = {
 
 _CMP_OPS = frozenset(_CMPOP.values())
 
+# Largest exponent '**' expands into products.
+_MAX_POW = 8
+
 # Helper names recognized regardless of module prefix (vdc./vsc./bare).
 _IFTHEN = "if_then"
 _ELSEIF = "else_if"
@@ -410,6 +413,8 @@ class _Parser:
             if isinstance(node.op, ast.Div):
                 self._err(node, "integer constraints have no true division; "
                                 "use '//'")
+            if isinstance(node.op, ast.Pow):
+                return self._pow(node)
             if op is None:
                 self._err(node, "unsupported binary operator")
             return IRBin(op, self._expr(node.left), self._expr(node.right))
@@ -492,6 +497,24 @@ class _Parser:
             self._err(node, "reference to local/global %r not supported in constraints"
                       % node.id)
         self._err(node, "unsupported expression %s" % type(node).__name__)
+
+    def _pow(self, node):
+        """``x ** k`` for a constant ``k`` in 0..8, as products of ``x``."""
+        k = self._expr(node.right)
+        if not (isinstance(k, IRConst) and 0 <= k.value <= _MAX_POW):
+            self._err(node, "'**' needs a constant exponent from 0 to %d"
+                            % _MAX_POW)
+        x = self._expr(node.left)
+        if isinstance(x, IRConst):
+            return IRConst(x.value ** k.value)
+
+        def power(n):
+            if n == 1:
+                return x
+            half = power(n // 2)
+            sq = IRBin("*", half, half)
+            return IRBin("*", sq, x) if n % 2 else sq
+        return power(k.value) if k.value else IRConst(1)
 
     def _compare(self, node):
         if len(node.ops) == 1:

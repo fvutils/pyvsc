@@ -23,7 +23,7 @@ from grammar_util import GrammarCase
 # G-ID -> None (tested here) or the plan ledger item that will add its test.
 G_ROWS = {
     1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
-    9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: "1.6",
+    9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: None,
     16: None, 17: None, 18: None, 19: None, 20: None, 21: None, 22: None,
     23: None, 24: None, 25: None, 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
@@ -164,6 +164,23 @@ class TestConstraintGrammar(GrammarCase):
             self.a - self.c == 2
             self.b * 3 == 12
         """, lambda t: (t.a + t.b, t.a - t.c, t.b) == (10, 2, 4))
+
+    def test_G15_power(self):
+        self.accept("self.a ** 2 == 49", lambda t: t.a == 7)
+        self.same_model("self.a ** 2 == 49", "self.a * self.a == 49")
+        self.accept("self.a ** 3 == 125", lambda t: t.a == 5)
+        self.accept("self.s ** 2 == 9", lambda t: t.s in (3, -3),
+                    witness=lambda it: it.s == -3)
+        self.accept("self.a ** 0 == 1")
+        self.accept("self.a ** 1 == 9", lambda t: t.a == 9)
+        self.accept("self.a == 2 ** 7", lambda t: t.a == 128)
+        self.accept("self.a ** E.B == 25", lambda t: t.a == 5)
+        # The square is not taken at 8 bits: 16 ** 2 is 256, not 0.
+        self.accept("self.a ** 2 == 256", lambda t: t.a == 16)
+        for body in ("self.a ** self.b == 8", "self.a ** 9 == 1",
+                     "self.a ** -1 == 1"):
+            with self.subTest(body=body):
+                self.reject(body, "'**' needs a constant exponent from 0 to 8")
 
     def test_G16_matmul(self):
         self.reject("self.a @ self.b == 1", "unsupported binary operator")
