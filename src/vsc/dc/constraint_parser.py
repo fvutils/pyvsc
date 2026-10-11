@@ -95,6 +95,7 @@ def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
     p = _Parser(name, fn.args.args[0].arg, func)
     p._params = set(params)
     p._arrays = arrays
+    p._src_lines = src.splitlines()
 
     param_defaults = {}
     for sp in sig_params:
@@ -138,6 +139,9 @@ class _Parser:
         self._params = set()
         # Names of the class's array fields (``self.<name>``).
         self._arrays = frozenset()
+        # Lines of the (dedented) source the AST was parsed from, used where the
+        # AST drops a detail (parentheses).
+        self._src_lines = None
         # Names bound by enclosing foreach loops (idx/it), referenceable as bare
         # Names in the body and resolved to IRField at lowering.
         self._bound = set()
@@ -438,6 +442,7 @@ class _Parser:
                 self._err(node, "unsupported comparison")
             return IRBin(op, self._expr(node.left), self._expr(node.comparators[0]))
         # Chained compare a<b<c  ->  (a<b) & (b<c)
+        self._check_chain_operands(node)
         result = None
         left = node.left
         for cmp_op, right in zip(node.ops, node.comparators):
@@ -448,6 +453,37 @@ class _Parser:
             result = term if result is None else IRBin("&", result, term)
             left = right
         return result
+
+    def _check_chain_operands(self, node):
+        """Reject ``a > 3 & a < 6``: '&' binds tighter than '>', so Python reads
+        it as the chain ``a > (3 & a) < 6``. A parenthesized operand
+        (``a < (b & c) < d``) is taken as meant."""
+        for cmp_op, opnd in zip(node.ops, node.comparators):
+            if (isinstance(opnd, ast.BinOp)
+                    and isinstance(opnd.op, (ast.BitAnd, ast.BitOr, ast.BitXor))
+                    and not self._parenthesized(opnd)):
+                self._err(node, "'%s' binds tighter than '%s', so this is a "
+                          "chained comparison; parenthesize each comparison, "
+                          "e.g. (x > 3) & (x < 6)"
+                          % (_BINOP[type(opnd.op)],
+                             _CMPOP.get(type(cmp_op), "in")))
+
+    def _parenthesized(self, node):
+        """True when ``node`` is written in parentheses. The AST drops them, but
+        a node's position excludes them, so look at the source just before it."""
+        if self._src_lines is None:
+            return True
+        ln, col = node.lineno - 1, node.col_offset
+        while ln >= 0:
+            line = self._src_lines[ln].encode()     # col_offset is in bytes
+            text = line[:col].decode(errors="replace").rstrip()
+            if text.endswith("\\"):
+                text = text[:-1].rstrip()
+            if text:
+                return text.endswith("(")
+            ln -= 1
+            col = None
+        return False
 
     def _call_expr(self, node):
         if isinstance(node.func, ast.Attribute):
