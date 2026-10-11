@@ -81,7 +81,8 @@ _IMPLIES = "implies"
 _FOREACH = "foreach"
 
 
-def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
+def parse_constraint(name, func, kind="fixed", arrays=frozenset(),
+                     fields=frozenset()):
     """Compile ``func`` (a constraint method) into a :class:`ConstraintProgram`.
 
     ``kind`` is the marker set by the decorator: ``"fixed"`` (``@vdc.constraint``),
@@ -128,6 +129,7 @@ def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
     p = _Parser(name, fn.args.args[0].arg, func)
     p._params = set(params)
     p._arrays = arrays
+    p._fields = fields
     p._src_lines = src.splitlines()
 
     param_defaults = {}
@@ -222,7 +224,8 @@ class _Parser:
         # Formal parameter names of a generic constraint (set by parse_constraint
         # after construction); a bare Name matching one lowers to IRParam.
         self._params = set()
-        # Names of the class's array fields (``self.<name>``).
+        # Names of the class's fields, and of its array fields (``self.<name>``).
+        self._fields = frozenset()
         self._arrays = frozenset()
         # Lines of the (dedented) source the AST was parsed from, used where the
         # AST drops a detail (parentheses).
@@ -333,11 +336,16 @@ class _Parser:
                     and attr not in ("inside", "not_inside", "outside")):
                 return self._constraint_ref(value, attr, value.args, value.keywords)
             # inside/not_inside/outside fall through to expression handling.
-        # A bare ``self.<name>`` statement references a generic constraint (a bare
-        # field statement is meaningless, so this is unambiguous).
+        # A bare ``self.<name>`` statement: a field is tested for truth (G-68),
+        # anything else references a generic constraint.
         if (isinstance(value, ast.Attribute)
                 and isinstance(value.value, ast.Name)
                 and value.value.id == self.self_name):
+            if value.attr in self._arrays:
+                self._err(value, "an array is not a constraint; constrain its "
+                                 "elements or its .size")
+            if value.attr in self._fields:
+                return IRConstraintExpr(IRField((value.attr,)))
             return IRConstraintRef(value.attr, [], self._abs_line(value))
         if (isinstance(value, ast.Call) and self._builtin(value) == "all"
                 and len(value.args) == 1

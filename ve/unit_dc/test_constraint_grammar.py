@@ -31,7 +31,7 @@ G_ROWS = {
     44: None, 45: None, 46: None, 47: None, 48: None, 49: None, 50: None,
     51: None, 52: None, 53: None, 54: None, 55: None, 56: None,
     57: None, 58: None, 59: None, 60: None, 61: None, 62: None,
-    63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
+    63: None, 64: None, 65: None, 66: None, 67: None, 68: None, 69: None,
     70: None, 71: None, 72: None, 73: None, 74: None, 75: None,
     76: None, 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
     83: None, 84: None, 85: None, 86: None, 87: None, 88: "2.5", 89: None,
@@ -991,6 +991,37 @@ class TestConstraintGrammar(GrammarCase):
 
     def test_G67_expression_statement(self):
         self.accept("self.a == 5", lambda t: t.a == 5)
+
+    def test_G68_bare_field_statement(self):
+        # A truth test, as in an 'if' condition: non-zero, not bit 0.
+        self.accept("self.flag", lambda t: t.flag == 1)
+        self.accept("self.a", lambda t: t.a != 0, witness=lambda it: it.a == 0x80)
+        self.accept("""
+            if self.b > 3:
+                self.flag
+        """, lambda t: t.b <= 3 or t.flag == 1)
+        self.accept("""
+            for o in self.objs:
+                o.x
+        """, lambda t: all(o.x for o in t.objs))
+        self.accept("self.sub.x", lambda t: t.sub.x != 0)
+        # A generic constraint is still a reference.
+        self.accept(None, lambda t: t.a == 3, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint.generic
+                def is3(self):
+                    self.a == 3
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.is3
+        """)
+        self.reject("self.arr", "an array is not a constraint")
 
     def test_G69_constant_statement(self):
         self.accept("""

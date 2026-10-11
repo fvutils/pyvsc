@@ -193,7 +193,7 @@ def _composite_array_decl(name, meta, elem_cls):
         is_array=True, is_rand_sz=(size is None), elem_comp_cls=elem_cls)
 
 
-def _collect_constraints(cls, arrays=frozenset()):
+def _collect_constraints(cls, arrays=frozenset(), fields=frozenset()):
     """Gather constraint methods across the MRO (subclass overrides win),
     preserving declaration order within each class. Returns ``(fixed, generic)``:
     a list of fixed (always-on) programs and a name->program dict of generic/value
@@ -221,7 +221,7 @@ def _collect_constraints(cls, arrays=frozenset()):
             # parse_constraint raises ConstraintParseError if the source is
             # unavailable (REPL/exec/python -c) — a hard failure, because a
             # dropped constraint would silently randomize fields unconstrained.
-            prog = parse_constraint(name, member, marker, arrays)
+            prog = parse_constraint(name, member, marker, arrays, fields)
             seen[name] = prog.kind
             if prog.kind == "fixed":
                 fixed.append(prog)
@@ -512,7 +512,8 @@ def build_type_model(cls):
                        klass.__qualname__))
 
     constraints, generic_constraints = _collect_constraints(
-        cls, frozenset(f.name for f in fields if f.is_array))
+        cls, frozenset(f.name for f in fields if f.is_array),
+        frozenset(field_names))
 
     # Reads of class-level constants (self.instr_name on a per-opcode subclass)
     # become literals of this type, and the guards they decide are folded.
