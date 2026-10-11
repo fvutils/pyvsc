@@ -382,6 +382,7 @@ def _attr(node, ctx):
     # (non-constant) idx over a list of dataclass objects. Lower it to a select
     # over the homogeneous sub-field column rather than a concrete element.
     if isinstance(node.base, ir.IRIndex):
+        node = ir.IRAttr(_from_end(node.base, ctx), node.name)
         sel = _try_symbolic_composite_select(node.base, node.name, ctx)
         if sel is not None:
             return sel
@@ -452,6 +453,7 @@ def _resolve_model(node, ctx):
     if isinstance(node, ir.IRAttr):
         return _descend(_resolve_model(node.base, ctx), node.name)
     if isinstance(node, ir.IRIndex):
+        node = _from_end(node, ctx)
         base = _resolve_model(node.base, ctx)
         if not isinstance(base, FieldArrayModel):
             raise TypeError("indexed access on a non-array model")
@@ -557,7 +559,30 @@ def _field(node, ctx):
     return ExprFieldRefModel(model)
 
 
+def _from_end(node, ctx):
+    """``node`` (an IRIndex), with a negative constant index into a random-size
+    array counted from its solved size: ``arr[-k]`` is ``arr[arr.size - k]``.
+    (The elements are allocated after lowering, so ``field_l[-k]`` here would
+    be an element of the previous solve's size.)"""
+    k = _try_const_eval(node.index, ctx)
+    if k is None or k >= 0:
+        return node
+    try:
+        arr = _resolve_model(node.base, ctx)
+    except (NotImplementedError, KeyError, TypeError):
+        return node
+    if not (isinstance(arr, FieldArrayModel) and arr.is_rand_sz):
+        return node
+    if not isinstance(node.base, ir.IRField):
+        raise NotImplementedError(
+            "a negative index into the random-size array %r needs a "
+            "self.<array> path; write arr[arr.size - %d]" % (arr.name, -k))
+    return ir.IRIndex(node.base, ir.IRBin(
+        "-", ir.IRField(node.base.path + ("size",)), ir.IRConst(-k)))
+
+
 def _index(node, ctx):
+    node = _from_end(node, ctx)
     # Decide array-subscript vs scalar bit-select from the base's resolved model.
     # Look at the *lowered* base, so a nested path (self.sub.arr[k]) is seen as
     # an array too. Checking only a one-segment name lowered self.sub.arr[k] as

@@ -28,7 +28,7 @@ G_ROWS = {
     23: None, 24: None, 25: None, 26: None, 27: None, 28: None, 29: None,
     30: None, 31: None, 32: None, 33: None, 34: None, 35: None, 36: None,
     37: None, 38: None, 39: None, 40: None, 41: None, 42: None, 43: None,
-    44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
+    44: None, 45: None, 46: None, 47: None, 48: None, 49: None, 50: None,
     51: None, 52: None, 53: None, 54: None, 55: None, 56: None,
     57: None, 58: None, 59: None, 60: None, 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
@@ -639,6 +639,36 @@ class TestConstraintGrammar(GrammarCase):
 
     def test_G47_array_constant_index(self):
         self.accept("self.arr[1] == 7", lambda t: t.arr[1] == 7)
+
+    def test_G48_negative_index(self):
+        # Python's meaning: counted from the end.
+        self.accept("""
+            self.arr[-1] == 7
+            self.arr[-4] == 3
+        """, lambda t: t.arr[3] == 7 and t.arr[0] == 3)
+        self.accept("self.objs[-1].x == 5", lambda t: t.objs[1].x == 5)
+        # A random-size array counts from its solved size, not the previous one.
+        self.accept(None, lambda t: t.arr[-1] == 7 and t.objs[-1].x == 9,
+                    n=40, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class Sub(vdc.RandClass):
+                x: vdc.u8 = vdc.rand()
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                arr: list[vdc.u8] = vdc.rand(max_size=5)
+                objs: list[Sub] = vdc.rand(max_size=3)
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.arr.size > 0
+                    self.arr.size <= 5
+                    self.arr[-1] == 7
+                    self.objs.size > 0
+                    self.objs[-1].x == 9
+        """)
 
     def test_G49_array_symbolic_index(self):
         # The first solve of a fresh type uses the solved index (B1).
