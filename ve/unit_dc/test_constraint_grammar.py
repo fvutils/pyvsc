@@ -203,6 +203,28 @@ class TestConstraintGrammar(GrammarCase):
             self.a % 4 == 1
         """, lambda t: t.a == 13)
 
+    def test_G13_signed_div_mod_truncate(self):
+        # SV, not Python, for a negative operand (Q7): '//' truncates toward
+        # zero and '%' takes the dividend's sign. Python gives -4 and 1 here.
+        src = """
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                p: vdc.s8 = vdc.rand()
+                q: vdc.s8 = vdc.rand()
+                r: vdc.s8 = vdc.rand()
+                m: vdc.s8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.p == -7
+                    self.q == self.p // 2
+                    self.r == self.p // -2
+                    self.m == self.p % 2
+        """
+        self.accept(None, lambda t: (t.q, t.r, t.m) == (-3, 3, -1), src=src)
+
     def test_G14_add_sub_mul(self):
         self.accept("""
             self.a + self.b == 10
@@ -243,6 +265,26 @@ class TestConstraintGrammar(GrammarCase):
             (self.a << 1) == 8
             (self.b >> 2) == 1
         """, lambda t: t.a == 4 and t.b >> 2 == 1)
+
+    def test_G18_signed_shift_is_logical(self):
+        # '>>' is a logical shift at the context width (32 bits here), not
+        # Python's arithmetic shift (Q7): -7 >> 1 is 0x7FFFFFFC, not -4.
+        src = """
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                p: vdc.s8 = vdc.rand()
+                r: vdc.s16 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.p == -7
+                    self.r == BODY
+        """
+        self.accept(None, lambda t: t.r == 0xFC,
+                    src=src.replace("BODY", "(self.p >> 1) & 0xFF"))
+        self.accept(None, unsat=True, src=src.replace("BODY", "self.p >> 1"))
 
     def test_G19_invert(self):
         # Masked: unmasked, ~a is taken at the comparison's width, and the
