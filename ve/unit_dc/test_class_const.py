@@ -10,6 +10,8 @@ randomize with "constraint references unknown field".
 """
 from enum import IntEnum
 
+MASK_G = 0xF0
+
 from dc_test_case import DcTestCase
 import vsc.dc as vdc
 from vsc.dc import constraint_ir as ir
@@ -179,3 +181,47 @@ class TestClassConst(DcTestCase):
         # The object still works once the block is off.
         w.set_constraint_mode("c", False)
         w.randomize()
+
+    def test_invert_is_bitwise(self):
+        # ~ on a folded int constant is a bitwise invert, as it is on a field
+        # (it was folded as logical not: ~0xF0 -> 0, forcing a == 0).
+        @vdc.dataclass
+        class Masked(vdc.RandClass):
+            MASK = 0xF0
+            a: vdc.u8 = vdc.rand()
+            b: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                (self.a & ~self.MASK) == self.a
+                # A module constant folds the same way once the program
+                # reads a class constant.
+                (self.b & ~MASK_G) == self.b
+
+        m = Masked()
+        seen = set()
+        for _ in range(40):
+            m.randomize()
+            self.assertLess(m.a, 16)
+            self.assertLess(m.b, 16)
+            seen.add(m.a)
+        self.assertGreater(len(seen), 1)
+
+    def test_invert_of_bool_is_logical(self):
+        # A bool constant, or a comparison of constants, is one bit wide.
+        @vdc.dataclass
+        class Flags(vdc.RandClass):
+            ON = True
+            MODE = 2
+            a: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                with vdc.if_then(~self.ON):
+                    self.a == 1
+                with vdc.if_then(~(self.MODE == 3)):
+                    self.a == 2
+
+        f = Flags()
+        f.randomize()
+        self.assertEqual(f.a, 2)

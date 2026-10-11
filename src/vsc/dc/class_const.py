@@ -26,7 +26,8 @@ _MISSING = object()
 
 def lookup_for(cls, field_names):
     """Return ``name -> int or None``: the solver value of class attribute
-    ``name`` of ``cls`` when it is a constant (see the module doc)."""
+    ``name`` of ``cls`` when it is a constant (see the module doc). A bool
+    stays a bool, so ``~`` can treat it as one bit."""
     cache = {}
 
     def lookup(name):
@@ -38,7 +39,9 @@ def lookup_for(cls, field_names):
             if isinstance(v, enum.Enum):
                 from vsc.impl.enum_info import EnumInfo
                 val = EnumInfo.get(type(v)).e2v(v)
-            elif isinstance(v, (bool, int)):
+            elif isinstance(v, bool):
+                val = v
+            elif isinstance(v, int):
                 val = int(v)
         cache[name] = val
         return val
@@ -91,15 +94,21 @@ class _Folder:
                 v = self.lookup(n.path[0])
                 if v is not None:
                     self.hit = True
-                    return ir.IRConst(v)
+                    return ir.IRConst(int(v))
             return n
         if isinstance(n, ir.IRBin):
             return self._bin(n.op, self.expr(n.lhs, bound), self.expr(n.rhs, bound))
         if isinstance(n, ir.IRUnary):
             o = self.expr(n.operand, bound)
             if n.op == "~" and isinstance(o, ir.IRConst):
-                # '~' lowers to UnaryExprType.Not, a logical not.
-                return ir.IRConst(int(not o.value))
+                # '~' is a bitwise invert at the operand's width. A boolean
+                # (a comparison, a bool constant) is one bit wide, so it is
+                # logical not. Otherwise the folded constant becomes a signed
+                # 32-bit literal, and ~v is that literal's invert.
+                if self._is_bool(n.operand, bound):
+                    return ir.IRConst(int(not o.value))
+                if o.value in _I32:
+                    return ir.IRConst(~o.value)
             return ir.IRUnary(n.op, o)
         if isinstance(n, ir.IRInside):
             lhs = self.expr(n.lhs, bound)
@@ -126,6 +135,23 @@ class _Folder:
         if isinstance(n, ir.IRConstraintRef):
             return self._ref(n, bound)
         return n
+
+    def _is_bool(self, n, bound):
+        """True when ``n`` (before folding) is one bit wide."""
+        if isinstance(n, ir.IRField):
+            return (len(n.path) == 1 and n.path[0] not in bound
+                    and isinstance(self.lookup(n.path[0]), bool))
+        if isinstance(n, ir.IRInside):
+            return True
+        if isinstance(n, ir.IRBin):
+            if n.op in _CMP:
+                return True
+            if n.op in ("&", "|", "^"):
+                return self._is_bool(n.lhs, bound) and self._is_bool(n.rhs, bound)
+            return False
+        if isinstance(n, ir.IRUnary) and n.op == "~":
+            return self._is_bool(n.operand, bound)
+        return False
 
     def _bin(self, op, lhs, rhs):
         if isinstance(lhs, ir.IRConst) and isinstance(rhs, ir.IRConst):
