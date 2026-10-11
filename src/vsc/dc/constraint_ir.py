@@ -68,6 +68,19 @@ class IRUnary(IRNode):
         return "IRUnary(%r, %r)" % (self.op, self.operand)
 
 
+class IRCond(IRNode):
+    """``t if cond else f``. Also the lowering of ``abs``, ``min`` and ``max``."""
+    __slots__ = ("cond", "t", "f")
+
+    def __init__(self, cond, t, f):
+        self.cond = cond
+        self.t = t
+        self.f = f
+
+    def __repr__(self):
+        return "IRCond(%r, %r, %r)" % (self.cond, self.t, self.f)
+
+
 class IRRange(IRNode):
     """A single entry in an inside/rangelist: a point (hi is None) or [lo,hi]."""
     __slots__ = ("lo", "hi")

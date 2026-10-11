@@ -31,17 +31,22 @@ class ExprCondModel(ExprModel):
         self.false_e = false_e
         
     def build(self, btor, ctx_width=-1):
-        cond_n = self.cond_e.build(btor)
-        true_n = self.true_e.build(btor)
-        false_n = self.false_e.build(btor)
-        
+        # SV '?:': a wide condition is a truth test, and both arms take the
+        # width of the wider arm or the context, whichever is wider.
+        from vsc.model.expr_bin_model import ExprBinModel
+        cond_n = ExprModel.toBool(btor, self.cond_e.build(btor))
+        w = max(ctx_width, int(self.width()))
+        signed = self.is_signed()
+        true_n = ExprBinModel.extend(self.true_e.build(btor, w), w, signed, btor)
+        false_n = ExprBinModel.extend(self.false_e.build(btor, w), w, signed, btor)
+
         return btor.Cond(cond_n, true_n, false_n)
-    
+
     def is_signed(self):
-        return self.true_e.signed or self.false_e.signed
-    
+        return self.true_e.is_signed() and self.false_e.is_signed()
+
     def width(self):
-        return 0
-        
+        return max(int(self.true_e.width()), int(self.false_e.width()))
+
     def accept(self, visitor):
         visitor.visit_expr_cond(self)

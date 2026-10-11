@@ -18,7 +18,7 @@ import ast
 import inspect
 import textwrap
 
-from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRConst,
+from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRCond, IRConst,
                             IRConstraintExpr, IRConstraintRef, IRDist, IRField,
                             IRForeach, IRIfElse, IRImplies, IRIndex, IRInside,
                             IRParam, IRPartSelect, IRRange, IRSoft, IRSolveOrder,
@@ -126,6 +126,10 @@ def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
                              param_defaults=param_defaults)
 
 
+# Builtins a constraint expression may call (when not shadowed).
+_BUILTINS = frozenset(("abs", "bool", "min", "max"))
+
+
 def _is_bool(e):
     """True when IR expression ``e`` is a truth value (0 or 1)."""
     if isinstance(e, IRBin):
@@ -136,6 +140,8 @@ def _is_bool(e):
         return False
     if isinstance(e, IRInside):
         return True
+    if isinstance(e, IRCond):
+        return _is_bool(e.t) and _is_bool(e.f)
     return isinstance(e, IRConst) and e.value in (0, 1)
 
 
@@ -257,6 +263,11 @@ class _Parser:
                 and isinstance(value.value, ast.Name)
                 and value.value.id == self.self_name):
             return IRConstraintRef(value.attr, [], self._abs_line(value))
+        if isinstance(value, ast.IfExp):
+            # 't if c else f' as a statement is 'if c: t else: f'.
+            return IRIfElse(self._expr(value.test),
+                            [IRConstraintExpr(_bool(self._expr(value.body)))],
+                            [IRConstraintExpr(_bool(self._expr(value.orelse)))])
         return IRConstraintExpr(self._expr(value))
 
     def _constraint_ref(self, node, name, args, keywords):
@@ -426,6 +437,15 @@ class _Parser:
                 if isinstance(o, IRConst):
                     return IRConst(-o.value)
                 return IRBin("-", IRConst(0), o)
+        if isinstance(node, ast.IfExp):
+            c = _bool(self._expr(node.test))
+            t, f = self._expr(node.body), self._expr(node.orelse)
+            if _is_bool(t) and _is_bool(f):
+                # Logic, not a 1-bit select: dv-solve draws a 1-bit select's
+                # condition unevenly.
+                return IRBin("|", IRBin("&", c, t),
+                             IRBin("&", IRBin("==", c, IRConst(0)), f))
+            return IRCond(c, t, f)
         if isinstance(node, ast.Call):
             return self._call_expr(node)
         if isinstance(node, ast.Subscript):
@@ -543,7 +563,47 @@ class _Parser:
             if (isinstance(node.func.value, ast.Name)
                     and node.func.value.id == self.self_name):
                 return self._constraint_ref(node, attr, node.args, node.keywords)
+        builtin = self._builtin(node)
+        if builtin is not None:
+            return self._builtin_call(node, builtin)
         self._err(node, "unsupported call in expression")
+
+    def _builtin(self, node):
+        """The name of the builtin ``node`` calls, or None. A name the
+        function's globals, closure, parameters or a loop rebinds is not the
+        builtin."""
+        f = node.func
+        if (isinstance(f, ast.Name) and f.id in _BUILTINS
+                and f.id not in self._names and f.id not in self._params
+                and f.id not in self._bound):
+            return f.id
+        return None
+
+    def _builtin_call(self, node, name):
+        if node.keywords:
+            self._err(node, "%s() in a constraint takes no keyword arguments"
+                            % name)
+        args = node.args
+        if any(isinstance(a, ast.Starred) for a in args):
+            self._err(node, "%s() in a constraint takes no *arguments" % name)
+        if name in ("abs", "bool"):
+            if len(args) != 1:
+                self._err(node, "%s() takes one argument" % name)
+            x = self._expr(args[0])
+            if name == "bool":
+                return _bool(x)
+            return IRCond(IRBin("<", x, IRConst(0)), IRBin("-", IRConst(0), x), x)
+        # min / max
+        if len(args) < 2:
+            self._err(node, "%s() over an array is not supported yet; scalar "
+                            "%s() needs two or more arguments" % (name, name))
+        op = "<" if name == "min" else ">"
+        terms = [self._expr(a) for a in args]
+        result = terms[0]
+        for t in terms[1:]:
+            # Python keeps the first of equal values; they are equal anyway.
+            result = IRCond(IRBin(op, t, result), t, result)
+        return result
 
     @staticmethod
     def _callee_name(node):

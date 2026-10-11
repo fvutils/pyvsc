@@ -110,6 +110,11 @@ class _Folder:
                 if o.value in _I32:
                     return ir.IRConst(~o.value)
             return ir.IRUnary(n.op, o)
+        if isinstance(n, ir.IRCond):
+            c = self.expr(n.cond, bound)
+            if isinstance(c, ir.IRConst):
+                return self.expr(n.t if c.value else n.f, bound)
+            return ir.IRCond(c, self.expr(n.t, bound), self.expr(n.f, bound))
         if isinstance(n, ir.IRInside):
             lhs = self.expr(n.lhs, bound)
             ranges = [ir.IRRange(self.expr(r.lo, bound),

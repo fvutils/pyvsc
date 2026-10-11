@@ -421,6 +421,22 @@ class DvSolveExprTranslator(ModelVisitor):
             return -(1 << (w - 1)) <= v <= (1 << (w - 1)) - 1
         return 0 <= v <= (1 << w) - 1
 
+    def _materialized_at_ctx(self, node, ctx_width) -> bool:
+        """True iff translating ``node`` with want_var=True at ``ctx_width``
+        yields an aux of ``ctx_width`` bits: a value-producing binary op (not a
+        comparison or logical connective) whose width the aux range covers.
+        Mirrors the value-op branch of visit_expr_bin."""
+        from vsc.model.expr_bin_model import ExprBinModel
+        if not isinstance(node, ExprBinModel):
+            return False
+        if node.op in _RELATIONAL_OPS or node.op in (BinExprType.Eq,
+                                                     BinExprType.Ne):
+            return False
+        if (node.op in (BinExprType.And, BinExprType.Or)
+                and int(node.width()) == 1):
+            return False
+        return self._AUX_MIN_W <= ctx_width <= self._AUX_MAX_W
+
     def visit_expr_bin(self, e):
         is_logical = False
         if e.op in (BinExprType.And, BinExprType.Or):
@@ -587,19 +603,37 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def visit_expr_cond(self, e):
         cond = self._to_bool(self.translate(e.cond_e), e.cond_e)
-        # ITE arms must be plain for the native ite; raw value-ops there don't
-        # compile.
-        true_e = self.translate(e.true_e, want_var=True)
-        false_e = self.translate(e.false_e, want_var=True)
-        ref = self._b.expr_ite(cond, true_e, false_e)
-        # ExprCondModel.width() is 0, so size the aux from the context width.
-        cw = self._ctx_width
-        if self._want_var and self._AUX_MIN_W <= cw <= self._AUX_MAX_W:
-            self._result = self._materialize(ref, cw, e.is_signed())
+        # Both arms at one width, the wider of the arms and the context (SV
+        # '?:', as ExprCondModel.build does for Boolector). ITE arms must be
+        # plain for the native ite; raw value-ops there don't compile.
+        from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+        w = max(self._ctx_width, int(e.width()))
+        signed = e.is_signed()
+        arms = []
+        for arm in (e.true_e, e.false_e):
+            ref = self.translate(arm, w, want_var=True)
+            aw = int(arm.width())
+            if (aw < w and not IsConstExprVisitor().is_const(arm)
+                    and not self._cond_arm_at_width(arm, w)):
+                ref = self._b.expr_extend(ref, aw, w, signed)
+                ref = self._materialize(ref, w, signed)
+            arms.append(ref)
+        ref = self._b.expr_ite(cond, arms[0], arms[1])
+        if self._AUX_MIN_W <= w <= self._AUX_MAX_W:
+            self._result = self._materialize(ref, w, signed)
             self._last_simple = True
         else:
             self._result = ref
             self._last_simple = False
+
+    def _cond_arm_at_width(self, arm, w) -> bool:
+        """True iff translating ``arm`` with want_var=True at ``w`` already
+        gives ``w`` bits, so extending it from its own width would drop bits."""
+        from vsc.model.expr_cond_model import ExprCondModel
+        from vsc.model.expr_unary_model import ExprUnaryModel
+        if isinstance(arm, (ExprCondModel, ExprUnaryModel)):
+            return self._AUX_MIN_W <= w <= self._AUX_MAX_W
+        return self._materialized_at_ctx(arm, w)
 
     def visit_expr_in(self, e):
         # Mirror ExprInModel.build exactly, but as an ExprModel tree we then

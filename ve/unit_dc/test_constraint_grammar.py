@@ -25,12 +25,12 @@ G_ROWS = {
     1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
     9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: "1.6",
     16: None, 17: None, 18: None, 19: None, 20: None, 21: None, 22: None,
-    23: None, 24: None, 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
+    23: None, 24: None, 25: None, 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
     37: None, 38: "1.8", 39: "1.7", 40: "1.7", 41: None, 42: None, 43: None,
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
-    51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: "1.5",
-    57: "1.10", 58: "1.5", 59: "1.11", 60: "1.11", 61: "1.5", 62: None,
+    51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: None,
+    57: "1.10", 58: None, 59: "1.11", 60: "1.11", 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
     70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
     76: "2.3", 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
@@ -255,6 +255,37 @@ class TestConstraintGrammar(GrammarCase):
         self.accept("self.a > 3 and ~(self.a > 5)", lambda t: 3 < t.a <= 5,
                     witness=lambda it: it.a == 5)
 
+    def test_G25_conditional_expression(self):
+        self.accept("self.a == (1 if self.flag else 2)",
+                    lambda t: t.a == (1 if t.flag else 2),
+                    witness=lambda it: it.flag == 1)
+        # A wide condition is a truth test.
+        self.accept("self.a == (1 if self.b else 2)",
+                    lambda t: t.a == (1 if t.b else 2),
+                    witness=lambda it: it.b == 0x80)
+        # The arms take the wider width: 300 is never an 8-bit value.
+        self.accept("self.a == (300 if self.flag else 2)",
+                    lambda t: t.flag == 0 and t.a == 2)
+        self.accept("self.c == (self.a + 0x100 if self.flag else 3) - 0xF0",
+                    lambda t: t.flag == 1 and t.c == t.a + 0x10)
+        # Signed arms stay signed.
+        self.accept("(self.s if self.flag else -1) == -4",
+                    lambda t: t.flag == 1 and t.s == -4)
+        # Nested; and a class constant picks the arm when the type is built.
+        self.accept("self.a == (1 if self.b < 10 else 2 if self.b < 20 else 3)",
+                    lambda t: t.a == (1 if t.b < 10 else 2 if t.b < 20 else 3))
+        self.same_model("self.a == (1 if self.ON else 2)", "self.a == 1")
+        # As a statement it is an if/else; with boolean arms, it is logic.
+        self.same_model("(self.a == 1) if self.flag else (self.a == 2)", """
+            if self.flag:
+                self.a == 1
+            else:
+                self.a == 2
+        """)
+        self.accept("self.flag == ((self.a == 1) if self.b else (self.a == 2))",
+                    lambda t: t.flag == (t.a == (1 if t.b else 2)),
+                    witness=lambda it: (it.flag == 1, it.b == 0))
+
     # -- 2.4 comparisons ----------------------------------------------------
 
     def test_G26_comparisons(self):
@@ -419,6 +450,54 @@ class TestConstraintGrammar(GrammarCase):
     def test_G52_size_sum(self):
         self.accept("self.arr.size == 4", lambda t: len(t.arr) == 4)
         self.accept("self.arr.sum == 10", lambda t: sum(t.arr) == 10)
+
+    def test_G56_scalar_min_max(self):
+        self.accept("min(self.a, self.b) == 3", lambda t: min(t.a, t.b) == 3,
+                    witness=lambda it: it.b == 3)
+        self.accept("max(self.a, self.b, self.c) == 7",
+                    lambda t: max(t.a, t.b, t.c) == 7,
+                    witness=lambda it: it.c == 7)
+        self.accept("min(self.s, 0) == -4", lambda t: t.s == -4)
+        self.accept("max(self.a, 10) == 10", lambda t: t.a <= 10)
+        self.reject("min(self.a) == 3", "needs two or more arguments")
+        self.reject("max(self.a, self.b, key=abs) == 3", "no keyword arguments")
+        self.reject("max(*self.arr) == 3", "no *arguments")
+        # A name the module rebinds is not the builtin.
+        self.reject(None, "unsupported call", line=13, src="""
+            import vsc.dc as vdc
+
+            def max(*a):
+                return 0
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    max(self.a, 1) == 3
+        """)
+
+    def test_G58_abs(self):
+        self.accept("abs(self.s) == 5", lambda t: t.s in (5, -5),
+                    witness=lambda it: it.s == -5)
+        # Python's value: abs(-128) is 128, not an 8-bit wrap to -128.
+        self.accept("abs(self.s) == 128", lambda t: t.s == -128)
+        self.accept("abs(self.s) > 126", lambda t: t.s in (127, -127, -128))
+        self.accept("abs(self.a) == 200", lambda t: t.a == 200)
+        # An unsigned operand is never < 0, so abs() of it is the operand: as
+        # in SV, a - b of unsigned fields is unsigned (it wraps), and only
+        # a - b == 3 satisfies this, not b - a == 3.
+        self.accept("abs(self.a - self.b) == 3", lambda t: t.a - t.b == 3)
+        # Signed operands give Python's answer.
+        self.accept("abs(self.s - 3) == 5", lambda t: t.s in (8, -2),
+                    witness=lambda it: it.s == -2)
+
+    def test_G61_bool(self):
+        self.accept("bool(self.a) == self.flag", lambda t: (t.a != 0) == t.flag,
+                    witness=lambda it: it.a == 0x80)
+        self.accept("bool(self.a)", lambda t: t.a != 0)
+        self.same_model("bool(self.a > 3)", "self.a > 3")
 
     def test_G62_casts(self):
         for body in ("int(self.a) == 5", "float(self.a) == 5",

@@ -23,6 +23,7 @@ from vsc.model.dist_weight_expr_model import DistWeightExprModel
 from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
 from vsc.model.expr_array_sum_model import ExprArraySumModel
 from vsc.model.expr_bin_model import ExprBinModel
+from vsc.model.expr_cond_model import ExprCondModel
 from vsc.model.expr_dynref_model import ExprDynRefModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.expr_in_model import ExprInModel
@@ -308,6 +309,9 @@ def _expr(node, ctx):
         if node.op == "~":
             return ExprUnaryModel(UnaryExprType.Not, _expr(node.operand, ctx))
         raise NotImplementedError("unary op %r" % node.op)
+    if isinstance(node, ir.IRCond):
+        return ExprCondModel(_expr(node.cond, ctx), _expr(node.t, ctx),
+                             _expr(node.f, ctx))
     if isinstance(node, ir.IRIndex):
         return _index(node, ctx)
     if isinstance(node, ir.IRPartSelect):
