@@ -23,7 +23,7 @@ from grammar_util import GrammarCase
 # G-ID -> None (tested here) or the plan ledger item that will add its test.
 G_ROWS = {
     1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
-    9: None, 10: "1.12", 11: None, 12: "1.1", 13: None, 14: None, 15: "1.6",
+    9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: "1.6",
     16: None, 17: None, 18: None, 19: None, 20: "1.4", 21: "1.4", 22: "1.3",
     23: "1.3", 24: "1.2", 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
@@ -143,6 +143,14 @@ class TestConstraintGrammar(GrammarCase):
         self.reject("self.a == zz", "reference to local/global 'zz'")
 
     # -- 2.2 arithmetic and bitwise -----------------------------------------
+
+    def test_G12_true_division(self):
+        # Python '/' gives a float; it used to mean '//' silently (B5).
+        self.reject("self.a / 4 == 3", "no true division; use '//'")
+        self.reject("""
+            self.b == 1
+            self.a == self.c / self.b
+        """, "use '//'", line=2)
 
     def test_G13_floordiv_mod(self):
         self.accept("""

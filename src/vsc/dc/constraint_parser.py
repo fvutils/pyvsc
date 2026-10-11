@@ -31,7 +31,7 @@ class ConstraintParseError(Exception):
 
 # AST binop/compare token -> IR op string (matches pyvsc's expr operators).
 _BINOP = {
-    ast.Add: "+", ast.Sub: "-", ast.Mult: "*", ast.Div: "//",
+    ast.Add: "+", ast.Sub: "-", ast.Mult: "*",
     ast.FloorDiv: "//", ast.Mod: "%", ast.BitAnd: "&", ast.BitOr: "|",
     ast.BitXor: "^", ast.LShift: "<<", ast.RShift: ">>",
 }
@@ -364,6 +364,9 @@ class _Parser:
             return self._compare(node)
         if isinstance(node, ast.BinOp):
             op = _BINOP.get(type(node.op))
+            if isinstance(node.op, ast.Div):
+                self._err(node, "integer constraints have no true division; "
+                                "use '//'")
             if op is None:
                 self._err(node, "unsupported binary operator")
             return IRBin(op, self._expr(node.left), self._expr(node.right))
