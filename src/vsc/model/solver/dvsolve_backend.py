@@ -757,6 +757,14 @@ class DvSolveBackend(SolverBackendIF):
             if gap_ranges is not None:
                 gapped.append((f, gap_ranges))
 
+        # 1b. A solve order (`solve a before b`): rand_order_l lists its stages,
+        # earliest first. The engine decides them in that order; fields in no
+        # stage come last, uniform over the solutions the stages leave.
+        for stage, grp in enumerate(getattr(rs, "rand_order_l", None) or (), 1):
+            for f in grp:
+                if idmap.has(f):
+                    b.set_var_order(idmap.id_of(f), min(stage, 255))
+
         tr = DvSolveExprTranslator(b, idmap)
         if near_unsat:
             # A field's domain emptied at its width: the primary can neither serve
@@ -1144,16 +1152,11 @@ class DvSolveBackend(SolverBackendIF):
         seed = randstate.randint(0, (1 << 63) - 1)
         if solve_info is not None:
             solve_info.n_sat_calls += 1
-        # fair_pick=True: the stimulus distribution. Without a solve order the
-        # engine draws uniformly over solutions, as IEEE 1800 specifies. A
-        # solve order (`solve a before b`) defines its distribution by the
-        # order the values are drawn in, so it asks for the sequential draw
-        # (seq_pick).
+        # fair_pick=True: the stimulus distribution -- uniform over solutions,
+        # as IEEE 1800 specifies, with a solve order's stages (declared by
+        # _populate_builder) chosen first.
         _t = PT.now()
-        if has_order:
-            rc = ctx.solve(seed=seed, fair_pick=True, seq_pick=True)
-        else:
-            rc = ctx.solve(seed=seed, fair_pick=True)
+        rc = ctx.solve(seed=seed, fair_pick=True)
         PT.add("solve", _t)
         if rc == SOLVE_OK:
             _validate_model(ctx, "per-RandSet solve")
