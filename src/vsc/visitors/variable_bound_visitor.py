@@ -241,6 +241,12 @@ class VariableBoundVisitor(ModelVisitor):
 
             propagator = None
 
+            # A signed and an unsigned operand compare as unsigned bit
+            # patterns (SV), not by value; these propagators work on values.
+            if bool(e.lhs.is_signed()) != bool(e.rhs.is_signed()) and (
+                    not lhs_is_nonrand and not rhs_is_nonrand):
+                return
+
             if lhs_bounds is not None and rhs_bounds is not None:
                 # Two-sided relationship involving fields
                 propagator = self.lhsvar_rhsvar_propagator(

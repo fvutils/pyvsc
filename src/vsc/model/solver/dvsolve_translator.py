@@ -449,6 +449,30 @@ class DvSolveExprTranslator(ModelVisitor):
             return False
         return self._AUX_MIN_W <= ctx_width <= self._AUX_MAX_W
 
+    def _sv_unsigned(self, node, ref, w, ctx_width):
+        """``ref`` (``node``, ``w`` bits) as an operand of a mixed-sign
+        expression. SV makes such an expression unsigned: a signed operand is
+        read as its bit pattern, zero-extended, not by its signed value, which
+        is how the engine reads a signed variable. Returns ``ref`` unchanged
+        for an unsigned operand and for a constant (a literal's value is
+        already what it means here, see the Eq/Ne range check)."""
+        if not node.is_signed():
+            return ref
+        from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+        if IsConstExprVisitor().is_const(node):
+            return ref
+        if self._materialized_at_ctx(node, ctx_width):
+            w = ctx_width                  # already an aux of ctx_width bits
+        # One bit wider than the pattern, so a same-width comparison sees the
+        # pattern's unsigned value.
+        to_w = max(ctx_width, w + 1)
+        if to_w > self._AUX_MAX_W:
+            raise BackendIncomplete(
+                "dv-solve: mixed-sign operand wider than %d bits"
+                % (self._AUX_MAX_W - 1), reason_code="translator-unsupported")
+        return self._materialize(self._b.expr_extend(ref, w, to_w, False),
+                                 to_w, False)
+
     def visit_expr_bin(self, e):
         is_logical = False
         if e.op in (BinExprType.And, BinExprType.Or):
@@ -482,12 +506,17 @@ class DvSolveExprTranslator(ModelVisitor):
 
         is_relational = e.op in _RELATIONAL_OPS
         is_equality = e.op in (BinExprType.Eq, BinExprType.Ne)
+        # SV: one unsigned operand makes the expression unsigned (B9).
+        mixed = bool(e.lhs.is_signed()) != bool(e.rhs.is_signed())
 
         if is_relational:
             # The compiler reifies `var/const CMP var/const`, so both operands
             # must be plain — materialize any value-op operand.
             lhs = self.translate(e.lhs, ctx_width, want_var=True)
             rhs = self.translate(e.rhs, ctx_width, want_var=True)
+            if mixed:
+                lhs = self._sv_unsigned(e.lhs, lhs, lhs_w, ctx_width)
+                rhs = self._sv_unsigned(e.rhs, rhs, rhs_w, ctx_width)
             self._result = self._b.expr_binary(op, lhs, rhs)
             self._last_simple = False
         elif is_equality:
@@ -534,11 +563,22 @@ class DvSolveExprTranslator(ModelVisitor):
                         self._last_simple = False
                         return
             extend = (lhs_w != rhs_w and not lhs_const and not rhs_const)
-            lhs = self.translate(e.lhs, ctx_width, want_var=extend)
+            # Same width, mixed sign: compare bit patterns. (With different
+            # widths, the extend below zero-extends a mixed expression.)
+            reinterpret = (mixed and not extend and lhs_w == rhs_w
+                           and not lhs_const and not rhs_const)
+            lhs = self.translate(e.lhs, ctx_width,
+                                 want_var=extend or reinterpret)
             lhs_simple = self._last_simple
-            rhs = self.translate(e.rhs, ctx_width, want_var=extend)
+            rhs = self.translate(e.rhs, ctx_width,
+                                 want_var=extend or reinterpret)
             rhs_simple = self._last_simple
-            if extend:
+            if reinterpret:
+                # Both plain, the signed one read as its unsigned pattern;
+                # the engine then compares values.
+                lhs = self._sv_unsigned(e.lhs, lhs, lhs_w, ctx_width)
+                rhs = self._sv_unsigned(e.rhs, rhs, rhs_w, ctx_width)
+            elif extend:
                 # Extend from the operand's DECLARED width only when the ref
                 # still has it. A value-op operand (`c32 == a16 + b16`) was just
                 # materialized into an aux AT ctx_width, carry included;
@@ -547,11 +587,11 @@ class DvSolveExprTranslator(ModelVisitor):
                 if (lhs_w < ctx_width
                         and not self._materialized_at_ctx(e.lhs, ctx_width)):
                     lhs = self._b.expr_extend(
-                        lhs, lhs_w, ctx_width, e.lhs.is_signed())
+                        lhs, lhs_w, ctx_width, e.lhs.is_signed() and not mixed)
                 if (rhs_w < ctx_width
                         and not self._materialized_at_ctx(e.rhs, ctx_width)):
                     rhs = self._b.expr_extend(
-                        rhs, rhs_w, ctx_width, e.rhs.is_signed())
+                        rhs, rhs_w, ctx_width, e.rhs.is_signed() and not mixed)
             elif not lhs_simple and not rhs_simple:
                 rhs = self._materialize(rhs, ctx_width, e.rhs.is_signed())
             self._result = self._b.expr_binary(op, lhs, rhs)
@@ -568,6 +608,13 @@ class DvSolveExprTranslator(ModelVisitor):
             # itself is lifted into an aux only when its consumer needs a var.
             lhs = self.translate(e.lhs, ctx_width, want_var=True)
             rhs = self.translate(e.rhs, ctx_width, want_var=True)
+            if mixed:
+                # Widened, a signed operand is zero-extended (SV). At its own
+                # width its bit pattern is the same either way.
+                if lhs_w < ctx_width:
+                    lhs = self._sv_unsigned(e.lhs, lhs, lhs_w, ctx_width)
+                if rhs_w < ctx_width:
+                    rhs = self._sv_unsigned(e.rhs, rhs, rhs_w, ctx_width)
             ref = self._b.expr_binary(op, lhs, rhs)
             auxable = self._AUX_MIN_W <= ctx_width <= self._AUX_MAX_W
             if self._want_var and auxable:
