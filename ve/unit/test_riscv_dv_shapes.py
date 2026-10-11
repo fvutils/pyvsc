@@ -288,13 +288,12 @@ class TestRiscvDvShapes(VscTestCase):
         for r in (0, 1, 3, 4):        # 9 values of x for every r: 1/4 each
             self.assertAlmostEqual(h[r] / n, 0.25, delta=0.04)
 
-    @unittest.expectedFailure
     @unittest.skipUnless(_dvsolve_available(), "dv-solve native library not available")
     def test_gapped_enum_ne_distribution(self):
-        """KNOWN dv-solve defect, independent of the enum-domain template (same
-        numbers before it): a gapped enum {0,1,2,10} with `!= 1` gives 0 about
-        0.27 instead of 1/3. The same set as `x.inside(0, 2, 10)` is uniform.
-        See doc/notes/riscv_dv_profile.md."""
+        """A gapped enum {0,1,2,10} with `!= 1` is uniform over {0,2,10}, as
+        the same set written `x.inside(0, 2, 10)` is. dv-solve used to give 0
+        about 0.27 instead of 1/3 (see doc/notes/riscv_dv_profile.md); its
+        sampler fixed that, and this keeps it fixed."""
         import collections
         from enum import IntEnum
 
