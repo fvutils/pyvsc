@@ -4,6 +4,7 @@ instruction (doc/notes/pyvsc_inline_hot_path_plan.md).
     PYTHONPATH=src packages/python/bin/python benchmarks/riscv_dv_vdc/inline_cost.py [prof CASE]
 
 CASE is one of the case names printed; `prof` runs it under cProfile.
+VSC_DC_INLINE_PARSE=0/1 selects the legacy or the parsed randomize_with path.
 """
 import cProfile
 import pstats
@@ -56,6 +57,18 @@ def _gpr(av):
         it.rd != reg.TP
 
 
+def _gpr_py(av, has_rd):
+    # The riscv-dv port's randomize_gpr shape: a Python 'if' on caller
+    # state, and a 'for' over caller values (both paths can run it).
+    reserved = (reg.SP, reg.TP)
+    with i.randomize_with() as it:
+        if has_rd:
+            it.rd.inside(vdc.rangelist(*av))
+        it.rs1.inside(vdc.rangelist(*av))
+        for r in reserved:
+            it.rs1 != r
+
+
 def gpr_hit():
     _gpr(SETS[0])
 
@@ -65,8 +78,18 @@ def gpr_miss():
     _gpr(SETS[k[0] % len(SETS)])
 
 
+def gpr_py_hit():
+    _gpr_py(SETS[0], True)
+
+
+def gpr_py_miss():
+    k[0] += 1
+    _gpr_py(SETS[k[0] % len(SETS)], k[0] % 3 != 0)
+
+
 CASES = [("plain", plain, 50000), ("one_ne", one_ne, 50000),
-         ("gpr_hit", gpr_hit, 10000), ("gpr_miss", gpr_miss, 3000)]
+         ("gpr_hit", gpr_hit, 10000), ("gpr_miss", gpr_miss, 3000),
+         ("gpr_py_hit", gpr_py_hit, 10000), ("gpr_py_miss", gpr_py_miss, 3000)]
 
 if __name__ == "__main__":
     if len(sys.argv) > 2 and sys.argv[1] == "prof":

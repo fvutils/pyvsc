@@ -10,6 +10,7 @@ inline ``ConstraintBlockModel`` appended for that single solve.
 
 See ``doc/notes/dataclass-pyvsc-design.md`` §4.6.
 """
+import copy
 import os
 import sys
 
@@ -372,26 +373,37 @@ def _parsed_site(frame, obj, tm, struct_key=None):
     if site is _LEGACY:
         return None
     if site is None:
-        if inline_parse.delegates(loc.node.body, loc.it_name):
+        if loc.deleg is None:
+            loc.deleg = inline_parse.delegates(loc.node.body, loc.it_name)
+        if loc.deleg:
             loc.sites[cls] = _LEGACY
             return None
         from . import class_const
         from .type_model import _validate_refs
         fields = frozenset(f.name for f in tm.fields)
         arrays = frozenset(f.name for f in tm.fields if f.is_array)
-        site = inline_parse.compile_site(loc, frame, arrays, fields)
+        key = (arrays, fields, struct_key)
+        base = loc.parsed.get(key)
+        if base is None:
+            base = inline_parse.compile_site(loc, frame, arrays, fields)
+            base.body_line = loc.body_line
+            base.inert = inline_parse.inert(loc.node.body)
+            loc.parsed[key] = base
+        # Only the class constants differ between classes with these fields.
+        site = copy.copy(base)
         site.folded = class_const.fold_program(
             site.prog, class_const.lookup_for(type(obj), fields))
         _validate_refs(tm.cls_name, [site.folded], tm.generic_constraints,
                        fields)
-        site.body_line = loc.body_line
-        site.inert = inline_parse.inert(loc.node.body)
         loc.sites[cls] = site
     return site
 
 
 #: Marks a call site whose body must run (see inline_parse.delegates).
 _LEGACY = object()
+
+#: Most folded programs a site keeps, one per value of its condition slots.
+_FOLD_CACHE_MAX = 64
 
 #: Attribute on a shared solve composite: {site: (host values, block)}.
 _PARSED_ATTR = "_vsc_inline_parsed"
@@ -408,7 +420,19 @@ def _parsed_block(composite, field_models, tm, site, values, frame):
     if prev is not None and prev[0] == values:
         return prev[1]
     # A host condition decides its branch here, as running the body would.
-    prog = class_const.fold_host_values(site.folded, values)
+    # Only the condition slots are folded, once per their values; lowering
+    # writes the other host values in as literals.
+    control = site.control
+    if control is None:
+        control = site.control = class_const.host_control_slots(site.folded)
+        site.fold_cache = {}
+    key = tuple([values[k] for k in control])
+    prog = site.fold_cache.get(key)
+    if prog is None:
+        if len(site.fold_cache) >= _FOLD_CACHE_MAX:
+            site.fold_cache.clear()
+        prog = site.fold_cache[key] = class_const.fold_host_values(
+            site.folded, values, frozenset(control))
     block = ir_lower.lower_program(prog, field_models, tm.generic_constraints,
                                    values)
     if _INLINE_REUSE:

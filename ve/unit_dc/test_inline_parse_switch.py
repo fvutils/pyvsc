@@ -298,3 +298,70 @@ class TestGenericRefParsed(_ParseOn, DcTestCase):
             with g.randomize_with() as it:
                 not it.small()
             self.assertGreaterEqual(g.x, 10)
+
+
+@vdc.dataclass
+class Base7(vdc.RandClass):
+    a: vdc.u8 = vdc.rand()
+    b: vdc.u8 = vdc.rand()
+    MAXV = 20
+
+
+class Sub7a(Base7):
+    MAXV = 30
+
+
+class Sub7b(Base7):
+    MAXV = 40
+
+
+def _site_body(o, base, flag):
+    with o.randomize_with() as it:
+        it.a == it.MAXV
+        if flag:
+            it.b == base + 4
+        else:
+            it.b == base + 5
+
+
+class TestParsedCaches(_ParseOn, DcTestCase):
+    """Plan 3.7: what a parsed site caches, and that the caches give the same
+    answers as parsing every call would."""
+
+    def _loc(self):
+        from vsc.dc import inline_parse
+        locs = [l for l in inline_parse._SITES.values()
+                if l is not None and l.node.body[0].lineno
+                == _site_body.__code__.co_firstlineno + 2]
+        self.assertEqual(len(locs), 1)
+        return locs[0]
+
+    def test_classes_with_the_same_fields_share_the_parse(self):
+        for cls, maxv in ((Base7, 20), (Sub7a, 30), (Sub7b, 40)):
+            o = cls()
+            _site_body(o, 1, True)
+            self.assertEqual((o.a, o.b), (maxv, 5))
+        loc = self._loc()
+        self.assertEqual(len(loc.parsed), 1)
+        self.assertEqual({c for c in loc.sites if isinstance(c, type)},
+                         {Base7, Sub7a, Sub7b})
+
+    def test_condition_slots_fold_once_per_value(self):
+        from vsc.dc import class_const
+        calls = []
+        orig = class_const.fold_host_values
+
+        def counting(*a, **k):
+            calls.append(a[1])
+            return orig(*a, **k)
+        class_const.fold_host_values = counting
+        self.addCleanup(setattr, class_const, "fold_host_values", orig)
+        class Fresh(Base7):         # its own site entry and fold cache
+            pass
+        o = Fresh()
+        for base in range(10):
+            for flag in (True, False):
+                _site_body(o, base, flag)
+                self.assertEqual(o.b, base + (4 if flag else 5))
+        # One fold per value of the 'if' condition; 'base' is only a literal.
+        self.assertEqual(len(calls), 2)

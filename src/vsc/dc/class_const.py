@@ -84,12 +84,38 @@ def fold_program(prog, lookup):
                                 param_defaults=prog.param_defaults)
 
 
-def fold_host_values(prog, values):
+def host_control_slots(prog):
+    """The host value slots that appear in a condition (``if``, implication,
+    ``x if c else y``): their values decide which statements and selects the
+    body lowers to. The other host values are only literals."""
+    slots = set()
+
+    def walk(n, in_cond):
+        if isinstance(n, list):
+            for e in n:
+                walk(e, in_cond)
+            return
+        if not isinstance(n, ir.IRNode):
+            return
+        if isinstance(n, ir.IRHost):
+            if in_cond and n.kind == "value":
+                slots.add(n.slot)
+            return
+        for name in type(n).__slots__:
+            v = getattr(n, name, None)
+            walk(v, in_cond or (name == "cond" and isinstance(
+                n, (ir.IRIfElse, ir.IRImplies, ir.IRCond))))
+    walk(prog.stmts, False)
+    return tuple(sorted(slots))
+
+
+def fold_host_values(prog, values, only=None):
     """``prog`` (a parsed ``randomize_with`` body) with each host value
     (``IRHost`` of kind "value") replaced by its value for this call, and the
     if/else, implies and comparisons that decides folded. Host sets and
-    iterables are left for lowering."""
-    f = _HostFolder(values, prog.name)
+    iterables are left for lowering. With ``only`` (a set of slots), only
+    those host values are replaced; lowering reads the others."""
+    f = _HostFolder(values, prog.name, only)
     stmts = f.stmts(prog.stmts, frozenset())
     if not f.hit:
         return prog
@@ -293,12 +319,14 @@ class _Folder:
 class _HostFolder(_Folder):
     """Folds a parsed ``randomize_with`` body's host values."""
 
-    def __init__(self, values, cname):
+    def __init__(self, values, cname, only=None):
         _Folder.__init__(self, _no_constant, cname)
         self.values = values
+        self.only = only
 
     def expr(self, n, bound):
-        if isinstance(n, ir.IRHost) and n.kind == "value":
+        if isinstance(n, ir.IRHost) and n.kind == "value" and (
+                self.only is None or n.slot in self.only):
             self.hit = True
             return ir.IRConst(self.values[n.slot])
         return _Folder.expr(self, n, bound)

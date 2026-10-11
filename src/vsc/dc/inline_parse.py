@@ -26,7 +26,8 @@ _WITH_OPS = frozenset(("BEFORE_WITH", "SETUP_WITH"))
 
 class Located:
     """The ``with`` statement of one call site, and the item that is ours."""
-    __slots__ = ("node", "item", "it_name", "filename", "sites")
+    __slots__ = ("node", "item", "it_name", "filename", "sites", "deleg",
+                 "parsed")
 
     def __init__(self, node, item, it_name, filename):
         self.node = node              # ast.With
@@ -34,6 +35,10 @@ class Located:
         self.it_name = it_name        # the ``as`` name
         self.filename = filename
         self.sites = {}               # class -> Site (see inline.RandomizeWith)
+        self.deleg = None             # delegates(), once known
+        # (array names, field names, structural key) -> Site before class
+        # constants are folded: classes with the same fields share the parse.
+        self.parsed = {}
 
     @property
     def body_line(self):
@@ -429,13 +434,16 @@ class _InlineParser(_Parser):
 class Site:
     """One ``randomize_with`` call site, parsed for one class."""
     __slots__ = ("prog", "code", "kinds", "srcs", "merge_globals", "filename",
-                 "folded", "body_line", "struct", "inert")
+                 "folded", "body_line", "struct", "inert", "control",
+                 "fold_cache")
 
     def __init__(self, prog, code, kinds, srcs, merge_globals, filename,
                  struct=()):
         self.prog = prog
         self.struct = struct            # ((slot, value), ...) fixed when parsed
         self.inert = False              # the body compiles to no code
+        self.control = None             # host slots in conditions (inline)
+        self.fold_cache = None          # their values -> folded program
         self.code = code                # evaluates the host tuple
         self.kinds = kinds              # per slot: value / set / iter
         self.srcs = srcs                # per slot: (source text, line)
@@ -456,7 +464,13 @@ class Site:
             raw = eval(self.code, g)
         else:
             raw = eval(self.code, frame.f_globals, frame.f_locals)
-        return tuple(self._convert(k, v) for k, v in enumerate(raw))
+        kinds = self.kinds
+        _int = self._int
+        # Most hosts are plain ints: no call for those.
+        return tuple([v if type(v) is int and kinds[k] == "value"
+                      else (_int(k, v) if kinds[k] == "value"
+                            else self._convert(k, v))
+                      for k, v in enumerate(raw)])
 
     def fits(self, values):
         """True when this call's ``values`` keep every structural host at the
@@ -484,7 +498,18 @@ class Site:
                 self._bad(k, v, "a list, tuple, set, frozenset or range")
             out = []
             for e in v:
-                if isinstance(e, range):
+                t = type(e)
+                if t is int:
+                    out.append(e)
+                    continue
+                m = _ENUM_MAPS.get(t)
+                if m is not None:
+                    out.append(m[e])
+                    continue
+                if isinstance(e, enum.Enum):
+                    m = _ENUM_MAPS[t] = {x: _to_int(x) for x in t}
+                    out.append(m[e])
+                elif isinstance(e, range):
                     out.append(e)
                 elif isinstance(e, tuple) and len(e) == 2:
                     lo, hi = self._int(k, e[0]), self._int(k, e[1])
@@ -505,14 +530,27 @@ class Site:
         return out
 
     def _int(self, k, v):
-        if isinstance(v, (int, enum.Enum)):
-            return _to_int(v)
+        t = type(v)
+        if t is int:
+            return v
+        m = _ENUM_MAPS.get(t)
+        if m is not None:
+            return m[v]
+        if isinstance(v, enum.Enum):
+            m = _ENUM_MAPS[t] = {x: _to_int(x) for x in t}
+            return m[v]
+        if isinstance(v, int):
+            return int(v)                   # bool, or an int subclass
         self._bad(k, v, "an int, bool or enum")
 
     def _bad(self, k, v, want):
         src, line = self.srcs[k]
         raise TypeError("randomize_with (%s:%d): '%s' is %s, not %s"
                         % (self.filename, line, src, type(v).__name__, want))
+
+
+#: enum class -> {member: the member's solver int} (Site._int's cache).
+_ENUM_MAPS = {}
 
 
 def _to_int(v):
