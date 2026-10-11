@@ -152,3 +152,30 @@ class TestClassConst(DcTestCase):
 
         with self.assertRaises(KeyError):
             M().randomize()
+
+    def test_false_statement_is_unsat(self):
+        # A statement over class constants alone that folds to false makes
+        # the subclass unsatisfiable. It used to be dropped: a constraint that
+        # reads no field reached no solver.
+        @vdc.dataclass
+        class Base(vdc.RandClass):
+            WIDTH = 32
+            x: vdc.u8 = vdc.rand()
+
+            @vdc.constraint
+            def c(self):
+                self.WIDTH == 32
+                self.x < 10
+
+        class Wide(Base):
+            WIDTH = 64
+
+        b = Base()
+        b.randomize()
+        self.assertLess(b.x, 10)
+        w = Wide()
+        with self.assertRaises(vdc.SolveFailure):
+            w.randomize()
+        # The object still works once the block is off.
+        w.set_constraint_mode("c", False)
+        w.randomize()

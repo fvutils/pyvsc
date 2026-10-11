@@ -31,7 +31,7 @@ G_ROWS = {
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: "0.6",
     51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: "1.5",
     57: "1.10", 58: "1.5", 59: "1.11", 60: "1.11", 61: "1.5", 62: None,
-    63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: "0.3",
+    63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
     70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
     76: "2.3", 77: None, 78: None, 79: "1.3", 80: "2.7", 81: None, 82: None,
     83: None, 84: None, 85: None, 86: None, 87: "0.5", 88: "2.5", 89: None,
@@ -346,6 +346,17 @@ class TestConstraintGrammar(GrammarCase):
 
     def test_G67_expression_statement(self):
         self.accept("self.a == 5", lambda t: t.a == 5)
+
+    def test_G69_constant_statement(self):
+        self.accept("""
+            True
+            self.a == 5
+        """, lambda t: t.a == 5)
+        self.accept("False", unsat=True)
+        self.accept("""
+            self.a == 5
+            self.MAXV == 21
+        """, unsat=True)
 
     def test_G77_while(self):
         self.reject("while self.a < 3:\n    pass", "While")

@@ -233,10 +233,28 @@ class RandInfoBuilder(ModelVisitor,RandIF):
                 for s in self._active_order_randset_s:
                     s.add_constraint(c)
             else:
-#                print("TODO: handle no-reference constraint: " + str(c_blk.name))
-                pass
+                # A constraint that reads no field joins no randset, so no
+                # solver sees it. A constant one is decided here: false makes
+                # the problem unsatisfiable, true constrains nothing.
+                self._check_const_constraint(c, c_blk)
         super().visit_constraint_stmt_leave(c)
         
+    @staticmethod
+    def _check_const_constraint(c, c_blk):
+        from vsc.visitors.is_const_expr_visitor import IsConstExprVisitor
+        if not isinstance(c, ConstraintExprModel) \
+                or not IsConstExprVisitor().is_const(c.e):
+            return
+        try:
+            value = int(c.e.val())
+        except Exception:
+            return              # no value without a solve: leave it be
+        if not value:
+            from vsc.model.solve_failure import SolveFailure
+            raise SolveFailure(
+                "constraint %s contains a statement that is always false"
+                % (getattr(c_blk, "name", None),), "")
+
     def visit_constraint_dynref(self, c):
         # Treat a dynamic constraint as an inline expansion
         # of the constraints in the referenced block
