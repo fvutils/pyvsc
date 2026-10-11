@@ -308,6 +308,11 @@ class _Parser:
             return self._parse_native_if(stmt), 1
         if isinstance(stmt, ast.For):
             return self._parse_for(stmt), 1
+        if isinstance(stmt, (ast.Assign, ast.AugAssign, ast.AnnAssign)):
+            self._assignment(stmt)
+        if isinstance(stmt, ast.Assert):
+            self._err(stmt, "'assert' is not a constraint; write the condition "
+                            "alone: '%s'" % ast.unparse(stmt.test))
         if isinstance(stmt, (ast.Break, ast.Continue)):
             self._err(stmt, "'%s' has no meaning in a constraint loop: every "
                             "iteration's constraints hold; guard them with "
@@ -431,6 +436,19 @@ class _Parser:
             else:
                 break
         return consumed
+
+    def _assignment(self, stmt):
+        """Reject an assignment with what was probably meant."""
+        targets = stmt.targets if isinstance(stmt, ast.Assign) else [stmt.target]
+        if all(isinstance(t, ast.Name) for t in targets):
+            self._err(stmt, "local variables are not supported in a constraint; "
+                            "write the expression where it is used")
+        if isinstance(stmt, ast.Assign) and len(targets) == 1:
+            self._err(stmt, "a constraint is not an assignment; did you mean "
+                            "'%s == %s'?" % (ast.unparse(targets[0]),
+                                             ast.unparse(stmt.value)))
+        self._err(stmt, "a constraint is not an assignment: its body is not "
+                        "executed; state the relation with '==', '<', ...")
 
     def _parse_for(self, stmt):
         """``for`` over an array field: a foreach (forms in _LOOP_FORMS). Over

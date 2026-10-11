@@ -1375,18 +1375,24 @@ class TestConstraintGrammar(GrammarCase):
         """, "self.a == 5")
 
     def test_G89_assignment(self):
-        for body in ("self.a = 5", "self.a += 1", "x: int = 1"):
+        self.reject("self.a = 5", "not an assignment; did you mean 'self.a == 5'?")
+        self.reject("self.arr[1] = self.b + 1",
+                    "did you mean 'self.arr[1] == self.b + 1'?")
+        for body in ("self.a += 1", "self.a = self.b = 1", "self.a: int = 1"):
             with self.subTest(body=body):
-                self.reject(body, "unsupported statement")
+                self.reject(body, "a constraint is not an assignment")
 
     def test_G90_local_binding(self):
         self.reject("""
             lo = self.b + 1
             self.a == lo
-        """, "unsupported statement Assign")
+        """, "local variables are not supported in a constraint")
+        self.reject("x: int = 1", "local variables are not supported")
 
     def test_G91_assert(self):
-        self.reject("assert self.a == 5", "unsupported statement Assert")
+        self.reject("assert self.a == 5",
+                    "'assert' is not a constraint; write the condition alone: "
+                    "'self.a == 5'")
 
     def test_G92_return(self):
         self.reject("""
