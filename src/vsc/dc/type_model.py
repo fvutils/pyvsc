@@ -269,6 +269,9 @@ def _refs_in_expr(e):
         yield from _refs_in_expr(e.cond)
         yield from _refs_in_expr(e.t)
         yield from _refs_in_expr(e.f)
+    elif isinstance(e, _ir.IRReduce):
+        yield from _refs_in_expr(e.cond)
+        yield from _refs_in_expr(e.filt)
     elif isinstance(e, _ir.IRIndex):
         yield from _refs_in_expr(e.base)
         yield from _refs_in_expr(e.index)

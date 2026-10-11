@@ -19,6 +19,7 @@ import inspect
 import textwrap
 
 from .constraint_ir import (ConstraintProgram, IRAttr, IRBin, IRCond, IRConst,
+                            IRReduce,
                             IRConstraintExpr, IRConstraintRef, IRDist, IRField,
                             IRForeach, IRIfElse, IRImplies, IRIndex, IRInside,
                             IRParam, IRPartSelect, IRRange, IRSoft, IRSolveOrder,
@@ -154,7 +155,12 @@ def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
 
 
 # Builtins a constraint expression may call (when not shadowed).
-_BUILTINS = frozenset(("abs", "bool", "len", "max", "min", "sum"))
+_BUILTINS = frozenset(("abs", "all", "any", "bool", "len", "max", "min",
+                       "sum"))
+
+# The loops a generator (and, later, a 'for' statement) may run over an array.
+_LOOP_FORMS = ("'for x in self.arr', 'for i in range(len(self.arr))' or "
+               "'for i, x in enumerate(self.arr)'")
 
 
 def _is_bool(e):
@@ -290,6 +296,15 @@ class _Parser:
                 and isinstance(value.value, ast.Name)
                 and value.value.id == self.self_name):
             return IRConstraintRef(value.attr, [], self._abs_line(value))
+        if (isinstance(value, ast.Call) and self._builtin(value) == "all"
+                and len(value.args) == 1
+                and isinstance(value.args[0], ast.GeneratorExp)):
+            # all(...) as a statement is a foreach.
+            array, idx, it, cond, filt = self._generator(value, value.args[0])
+            body = IRConstraintExpr(cond)
+            if filt is not None:
+                body = IRImplies(filt, [body])
+            return IRForeach(array, idx, it, [body])
         if isinstance(value, ast.IfExp):
             # 't if c else f' as a statement is 'if c: t else: f'.
             return IRIfElse(self._expr(value.test),
@@ -655,6 +670,61 @@ class _Parser:
             return f.id
         return None
 
+    def _is_builtin_call(self, node, name):
+        """``node`` calls builtin ``name`` (not a rebound name)."""
+        return (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+                and node.func.id == name and name not in self._names
+                and name not in self._params and name not in self._bound)
+
+    def _loop(self, node, target, it):
+        """The array and loop names of ``for <target> in <it>``: ``(array,
+        idx_name, it_name)``. Only the forms in _LOOP_FORMS."""
+        if isinstance(target, ast.Name) and self._is_builtin_call(it, "range") \
+                and len(it.args) == 1 and not it.keywords:
+            n = it.args[0]
+            if self._is_builtin_call(n, "len") and len(n.args) == 1:
+                return self._loop_array(node, n.args[0]), target.id, None
+            if isinstance(n, ast.Attribute) and n.attr == "size":
+                return self._loop_array(node, n.value), target.id, None
+        elif isinstance(target, ast.Name):
+            return self._loop_array(node, it), None, target.id
+        elif (isinstance(target, ast.Tuple) and len(target.elts) == 2
+                and all(isinstance(e, ast.Name) for e in target.elts)
+                and self._is_builtin_call(it, "enumerate")
+                and len(it.args) == 1 and not it.keywords):
+            return (self._loop_array(node, it.args[0]), target.elts[0].id,
+                    target.elts[1].id)
+        self._err(node, "a constraint loop runs over an array field: %s"
+                        % _LOOP_FORMS)
+
+    def _loop_array(self, node, arr):
+        array = self._expr(arr) if isinstance(arr, ast.Attribute) else None
+        if not isinstance(array, IRField) or (
+                len(array.path) == 1 and array.path[0] not in self._arrays):
+            self._err(node, "a constraint loop runs over an array field: %s"
+                            % _LOOP_FORMS)
+        return array
+
+    def _generator(self, node, gen):
+        """``(array, idx_name, it_name, cond, filt)`` of an ``all``/``any``
+        generator: one ``for`` over an array, with optional ``if``s."""
+        if len(gen.generators) != 1 or gen.generators[0].is_async:
+            self._err(node, "a generator in a constraint has one 'for' over "
+                            "an array: %s" % _LOOP_FORMS)
+        comp = gen.generators[0]
+        array, idx, it = self._loop(node, comp.target, comp.iter)
+        saved = set(self._bound)
+        self._bound.update(n for n in (idx, it) if n is not None)
+        try:
+            cond = _bool(self._expr(gen.elt))
+            filt = None
+            for f in comp.ifs:
+                t = _bool(self._expr(f))
+                filt = t if filt is None else IRBin("&", filt, t)
+        finally:
+            self._bound = saved
+        return array, idx, it, cond, filt
+
     def _builtin_call(self, node, name):
         if node.keywords:
             self._err(node, "%s() in a constraint takes no keyword arguments"
@@ -662,6 +732,13 @@ class _Parser:
         args = node.args
         if any(isinstance(a, ast.Starred) for a in args):
             self._err(node, "%s() in a constraint takes no *arguments" % name)
+        if name in ("all", "any"):
+            if len(args) != 1 or not isinstance(args[0], ast.GeneratorExp):
+                self._err(node, "%s() in a constraint takes a generator over an "
+                                "array: %s(<cond> for x in self.arr)"
+                                % (name, name))
+            array, idx, it, cond, filt = self._generator(node, args[0])
+            return IRReduce(name, array, idx, it, cond, filt)
         if name in ("len", "sum"):
             if len(args) != 1:
                 self._err(node, "%s() in a constraint takes one array" % name)

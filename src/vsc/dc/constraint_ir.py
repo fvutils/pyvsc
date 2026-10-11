@@ -81,6 +81,27 @@ class IRCond(IRNode):
         return "IRCond(%r, %r, %r)" % (self.cond, self.t, self.f)
 
 
+class IRReduce(IRNode):
+    """``all(cond for ... in arr)`` (``op`` "all") or ``any(...)`` (``op``
+    "any") used as an expression. The loop binds ``idx_name``/``it_name`` as
+    IRForeach does; ``filt`` is the generator's ``if`` (or None). Unrolled at
+    lowering over the array's elements."""
+    __slots__ = ("op", "array", "idx_name", "it_name", "cond", "filt")
+
+    def __init__(self, op, array, idx_name, it_name, cond, filt=None):
+        self.op = op
+        self.array = array        # IRField (path to the array)
+        self.idx_name = idx_name
+        self.it_name = it_name
+        self.cond = cond
+        self.filt = filt
+
+    def __repr__(self):
+        return "IRReduce(%r, %r, %r, %r, %r, %r)" % (
+            self.op, self.array, self.idx_name, self.it_name, self.cond,
+            self.filt)
+
+
 class IRRange(IRNode):
     """A single entry in an inside/rangelist: a point (hi is None) or [lo,hi]."""
     __slots__ = ("lo", "hi")

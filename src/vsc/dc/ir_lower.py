@@ -254,6 +254,48 @@ def _foreach(node, ctx):
     return stmt
 
 
+def _reduce(node, ctx):
+    """``all``/``any`` over an array, unrolled over its elements. For a
+    random-size array, element ``i`` counts only when ``size > i``."""
+    arr = _resolve_model(node.array, ctx)
+    if not isinstance(arr, FieldArrayModel):
+        raise TypeError("%s() target %r is not an array" % (node.op, node.array))
+    if arr.is_rand_sz and arr.is_scalar:
+        # Lowered before the size is solved, and only a composite array is
+        # allocated to its max_size.
+        raise NotImplementedError(
+            "%s() in an expression over the random-size array %r is not "
+            "supported yet; use 'x in arr' for membership, or all(...) as a "
+            "statement" % (node.op, arr.name))
+    is_all = node.op == "all"
+    join = BinExprType.And if is_all else BinExprType.Or
+    result = None
+    for i, elem in enumerate(arr.field_l):
+        child = ctx.with_model_local(node.it_name, elem) \
+            .with_const_local(node.idx_name, i)
+        term = _expr(node.cond, child)
+        if node.filt is not None:
+            term = _guard(_expr(node.filt, child), term, is_all)
+        if arr.is_rand_sz:
+            active = ExprBinModel(ExprFieldRefModel(arr.size), BinExprType.Gt,
+                                  ExprLiteralModel(i, False, 32))
+            term = _guard(active, term, is_all)
+        result = term if result is None else ExprBinModel(result, join, term)
+    if result is None:
+        return ExprLiteralModel(1 if is_all else 0, False, 1)
+    return result
+
+
+def _guard(g, term, is_all):
+    """``term`` where ``g`` holds: ``not g or term`` in an all, ``g and term``
+    in an any."""
+    if is_all:
+        return ExprBinModel(ExprBinModel(g, BinExprType.Eq,
+                                         ExprLiteralModel(0, False, 1)),
+                            BinExprType.Or, term)
+    return ExprBinModel(g, BinExprType.And, term)
+
+
 def _foreach_composite(node, ctx, arr):
     """Unroll a foreach over a (fixed-size) composite-element array: for each
     element, bind ``it`` to that element's model and ``idx`` to the literal index,
@@ -313,6 +355,8 @@ def _expr(node, ctx):
     if isinstance(node, ir.IRCond):
         return ExprCondModel(_expr(node.cond, ctx), _expr(node.t, ctx),
                              _expr(node.f, ctx))
+    if isinstance(node, ir.IRReduce):
+        return _reduce(node, ctx)
     if isinstance(node, ir.IRIndex):
         return _index(node, ctx)
     if isinstance(node, ir.IRPartSelect):

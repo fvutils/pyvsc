@@ -30,7 +30,7 @@ G_ROWS = {
     37: None, 38: None, 39: None, 40: None, 41: None, 42: None, 43: None,
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
     51: None, 52: None, 53: None, 54: None, 55: None, 56: None,
-    57: None, 58: None, 59: "1.11", 60: "1.11", 61: None, 62: None,
+    57: None, 58: None, 59: None, 60: None, 61: None, 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
     70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
     76: "2.3", 77: None, 78: None, 79: None, 80: "2.7", 81: None, 82: None,
@@ -718,6 +718,105 @@ class TestConstraintGrammar(GrammarCase):
         # Signed operands give Python's answer.
         self.accept("abs(self.s - 3) == 5", lambda t: t.s in (8, -2),
                     witness=lambda it: it.s == -2)
+
+    def test_G59_all(self):
+        # As a statement it is a foreach: the same model.
+        self.accept("all(x > 100 for x in self.arr)",
+                    lambda t: all(x > 100 for x in t.arr))
+        self.same_model("all(x > 100 for x in self.arr)", """
+            with vdc.foreach(self.arr) as x:
+                x > 100
+        """)
+        self.accept("all(self.arr[i] == i for i in range(len(self.arr)))",
+                    lambda t: list(t.arr) == [0, 1, 2, 3])
+        self.accept("all(self.arr[i] == i + 1 for i in range(self.arr.size))",
+                    lambda t: list(t.arr) == [1, 2, 3, 4])
+        self.accept("all(x == 2 * i for i, x in enumerate(self.arr))",
+                    lambda t: list(t.arr) == [0, 2, 4, 6])
+        self.accept("all(x == 5 for i, x in enumerate(self.arr) if i != 2)",
+                    lambda t: [t.arr[0], t.arr[1], t.arr[3]] == [5, 5, 5],
+                    witness=lambda it: it.c == 0)
+        self.accept("all(o.x < 10 for o in self.objs)",
+                    lambda t: all(o.x < 10 for o in t.objs))
+        # In an expression, unrolled over the elements.
+        self.accept("self.flag == all(x < 128 for x in self.arr)",
+                    lambda t: t.flag == all(x < 128 for x in t.arr),
+                    witness=lambda it: it.flag == 1)
+        self.accept("not all(x < 200 for x in self.arr)",
+                    lambda t: any(x >= 200 for x in t.arr))
+        for body in ("all(x > 1 for x in self.a)",
+                     "all(x > 1 for x in [1, 2])",
+                     "all(x > 1 for x in range(4))",
+                     "all(x > y for x in self.arr for y in self.arr)",
+                     "all(x > 1 for x in sorted(self.arr))"):
+            with self.subTest(body=body):
+                self.reject(body, "a constraint loop runs over an array field"
+                            if "for y" not in body else "one 'for' over an array")
+        self.reject("all([self.a > 1])", "takes a generator over an array")
+
+    def test_G60_any(self):
+        self.accept("any(x == 7 for x in self.arr)", lambda t: 7 in t.arr)
+        self.accept("""
+            any(x == 7 for x in self.arr)
+            self.arr[0] != 7
+            self.arr[1] != 7
+            self.arr[2] != 7
+        """, lambda t: t.arr[3] == 7)
+        self.accept("not any(x == 7 for x in self.arr)", lambda t: 7 not in t.arr)
+        self.accept("any(x > 250 for i, x in enumerate(self.arr) if i > 1)",
+                    lambda t: t.arr[2] > 250 or t.arr[3] > 250)
+        self.accept("any(o.x == 3 for o in self.objs)",
+                    lambda t: 3 in [o.x for o in t.objs])
+        self.accept("self.flag == any(x == 0 for x in self.arr)",
+                    lambda t: t.flag == (0 in t.arr), witness=lambda it: it.flag == 1)
+        # A random-size composite array: only the active elements count.
+        self.accept(None, lambda t: 1 <= len(t.objs) <= 3
+                    and 9 in [o.x for o in t.objs], src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class Sub(vdc.RandClass):
+                x: vdc.u8 = vdc.rand()
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                objs: list[Sub] = vdc.rand(max_size=3)
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.objs.size > 0
+                    any(o.x == 9 for o in self.objs)
+        """)
+        # A random-size scalar array is not allocated before its size is
+        # solved, so the expression form is not supported yet.
+        mod = self.build(None, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                arr: list[vdc.u8] = vdc.rand(max_size=4)
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.arr.size > 0
+                    self.arr.size <= 4
+                    any(x == 9 for x in self.arr)
+        """)
+        with self.assertRaisesRegex(NotImplementedError, "not supported yet"):
+            mod.T().randomize()
+        # The statement form is a foreach, which a random-size array supports.
+        self.accept(None, lambda t: all(x > 9 for x in t.arr), src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                arr: list[vdc.u8] = vdc.rand(max_size=4)
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.arr.size <= 4
+                    all(x > 9 for x in self.arr)
+        """)
 
     def test_G61_bool(self):
         self.accept("bool(self.a) == self.flag", lambda t: (t.a != 0) == t.flag,

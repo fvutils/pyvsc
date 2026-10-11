@@ -115,6 +115,11 @@ class _Folder:
             if isinstance(c, ir.IRConst):
                 return self.expr(n.t if c.value else n.f, bound)
             return ir.IRCond(c, self.expr(n.t, bound), self.expr(n.f, bound))
+        if isinstance(n, ir.IRReduce):
+            inner = bound | {v for v in (n.idx_name, n.it_name) if v is not None}
+            return ir.IRReduce(n.op, n.array, n.idx_name, n.it_name,
+                               self.expr(n.cond, inner),
+                               None if n.filt is None else self.expr(n.filt, inner))
         if isinstance(n, ir.IRInside):
             lhs = self.expr(n.lhs, bound)
             ranges = [ir.IRRange(self.expr(r.lo, bound),
