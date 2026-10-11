@@ -25,7 +25,7 @@ G_ROWS = {
     1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
     9: None, 10: "1.12", 11: None, 12: None, 13: None, 14: None, 15: None,
     16: None, 17: None, 18: None, 19: None, 20: None, 21: None, 22: None,
-    23: None, 24: None, 25: None, 26: None, 27: None, 28: "1.9", 29: None,
+    23: None, 24: None, 25: None, 26: None, 27: None, 28: None, 29: None,
     30: None, 31: None, 32: None, 33: None, 34: None, 35: None, 36: None,
     37: None, 38: None, 39: None, 40: None, 41: None, 42: None, 43: None,
     44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
@@ -319,6 +319,18 @@ class TestConstraintGrammar(GrammarCase):
         self.accept("1 < self.a < 5", lambda t: 1 < t.a < 5,
                     witness=lambda it: it.a == 4)
         self.accept("self.a == self.b == self.c", lambda t: t.a == t.b == t.c)
+
+    def test_G28_in_inside_chain(self):
+        # Python: 0 < a in S is (0 < a) and (a in S).
+        self.accept("0 < self.a in [0, 4, 9]", lambda t: t.a in (4, 9),
+                    witness=lambda it: it.a == 9)
+        self.accept("self.b < self.a not in range(0, 200)",
+                    lambda t: t.b < t.a and t.a >= 200)
+        self.same_model("1 < self.a in {3, 5}", "(1 < self.a) & (self.a in {3, 5})")
+        # The set is also the left side of a later comparison, as in Python
+        # (a in S == b is (a in S) and (S == b)), and a set is not a value.
+        self.reject("self.a in [1, 2] < 3", "unsupported expression List")
+        self.reject("self.a in ALLOWED == self.b", "not an integer/enum constant")
 
     def test_G24_bitwise_in_chain(self):
         # Python reads these as chains: a > (3 & a) < 6 (B7).

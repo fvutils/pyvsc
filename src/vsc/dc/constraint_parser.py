@@ -557,6 +557,12 @@ class _Parser:
         result = None
         left = node.left
         for cmp_op, right in zip(node.ops, node.comparators):
+            if isinstance(cmp_op, (ast.In, ast.NotIn)):
+                term = self._membership(self._expr(left), self._ranges(right),
+                                        isinstance(cmp_op, ast.NotIn))
+                result = term if result is None else IRBin("&", result, term)
+                left = right
+                continue
             op = _CMPOP.get(type(cmp_op))
             if op is None:
                 self._err(node, "unsupported comparison")
