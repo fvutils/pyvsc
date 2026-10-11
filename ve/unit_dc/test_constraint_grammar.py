@@ -1,0 +1,481 @@
+"""
+The vdc constraint grammar: which Python constructs a constraint body accepts,
+what each one means, and which are rejected.
+
+One test per row of ``doc/notes/vdc_constraint_python_grammar.md``, named
+``test_G<nn>_<slug>``, so the spec's G-table is the index of this file.
+``G_ROWS`` lists every row; a row whose ledger item (plan
+``doc/notes/vdc_constraint_grammar_impl_plan.md`` §9) has not landed yet is
+marked with that item, and ``TestGrammarIndex`` keeps the two in step.
+
+Accepted rows check the constraint holds over 20 randomizations and, where a
+narrower wrong meaning is possible, that a witness value is still allowed.
+Rejected rows check the error is raised when the class is defined and names the
+offending ``file:line``.
+"""
+import os
+import re
+import unittest
+
+from grammar_util import GrammarCase
+
+
+# G-ID -> None (tested here) or the plan ledger item that will add its test.
+G_ROWS = {
+    1: None, 2: None, 3: None, 4: None, 5: None, 6: None, 7: None, 8: None,
+    9: None, 10: "1.12", 11: None, 12: "1.1", 13: None, 14: None, 15: "1.6",
+    16: None, 17: None, 18: None, 19: None, 20: "1.4", 21: "1.4", 22: "1.3",
+    23: "1.3", 24: "1.2", 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
+    30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
+    37: None, 38: "1.8", 39: "1.7", 40: "1.7", 41: None, 42: None, 43: None,
+    44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: "0.2", 50: "0.6",
+    51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: "1.5",
+    57: "1.10", 58: "1.5", 59: "1.11", 60: "1.11", 61: "1.5", 62: None,
+    63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: "0.3",
+    70: "2.1", 71: "2.1", 72: "2.1", 73: "2.1", 74: "2.2", 75: "2.1",
+    76: "2.3", 77: None, 78: None, 79: "1.3", 80: "2.7", 81: None, 82: None,
+    83: None, 84: None, 85: None, 86: None, 87: "0.5", 88: "2.5", 89: None,
+    90: None, 91: None, 92: None, 93: None,
+}
+
+_SPEC = os.path.join(os.path.dirname(__file__), "..", "..", "doc", "notes",
+                     "vdc_constraint_python_grammar.md")
+
+
+class TestGrammarIndex(unittest.TestCase):
+    """The G-table and this file must not drift apart."""
+
+    def _tested(self):
+        ids = set()
+        for name in dir(TestConstraintGrammar):
+            m = re.match(r"test_G(\d\d)_", name)
+            if m:
+                ids.add(int(m.group(1)))
+        return ids
+
+    def test_every_landed_row_has_a_test(self):
+        tested = self._tested()
+        done = {g for g, item in G_ROWS.items() if item is None}
+        self.assertEqual(sorted(done - tested), [], "rows without a test")
+        self.assertEqual(sorted(tested - done), [],
+                         "tested rows still marked pending in G_ROWS")
+
+    @unittest.skipUnless(os.path.exists(_SPEC), "spec not present")
+    def test_rows_match_spec(self):
+        with open(_SPEC) as f:
+            spec = {int(g) for g in re.findall(r"^\| G-(\d\d) \|", f.read(), re.M)}
+        self.assertEqual(sorted(spec), sorted(G_ROWS))
+
+
+class TestConstraintGrammar(GrammarCase):
+
+    # -- 2.1 literals and names ---------------------------------------------
+
+    def test_G01_int_literals(self):
+        self.accept("""
+            self.a == 0x10
+            self.b == 0b101
+            self.c == 0o17
+            self.i == 1_0 - 7
+        """, lambda t: (t.a, t.b, t.c, t.i) == (16, 5, 15, 3))
+
+    def test_G02_negative_literal(self):
+        self.accept("self.s == -5", lambda t: t.s == -5)
+
+    def test_G03_true_false_in_expression(self):
+        self.accept("self.flag == True", lambda t: t.flag == 1)
+        self.accept("self.flag == False", lambda t: t.flag == 0)
+
+    def test_G04_non_integer_constants(self):
+        for body in ("self.a == 'x'", "self.a == b'x'", "self.a == 1.5",
+                     "self.a == 1j", "self.a == None"):
+            with self.subTest(body=body):
+                self.reject(body, "unsupported constant")
+
+    def test_G05_fstring(self):
+        self.reject("f'{self.a}' == '1'", "JoinedStr")
+
+    def test_G06_module_global(self):
+        self.accept("self.a == LIMIT", lambda t: t.a == 10)
+
+    def test_G07_closure_variable(self):
+        self.accept(None, lambda t: t.a == 7, src="""
+            import vsc.dc as vdc
+
+            def make():
+                K = 7
+
+                @vdc.dataclass
+                class T(vdc.RandClass):
+                    a: vdc.u8 = vdc.rand()
+
+                    @vdc.constraint
+                    def c_probe(self):
+                        self.a == K
+                return T
+
+            T = make()
+        """)
+
+    def test_G08_enum_member(self):
+        self.accept("self.e == E.B", lambda t: t.e == 2)
+
+    def test_G09_class_constant_via_self(self):
+        self.accept("self.a == self.MAXV", lambda t: t.a == 20)
+        # Folded per subclass: an override changes the value.
+        self.accept(None, lambda t: t.a == 30, cls="U", src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                MAXV = 20
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.a == self.MAXV
+
+            class U(T):
+                MAXV = 30
+        """)
+
+    def test_G11_unknown_name(self):
+        self.reject("self.a == zz", "reference to local/global 'zz'")
+
+    # -- 2.2 arithmetic and bitwise -----------------------------------------
+
+    def test_G13_floordiv_mod(self):
+        self.accept("""
+            self.a // 4 == 3
+            self.a % 4 == 1
+        """, lambda t: t.a == 13)
+
+    def test_G14_add_sub_mul(self):
+        self.accept("""
+            self.a + self.b == 10
+            self.a - self.c == 2
+            self.b * 3 == 12
+        """, lambda t: (t.a + t.b, t.a - t.c, t.b) == (10, 2, 4))
+
+    def test_G16_matmul(self):
+        self.reject("self.a @ self.b == 1", "unsupported binary operator")
+
+    def test_G17_bitwise(self):
+        self.accept("""
+            (self.a & 0xF0) == 0x30
+            (self.b | 1) == 3
+            (self.c ^ 0xFF) == 0xF0
+        """, lambda t: (t.a & 0xF0, t.b | 1, t.c) == (0x30, 3, 0x0F),
+            witness=lambda it: it.a == 0x3F)
+
+    def test_G18_shifts(self):
+        self.accept("""
+            (self.a << 1) == 8
+            (self.b >> 2) == 1
+        """, lambda t: t.a == 4 and t.b >> 2 == 1)
+
+    def test_G19_invert(self):
+        # Masked: unmasked, ~a is taken at the comparison's width, and the
+        # solvers disagree on what that is (spec B8).
+        self.accept("(~self.a & 0xFF) == 0xF0", lambda t: t.a == 0x0F)
+        # On a comparison, ~ is logical not.
+        self.accept("~(self.a == 5)", lambda t: t.a != 5,
+                    witness=lambda it: it.a == 6)
+
+    # -- 2.4 comparisons ----------------------------------------------------
+
+    def test_G26_comparisons(self):
+        self.accept("""
+            self.a != 0
+            self.a < 100
+            self.a <= 99
+            self.b > 3
+            self.b >= 4
+            self.c == 7
+        """, lambda t: 0 < t.a < 100 and t.b > 3 and t.c == 7)
+
+    def test_G27_chained_comparison(self):
+        self.accept("1 < self.a < 5", lambda t: 1 < t.a < 5,
+                    witness=lambda it: it.a == 4)
+        self.accept("self.a == self.b == self.c", lambda t: t.a == t.b == t.c)
+
+    def test_G29_is(self):
+        self.reject("self.a is self.b", "unsupported comparison")
+        self.reject("self.a is not None", "unsupported comparison")
+
+    def test_G30_literal_on_left(self):
+        self.accept("5 == self.a", lambda t: t.a == 5)
+
+    # -- 2.5 set membership -------------------------------------------------
+
+    def test_G31_list_tuple_literal(self):
+        self.accept("self.a in [1, 2, 3]", lambda t: t.a in (1, 2, 3))
+        self.accept("self.a in (1, 2, 3)", lambda t: t.a in (1, 2, 3))
+        self.accept("self.a not in [0, 1, 2]", lambda t: t.a not in (0, 1, 2))
+        self.accept("self.a in [self.b, self.c + 1]",
+                    lambda t: t.a in (t.b, t.c + 1))
+        self.accept("self.e in [E.A, E.B]", lambda t: t.e in (1, 2))
+        self.accept("5 in [self.a, self.b]", lambda t: 5 in (t.a, t.b))
+        self.accept("self.a + 1 in [3, 4]", lambda t: t.a in (2, 3))
+
+    def test_G32_tuple_element_is_inclusive_range(self):
+        self.accept("self.a in [1, (10, 12)]",
+                    lambda t: t.a == 1 or 10 <= t.a <= 12,
+                    witness=lambda it: it.a == 12)
+
+    def test_G34_range_is_half_open(self):
+        self.accept("self.a in range(3, 6)", lambda t: 3 <= t.a < 6,
+                    witness=lambda it: it.a == 5)
+        self.accept("self.a in range(4)", lambda t: t.a < 4)
+        self.accept("""
+            self.a in range(3, 6)
+            self.a == 6
+        """, unsat=True)
+
+    def test_G36_r_slice_is_inclusive(self):
+        self.accept("self.a in vdc.r[3:6]", lambda t: 3 <= t.a <= 6,
+                    witness=lambda it: it.a == 6)
+        self.accept("self.a in vdc.r[1:2, 8:9]", lambda t: t.a in (1, 2, 8, 9))
+
+    def test_G37_rangelist_rng(self):
+        self.accept("self.a in vdc.rangelist(1, (10, 12))",
+                    lambda t: t.a == 1 or 10 <= t.a <= 12)
+        self.accept("self.a in [vdc.rng(10, 12)]", lambda t: 10 <= t.a <= 12,
+                    witness=lambda it: it.a == 12)
+
+    def test_G41_enum_class(self):
+        self.reject("self.e in E", "value set must be")
+
+    def test_G42_inside_methods(self):
+        self.accept("self.a.inside(vdc.rangelist(1, 2))", lambda t: t.a in (1, 2))
+        self.accept("self.a.not_inside(vdc.rangelist(0, 1))",
+                    lambda t: t.a not in (0, 1))
+        self.accept("self.a.outside([0, 1])", lambda t: t.a not in (0, 1))
+
+    def test_G43_other_call_in_set(self):
+        self.reject("self.a in helper(1)", "unsupported call 'helper'")
+
+    # -- 2.6 subscripts, attributes, reductions -----------------------------
+
+    def test_G44_bit_select(self):
+        self.accept("""
+            self.a[0] == 1
+            self.a[7] == 0
+        """, lambda t: t.a & 1 and not t.a & 0x80)
+
+    def test_G45_part_select_hi_lo(self):
+        self.accept("self.a[7:4] == 0xA", lambda t: t.a >> 4 == 0xA)
+
+    def test_G46_part_select_step_or_open(self):
+        self.reject("self.a[7:4:1] == 1", "part-select with a step")
+        self.reject("self.a[7:] == 1", "explicit bounds")
+
+    def test_G47_array_constant_index(self):
+        self.accept("self.arr[1] == 7", lambda t: t.arr[1] == 7)
+
+    def test_G51_nested_composite(self):
+        self.accept("self.sub.x == 4", lambda t: t.sub.x == 4)
+        self.accept("self.objs[1].x == 4", lambda t: t.objs[1].x == 4)
+
+    def test_G52_size_sum(self):
+        self.accept("self.arr.size == 4", lambda t: len(t.arr) == 4)
+        self.accept("self.arr.sum == 10", lambda t: sum(t.arr) == 10)
+
+    def test_G62_casts(self):
+        for body in ("int(self.a) == 5", "float(self.a) == 5",
+                     "str(self.a) == '5'"):
+            with self.subTest(body=body):
+                self.reject(body, "unsupported call in expression")
+
+    def test_G63_comprehensions(self):
+        for body, frag in (("[x < 10 for x in self.arr]", "ListComp"),
+                           ("{x < 10 for x in self.arr}", "SetComp"),
+                           ("{x: 1 for x in self.arr}", "DictComp"),
+                           ("(x < 10 for x in self.arr)", "GeneratorExp")):
+            with self.subTest(body=body):
+                self.reject(body, frag)
+
+    def test_G64_user_function(self):
+        self.reject("helper(self.a) == 5", "unsupported call in expression")
+        self.reject("print(self.a)", "unsupported call in expression")
+
+    def test_G65_generic_reference(self):
+        self.accept(None, lambda t: t.a < 10, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+
+                @vdc.constraint.generic
+                def small(self, hi):
+                    self.a < hi
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.small(10)
+        """)
+
+    def test_G66_lambda_walrus_yield(self):
+        self.reject("(lambda: self.a)() == 1", "unsupported call in expression")
+        self.reject("(y := self.a) == 1", "NamedExpr")
+        self.reject("yield self.a", "Yield")
+
+    # -- 3. statements ------------------------------------------------------
+
+    def test_G67_expression_statement(self):
+        self.accept("self.a == 5", lambda t: t.a == 5)
+
+    def test_G77_while(self):
+        self.reject("while self.a < 3:\n    pass", "While")
+
+    def test_G78_if_elif_else(self):
+        self.accept("""
+            if self.flag:
+                self.a == 1
+            else:
+                self.a == 2
+        """, lambda t: t.a == (1 if t.flag else 2))
+        self.accept("""
+            if self.b < 10:
+                self.a == 1
+            elif self.b < 20:
+                self.a == 2
+            else:
+                self.a == 3
+        """, lambda t: t.a == (1 if t.b < 10 else 2 if t.b < 20 else 3))
+        # No else: an implication.
+        self.accept("""
+            if self.b > 100:
+                self.a == 1
+        """, lambda t: t.b <= 100 or t.a == 1,
+            witness=lambda it: (it.b == 50, it.a == 9))
+        # A multi-bit condition is a truth test.
+        self.accept("""
+            if self.b:
+                self.a == 1
+            else:
+                self.a == 2
+        """, lambda t: t.a == (1 if t.b else 2))
+
+    def test_G81_with_if_then(self):
+        self.accept("""
+            with vdc.if_then(self.flag == 1):
+                self.a == 1
+            with vdc.else_if(self.b == 0):
+                self.a == 2
+            with vdc.else_then:
+                self.a == 3
+        """, lambda t: t.a == (1 if t.flag else 2 if t.b == 0 else 3))
+
+    def test_G82_with_implies(self):
+        self.accept("""
+            with vdc.implies(self.flag == 1):
+                self.a == 1
+        """, lambda t: not t.flag or t.a == 1,
+            witness=lambda it: (it.flag == 0, it.a == 9))
+
+    def test_G83_with_foreach(self):
+        self.accept("""
+            with vdc.foreach(self.arr) as x:
+                x < 10
+        """, lambda t: all(x < 10 for x in t.arr))
+        self.accept("""
+            with vdc.foreach(self.arr, idx=True) as i:
+                self.arr[i] == i
+        """, lambda t: list(t.arr) == [0, 1, 2, 3])
+        self.accept("""
+            with vdc.foreach(self.arr, idx=True, it=True) as (i, x):
+                x == i + 1
+        """, lambda t: list(t.arr) == [1, 2, 3, 4])
+        self.accept("""
+            with vdc.foreach(self.arr, idx=True) as i:
+                if i > 0:
+                    self.arr[i] > self.arr[i - 1]
+        """, lambda t: all(t.arr[k] > t.arr[k - 1] for k in range(1, 4)))
+
+    def test_G84_with_other(self):
+        self.reject("""
+            with vdc.if_then(self.flag == 1), vdc.implies(self.a == 1):
+                pass
+        """, "single context manager")
+        self.reject("""
+            with open('x'):
+                pass
+        """, "unsupported with-context 'open'")
+
+    def test_G85_statement_helpers(self):
+        self.accept("vdc.soft(self.a == 5)", lambda t: t.a == 5)
+        self.accept("""
+            vdc.unique(self.a, self.b, self.c)
+            self.a < 3
+            self.b < 3
+            self.c < 3
+        """, lambda t: len({t.a, t.b, t.c}) == 3)
+        self.accept("""
+            vdc.unique(self.arr)
+            with vdc.foreach(self.arr) as x:
+                x < 4
+        """, lambda t: sorted(t.arr) == [0, 1, 2, 3])
+        self.accept("""
+            vdc.solve_order(self.flag, self.a)
+            if self.flag:
+                self.a == 1
+        """, lambda t: not t.flag or t.a == 1)
+        self.accept("vdc.dist(self.a, [vdc.weight(1, 10), vdc.weight((2, 4), 20)])",
+                    lambda t: 1 <= t.a <= 4)
+
+    def test_G86_pass(self):
+        self.accept("""
+            pass
+            self.a == 5
+        """, lambda t: t.a == 5)
+
+    def test_G89_assignment(self):
+        for body in ("self.a = 5", "self.a += 1", "x: int = 1"):
+            with self.subTest(body=body):
+                self.reject(body, "unsupported statement")
+
+    def test_G90_local_binding(self):
+        self.reject("""
+            lo = self.b + 1
+            self.a == lo
+        """, "unsupported statement Assign")
+
+    def test_G91_assert(self):
+        self.reject("assert self.a == 5", "unsupported statement Assert")
+
+    def test_G92_return(self):
+        self.reject("""
+            self.a == 5
+            return
+        """, "unsupported statement Return", line=2)
+        self.accept(None, lambda t: t.a == 4, src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                a: vdc.u8 = vdc.rand()
+                b: vdc.u8 = vdc.rand()
+
+                @vdc.constraint.value
+                def twice(self, v):
+                    return v + v
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.twice(self.a) == 8
+        """)
+
+    def test_G93_other_statements(self):
+        for body, frag in (("raise ValueError()", "Raise"),
+                           ("try:\n    self.a == 1\nexcept Exception:\n    pass",
+                            "Try"),
+                           ("import os", "Import"),
+                           ("del self.a", "Delete"),
+                           ("global LIMIT", "Global"),
+                           ("def f():\n    pass", "FunctionDef"),
+                           ("class K:\n    pass", "ClassDef"),
+                           ("async def f():\n    pass", "AsyncFunctionDef")):
+            with self.subTest(body=body):
+                self.reject(body, frag)
