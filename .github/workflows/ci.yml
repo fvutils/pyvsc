@@ -215,8 +215,9 @@ jobs:
   # here because PyPI has no Windows dv-solve wheel yet (its wheels.yml builds
   # one but publishes linux-x86_64 only) -- so this proves pyvsc runs on
   # Windows, not that `pip install pyvsc` does. The build setup mirrors
-  # dv-solve's own Windows wheel job: Ninja + MSVC, and no CaDiCaL (MSVC builds
-  # force DVS_WITH_CADICAL=OFF).
+  # dv-solve's own Windows job: Ninja + MSVC, with CaDiCaL fetched beside it
+  # exactly as on Linux (MSVC builds CaDiCaL too; cmake/cadical.cmake stops if
+  # the sources are missing).
   #
   # NOT YET A RELEASE GATE: publish-pypi does not need this job. Add it to
   # publish-pypi's `needs` once it has run green.
@@ -242,6 +243,8 @@ jobs:
         python -m pip install pip setuptools wheel --upgrade
         python -m pip install pytest toposort 'git+https://github.com/fvutils/pyucis.git#egg=pyucis'
         git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        cadical_tag=$(sed -n '/name: cadical/,/tag:/s/.*tag: *//p' packages/dv-solve/ivpm.yaml)
+        git -c advice.detachedHead=false clone -q --depth 1 -b "$cadical_tag" https://github.com/arminbiere/cadical.git packages/cadical
         python -m pip install ./packages/dv-solve
         python -m pip install --no-deps -e .
     - name: Run Tests
