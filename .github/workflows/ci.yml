@@ -128,6 +128,10 @@ jobs:
         # conftest.py and its own base class, and shares test module names
         # with ve/unit.
         (cd ve/unit_dc && ../../python/bin/python3 -m pytest --no-cov -q .)
+        # Again on the legacy randomize_with path (operator overloading), which
+        # still serves a body whose source cannot be read. The default parses
+        # the body (doc/notes/vdc_constraint_grammar_completion_plan.md 3.7).
+        (cd ve/unit_dc && VSC_DC_INLINE_PARSE=0 ../../python/bin/python3 -m pytest --no-cov -q .)
     - name: Build Docs
       # Built once, from the canonical boolector leg only, as a CI check.
       if: matrix.solver == 'boolector'
@@ -209,6 +213,39 @@ jobs:
         tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
         ./python/bin/python3 -m pytest -v $tests
         (cd ve/unit_dc && ../../python/bin/python3 -m pytest -q .)
+
+  # ---------------------------------------------------------------------- #
+  # PYTHON 3.12. The other legs run 3.10, where a parsed randomize_with body
+  # is skipped with a settrace hook; 3.12+ uses sys.monitoring instead
+  # (src/vsc/dc/inline_parse.py skip_body). This leg runs the dataclass suite
+  # on 3.12 with dv-solve, and the skip tests once under coverage, which
+  # traces lines itself: the body must still be skipped, and coverage must
+  # still see the lines after the block.
+  # ---------------------------------------------------------------------- #
+  ci-py312:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
+    - name: Configure Python
+      run: |
+        python3 -m venv python
+        ./python/bin/python3 -m pip install pip setuptools wheel --upgrade
+        ./python/bin/python3 -m pip install pytest coverage toposort 'git+https://github.com/fvutils/pyucis.git#egg=pyucis'
+        git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
+        cadical_tag=$(sed -n '/name: cadical/,/tag:/s/.*tag: *//p' packages/dv-solve/ivpm.yaml)
+        git -c advice.detachedHead=false clone -q --depth 1 -b "$cadical_tag" https://github.com/arminbiere/cadical.git packages/cadical
+        ./python/bin/python3 -m pip install ./packages/dv-solve
+        ./python/bin/python3 -m pip install --no-deps -e .
+    - name: Run Tests
+      env:
+        VSC_SOLVER: dv-solve
+        VSC_DVSOLVE_VALIDATE: '1'
+      run: |
+        (cd ve/unit_dc && ../../python/bin/python3 -m pytest -q .)
+        (cd ve/unit_dc && ../../python/bin/python3 -m coverage run -m pytest -q test_inline_skip.py test_inline_parse_switch.py)
 
   # ---------------------------------------------------------------------- #
   # WINDOWS. The platform itself, dv-solve only. dv-solve is built from source
