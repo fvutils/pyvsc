@@ -52,7 +52,9 @@ class TestDistributionQuality(VscTestCase):
         ctor.set_solver_backend(None)
         super().tearDown()
 
-    # Each case: (title, class factory, {field: feasible-values}).
+    # Each case: (title, class factory, {field: feasible-values}). A field's
+    # entry is (feasible-values, {value: weight}) when its correct marginal
+    # is not flat.
     def _cases(self):
         cases = []
 
@@ -73,8 +75,13 @@ class TestDistributionQuality(VscTestCase):
             @vsc.constraint
             def c(s):
                 s.a < s.b
+        # Uniform over the 32640 solutions, not over each field's values: a
+        # value of `a` is as likely as the number of `b`s above it, so
+        # P(a=k) ∝ 255-k and P(b=k) ∝ k. (A flat marginal for `a` would make
+        # a=254 as likely as a=0, though only one solution has a=254.)
         cases.append(("a < b (uint8)", lambda: Relational(),
-                      {"a": range(0, 255), "b": range(1, 256)}))
+                      {"a": (range(0, 255), {k: 255 - k for k in range(0, 255)}),
+                       "b": (range(1, 256), {k: k for k in range(1, 256)})}))
 
         @vsc.randobj
         class DiscreteSet(object):
@@ -110,7 +117,10 @@ class TestDistributionQuality(VscTestCase):
             for backend in BACKENDS:
                 samples = _sample(backend, factory, list(field_domains.keys()))
                 for f, feasible in field_domains.items():
-                    sc = score(samples[f], feasible)
+                    weights = None
+                    if isinstance(feasible, tuple):
+                        feasible, weights = feasible
+                    sc = score(samples[f], feasible, weights)
                     per_backend.setdefault(f, {})[backend] = sc
                     print("    %-9s %-3s %s" % (backend, f, sc))
             # Record dv-solve vs boolector for the assertion phase.

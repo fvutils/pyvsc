@@ -91,11 +91,15 @@ def chi2_sf(chi2, dof):
 # ------------------------------------------------------------------ #
 
 class DistScore(object):
-    def __init__(self, n_samples, feasible, observed):
+    def __init__(self, n_samples, feasible, observed, weights=None):
         self.n_samples = n_samples
         self.n_feasible = len(feasible)          # V: number of feasible values
         self.n_distinct = sum(1 for v in feasible if observed.get(v, 0) > 0)
         self.coverage = self.n_distinct / self.n_feasible if self.n_feasible else 1.0
+
+        if weights is not None:
+            self._score_weighted(n_samples, feasible, observed, weights)
+            return
 
         # Chi-square vs uniform over the feasible values.
         expected = n_samples / self.n_feasible if self.n_feasible else 0.0
@@ -119,19 +123,50 @@ class DistScore(object):
         v = self.n_feasible
         self.coupon_ratio = (n_samples / (v * math.log(v))) if v > 1 else float("inf")
 
+    def _score_weighted(self, n_samples, feasible, observed, weights):
+        """Score against P(v) ∝ weights[v]: the marginal of a field that is
+        uniform over the solutions of a relation (under ``a < b`` on uint8,
+        P(a=k) ∝ 255-k). Values expected fewer than 5 times are pooled into
+        one cell, as a chi-square test needs; coverage counts only the values
+        expected at least 5 times, since a correct source misses rarer ones."""
+        total_w = float(sum(weights[v] for v in feasible))
+        cells = []                      # (observed, expected)
+        pool_o, pool_e = 0, 0.0
+        coverable = seen = 0
+        for v in feasible:
+            e = n_samples * weights[v] / total_w
+            o = observed.get(v, 0)
+            if e >= 5.0:
+                cells.append((o, e))
+                coverable += 1
+                seen += 1 if o > 0 else 0
+            else:
+                pool_o += o
+                pool_e += e
+        if pool_e > 0.0:
+            cells.append((pool_o, pool_e))
+        self.coverage = seen / coverable if coverable else 1.0
+        self.n_distinct, self.n_feasible = seen, coverable
+        self.chi2 = sum((o - e) ** 2 / e for o, e in cells if e > 0.0)
+        self.dof = max(len(cells) - 1, 0)
+        self.reduced_chi2 = self.chi2 / self.dof if self.dof else 1.0
+        self.p_value = chi2_sf(self.chi2, self.dof)
+        self.coupon_ratio = float("inf")
+
     def __str__(self):
         return ("reduced_chi2=%6.2f  p=%.3g  coverage=%5.1f%% (%d/%d)  coupon_x=%.2f"
                 % (self.reduced_chi2, self.p_value, 100 * self.coverage,
                    self.n_distinct, self.n_feasible, self.coupon_ratio))
 
 
-def score(values, feasible):
+def score(values, feasible, weights=None):
     """Score an iterable of sampled ``values`` against the list of ``feasible``
-    values (the legal domain). Returns a DistScore."""
+    values (the legal domain): uniform over them, or with ``weights``
+    ({value: weight}) against P(v) ∝ weights[v]. Returns a DistScore."""
     observed = {}
     n = 0
     for v in values:
         v = int(v)
         observed[v] = observed.get(v, 0) + 1
         n += 1
-    return DistScore(n, list(feasible), observed)
+    return DistScore(n, list(feasible), observed, weights)

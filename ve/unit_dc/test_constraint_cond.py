@@ -24,6 +24,10 @@ class Cls(vdc.RandClass):
 
     @vdc.constraint
     def q(self):
+        # Uniform over solutions, i==1 has one solution (y==0) against 2^32
+        # with i==0, so it would almost never come up -- IEEE 1800's own
+        # example for solve...before. Choosing i first gives each leg half.
+        vdc.solve_order(self.i, self.y)
         with vdc.if_then(self.i == 1):
             with vdc.if_then(self.d == 0):     # ternary true-arm: y==0
                 self.y == 0
