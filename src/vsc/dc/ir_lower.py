@@ -312,7 +312,12 @@ def _expr(node, ctx):
         return _index(node, ctx)
     if isinstance(node, ir.IRPartSelect):
         # base[upper:lower] bit part-select (upper/lower resolve to constants).
-        return ExprPartselectModel(_expr(node.base, ctx),
+        base_e = _expr(node.base, ctx)
+        if isinstance(getattr(base_e, "fm", None), FieldArrayModel):
+            # The parser rejects self.arr[a:b]; this catches a nested array.
+            raise TypeError("array slices are not supported in constraints "
+                            "(%r)" % (node.base,))
+        return ExprPartselectModel(base_e,
                                    _expr(node.upper, ctx), _expr(node.lower, ctx))
     if isinstance(node, ir.IRAttr):
         return _attr(node, ctx)

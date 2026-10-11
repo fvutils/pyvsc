@@ -48,12 +48,13 @@ _IMPLIES = "implies"
 _FOREACH = "foreach"
 
 
-def parse_constraint(name, func, kind="fixed"):
+def parse_constraint(name, func, kind="fixed", arrays=frozenset()):
     """Compile ``func`` (a constraint method) into a :class:`ConstraintProgram`.
 
     ``kind`` is the marker set by the decorator: ``"fixed"`` (``@vdc.constraint``),
     ``"generic"`` (``@vdc.constraint.generic``) or ``"value"``
-    (``@vdc.constraint.value``). A method with parameters beyond ``self`` is forced
+    (``@vdc.constraint.value``). ``arrays`` names the class's array fields. A
+    method with parameters beyond ``self`` is forced
     to ``"generic"`` (a fixed constraint cannot bind parameters); a body that is a
     single ``return <expr>`` is a value generic.
 
@@ -93,6 +94,7 @@ def parse_constraint(name, func, kind="fixed"):
 
     p = _Parser(name, fn.args.args[0].arg, func)
     p._params = set(params)
+    p._arrays = arrays
 
     param_defaults = {}
     for sp in sig_params:
@@ -134,6 +136,8 @@ class _Parser:
         # Formal parameter names of a generic constraint (set by parse_constraint
         # after construction); a bare Name matching one lowers to IRParam.
         self._params = set()
+        # Names of the class's array fields (``self.<name>``).
+        self._arrays = frozenset()
         # Names bound by enclosing foreach loops (idx/it), referenceable as bare
         # Names in the body and resolved to IRField at lowering.
         self._bound = set()
@@ -375,6 +379,10 @@ class _Parser:
             return self._call_expr(node)
         if isinstance(node, ast.Subscript):
             if isinstance(node.slice, ast.Slice):
+                if self._is_array(node.value):
+                    self._err(node, "array slices are not supported in "
+                                    "constraints; index one element or use "
+                                    "a foreach")
                 sl = node.slice
                 if sl.step is not None:
                     self._err(node, "part-select with a step (a[hi:lo:step]) is not supported")
@@ -604,6 +612,12 @@ class _Parser:
                 self._err(e, "solve_order arguments must be field references")
             out.append(fr)
         return out
+
+    def _is_array(self, node):
+        """``self.<array field>``"""
+        return (isinstance(node, ast.Attribute) and node.attr in self._arrays
+                and isinstance(node.value, ast.Name)
+                and node.value.id == self.self_name)
 
     def _is_self_rooted(self, node):
         cur = node

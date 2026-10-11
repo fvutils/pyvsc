@@ -28,7 +28,7 @@ G_ROWS = {
     23: "1.3", 24: "1.2", 25: "1.5", 26: None, 27: None, 28: "1.9", 29: None,
     30: None, 31: None, 32: None, 33: "1.7", 34: None, 35: "1.7", 36: None,
     37: None, 38: "1.8", 39: "1.7", 40: "1.7", 41: None, 42: None, 43: None,
-    44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: "0.6",
+    44: None, 45: None, 46: None, 47: None, 48: "1.14", 49: None, 50: None,
     51: None, 52: None, 53: "1.10", 54: "1.10", 55: "1.10", 56: "1.5",
     57: "1.10", 58: "1.5", 59: "1.11", 60: "1.11", 61: "1.5", 62: None,
     63: None, 64: None, 65: None, 66: None, 67: None, 68: "2.4", 69: None,
@@ -289,6 +289,27 @@ class TestConstraintGrammar(GrammarCase):
         """, lambda t: t.i == 2 and t.arr[2] == 9)
         self.accept("self.arr[self.i] == 9", lambda t: t.arr[t.i] == 9,
                     witness=lambda it: it.i == 3)
+
+    def test_G50_array_slice(self):
+        self.reject("self.arr[0:2] == 0", "array slices are not supported")
+        # A nested array is caught when the model is lowered.
+        mod = self.build(src="""
+            import vsc.dc as vdc
+
+            @vdc.dataclass
+            class Inner(vdc.RandClass):
+                arr: list[vdc.u8] = vdc.rand(size=4)
+
+            @vdc.dataclass
+            class T(vdc.RandClass):
+                sub: Inner = vdc.rand()
+
+                @vdc.constraint
+                def c_probe(self):
+                    self.sub.arr[1:0] == 0
+        """)
+        with self.assertRaisesRegex(TypeError, "array slices are not supported"):
+            mod.T().randomize()
 
     def test_G51_nested_composite(self):
         self.accept("self.sub.x == 4", lambda t: t.sub.x == 4)
