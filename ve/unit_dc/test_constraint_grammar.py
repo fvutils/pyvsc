@@ -627,6 +627,11 @@ class TestConstraintGrammar(GrammarCase):
 
     def test_G45_part_select_hi_lo(self):
         self.accept("self.a[7:4] == 0xA", lambda t: t.a >> 4 == 0xA)
+        self.accept("self.a[3:3] == 1", lambda t: (t.a >> 3) & 1)
+        self.accept("self.a[LIMIT - 3:LIMIT - 6] == 0xF", lambda t: (t.a >> 4) == 0xF)
+        # Python slice order is rejected, not read as an empty slice.
+        self.reject("self.a[4:7] == 0xA", "write [7:4]")
+        self.reject("self.a[0:LIMIT - 3] == 1", "write [7:0]")
 
     def test_G46_part_select_step_or_open(self):
         self.reject("self.a[7:4:1] == 1", "part-select with a step")

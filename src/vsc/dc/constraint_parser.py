@@ -163,6 +163,21 @@ _LOOP_FORMS = ("'for x in self.arr', 'for i in range(len(self.arr))' or "
                "'for i, x in enumerate(self.arr)'")
 
 
+_CONST_OPS = {"+": int.__add__, "-": int.__sub__, "*": int.__mul__}
+
+
+def _const_value(e):
+    """The value of ``e`` when it is a constant (+, -, * of literals), else
+    None."""
+    if isinstance(e, IRConst):
+        return int(e.value)
+    if isinstance(e, IRBin) and e.op in _CONST_OPS:
+        a, b = _const_value(e.lhs), _const_value(e.rhs)
+        if a is not None and b is not None:
+            return _CONST_OPS[e.op](a, b)
+    return None
+
+
 def _is_bool(e):
     """True when IR expression ``e`` is a truth value (0 or 1)."""
     if isinstance(e, IRBin):
@@ -520,8 +535,12 @@ class _Parser:
                     self._err(node, "part-select requires explicit bounds a[hi:lo]")
                 # Source `a[hi:lo]` -> AST slice.lower=hi (pyvsc upper bit),
                 # slice.upper=lo (pyvsc lower bit).
-                return IRPartSelect(self._expr(node.value),
-                                    self._expr(sl.lower), self._expr(sl.upper))
+                hi, lo = self._expr(sl.lower), self._expr(sl.upper)
+                hv, lv = _const_value(hi), _const_value(lo)
+                if hv is not None and lv is not None and hv < lv:
+                    self._err(node, "a part-select is [hi:lo], high bit first "
+                                    "(SV order): write [%d:%d]" % (lv, hv))
+                return IRPartSelect(self._expr(node.value), hi, lo)
             return IRIndex(self._expr(node.value), self._expr(node.slice))
         if isinstance(node, ast.Attribute):
             if self._is_self_rooted(node):
