@@ -448,6 +448,13 @@ class TestConstraintGrammar(GrammarCase):
             self.b >= 4
             self.c == 7
         """, lambda t: 0 < t.a < 100 and t.b > 3 and t.c == 7)
+        # A comparison is a 1-bit value, so two of them compare as values.
+        self.accept("(self.a < 3) == (self.b < 3)",
+                    lambda t: (t.a < 3) == (t.b < 3),
+                    witness=lambda it: (it.a == 1) & (it.b == 2))
+        self.accept("(self.a < 3) != (self.b < 3)",
+                    lambda t: (t.a < 3) != (t.b < 3),
+                    witness=lambda it: (it.a == 1) & (it.b == 200))
 
     def test_G27_chained_comparison(self):
         self.accept("1 < self.a < 5", lambda t: 1 < t.a < 5,
