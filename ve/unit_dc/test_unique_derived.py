@@ -20,7 +20,7 @@ the distinctness — which only dv-solve does (boolector snapshots the index and
 import random
 from enum import IntEnum
 
-from dc_test_case import DcTestCase, known_gap_without_boolector
+from dc_test_case import DcTestCase
 import vsc.dc as vdc
 from vsc.impl import ctor
 import vsc.model.randomizer as rnd
@@ -208,10 +208,7 @@ class TestUniqueDerived(DcTestCase):
         self.assertEqual(rnd.get_fallback_tally(), {},
                          "symbolic object-column unique deferred instead of native")
 
-    # dv-solve alone leaves this UNSAT undecided (BV-SAT verdict 0), so with
-    # no Boolector to decide it the user gets BackendIncomplete, not
-    # SolveFailure.
-    @known_gap_without_boolector
+    # dv-solve decides this UNSAT alone: BV-SAT encodes the symbolic select.
     def test_symbolic_unique_unsat(self):
         # Three selected elements must be distinct but are all bounded < 2 (only
         # values {0,1}) -> pigeonhole UNSAT.

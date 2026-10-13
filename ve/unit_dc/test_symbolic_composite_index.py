@@ -20,7 +20,7 @@ so these tests run on both. See
 """
 import random
 
-from dc_test_case import DcTestCase, known_gap_without_boolector
+from dc_test_case import DcTestCase
 import vsc.dc as vdc
 import vsc.model.randomizer as rnd
 from vsc.model.solve_failure import SolveFailure
@@ -195,10 +195,7 @@ class TestSymbolicCompositeIndex(DcTestCase):
             self.assertEqual(int(t.items[idx].b), 7,
                              (idx, [(int(e.a), int(e.b)) for e in t.items]))
 
-    # dv-solve alone leaves this UNSAT undecided (BV-SAT verdict 0), so with
-    # no Boolector to decide it the user gets BackendIncomplete, not
-    # SolveFailure.
-    @known_gap_without_boolector
+    # dv-solve decides this UNSAT alone: BV-SAT encodes the symbolic select.
     def test_object_select_unsat(self):
         # arr[idx].a == 30 but every element pinned to 0 -> UNSAT.
 
