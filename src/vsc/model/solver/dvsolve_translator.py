@@ -1252,7 +1252,7 @@ class DvSolveExprTranslator(ModelVisitor):
             raise BackendIncomplete(
                 "dv-solve: unique over %d elements exceeds the pairwise cap"
                 % M, reason_code="array")
-        sw = int(arr.size.width())
+        sw = int(arr.size.width)
         terms = []
         for i in range(M):
             for j in range(i + 1, M):
