@@ -50,7 +50,11 @@ extensions = [
     'sphinx_issues',
     'sphinxarg.ext',
     'sphinxcontrib.spelling',
+    'vsc.sphinx',
     ]
+
+# The example module on dataclass/documenting.rst.
+sys.path.insert(0, os.path.abspath('dataclass'))
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 

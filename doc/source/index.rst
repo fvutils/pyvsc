@@ -29,6 +29,7 @@ Contents:
    dataclass/inline_constraints
    dataclass/generic_constraints
    dataclass/coverage
+   dataclass/documenting
    dataclass/porting
 
 .. toctree::

@@ -43,6 +43,8 @@ dependencies = [
 boolector = ["pyboolector>=3.2.2"]
 # Kept so existing `pyvsc[dv-solve]` install lines keep working.
 dv-solve = ["dv-solve>=0.2.4"]
+# The vsc.sphinx documentation extension (extensions = ["vsc.sphinx"]).
+docs = ["sphinx>=7"]
 
 [project.urls]
 Homepage = "https://github.com/fvutils/pyvsc"

@@ -347,9 +347,14 @@ def covergroup(T):
 
         
 class bin(object):
-    """Specifies a single coverage bin"""
-    def __init__(self, *args):
+    """Specifies a single coverage bin.
+
+    ``doc`` is an optional description of the bin, used only by documentation
+    tools (``vsc.sphinx``); coverage ignores it."""
+    def __init__(self, *args, doc=None):
         self.range_l = args
+        self.spec_args = args
+        self.doc = doc
         
         # Capture the declaration location of this bin
         frame = sys._getframe(1)
@@ -376,13 +381,17 @@ class bin(object):
 class bin_array(object):
     """Specifies an array of bins"""
     
-    def __init__(self, nbins, *args):
+    def __init__(self, nbins, *args, doc=None):
         """
         args may be one of two formats
         - Single list of tuples or lists of values or ranges (eg [[1], [2,4], [8]])
         - Arguments comprising values and ranges (eg 1, [2,4], 8)
+
+        ``doc`` is an optional description, used only by documentation tools.
         """
         self.nbins = nbins
+        self.spec_args = args
+        self.doc = doc
         self.ranges = RangelistModel()
         
         # Convert the specification into canonical form: list of tuples
@@ -489,10 +498,14 @@ class bin_array(object):
         return ret
     
 class wildcard_bin(object):
-    """Specifies a single wildcard coverage bin"""
-    def __init__(self, *args):
+    """Specifies a single wildcard coverage bin.
+
+    ``doc`` is an optional description, used only by documentation tools."""
+    def __init__(self, *args, doc=None):
         # Capture the declaration location of this bin
         self.srcinfo_decl = SourceInfo.mk()
+        self.spec_args = args
+        self.doc = doc
 
         self.range_l = []
         for a in args:
@@ -520,15 +533,19 @@ class wildcard_bin(object):
 class wildcard_bin_array(object):
     """Specifies an array of bins using wildcard specifications"""
     
-    def __init__(self, nbins, *args):
+    def __init__(self, nbins, *args, doc=None):
         """
         args may be one of two formats
         - Single list of wildcard strings (eg "0x82x")
         - Single list of value/mask tuples (eg [(0x820,0xFF0)])
         - Single string
         - Single tuple
+
+        ``doc`` is an optional description, used only by documentation tools.
         """
         self.nbins = nbins
+        self.spec_args = args
+        self.doc = doc
         self.range_l = []
         
         # Convert the specification into canonical form: list of tuples

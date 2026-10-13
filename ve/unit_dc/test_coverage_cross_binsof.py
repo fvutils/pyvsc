@@ -143,3 +143,80 @@ class TestCoverageCrossBinsof(DcTestCase):
         self.assertEqual(m.n_illegal, 1)
         _hit_all(cg)
         self.assertEqual(cg.axb.get_coverage(), 100)   # 14/14 valid bins
+
+
+class TestBinsofBinKinds(DcTestCase):
+    """``intersect`` against each kind of ``vdc`` bin. A ``vdc.bin(...)``
+    component (single range, point, or several entries) used to raise
+    ``'RangelistModel' object is not iterable`` when the cross was built."""
+
+    def _cg(self, a_bins, **cross_kwargs):
+        @vdc.dataclass
+        class my_cg(vdc.Covergroup):
+            a: vdc.Coverpoint[vdc.u8] = vdc.coverpoint(bins=a_bins)
+            b: vdc.Coverpoint[vdc.u8] = vdc.coverpoint(
+                bins=dict(b=vdc.bin_array([2], (0, 255))))
+            axb: vdc.Cross = vdc.cross(lambda s: s.a, lambda s: s.b,
+                                       **cross_kwargs)
+        return my_cg
+
+    def _bin_cg(self, **cross_kwargs):
+        # a bins: lo = [0..63], pt = 100, mix = 70 or [200..210]
+        return self._cg(dict(lo=vdc.bin((0, 63)), pt=vdc.bin(100),
+                             mix=vdc.bin(70, (200, 210))), **cross_kwargs)
+
+    def test_single_range_bin(self):
+        cg = self._bin_cg(ignore_bins=dict(
+            x=lambda s: vdc.binsof(s.a).intersect([(10, 20)])
+            & vdc.binsof(s.b).intersect([(0, 127)])))()
+        m = cg.axb._model
+        self.assertEqual(m.n_bins, 6)
+        self.assertEqual(m.n_ignore, 1)
+        self.assertFalse(m.get_bin_valid(0))      # (lo, b[0])
+
+    def test_point_bin(self):
+        cg = self._bin_cg(ignore_bins=dict(
+            x=lambda s: vdc.binsof(s.a).intersect([100])))()
+        m = cg.axb._model
+        self.assertEqual(m.n_ignore, 2)          # the pt row
+        self.assertFalse(m.get_bin_valid(2))
+        self.assertFalse(m.get_bin_valid(3))
+
+    def test_multi_entry_bin(self):
+        # Either entry of mix selects it; the gap between them does not.
+        for values in ([70], [(205, 255)]):
+            with self.subTest(values=values):
+                cg = self._bin_cg(ignore_bins=dict(
+                    x=lambda s, v=values: vdc.binsof(s.a).intersect(v)))()
+                self.assertEqual(cg.axb._model.n_ignore, 2)
+                self.assertFalse(cg.axb._model.get_bin_valid(4))
+        cg = self._bin_cg(ignore_bins=dict(
+            x=lambda s: vdc.binsof(s.a).intersect([(64, 69), (71, 99), (101, 199)])))()
+        self.assertEqual(cg.axb._model.n_ignore, 0)
+
+    def test_coverage_after_ignore(self):
+        cg = self._bin_cg(ignore_bins=dict(
+            x=lambda s: vdc.binsof(s.a).intersect([(0, 63)])))()
+        self.assertEqual(cg.axb._model.n_ignore, 2)
+        for a in (100, 70):
+            for b in (0, 200):
+                cg.sample(a, b)
+        self.assertEqual(cg.axb.get_coverage(), 100)
+
+    def test_illegal_with_range_bin(self):
+        cg = self._bin_cg(illegal_bins=dict(
+            x=lambda s: vdc.binsof(s.a).intersect([(0, 63)])
+            & vdc.binsof(s.b).intersect([(128, 255)])))()
+        m = cg.axb._model
+        self.assertEqual(m.n_illegal, 1)
+        self.assertTrue(m.get_bin_illegal(1))
+
+    def test_wildcard_bin(self):
+        cg = self._cg(dict(hi=vdc.wildcard_bin("0b1xxxxxxx"),
+                           lo=vdc.bin((0, 127))),
+                      ignore_bins=dict(
+                          x=lambda s: vdc.binsof(s.a).intersect([(128, 130)])))()
+        m = cg.axb._model
+        self.assertEqual(m.n_ignore, 2)
+        self.assertFalse(m.get_bin_valid(0))
+        self.assertFalse(m.get_bin_valid(1))
