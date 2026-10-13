@@ -390,12 +390,11 @@ class TestDvSolveFallbackHistogram(VscTestCase):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()   # the histogram counts back-end deferrals
-        # The documented residual taxonomy is the *default-config* one (serve-SAT
-        # off). Pin it so the dashboard is deterministic even when the ambient env
-        # forces serve-SAT on (e.g. a suite-wide audit run): with serve-SAT on,
-        # a `bvsat-sat-deferred` shape (e.g. `bitand_eq`) would be *served* by the
-        # sampler instead of deferring, which is correct behavior but not what
-        # this dashboard documents.
+        # The documented residual taxonomy includes `bvsat-sat-deferred`, which
+        # only occurs with serve-SAT off (the opt-out; F-3a made "on" the
+        # default). Pin it off so the dashboard covers every defer shape: with
+        # serve-SAT on, a `bvsat-sat-deferred` shape (e.g. `bitand_eq`) is
+        # *served* by the sampler instead of deferring.
         import vsc.model.solver.dvsolve_backend as _dvb
         self._saved_serve = _dvb._BVSAT_SERVE_SAT_MODE
         _dvb._BVSAT_SERVE_SAT_MODE = "off"

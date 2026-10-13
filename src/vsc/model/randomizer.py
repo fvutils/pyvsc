@@ -797,18 +797,10 @@ class Randomizer(RandIF):
         # Fallback chain: if the primary back-end reports BackendIncomplete for
         # a RandSet (a construct it can't yet handle), retry that RandSet on the
         # next available back-end. Boolector handles the full feature set, so it
-        # is the fallback when the primary is something else.
-        self.fallback_backends = []
-        if self.backend.name != "boolector":
-            try:
-                self.fallback_backends.append(select_backend("boolector"))
-            except Exception:
-                pass
-
-        # Tell the primary whether an external fallback will serve what it can't,
-        # so its `auto` serve-SAT mode serves SAT itself only when nothing else
-        # will (F-1a). Harmless on back-ends that ignore the attribute.
-        self.backend._external_fallback_available = bool(self.fallback_backends)
+        # is the fallback when the primary is something else. Built on the first
+        # defer (see _fallback_chain), so a randomize that dv-solve serves never
+        # imports pyboolector (F-3c).
+        self._fallback_backends = None
     
     _state_p = [0,1]
     _rng = None
@@ -1080,13 +1072,24 @@ class Randomizer(RandIF):
 
         end = int(round(time.time() * 1000))
 
+    def _fallback_chain(self):
+        """The back-ends to try after the primary, built on first use."""
+        if self._fallback_backends is None:
+            self._fallback_backends = []
+            if self.backend.name != "boolector":
+                try:
+                    self._fallback_backends.append(select_backend("boolector"))
+                except Exception:
+                    pass
+        return self._fallback_backends
+
     def _solve_randset(self, rs, bound_m):
         """Solve one RandSet on the primary back-end, falling back to the next
         available back-end if the primary raises BackendIncomplete (a construct
         it can't yet handle). SolveFailure (UNSAT) is *not* a fallback trigger
         and propagates to the caller. Raises BackendIncomplete if no back-end
         can handle the RandSet."""
-        backends = [self.backend] + self.fallback_backends
+        backends = [self.backend]
         last_exc = None
         for i, be in enumerate(backends):
             try:
@@ -1115,6 +1118,8 @@ class Randomizer(RandIF):
                         "VSC_DVSOLVE_NO_FALLBACK: back-end '%s' incomplete for "
                         "RandSet (reason=%s): %s" % (be.name, reason, str(e)),
                         reason_code=reason)
+                if i == 0:
+                    backends.extend(self._fallback_chain())
                 if i + 1 < len(backends):
                     record_fallback(reason, served=True)
                     if self.solve_info is not None:

@@ -183,8 +183,8 @@ jobs:
   #
   # What it guards: nothing imports pyboolector at module scope; the default
   # back-end resolves without VSC_SOLVER (deliberately UNSET here); dv-solve
-  # serves alone what `auto` would otherwise hand to Boolector (the self-served
-  # path that hid the c32 == a16 + b16 carry bug); solve-failure diagnostics
+  # serves alone the constructs it would otherwise hand to Boolector as gaps
+  # (width > 255 and the like skip or xfail); solve-failure diagnostics
   # work without Boolector. Tests that need Boolector itself are marked
   # requires_boolector / known_gap_without_boolector and skip or xfail here.
   # ---------------------------------------------------------------------- #

@@ -135,30 +135,24 @@ _MERGE_MAX_VARS = int(os.environ.get("VSC_DVSOLVE_MERGE_MAX_VARS", "256"))
 # still defer to the external fallback rather than guess.
 _BVSAT_ENABLED = os.environ.get("VSC_DVSOLVE_BVSAT", "1") != "0"
 
-# Whether the BV-SAT engine also *serves* satisfiable fallback problems (writes
-# their solved values) — via the uniform sampler (see _BVSAT_SAMPLER) — or only
-# decides SAT-vs-UNSAT and lets the external fallback serve SAT for distribution
-# quality. Tri-state (VSC_DVSOLVE_BVSAT_SERVE_SAT), F-1a:
+# Whether the BV-SAT engine also *serves* satisfiable problems (writes their
+# solved values) — via the uniform sampler (see _BVSAT_SAMPLER) — or only decides
+# SAT-vs-UNSAT and defers SAT to the external fallback (VSC_DVSOLVE_BVSAT_SERVE_SAT):
+#   "1"    — (default) serve SAT from BV-SAT. The external fallback (Boolector)
+#            then runs only where dv-solve has a gap, never for a problem
+#            dv-solve has already proved SAT (F-3a).
 #   "0"    — never serve from BV-SAT; defer SAT to the external fallback (the
 #            original Phase-A posture, kept as the A/B opt-out).
-#   "1"    — always serve SAT from BV-SAT.
-#   "auto" — (default) serve SAT from BV-SAT only when there is NO external
-#            fallback to serve it (the Randomizer sets _external_fallback_available
-#            per-instance from its fallback chain). While Boolector is still the
-#            default fallback this is behaviorally identical to "0"; once the
-#            fallback is dropped (F-3) dv-solve serves SAT itself with no second
-#            flip — so the serve-SAT cost is paid exactly when it buys
-#            self-sufficiency (decision §11.2 / F-1a).
+#   "auto" — accepted for compatibility with the F-1a tri-state; same as "1".
+#            (F-1a's "auto" deferred whenever Boolector was installed.)
 # Raw kissat models are too clustered for stimulus (e.g. a uint64 `inside [0..19]`
 # left bins 13-15 unhit over 400 draws), which is why serving routes through the
 # uniform sampler rather than the raw readback. `force_serve` paths (>64-bit,
 # implies-aux) serve regardless of this mode — the primary is not an option there.
 def _serve_sat_mode():
-    raw = os.environ.get("VSC_DVSOLVE_BVSAT_SERVE_SAT", "auto").lower()
+    raw = os.environ.get("VSC_DVSOLVE_BVSAT_SERVE_SAT", "1").lower()
     if raw == "0":
         return "off"
-    if raw == "auto":
-        return "auto"
     return "on"
 
 
@@ -599,22 +593,11 @@ class DvSolveBackend(SolverBackendIF):
     # See doc/notes/dv_solve_native_full_problem_plan.md (Stage 1 / Option A).
     derives_bounds = os.environ.get("VSC_DVSOLVE_DECLARED_ONLY", "1") != "0"
 
-    # Whether the Randomizer has an external fallback back-end (Boolector) after
-    # this primary. Set per-instance by Randomizer.__init__ once the fallback
-    # chain is built; governs the `auto` serve-SAT mode (F-1a). Defaults True so a
-    # direct construction (no Randomizer) keeps today's defer-to-fallback posture.
-    _external_fallback_available = True
-
     def _serve_sat_enabled(self) -> bool:
-        """Effective serve-SAT decision for this backend instance (F-1a):
-        ``"1"`` → always; ``"0"`` → never; ``"auto"`` → only when no external
-        fallback is available to serve SAT for distribution. Read at solve time
-        so a mid-run mode change (tests) and the per-instance chain both apply."""
-        if _BVSAT_SERVE_SAT_MODE == "on":
-            return True
-        if _BVSAT_SERVE_SAT_MODE == "off":
-            return False
-        return not self._external_fallback_available  # "auto"
+        """Whether BV-SAT serves a problem it proved SAT (mode ``"on"``) or
+        defers it to the external fallback (``"off"``). Read at solve time so a
+        mid-run mode change (tests) applies."""
+        return _BVSAT_SERVE_SAT_MODE == "on"
 
     @classmethod
     def available(cls) -> bool:
@@ -1253,8 +1236,8 @@ class DvSolveBackend(SolverBackendIF):
         ``SolveFailure``; UNKNOWN/ERROR (A-4 guard / timeout) -> ``BackendIncomplete``
         so the external fallback decides. Honors ``VSC_DVSOLVE_BVSAT=0``.
 
-        When serving SAT (``_serve_sat_enabled()`` — i.e. mode ``1``/``auto``
-        with no external fallback — or ``force_serve``) and a ``make_base``
+        When serving SAT (``_serve_sat_enabled()`` — i.e. mode ``1``, the
+        default — or ``force_serve``) and a ``make_base``
         factory is available, the model is drawn through the
         XOR-hashing uniform sampler (``bvsat_sampler``) so the value distribution
         is usable as stimulus; otherwise the raw (clustered) kissat model is read

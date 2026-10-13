@@ -147,10 +147,11 @@ Environment toggles (advanced / debugging)
 
 * ``VSC_DVSOLVE_BVSAT=0`` — disable the internal BV-SAT engine entirely
   (revert to deferring un-decidable RandSets to the external fallback).
-* ``VSC_DVSOLVE_BVSAT_SERVE_SAT`` — whether BV-SAT also *serves* satisfiable
-  fallback problems (writes their values, via the uniform sampler). ``auto``
-  (the default) serves only when no Boolector is installed to serve them;
-  ``1`` always serves; ``0`` never does.
+* ``VSC_DVSOLVE_BVSAT_SERVE_SAT`` — whether BV-SAT also *serves* the problems
+  it proves satisfiable (writes their values, via the uniform sampler). ``1``
+  (the default) serves them, so Boolector, when installed, runs only for the
+  constructs dv-solve cannot handle; ``0`` defers them to Boolector instead.
+  ``auto`` is accepted and means ``1``.
 * ``VSC_DVSOLVE_NO_FALLBACK=1`` — strict mode: the Randomizer raises instead of
   falling back to another back-end on ``BackendIncomplete``, so any residual
   dependence on the fallback (e.g. Boolector) surfaces loudly. A diagnostic for
@@ -214,11 +215,11 @@ Behavioral notes
 * **Random stability is per-engine.** A fixed PyVSC seed reproduces the same
   value stream *within a given back-end*; switching back-ends changes the
   sequence. Cross-engine value equality is not a goal.
-* **Distribution on the BV-SAT path.** A RandSet served by the BV-SAT engine
-  (only when ``VSC_DVSOLVE_BVSAT_SERVE_SAT=1``) has weaker distribution than the
-  primary/Boolector path and does not honor soft-constraint preferences. This is
-  intentional — the BV-SAT engine exists for *completeness* (deciding hard
-  SAT/UNSAT), not for distribution.
+* **Distribution on the BV-SAT path.** A RandSet the primary search cannot
+  decide is served by the BV-SAT engine through a hashing sampler, which is
+  close to uniform over the solutions but not exactly uniform. Soft constraints
+  are honored on this path (see above). This is the rare path: most RandSets
+  are served by the primary search.
 
 Width and sign rules
 ====================
