@@ -122,7 +122,7 @@ jobs:
         VSC_DVSOLVE_VALIDATE: '1'
       run: |
         export PYTHONPATH=`pwd`/src
-        tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
+        tests=`ls ve/unit/*.py | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
         ./python/bin/python3 -m pytest --no-cov -v $tests
         # The dataclass front-end's suite. Its own directory: ve/unit_dc has a
         # conftest.py and its own base class, and shares test module names
@@ -217,7 +217,7 @@ jobs:
         VSC_DVSOLVE_VALIDATE: '1'
       run: |
         test "$(./python/bin/python3 -c 'import vsc; print(vsc.get_solver_backend())')" = dv-solve
-        tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
+        tests=`ls ve/unit/*.py | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
         ./python/bin/python3 -m pytest -v $tests
         (cd ve/unit_dc && ../../python/bin/python3 -m pytest -q .)
 
@@ -296,7 +296,7 @@ jobs:
         VSC_DVSOLVE_VALIDATE: '1'
       run: |
         test "$(python -c 'import vsc; print(vsc.get_solver_backend())')" = dv-solve
-        tests=`ls ve/unit/*.py | grep -v test_random_dist | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
+        tests=`ls ve/unit/*.py | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
         python -m pytest -v $tests
         (cd ve/unit_dc && python -m pytest -q .)
 
