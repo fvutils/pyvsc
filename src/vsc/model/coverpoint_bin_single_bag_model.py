@@ -73,7 +73,10 @@ class CoverpointBinSingleBagModel(CoverpointBinModelBase):
         return self.name 
     
     def get_bin_range(self, bin_idx):
-        return self.binspec
+        # Entries as the other bin models give them: a point, or a (lo, hi)
+        # tuple. The RangelistModel itself is not iterable.
+        return tuple(r[0] if r[0] == r[1] else (r[0], r[1])
+                     for r in self.binspec.range_l)
         
     def sample(self):
         # Query value from the actual coverpoint or expression

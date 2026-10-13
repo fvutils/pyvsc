@@ -945,8 +945,9 @@ the environment is created). The fallback domain was not needed.
 (`vsc_covergroup_elaborate`, `vsc_classic_instantiate`), class-constant notes
 on subclasses, diagrams, JSON/Markdown output — all phase 2/3 as planned.
 
-**Found along the way (not fixed, outside this work):** a cross
-`binsof(cp).intersect(...)` raises `TypeError: 'RangelistModel' object is not
-iterable` (`coverpoint_cross_model.py:212`) when `cp` has a single-range
-`vdc.bin((lo, hi))` bin; `bin_array` bins work. The example on the user page
-uses `bin_array` for that reason.
+**Found along the way (fixed separately):** a cross
+`binsof(cp).intersect(...)` raised `TypeError: 'RangelistModel' object is not
+iterable` (`coverpoint_cross_model.py:212`) when `cp` had a `vdc.bin(...)` /
+`vsc.bin(...)` bin: `CoverpointBinSingleBagModel.get_bin_range` returned its
+`RangelistModel` rather than a tuple of entries. It now returns entries like
+the other bin models; the user page's example uses `vdc.bin((lo, hi))` again.

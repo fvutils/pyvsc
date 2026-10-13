@@ -53,9 +53,9 @@ class DmaCov(vdc.Covergroup):
     #: Transfer length.
     length: vdc.Coverpoint[vdc.u16] = vdc.coverpoint(
         bins=dict(
-            single=vdc.bin_array([1], (1, 4)),         # one beat
+            single=vdc.bin((1, 4)),                    # one beat
             short=vdc.bin_array([4], (5, 256)),        # up to 64 beats
-            long=vdc.bin_array([1], (257, 4096), doc="Longer, up to a page."),
+            long=vdc.bin((257, 4096), doc="Longer, up to a page."),
         ))
     burst_x_length: vdc.Cross = vdc.cross(
         lambda s: s.burst, lambda s: s.length,

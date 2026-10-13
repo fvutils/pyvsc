@@ -98,8 +98,8 @@ For example::
 
     length: vdc.Coverpoint[vdc.u16] = vdc.coverpoint(
         bins=dict(
-            single=vdc.bin_array([1], (1, 4)),     # one beat
-            long=vdc.bin_array([1], (257, 4096), doc="Longer, up to a page."),
+            single=vdc.bin((1, 4)),                # one beat
+            long=vdc.bin((257, 4096), doc="Longer, up to a page."),
         ))
 
 ``doc=`` is ignored by coverage; it exists for documentation only.
