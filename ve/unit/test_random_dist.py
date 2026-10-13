@@ -609,6 +609,14 @@ class TestRandomDist(VscTestCase):
             self.assertNotEqual(v, 0)        
             
     def test_multivar_rel(self):
+        # `a < b` over uint8 has 32640 solutions. A solver uniform over those
+        # solutions draws `a` with weight (255 - a) and `b` with weight b: the
+        # extremes (a = 254, b = 1) are 1-in-32640 per draw. dv-solve is
+        # uniform over solutions, so check that, with a chi-square over 16 bins
+        # of 16 values (15 dof; 37.7 is p = 0.001; 30 seeds gave at most 30.3).
+        # Boolector is not (chi-square about 1200): its swizzler spreads each
+        # variable on its own, so it is held to its own property, that every
+        # value of each variable comes up.
 
         @vsc.randobj
         class it_c(object):
@@ -626,19 +634,38 @@ class TestRandomDist(VscTestCase):
 
         it = it_c()
 
-        for i in range(256*20):
+        n = 256*20
+        for i in range(n):
             it.randomize(debug=0)
             hist_a[it.a] += 1
             hist_b[it.b] += 1
-            
-        for i in range(len(hist_a)-1):
-            self.assertNotEqual(hist_a[i], 0);
-            
-        for i in range(1,len(hist_b)):
-            self.assertNotEqual(hist_b[i], 0);
 
         print("hist_a: " + str(hist_a))
         print("hist_b: " + str(hist_b))
+
+        from vsc.model.solver.backend import select_backend
+        if select_backend(vsc.get_solver_backend()).name == "boolector":
+            for i in range(len(hist_a)-1):
+                self.assertNotEqual(hist_a[i], 0)
+            for i in range(1,len(hist_b)):
+                self.assertNotEqual(hist_b[i], 0)
+            return
+
+        def chi2(hist, weight):
+            total = sum(weight)
+            c = 0.0
+            for k in range(16):
+                o = sum(hist[16*k:16*(k+1)])
+                e = n*sum(weight[16*k:16*(k+1)])/total
+                c += (o - e)**2/e
+            return c
+
+        chi_a = chi2(hist_a, [255 - v for v in range(256)])
+        chi_b = chi2(hist_b, list(range(256)))
+        self.assertLess(chi_a, 37.7, "a is not uniform over solutions")
+        self.assertLess(chi_b, 37.7, "b is not uniform over solutions")
+        self.assertEqual(hist_a[255], 0)
+        self.assertEqual(hist_b[0], 0)
 
     def test_first_example(self):
         
