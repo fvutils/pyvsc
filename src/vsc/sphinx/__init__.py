@@ -6,7 +6,8 @@ Enable it with ``extensions = ["sphinx.ext.autodoc", "vsc.sphinx"]``. Plain
 and covergroups as what they are: fields with widths and domains, constraints
 with their bodies and the fields they read, coverpoints with their bins,
 crosses with their components. Classic ``@vsc.randobj`` classes get their
-constraints documented.
+constraints documented, and with ``vsc_classic_instantiate`` their fields;
+classic ``@vsc.covergroup`` classes, with it, their coverpoints and crosses.
 
 ``.. autorandclass::`` / ``.. autocovergroup::`` are ``autoclass`` with
 per-class options; ``.. py:randclass::``, ``py:randfield``, ``py:constraint``,
@@ -31,6 +32,8 @@ Configuration (``conf.py``), each also a directive option
     vsc_coverpoint_show_options = True
     vsc_cross_show_selections = True
     vsc_type_style = "alias"               # "alias" (u4) | "sv" | "words"
+    vsc_covergroup_elaborate = False       # exact bin counts (elaborate.py)
+    vsc_classic_instantiate = False        # construct classic classes
 
 Design: ``doc/notes/sphinx_extension_design.md``.
 """

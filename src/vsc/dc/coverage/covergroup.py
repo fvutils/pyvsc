@@ -39,6 +39,19 @@ class Covergroup:
     # -- the runtime seam --------------------------------------------------
 
     def _build_runtime(self):
+        cg = self._build_models()
+        # Register with the global CoverageRegistry: hooks the instance up to its
+        # type covergroup (type-level aggregation, reporting, UCIS export — the
+        # same path the classic front-end uses). The registry is reset per test by
+        # ctor.test_setup().
+        CoverageRegistry.inst().register_cg(cg)
+        self._cg_model = cg
+
+    def _build_models(self):
+        """Build and finalize this instance's coverpoint / cross models and
+        return the ``CovergroupModel``, without registering it. Reads only the
+        type model and, through the cross lambdas, this instance (also used by
+        ``vsc.sphinx`` to count bins at documentation time)."""
         tm = type(self)._vsc_cg_type_model
         cg = CovergroupModel(type(self).__name__)
         self._cp_insts = {}
@@ -54,12 +67,7 @@ class Covergroup:
             cg.add_coverpoint(model)   # routes to cross_l via isinstance
             self._cr_insts[cdesc.name] = Cross(cdesc.name, model)
         cg.finalize()
-        # Register with the global CoverageRegistry: hooks the instance up to its
-        # type covergroup (type-level aggregation, reporting, UCIS export — the
-        # same path the classic front-end uses). The registry is reset per test by
-        # ctor.test_setup().
-        CoverageRegistry.inst().register_cg(cg)
-        self._cg_model = cg
+        return cg
 
     # -- sampling ----------------------------------------------------------
 

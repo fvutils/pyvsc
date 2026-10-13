@@ -30,6 +30,8 @@ DEFAULTS = {
     "coverpoint_show_options": True,
     "cross_show_selections": True,
     "type_style": "alias",
+    "covergroup_elaborate": False,
+    "classic_instantiate": False,
 }
 
 SUMMARY_CHOICES = ("table", "list", "none")
@@ -358,7 +360,11 @@ def render_covergroup(desc, opts, attr_doc=None, inherited=False, only=None,
     if desc.sample is not None:
         params = ", ".join("%s: %s" % (n, t) for n, t, _r in desc.sample)
         out += [".. py:method:: sample(%s)" % params, ""]
-        if desc.sample:
+        if desc.sample and desc.classic:
+            out += _indent([
+                "Sample the covergroup: pass a value for each sampling input, "
+                "in order; every coverpoint and cross is then binned.", ""])
+        elif desc.sample:
             out += _indent([
                 "Sample the covergroup. Each argument sets the coverpoint or "
                 "sampling input of the same name (positional in declaration "
@@ -387,6 +393,8 @@ def render_covergroup(desc, opts, attr_doc=None, inherited=False, only=None,
 
 
 def _bin_count(cp):
+    if cp.n_bins is not None:
+        return str(cp.n_bins)
     if not cp.bins:
         return cp.auto_bins and "auto"
     counts = [b.count for b in cp.bins]
@@ -410,10 +418,25 @@ def _cg_summary(desc, ctx, style, summary):
                 for cp in desc.coverpoints]
         out += _list_table("Coverpoints", ["Coverpoint", "Type", "Sampling", "Bins"], rows)
     if desc.crosses:
+        counted = any(x.n_bins is not None for x in desc.crosses)
         rows = [[ctx.role(x.name), " × ".join(ctx.role(c) for c in x.components)]
+                + ([cross_bins_text(x) or " "] if counted else [])
                 for x in desc.crosses]
-        out += _list_table("Crosses", ["Cross", "Components"], rows)
+        out += _list_table("Crosses", ["Cross", "Components"]
+                           + (["Bins"] if counted else []), rows)
     return out
+
+
+def cross_bins_text(x):
+    """``18: 13 counted, 5 ignored`` for an elaborated cross, else None."""
+    if x.n_bins is None:
+        return None
+    excluded = [(x.n_ignore or 0, "ignored"), (x.n_illegal or 0, "illegal")]
+    excluded = ["%d %s" % (n, what) for n, what in excluded if n]
+    if not excluded:
+        return str(x.n_bins)
+    counted = x.n_bins - (x.n_ignore or 0) - (x.n_illegal or 0)
+    return "%d: %s" % (x.n_bins, ", ".join(["%d counted" % counted] + excluded))
 
 
 def _coverpoint_entry(cp, opts, ctx, attr_doc):
@@ -425,8 +448,11 @@ def _coverpoint_entry(cp, opts, ctx, attr_doc):
         out.append("   :formal: %d" % (cp.sample_index + 1))
     if cp.iff_src:
         out.append("   :iff: %s" % cp.iff_src)
-    if cp.auto_bins and _bool(opts.coverpoint_show_bins):
-        out.append("   :bins: automatic, %s" % cp.auto_bins)
+    if _bool(opts.coverpoint_show_bins):
+        if cp.auto_bins:
+            out.append("   :bins: automatic, %s" % cp.auto_bins)
+        elif cp.n_bins is not None:
+            out.append("   :bins: %d" % cp.n_bins)
     if cp.crossed_by:
         out.append("   :crossed-by: %s" % ", ".join(ctx.target(n) for n in cp.crossed_by))
     if cp.owner is not ctx.cls:
@@ -451,8 +477,14 @@ def _bins_table(title, bins):
     head = ["Bin", "Kind", "Values", "Count"] + (["Description"] if with_doc else [])
     rows = []
     for b in bins:
+        if b.count is None:
+            count = "per value"
+        elif b.count == 0:
+            count = "0 (all values excluded)"
+        else:
+            count = str(b.count)
         r = [_lit(b.name), _esc(b.kind), _lit(b.values) if b.values else " ",
-             str(b.count) if b.count is not None else "per value"]
+             count]
         if with_doc:
             r.append(_esc(b.doc) if b.doc else " ")
         rows.append(r)
@@ -463,6 +495,8 @@ def _cross_entry(x, opts, ctx, attr_doc):
     out = [".. py:cross:: %s" % x.name]
     if x.components:
         out.append("   :components: %s" % ", ".join(ctx.target(c) for c in x.components))
+    if x.n_bins is not None:
+        out.append("   :bins: %s" % cross_bins_text(x))
     if x.crossed_by:
         out.append("   :crossed-by: %s" % ", ".join(ctx.target(n) for n in x.crossed_by))
     if x.owner is not ctx.cls:

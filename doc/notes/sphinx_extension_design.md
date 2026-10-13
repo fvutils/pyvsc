@@ -1,7 +1,8 @@
 # `vsc.sphinx` — Sphinx support for documenting pyvsc classes
 
-Status: **phase 1 implemented — see §14** · drafted 2026-10-13, reviewed
-2026-10-13 (decisions in §13) · initial support scope.
+Status: **phase 1 implemented (§14); elaboration from phase 2 implemented
+(§15)** · drafted 2026-10-13, reviewed 2026-10-13 (decisions in §13) ·
+initial support scope.
 
 Scope: a Sphinx extension that documents pyvsc random classes and covergroups as
 what they are — fields with widths and domains, constraints, coverpoints, bins,
@@ -942,8 +943,9 @@ the environment is created). The fallback domain was not needed.
     autodoc's output.
 
 **Not done in phase 1:** user events (`vsc-process-*`), elaboration
-(`vsc_covergroup_elaborate`, `vsc_classic_instantiate`), class-constant notes
-on subclasses, diagrams, JSON/Markdown output — all phase 2/3 as planned.
+(`vsc_covergroup_elaborate`, `vsc_classic_instantiate`; done since, §15),
+class-constant notes on subclasses, diagrams, JSON/Markdown output — all
+phase 2/3 as planned.
 
 **Found along the way (fixed separately):** a cross
 `binsof(cp).intersect(...)` raised `TypeError: 'RangelistModel' object is not
@@ -951,3 +953,84 @@ iterable` (`coverpoint_cross_model.py:212`) when `cp` had a `vdc.bin(...)` /
 `vsc.bin(...)` bin: `CoverpointBinSingleBagModel.get_bin_range` returned its
 `RangelistModel` rather than a tuple of entries. It now returns entries like
 the other bin models; the user page's example uses `vdc.bin((lo, hi))` again.
+
+---
+
+## 15. Elaboration (phase 2, 2026-10-13)
+
+Code: `src/vsc/sphinx/elaborate.py` (Sphinx-free); wired in `events.py`
+(`_describe(cls, elaborate, instantiate)`, cached per flag pair, and
+`describe_for(app, cls)`, which reads the flags for the object being
+documented). Tests: `ve/unit_sphinx/test_elaborate.py` (no Sphinx) and
+`test_sphinx_elaborate.py` (builds of `roots/test-elab` and
+`roots/test-elab-directive`), on the fixture `vsc_elab_fixture.py`. User
+docs: "Exact counts and classic fields" on
+`doc/source/dataclass/documenting.rst`; this repo's `conf.py` turns
+`vsc_covergroup_elaborate` on for that page's example.
+
+**`vsc_covergroup_elaborate`** (off by default, `:covergroup-elaborate:` per
+class). Differs from §6.3 in one respect: the class is **not constructed**.
+`Covergroup._build_runtime` was split into `_build_models()` (build and
+finalize the coverpoint / cross models, return the `CovergroupModel`) and the
+registration; elaboration calls `_build_models()` on `cls.__new__(cls)` with
+each dataclass field set to its default. So `__init__` / `__post_init__` do
+not run and nothing reaches the `CoverageRegistry`; the only user code run is
+the cross target and selection lambdas, which the static path already calls
+with a probe. Bins are class-level in the dc API, so the counts are those of
+any instance (a test compares against a constructed one). A selection that
+reads a `cg_arg` sees `None` and fails; the class is then documented
+statically with a warning.
+
+Facts added: per bin spec the number of bins after exclusions (0 shown as
+"0 (all values excluded)"); coverpoint total (`:bins: 7`); automatic bins
+as built ("64 bins of 4 values over 0..255", "3 bins of 85 to 87 values …",
+"2 bins, one per member of Kind (1 excluded)"); per cross
+`:bins: 14: 3 counted, 7 ignored, 4 illegal`, and a Bins column in the
+covergroup's crosses table.
+
+Since nothing user-visible runs any more, the reason given in §13 #7 for
+keeping it off by default is much weaker. It stays off, as decided; turning it
+on by default is a one-line change in `render.DEFAULTS`.
+
+**`vsc_classic_instantiate`** (off by default, `:classic-instantiate:` per
+class), as §9 proposed: `cls()` with no arguments, against a scratch
+`CoverageRegistry` (swapped in and restored), so a documentation instance of a
+classic covergroup is not registered.
+
+- `@vsc.randobj`: fields from the instance's `vars()` — every value carrying
+  `_int_field_info` (scalars, enums, `list_t` and its subclasses, nested
+  randobjs via `rand_attr` / `attr`); kind from `is_rand`; type `u12` /
+  enum / `u8[4]` / `u8[]` (+ size "random" for `randsz_list_t`) / class name;
+  initial value when non-zero. The owner is the base-most user class whose
+  `__init__` assigns `self.<name>` (`_ClassSource.self_assigns`), so a
+  subclass documents only its own fields and its summary links to the base.
+  `#:` comments on `self.x = …` come from Sphinx's analyzer, as for any
+  instance attribute. Classic has no randc and no constraint IR, so there is
+  no "Constrained by".
+- `@vsc.covergroup`: now described (it was a plain class before). Statically:
+  an empty `CovergroupDesc(classic=True)` — the entry is typed `covergroup` and
+  the pyvsc methods are hidden. Instantiated: sampling inputs and `sample()`
+  formals from `with_sample` (`CovergroupInt.sample_var_l` / `sample_obj_l`);
+  coverpoints and crosses from `buildable_l` in declaration order, named by
+  the instance attribute that holds them; sampled expression, `iff` and bin /
+  selection comments from the `__init__` AST; bins from the same `vsc.bin*`
+  specs as dc; counts from each object's `.model`. Classic cross selections
+  are predicates over component bins, shown as written.
+
+**Failures** raise `ElaborationError` (cause chained); `describe_for` falls
+back to the static description and warns once per build per class and flag
+pair, type `vsc`, subtype `elaborate` (`suppress_warnings =
+["vsc.elaborate"]`).
+
+**Fixed along the way:**
+
+1. On Sphinx ≤ 8, `autorandclass` / `autocovergroup` / `autoclass` without
+   `:members:` rendered none of the pyvsc members: autodoc passes
+   `members=[]` there (9 passes `None`), which was read as "only these: none".
+   Now an empty list means no restriction. The phase 1 test only checked
+   something was *absent* in that case; it now checks the members are present.
+2. A cross selection reading a non-coverpoint attribute
+   (`intersect([(0, s.limit)])`) printed a stand-in object's repr. The probe
+   now answers only coverpoint and cross names; anything else raises, and the
+   selection is shown as written.
+

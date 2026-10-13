@@ -23,24 +23,64 @@ from sphinx import addnodes
 from sphinx.errors import PycodeError
 from sphinx.pycode import ModuleAnalyzer
 
+from sphinx.util import logging
+
+from . import elaborate as E
 from . import introspect as I
 from . import render as R
+
+logger = logging.getLogger(__name__)
 
 
 # --- Shared -----------------------------------------------------------------
 
 
 @functools.lru_cache(maxsize=None)
-def describe(cls):
-    """The description of a pyvsc class, or None. Cached: a class's structure
-    is fixed once it is decorated."""
-    if I.is_randclass(cls):
-        return I.describe_randclass(cls)
-    if I.is_covergroup(cls):
-        return I.describe_covergroup(cls)
-    if I.is_classic_randobj(cls):
-        return I.describe_classic_randobj(cls)
-    return None
+def _describe(cls, elaborate, instantiate):
+    """(description or None, ElaborationError or None). Cached: a class's
+    structure is fixed once it is decorated. When elaboration fails, the
+    static description is returned with the error."""
+    try:
+        if I.is_randclass(cls):
+            return I.describe_randclass(cls), None
+        if I.is_covergroup(cls):
+            if elaborate:
+                return E.elaborate_covergroup(cls), None
+            return I.describe_covergroup(cls), None
+        if I.is_classic_randobj(cls):
+            if instantiate:
+                return E.instantiate_classic_randobj(cls), None
+            return I.describe_classic_randobj(cls), None
+        if I.is_classic_covergroup(cls):
+            if instantiate:
+                return E.instantiate_classic_covergroup(cls), None
+            return I.describe_classic_covergroup(cls), None
+    except E.ElaborationError as e:
+        return _describe(cls, False, False)[0], e
+    return None, None
+
+
+def describe(cls, elaborate=False, instantiate=False):
+    """The description of a pyvsc class, or None."""
+    return _describe(cls, elaborate, instantiate)[0]
+
+
+def describe_for(app, cls):
+    """The description of ``cls`` with the elaboration options in effect for
+    the object being documented. A failed elaboration is reported once per
+    build (``suppress_warnings = ["vsc.elaborate"]`` silences it)."""
+    opts = current_options(app)
+    key = (cls, R._bool(opts.covergroup_elaborate),
+           R._bool(opts.classic_instantiate))
+    desc, err = _describe(*key)
+    if err is not None:
+        warned = app.__dict__.setdefault("_vsc_elaborate_warned", set())
+        if key not in warned:
+            warned.add(key)
+            logger.warning("%s; documented without it", err, type="vsc",
+                           subtype="elaborate",
+                           location=app.env.docname if app.env else None)
+    return desc
 
 
 def attr_doc(owner, name):
@@ -107,14 +147,17 @@ def process_docstring(app, what, name, obj, options, lines):
         return
 
     if what in ("class", "exception"):
-        desc = describe(obj) if isinstance(obj, type) else None
+        desc = describe_for(app, obj) if isinstance(obj, type) else None
         if desc is None or not first:
             return
         _strip_dataclass_doc(obj, lines)
         opts = current_options(app)
         inherited = bool(_option(options, "inherited_members"))
+        # ``:members: a, b`` restricts the pyvsc members too. Without
+        # ``:members:``, Sphinx <= 8 passes [] and 9 passes None: no restriction.
         members = _option(options, "members")
-        only = set(members) if isinstance(members, (list, tuple)) else None
+        only = set(members) if isinstance(members, (list, tuple)) and members \
+            else None
         exclude = set(_option(options, "exclude_members") or ())
         generated = render_lines(desc, opts, inherited, only, exclude)
         if generated:
@@ -139,7 +182,7 @@ def _attribute_doc(app, name, lines):
     """``autoattribute AluTxn.op`` written by hand: add the field facts."""
     parent_name, _, attr = name.rpartition(".")
     parent = _resolve(parent_name)
-    desc = describe(parent) if isinstance(parent, type) else None
+    desc = describe_for(app, parent) if isinstance(parent, type) else None
     if desc is None:
         return
     facts = []
@@ -217,7 +260,7 @@ def skip_member(app, what, name, obj, skip, options):
     parent = _parent_class()
     if parent is None:
         return None
-    desc = describe(parent)
+    desc = describe_for(app, parent)
     if desc is None:
         return None
     if name in desc.member_names():
@@ -323,7 +366,7 @@ def retype_classes(app, doctree):
         obj = _resolve("%s.%s" % (module, fullname) if module else fullname)
         if I.is_randclass(obj) or I.is_classic_randobj(obj):
             new = "randclass"
-        elif I.is_covergroup(obj):
+        elif I.is_covergroup(obj) or I.is_classic_covergroup(obj):
             new = "covergroup"
         else:
             continue

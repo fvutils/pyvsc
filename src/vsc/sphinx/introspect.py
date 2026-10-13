@@ -4,7 +4,8 @@ Introspection for documentation: pyvsc classes -> plain description objects.
 Reads what ``@vdc.dataclass`` already computed and cached on the class
 (``_vsc_type_model``, ``_vsc_cg_type_model``), plus the class source for the
 text a reader wants to see (constraint bodies, lambda expressions, comments on
-bins). Nothing here imports Sphinx, and nothing instantiates the class.
+bins). Nothing here imports Sphinx, and nothing instantiates the class; the
+opt-in elaboration that does is in ``elaborate.py``.
 
 See ``doc/notes/sphinx_extension_design.md`` §5.1.
 """
@@ -99,6 +100,8 @@ class CoverpointDesc:
     options: Tuple[Tuple[str, Any], ...] = ()
     sample_index: Optional[int] = None   # position among the sample() formals
     crossed_by: Tuple[str, ...] = ()
+    enum_names: Optional[int] = None     # members of the sampled enum
+    n_bins: Optional[int] = None         # elaborated: bins actually built
 
 
 @dataclass(frozen=True)
@@ -117,6 +120,10 @@ class CrossDesc:
     illegal: Tuple[CrossSelDesc, ...] = ()
     options: Tuple[Tuple[str, Any], ...] = ()
     crossed_by: Tuple[str, ...] = ()
+    # Elaborated: cross bins, and how many of them are ignored / illegal.
+    n_bins: Optional[int] = None
+    n_ignore: Optional[int] = None
+    n_illegal: Optional[int] = None
 
 
 @dataclass(frozen=True)
@@ -126,6 +133,7 @@ class RandClassDesc:
     constraints: Tuple[ConstraintDesc, ...]     # fixed (classic: fixed + dynamic)
     generics: Tuple[ConstraintDesc, ...]        # generic and value
     classic: bool = False
+    instantiated: bool = False                  # classic fields read from an instance
 
     def member_names(self):
         return ([f.name for f in self.fields]
@@ -141,6 +149,8 @@ class CovergroupDesc:
     # The synthesized sample() formals as (name, type_str, type_ref); None when
     # the class defines its own sample().
     sample: Optional[Tuple[Tuple[str, str, Optional[str]], ...]] = None
+    classic: bool = False
+    elaborated: bool = False                    # counts read from the runtime model
 
     def member_names(self):
         names = ([f.name for f in self.fields]
@@ -188,6 +198,19 @@ def is_classic_randobj(obj):
     user = classic_user_class(obj)
     return user is not None and any(
         k.__name__ == "randobj_interposer" for k in obj.__mro__)
+
+
+def is_classic_covergroup(obj):
+    user = classic_user_class(obj)
+    return user is not None and any(
+        k.__name__ == "covergroup_interposer" for k in obj.__mro__)
+
+
+def describe_classic_covergroup(cls):
+    """A classic ``@vsc.covergroup`` without instantiating it: nothing but the
+    class (coverpoints are created in ``__init__``; see
+    ``elaborate.instantiate_classic_covergroup``)."""
+    return CovergroupDesc(cls, (), (), (), None, classic=True)
 
 
 # --- Rand classes -----------------------------------------------------------
@@ -509,7 +532,8 @@ def describe_covergroup(cls):
                    for f in dataclasses.fields(cls))
 
     formal_index = {name: i for i, (_k, name) in enumerate(tm.sample_formals)}
-    components = {c.name: _cross_components(c) for c in tm.crosses}
+    names = {d.name for d in tm.coverpoints} | {c.name for c in tm.crosses}
+    components = {c.name: _cross_components(c, names) for c in tm.crosses}
     crossed_by = {}
     for cname, comps in components.items():
         for comp in comps:
@@ -528,8 +552,10 @@ def describe_covergroup(cls):
         src = _ClassSource.of(owner)
         crs.append(CrossDesc(
             name=c.name, owner=owner, components=components[c.name],
-            ignore=_cross_selects(c.ignore_bins, src, c.name, "ignore_bins"),
-            illegal=_cross_selects(c.illegal_bins, src, c.name, "illegal_bins"),
+            ignore=_cross_selects(c.ignore_bins, src, c.name, "ignore_bins",
+                                  names),
+            illegal=_cross_selects(c.illegal_bins, src, c.name, "illegal_bins",
+                                   names),
             options=tuple((c.options or {}).items()),
             crossed_by=tuple(crossed_by.get(c.name, ()))))
 
@@ -594,6 +620,7 @@ def _coverpoint_desc(d, owner, src, sample_index, crossed_by):
             auto = "%d bin%s over %d..%d" % (n, "" if n == 1 else "s", lo, hi)
 
     return CoverpointDesc(
+        enum_names=len(d.enum_cls) if d.enum_cls is not None else None,
         name=d.name, owner=owner, push=d.is_push, type_str=type_str,
         type_ref=type_ref, ref_src=ref_src, iff_src=iff_src,
         bins=_bin_descs(d.bins, src, d.name, "bins"),
@@ -671,10 +698,18 @@ def _wildcard_str(a):
 
 class _Probe:
     """Stands in for the covergroup instance when calling a cross's lambdas:
-    every attribute is a stand-in coverpoint that knows its name. Exact for any
-    target form the runtime accepts, without parsing the lambda."""
+    each coverpoint / cross attribute is a stand-in coverpoint that knows its
+    name. Exact for any target form the runtime accepts, without parsing the
+    lambda. Any other attribute (a cg_arg, a sample_arg) raises, so a
+    selection that reads one is shown as written."""
+
+    def __init__(self, names=None):
+        self._names = names
 
     def __getattr__(self, name):
+        if name.startswith("_") or (self._names is not None
+                                    and name not in self._names):
+            raise AttributeError(name)
         cp = Coverpoint.__new__(Coverpoint)
         cp._name = name
         cp._model = None
@@ -683,18 +718,18 @@ class _Probe:
         return cp
 
 
-def _cross_components(c):
+def _cross_components(c, names=None):
     out = []
     for t in c.targets:
         try:
-            rt = t(_Probe())
+            rt = t(_Probe(names))
             out.append(rt._name)
         except Exception:
             out.append("?")
     return tuple(out)
 
 
-def _cross_selects(selects, src, attr, kw):
+def _cross_selects(selects, src, attr, kw, names=None):
     if not selects:
         return ()
     comments = src.dict_comments(attr, kw) if src is not None else {}
@@ -703,7 +738,7 @@ def _cross_selects(selects, src, attr, kw):
     for name, sel in selects.items():
         expr = None
         try:
-            e = sel(_Probe()) if callable(sel) else sel
+            e = sel(_Probe(names)) if callable(sel) else sel
             expr = binsof_str(e)
         except Exception:
             pass
@@ -757,6 +792,20 @@ class _ClassSource:
                 for t in st.targets:
                     if isinstance(t, ast.Name):
                         self.assigns[t.id] = st.value
+        # Classic classes: ``self.<name> = ...`` in ``__init__``. A class-level
+        # assignment of the same name wins.
+        self.self_assigns = {}
+        for st in cdef.body:
+            if isinstance(st, ast.FunctionDef) and st.name == "__init__":
+                for n in ast.walk(st):
+                    if isinstance(n, ast.Assign):
+                        for t in n.targets:
+                            if isinstance(t, ast.Attribute) and \
+                                    isinstance(t.value, ast.Name) and \
+                                    t.value.id == "self":
+                                self.self_assigns.setdefault(t.attr, n.value)
+        for k, v in self.self_assigns.items():
+            self.assigns.setdefault(k, v)
         self.lines = self.src.splitlines()
         self.comments = {}
         try:

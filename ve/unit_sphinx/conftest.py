@@ -17,7 +17,7 @@ sys.path.insert(0, HERE)
 try:
     import sphinx  # noqa: F401
 except ImportError:  # pragma: no cover
-    collect_ignore = ["test_sphinx_build.py"]
+    collect_ignore = ["test_sphinx_build.py", "test_sphinx_elaborate.py"]
 else:
     pytest_plugins = ["sphinx.testing.fixtures"]
 

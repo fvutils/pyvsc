@@ -133,5 +133,5 @@ class AutoRandClass(_AutoVscClass):
 class AutoCovergroup(_AutoVscClass):
     """``.. autocovergroup:: pkg.AluCov`` with any ``autoclass`` option plus
     the ``:covergroup-*:`` / ``:coverpoint-*:`` / ``:cross-*:`` options."""
-    expected = staticmethod(I.is_covergroup)
+    expected = staticmethod(lambda o: I.is_covergroup(o) or I.is_classic_covergroup(o))
     what = "covergroup"

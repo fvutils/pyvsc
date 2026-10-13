@@ -272,3 +272,28 @@ class TestCovergroup(DcTestCase):
         self.assertEqual(cg.get_coverage(), 25)
         cg.sample(4, 0)     # a -> 50%, b still 25%
         self.assertEqual(cg.get_coverage(), 37.5)
+
+    def test_build_models_does_not_register(self):
+        # _build_models (used by vsc.sphinx elaboration) builds the finalized
+        # models without registering them; construction registers.
+        from vsc.impl.coverage_registry import CoverageRegistry
+
+        @vdc.dataclass
+        class build_cg(vdc.Covergroup):
+            a: vdc.Coverpoint[vdc.u8] = vdc.coverpoint(
+                bins=dict(a=vdc.bin_array([4], (0, 255))))
+            b: vdc.Coverpoint[vdc.u2] = vdc.coverpoint()
+            axb: vdc.Cross = vdc.cross(lambda s: s.a, lambda s: s.b)
+
+        reg = CoverageRegistry.inst()
+        obj = build_cg.__new__(build_cg)
+        cg = obj._build_models()
+        self.assertNotIn("build_cg", reg.types())
+        self.assertFalse(hasattr(obj, "_cg_model"))
+        self.assertEqual(obj._cp_insts["a"]._model.get_n_bins(), 4)
+        self.assertEqual(obj._cr_insts["axb"]._model.n_bins, 16)
+        self.assertEqual(len(cg.coverpoint_l), 2)
+        self.assertEqual(len(cg.cross_l), 1)
+
+        build_cg()
+        self.assertIn("build_cg", reg.types())

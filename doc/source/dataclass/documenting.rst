@@ -165,6 +165,12 @@ Set these in ``conf.py``. The defaults are shown.
    * - ``vsc_type_style``
      - ``"alias"``
      - ``"alias"`` (``u4``), ``"sv"`` (``bit [3:0]``) or ``"words"`` (``4-bit unsigned``)
+   * - ``vsc_covergroup_elaborate``
+     - ``False``
+     - exact bin counts for covergroups; see `Exact counts and classic fields`_
+   * - ``vsc_classic_instantiate``
+     - ``False``
+     - construct classic classes to document their fields and coverpoints
 
 ``vsc_randclass_member_groups`` defaults to ``"fields, constraints,
 generics"``. Ordinary methods always follow the pyvsc groups.
@@ -201,8 +207,7 @@ Classic classes
 ===============
 
 A classic ``@vsc.randobj`` class creates its fields in ``__init__``, so they
-cannot be seen without constructing it. For these classes the extension
-documents:
+cannot be seen without constructing it. By default the extension documents:
 
 * each ``@vsc.constraint`` and ``@vsc.dynamic_constraint``, with its docstring
   and its body as written, and the constraint it overrides, if any;
@@ -210,9 +215,62 @@ documents:
   ``(*args, **kwargs)``;
 * the class as a rand class, with the pyvsc base-class methods hidden.
 
-Fields can still be described by hand, with ``py:randfield`` inside the class
-docstring or after the ``autoclass``. Classic ``@vsc.covergroup`` classes get
-their signature recovered and are otherwise documented as plain classes.
+A classic ``@vsc.covergroup`` is shown as a covergroup, with its signature
+recovered and the pyvsc methods hidden.
+
+With ``vsc_classic_instantiate = True`` the extension constructs each class
+once and documents what it finds: see `Exact counts and classic fields`_.
+Without it, fields can be described by hand, with ``py:randfield`` inside the
+class docstring or after the ``autoclass``.
+
+
+Exact counts and classic fields
+===============================
+
+Some facts are known only once pyvsc has built its runtime model. Two
+settings, both off by default, let the extension build it while it documents.
+Each is also a per-class option (``:covergroup-elaborate:``,
+``:classic-instantiate:``) on ``autocovergroup`` / ``autorandclass``.
+
+``vsc_covergroup_elaborate = True`` gives the exact bin counts of a
+dataclass covergroup:
+
+* automatic bins as built, for example "64 bins of 4 values over 0..255", or
+  "2 bins, one per member of Kind (1 excluded)";
+* the number of bins each spec makes once ``ignore_bins`` / ``illegal_bins``
+  values are taken out (a ``bin_array([], ...)`` one per value, a bin whose
+  values are all excluded "0");
+* for each cross, its bins and how many its selections exclude, for example
+  "14: 3 counted, 7 ignored, 4 illegal".
+
+The models are built from the class itself: the covergroup's ``__init__``
+and ``__post_init__`` are not run, and nothing is registered for coverage
+reporting. Cross selections are evaluated with each ``cg_arg`` /
+``sample_arg`` at its default, so a selection that needs a real ``cg_arg``
+cannot be counted.
+
+``vsc_classic_instantiate = True`` constructs each classic class with no
+arguments:
+
+* a ``@vsc.randobj`` gets its fields: ``rand`` or state, type (``u12``, an
+  enum, ``u8[4]``, a nested class), size, initial value, and the ``#:``
+  comment on the assignment in ``__init__``;
+* a ``@vsc.covergroup`` is documented like a dataclass one: ``sample()`` with
+  the ``with_sample`` inputs, each coverpoint with its sampled expression and
+  bins, each cross with its components and ignore selections, all with exact
+  counts.
+
+The constructor runs at documentation time, so it should be cheap and free of
+side effects. A covergroup built this way is not registered for coverage
+reporting.
+
+When a class cannot be elaborated (a constructor that needs arguments, a
+selection that reads a ``cg_arg``), the build warns and documents the class
+without the extra facts::
+
+    WARNING: cannot instantiate mypkg.Pkt: TypeError: ...; documented without it
+
+``suppress_warnings = ["vsc.elaborate"]`` in ``conf.py`` silences these.
 
 
 Linking to members
@@ -245,6 +303,7 @@ Example
 =======
 
 The module below is documented on this page with a plain ``automodule``.
+This site sets ``vsc_covergroup_elaborate = True``, so the counts are exact.
 
 .. literalinclude:: dma_doc_example.py
    :language: python

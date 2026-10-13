@@ -70,6 +70,10 @@ def test_auto_directives(app):
     assert "self.a &lt; self.b" not in html          # :constraint-show-source: none
     assert "»" in html                          # :constraint-signature-fields:
     assert "Active modes." not in html               # :coverpoint-show-bins: false
+    # Without :members:, the pyvsc members are still documented (Sphinx <= 8
+    # passes members=[] there).
+    assert objs["%s.AluCov.op" % M] == "coverpoint"
+    assert objs["%s.AluCov.op_x_mode" % M] == "cross"
     assert 'href="#handmade.Pkt.c_len"' in html
     # :members: w, c_op with :exclude-members: c_op -> only w
     assert objs["%s.WideTxn.w" % M] == "randfield"

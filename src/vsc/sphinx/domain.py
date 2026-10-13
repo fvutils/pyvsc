@@ -316,6 +316,7 @@ class PyCross(_VscObjectMixin, PyAttribute):
     option_spec = PyAttribute.option_spec.copy()
     option_spec.update({
         "components": directives.unchanged,
+        "bins": directives.unchanged,
         "crossed-by": directives.unchanged,
         "inherited-from": directives.unchanged,
     })
@@ -344,6 +345,8 @@ class PyCross(_VscObjectMixin, PyAttribute):
     def _facts(self):
         o = self.options
         out = []
+        if o.get("bins"):
+            out.append((_("Bins"), o["bins"]))
         if o.get("crossed-by"):
             out.append((_("Crossed by"), self._xref_list(_names(o["crossed-by"]))))
         if o.get("inherited-from"):
