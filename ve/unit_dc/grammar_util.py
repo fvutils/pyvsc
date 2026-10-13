@@ -106,7 +106,37 @@ def rename_self(body, name=INLINE_NAME):
             (r, c), (_, c2) = t.start, t.end
             ln = lines[r - 1]
             lines[r - 1] = ln[:c] + name + ln[c2:]
+        elif t.type == tokenize.STRING and t.start[0] == t.end[0] \
+                and "f" in t.string[:t.string.find(t.string[-1])].lower():
+            # Before 3.12 an f-string is one STRING token; 3.12 tokenizes
+            # its {fields}, so their names are renamed above.
+            (r, c), (_, c2) = t.start, t.end
+            ln = lines[r - 1]
+            lines[r - 1] = ln[:c] + _rename_in_fields(t.string, name) + ln[c2:]
     return "".join(lines)
+
+
+def _rename_in_fields(fstr, name):
+    """``self`` renamed inside the {fields} of the f-string ``fstr``."""
+    out, depth, i = [], 0, 0
+    while i < len(fstr):
+        ch = fstr[i]
+        if depth == 0 and fstr.startswith(("{{", "}}"), i):
+            out.append(fstr[i:i + 2])
+            i += 2
+            continue
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+        elif depth and re.match(r"\bself\b", fstr[i:]) \
+                and not (fstr[i - 1].isalnum() or fstr[i - 1] == "_"):
+            out.append(name)
+            i += 4
+            continue
+        out.append(ch)
+        i += 1
+    return "".join(out)
 
 
 class GrammarCase(DcTestCase):

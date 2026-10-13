@@ -1565,7 +1565,8 @@ class TestConstraintGrammarInline(TestConstraintGrammar):
         "self.a in ALLOWED == self.b": (TypeError, "'ALLOWED' is list, not an int"),
         "self.a in range(0, 10, 0)": (ValueError, "must not be zero"),
         "self.a in LIMIT": (TypeError, "'LIMIT' is int, not a list"),
-        "self.e in E": (TypeError, "'E' is EnumType, not a list"),
+        # The enum metaclass is EnumMeta before 3.11, EnumType after.
+        "self.e in E": (TypeError, "'E' is Enum"),
         "self.a in helper(1)": (TypeError, "'helper(1)' is int, not a list"),
         "all(x > 1 for x in [1, 2])": (ConstraintParseError, _NOTHING),
         "all(x > 1 for x in range(4))": (ConstraintParseError, _NOTHING),
