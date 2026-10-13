@@ -7,9 +7,16 @@ import importlib.util
 import os
 
 from dc_test_case import DcTestCase
+from vsc.dc import inline
 
 _EX_DIR = os.path.normpath(os.path.join(
     os.path.dirname(__file__), "..", "..", "examples", "dc"))
+
+
+# Examples whose randomize_with bodies use the parsed grammar ('and', 'or',
+# 'not', 'if'). The legacy operator path (VSC_DC_INLINE_PARSE=0) cannot run
+# them; it rejects such a body with a TypeError by design.
+_NEEDS_INLINE_PARSE = {"10_inline.py"}
 
 
 def _examples():
@@ -25,6 +32,8 @@ class TestExamplesDc(DcTestCase):
         self.assertTrue(examples, "no examples found under examples/dc/")
         for fname in examples:
             with self.subTest(example=fname):
+                if fname in _NEEDS_INLINE_PARSE and not inline._INLINE_PARSE:
+                    self.skipTest("needs the inline parser")
                 path = os.path.join(_EX_DIR, fname)
                 spec = importlib.util.spec_from_file_location(
                     "dc_example_" + fname[:-3], path)
