@@ -94,6 +94,15 @@ coverage, and inline randomization.
     vsc.report_coverage()
 
 
+Documenting your classes
+========================
+
+The ``vsc.sphinx`` Sphinx extension documents pyvsc classes with
+``automodule`` / ``autoclass``: constraints with their bodies, and, for
+dataclass classes, fields, coverpoints and crosses. See
+:doc:`dataclass/documenting`.
+
+
 Contributors
 ============
 

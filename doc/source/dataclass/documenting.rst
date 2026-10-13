@@ -4,10 +4,9 @@ Documenting Classes with Sphinx
 
 .. note::
 
-   This page documents the **dataclass front-end** (``import vsc.dc as vdc``).
-   Classic ``@vsc.randobj`` classes get their constraints documented the same
-   way; their fields are created in ``__init__`` and are not visible without
-   running it.
+   This page is written for the **dataclass front-end** (``import vsc.dc as
+   vdc``). Classic ``@vsc.randobj`` classes are documented too, with less
+   detail; see `Classic classes`_.
 
 A ``@vdc.dataclass`` class already knows a great deal a reader needs: the
 width and kind of each field, its domain, each constraint and the fields it
@@ -19,6 +18,15 @@ crosses as what they are rather than as ordinary attributes and methods.
 
 Enabling it
 ===========
+
+The extension ships with pyvsc and needs only Sphinx 7 or later. The
+``docs`` extra installs it::
+
+    pip install pyvsc[docs]
+
+The module being documented must be importable by Sphinx, as for any
+autodoc use (put its directory on ``sys.path`` in ``conf.py``, or install
+it).
 
 Add the extension next to autodoc in ``conf.py``::
 
@@ -187,6 +195,24 @@ constraints inherited from a base class appear in its summary tables and link
 to the base class's entries. With ``:inherited-members:`` they are documented
 in full on the subclass, marked "Inherited from". A constraint that overrides
 a base-class constraint links to the one it overrides.
+
+
+Classic classes
+===============
+
+A classic ``@vsc.randobj`` class creates its fields in ``__init__``, so they
+cannot be seen without constructing it. For these classes the extension
+documents:
+
+* each ``@vsc.constraint`` and ``@vsc.dynamic_constraint``, with its docstring
+  and its body as written, and the constraint it overrides, if any;
+* the class's real ``__init__`` signature, rather than the decorator's
+  ``(*args, **kwargs)``;
+* the class as a rand class, with the pyvsc base-class methods hidden.
+
+Fields can still be described by hand, with ``py:randfield`` inside the class
+docstring or after the ``autoclass``. Classic ``@vsc.covergroup`` classes get
+their signature recovered and are otherwise documented as plain classes.
 
 
 Linking to members
