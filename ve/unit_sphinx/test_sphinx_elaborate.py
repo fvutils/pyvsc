@@ -1,6 +1,7 @@
-"""vsc_covergroup_elaborate / vsc_classic_instantiate end to end: off by
-default, on from conf.py or per class, failures warned once and documented
-statically. Runs on Sphinx 7, 8 and 9."""
+"""vsc_covergroup_elaborate / vsc_classic_instantiate end to end: covergroup
+elaboration on and classic instantiation off by default, each switchable from
+conf.py or per class; failures warned once and documented statically. Runs on
+Sphinx 7, 8 and 9."""
 import pytest
 import sphinx
 
@@ -26,14 +27,16 @@ def _html(app, doc="index"):
 
 
 @pytest.mark.sphinx("html", testroot="elab", confoverrides={"nitpicky": True})
-def test_off_by_default(app):
+def test_defaults(app):
+    """Covergroups are elaborated by default; classic classes are not
+    instantiated."""
     app.build()
-    assert _warnings(app) == []
+    warnings = _warnings(app)
+    assert len(warnings) == 1 and "BrokenCov" in warnings[0], warnings
     objs = _objects(app)
     html = _html(app)
-    # Static estimates; no cross totals.
-    assert "64 bins over 0..255" in html
-    assert "of 4 values" not in html and "counted" not in html
+    assert "64 bins of 4 values over 0..255" in html
+    assert "14: 3 counted, 7 ignored, 4 illegal" in html
     # Classic classes: constraints only, no fields or coverpoints (autodoc
     # still documents a #:-commented instance attribute, as a plain
     # attribute); a classic covergroup is typed as one and its pyvsc
@@ -47,6 +50,19 @@ def test_off_by_default(app):
     for k in ("ClassicCov.cp_mode", "ClassicCov.sample", "ClassicCov.with_sample",
               "ClassicCov.get_coverage", "ClassicCov.get_model"):
         assert k not in objs, k
+
+
+@pytest.mark.sphinx("html", testroot="elab",
+                    confoverrides={"nitpicky": True,
+                                   "vsc_covergroup_elaborate": False})
+def test_elaborate_off(app):
+    """With elaboration off, the static estimates; nothing to warn about."""
+    app.build()
+    assert _warnings(app) == []
+    html = _html(app)
+    assert "64 bins over 0..255" in html
+    assert "of 4 values" not in html and "counted" not in html
+    assert "excluded" not in html
 
 
 @pytest.mark.sphinx("html", testroot="elab", confoverrides=BOTH)
@@ -123,7 +139,7 @@ def test_per_class_options(app):
     assert _warnings(app) == []
     objs = _objects(app)
     html = _html(app)
-    # :covergroup-elaborate: on ElabCov only.
+    # Elaborated by default; :covergroup-elaborate: false on DefaultsCov.
     assert "14: 3 counted, 7 ignored, 4 illegal" in html
     assert "16: 12 counted" not in html
     # :classic-instantiate: on ClassicPkt and ClassicCov.

@@ -55,8 +55,6 @@ extensions = [
 
 # The example module on dataclass/documenting.rst.
 sys.path.insert(0, os.path.abspath('dataclass'))
-# Exact bin counts on that page (vsc.sphinx; off by default).
-vsc_covergroup_elaborate = True
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None)}
 

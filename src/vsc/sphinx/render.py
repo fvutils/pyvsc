@@ -30,7 +30,7 @@ DEFAULTS = {
     "coverpoint_show_options": True,
     "cross_show_selections": True,
     "type_style": "alias",
-    "covergroup_elaborate": False,
+    "covergroup_elaborate": True,
     "classic_instantiate": False,
 }
 

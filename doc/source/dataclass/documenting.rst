@@ -166,7 +166,7 @@ Set these in ``conf.py``. The defaults are shown.
      - ``"alias"``
      - ``"alias"`` (``u4``), ``"sv"`` (``bit [3:0]``) or ``"words"`` (``4-bit unsigned``)
    * - ``vsc_covergroup_elaborate``
-     - ``False``
+     - ``True``
      - exact bin counts for covergroups; see `Exact counts and classic fields`_
    * - ``vsc_classic_instantiate``
      - ``False``
@@ -228,11 +228,11 @@ Exact counts and classic fields
 ===============================
 
 Some facts are known only once pyvsc has built its runtime model. Two
-settings, both off by default, let the extension build it while it documents.
-Each is also a per-class option (``:covergroup-elaborate:``,
-``:classic-instantiate:``) on ``autocovergroup`` / ``autorandclass``.
+settings let the extension build it while it documents. Each is also a
+per-class option (``:covergroup-elaborate:``, ``:classic-instantiate:``, with
+``false`` to turn it off) on ``autocovergroup`` / ``autorandclass``.
 
-``vsc_covergroup_elaborate = True`` gives the exact bin counts of a
+``vsc_covergroup_elaborate`` (on by default) gives the exact bin counts of a
 dataclass covergroup:
 
 * automatic bins as built, for example "64 bins of 4 values over 0..255", or
@@ -247,10 +247,11 @@ The models are built from the class itself: the covergroup's ``__init__``
 and ``__post_init__`` are not run, and nothing is registered for coverage
 reporting. Cross selections are evaluated with each ``cg_arg`` /
 ``sample_arg`` at its default, so a selection that needs a real ``cg_arg``
-cannot be counted.
+cannot be counted. With ``vsc_covergroup_elaborate = False`` the counts are
+estimated from the bin specs alone, without exclusions.
 
-``vsc_classic_instantiate = True`` constructs each classic class with no
-arguments:
+``vsc_classic_instantiate = True`` (off by default) constructs each classic
+class with no arguments:
 
 * a ``@vsc.randobj`` gets its fields: ``rand`` or state, type (``u12``, an
   enum, ``u8[4]``, a nested class), size, initial value, and the ``#:``
@@ -303,7 +304,6 @@ Example
 =======
 
 The module below is documented on this page with a plain ``automodule``.
-This site sets ``vsc_covergroup_elaborate = True``, so the counts are exact.
 
 .. literalinclude:: dma_doc_example.py
    :language: python

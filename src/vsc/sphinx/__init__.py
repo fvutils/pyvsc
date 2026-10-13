@@ -32,7 +32,7 @@ Configuration (``conf.py``), each also a directive option
     vsc_coverpoint_show_options = True
     vsc_cross_show_selections = True
     vsc_type_style = "alias"               # "alias" (u4) | "sv" | "words"
-    vsc_covergroup_elaborate = False       # exact bin counts (elaborate.py)
+    vsc_covergroup_elaborate = True        # exact bin counts (elaborate.py)
     vsc_classic_instantiate = False        # construct classic classes
 
 Design: ``doc/notes/sphinx_extension_design.md``.

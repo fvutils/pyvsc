@@ -2,9 +2,9 @@ Per-class elaboration
 =====================
 
 .. autocovergroup:: vsc_elab_fixture.ElabCov
-   :covergroup-elaborate:
 
 .. autocovergroup:: vsc_elab_fixture.DefaultsCov
+   :covergroup-elaborate: false
 
 .. autorandclass:: vsc_elab_fixture.ClassicPkt
    :members:

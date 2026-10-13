@@ -646,7 +646,7 @@ How each piece is obtained without instantiating the covergroup:
 - **Bin counts** for explicit bins come from the spec (`bin` = 1,
   `bin_array([n], …)` = n, `bin_array([], …)` = one per value).
 
-**Optional elaboration.** `vsc_covergroup_elaborate = False` by default. When
+**Optional elaboration.** *(As implemented, §15: no instance is constructed, and it is on by default.)* `vsc_covergroup_elaborate = False` by default. When
 true, the extension constructs one instance (`cls()`, `cg_arg`s default to
 `None`) inside a try/except and reads exact bin counts, cross bin totals and
 ignored/illegal counts (`n_bins`, `n_ignore`, `n_illegal`) from the runtime
@@ -722,7 +722,7 @@ need the `auto*` directives (§5.3).
 | `vsc_constraint_signature_fields` | `:constraint-signature-fields:` | `False` | also show the fields read in the signature line, `c_op » op, a, b` (autodoc_pydantic's validator style) |
 | `vsc_constraint_show_refs` | `:constraint-show-refs:` | `True` | generics used / used by |
 | `vsc_covergroup_summary` | `:covergroup-summary:` | `"table"` | |
-| `vsc_covergroup_elaborate` | `:covergroup-elaborate:` | `False` | instantiate for exact bin counts (§6.3) |
+| `vsc_covergroup_elaborate` | `:covergroup-elaborate:` | `True` (§15; was `False`) | exact bin counts (§6.3, §15) |
 | `vsc_coverpoint_show_bins` | `:coverpoint-show-bins:` | `True` | bins / ignore / illegal tables |
 | `vsc_coverpoint_show_options` | `:coverpoint-show-options:` | `True` | |
 | `vsc_cross_show_selections` | `:cross-show-selections:` | `True` | binsof ignore/illegal |
@@ -845,7 +845,7 @@ Directive: `.. vsc-diagram:: pkg.AluTxn :kind: constraints`.
 | 4 | `doc=` on bins | **Yes, in phase 1**, with trailing-comment extraction as fallback (§7). |
 | 5 | Inherited `RandClass` / `Covergroup` machinery | **Always hidden.** Inheritance stops at the pyvsc base classes; `pre_randomize` / `post_randomize` shown when the user class defines them. |
 | 6 | Package name | **`vsc.sphinx`**, in-tree, Sphinx an optional dependency (`pyvsc[docs]`). |
-| 7 | Running user code at doc time | **Acceptable as opt-in** (`vsc_covergroup_elaborate`, `vsc_classic_instantiate`), off by default. |
+| 7 | Running user code at doc time | **Acceptable as opt-in** (`vsc_covergroup_elaborate`, `vsc_classic_instantiate`), off by default. *Revised in §15: covergroup elaboration runs no user code and is on by default.* |
 
 The original questions, kept for context:
 
@@ -965,11 +965,10 @@ documented). Tests: `ve/unit_sphinx/test_elaborate.py` (no Sphinx) and
 `test_sphinx_elaborate.py` (builds of `roots/test-elab` and
 `roots/test-elab-directive`), on the fixture `vsc_elab_fixture.py`. User
 docs: "Exact counts and classic fields" on
-`doc/source/dataclass/documenting.rst`; this repo's `conf.py` turns
-`vsc_covergroup_elaborate` on for that page's example.
+`doc/source/dataclass/documenting.rst`.
 
-**`vsc_covergroup_elaborate`** (off by default, `:covergroup-elaborate:` per
-class). Differs from §6.3 in one respect: the class is **not constructed**.
+**`vsc_covergroup_elaborate`** (**on** by default since the follow-up review,
+below; `:covergroup-elaborate: false` per class). Differs from §6.3 in one respect: the class is **not constructed**.
 `Covergroup._build_runtime` was split into `_build_models()` (build and
 finalize the coverpoint / cross models, return the `CovergroupModel`) and the
 registration; elaboration calls `_build_models()` on `cls.__new__(cls)` with
@@ -989,8 +988,12 @@ as built ("64 bins of 4 values over 0..255", "3 bins of 85 to 87 values …",
 covergroup's crosses table.
 
 Since nothing user-visible runs any more, the reason given in §13 #7 for
-keeping it off by default is much weaker. It stays off, as decided; turning it
-on by default is a one-line change in `render.DEFAULTS`.
+keeping it off by default no longer holds for dataclass covergroups. **Decision
+(2026-10-13, follow-up review): on by default.** A covergroup whose selections
+need a real `cg_arg` now warns in a default build (and is documented
+statically); `suppress_warnings = ["vsc.elaborate"]` or
+`vsc_covergroup_elaborate = False` quiets it. Classic instantiation runs
+constructors and stays off by default.
 
 **`vsc_classic_instantiate`** (off by default, `:classic-instantiate:` per
 class), as §9 proposed: `cls()` with no arguments, against a scratch
