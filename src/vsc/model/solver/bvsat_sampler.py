@@ -263,8 +263,14 @@ def _pack_const64(v, width, signed):
     mirroring ``dvsolve_translator.visit_expr_literal``: a value that fits a
     signed int64 goes in directly; a ``<=64``-bit pattern that overflows signed
     int64 (a uint64 ``>= 2^63``) goes in as its two's-complement reinterpretation
-    (the same bit pattern). Width is ``<=64`` here (gated by ``stage_sampleable``)."""
-    v &= (1 << width) - 1                       # unsigned bit pattern at width
+    (the same bit pattern). Width is ``<=64`` here (gated by ``stage_sampleable``).
+
+    ``expr_const`` is unsized, so the carrier must hold the field's *value*, not
+    its bit pattern at ``width``: a signed field keeps its sign (masking -7 on an
+    int32 to ``2^32-7`` would make ``var == const`` unsatisfiable)."""
+    v &= (1 << width) - 1                       # bit pattern at width
+    if signed and v >= (1 << (width - 1)):
+        v -= (1 << width)                       # sign-extend: value, not pattern
     if v > _INT64_MAX:
         v -= (1 << 64)
     return v
