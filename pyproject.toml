@@ -47,6 +47,8 @@ dependencies = [
 [project.optional-dependencies]
 boolector = ["pyboolector>=3.2.2"]
 dv-solve = ["dv-solve>=0.2.2"]
+# The vsc.sphinx documentation extension (extensions = ["vsc.sphinx"]).
+docs = ["sphinx>=7"]
 
 [project.urls]
 Homepage = "https://github.com/fvutils/pyvsc"

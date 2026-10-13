@@ -406,3 +406,55 @@ class ConstraintProgram:
     def __repr__(self):
         return "ConstraintProgram(%r, kind=%s, %d stmts)" % (
             self.name, self.kind, len(self.stmts))
+
+
+# --- Queries ----------------------------------------------------------------
+
+
+def iter_nodes(root):
+    """Yield every IR node reachable from ``root`` (a node, a list of nodes or a
+    :class:`ConstraintProgram`), depth first, ``root`` included.
+
+    Generic over ``__slots__``, so a node class added later is walked without
+    changing this function. Non-IR slot values (names, ints, a wrapped model)
+    are not descended into."""
+    if isinstance(root, ConstraintProgram):
+        stack = [root.ret, list(root.param_defaults.values()), root.stmts]
+    else:
+        stack = [root]
+    while stack:
+        x = stack.pop()
+        if x is None:
+            continue
+        if isinstance(x, (list, tuple)):
+            stack.extend(reversed(x))
+        elif isinstance(x, dict):
+            stack.extend(reversed(list(x.values())))
+        elif isinstance(x, IRNode):
+            yield x
+            for slot in reversed(type(x).__slots__):
+                stack.append(getattr(x, slot, None))
+
+
+def fields_read(prog):
+    """The field paths a constraint program refers to, in first-use order, as
+    tuples (``("op",)``, ``("sub", "x")``). Loop names (``.e``) are excluded.
+    Element accesses such as ``self.arr[0].x`` report the array, ``("arr",)``;
+    array properties are reported as written, ``("arr", "size")``.
+    Generic references are not followed: a ``self.c_small(4)`` contributes only
+    its actual arguments."""
+    seen = {}
+    for n in iter_nodes(prog):
+        if isinstance(n, IRField) and not n.path[0].startswith("."):
+            seen.setdefault(n.path, None)
+    return list(seen)
+
+
+def refs_used(prog):
+    """The names of the generic constraints a program references, in first-use
+    order."""
+    seen = {}
+    for n in iter_nodes(prog):
+        if isinstance(n, IRConstraintRef):
+            seen.setdefault(n.name, None)
+    return list(seen)

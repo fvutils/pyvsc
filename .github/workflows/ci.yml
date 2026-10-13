@@ -301,6 +301,34 @@ jobs:
         (cd ve/unit_dc && python -m pytest -q .)
 
   # ---------------------------------------------------------------------- #
+  # vsc.sphinx, the documentation extension, under the three autodoc regimes
+  # its users have: Sphinx 7 (Python 3.10), 8 (3.11) and 9 (3.12, whose
+  # rewritten autodoc is why the extension is built on events). The tests only
+  # import pyvsc classes, so no solver is needed. Not a release gate.
+  # ---------------------------------------------------------------------- #
+  ci-sphinx:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - {python: '3.10', sphinx: '7.*'}
+          - {python: '3.11', sphinx: '8.*'}
+          - {python: '3.12', sphinx: '9.*'}
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python }}
+    - name: Configure Python
+      run: |
+        python -m pip install pytest toposort 'git+https://github.com/fvutils/pyucis.git#egg=pyucis' "sphinx==${{ matrix.sphinx }}"
+    - name: Run Tests
+      run: |
+        export PYTHONPATH=`pwd`/src
+        (cd ve/unit_sphinx && python -m pytest -q .)
+
+  # ---------------------------------------------------------------------- #
   # PUBLISHING. Its own job because `needs` is the only thing in Actions that
   # can make a release WAIT for other jobs. When publishing was a step in the
   # boolector leg of ci-linux, a red dv-solve leg (fail-fast: false) did not
