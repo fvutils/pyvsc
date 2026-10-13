@@ -20,33 +20,29 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-# THE SOLVERS ARE PLATFORM-CONDITIONAL, and each marker tracks where that
-# solver actually publishes an installable distribution on PyPI. pyvsc needs at
-# least one of them; when both are installed, Boolector is the default (see
-# src/vsc/impl/ctor.py) and VSC_SOLVER / vsc.set_solver_backend() choose.
+# THE SOLVER. dv-solve is the one required solver: it publishes a wheel for
+# Linux x86_64 and aarch64, macOS x86_64 and arm64, and Windows AMD64 (one
+# py3-none wheel per platform, so new Python versions need no new build), and
+# PyVSC imports and solves with it alone. pyboolector is OPTIONAL
+# (`pip install pyvsc[boolector]`): it has no Windows or Linux aarch64 wheel,
+# and falling back to its sdist build is where most install failures came from
+# (#141, #170, #171, #184, #187, #254). Install it for the XCHECK cross-check
+# oracle, the few shapes dv-solve hands to an external solver, or the old
+# default. When it is installed, Boolector is still the default back-end (see
+# src/vsc/impl/ctor.py); VSC_SOLVER / vsc.set_solver_backend() choose.
 #
-#   pyboolector  every platform but Windows, where it has no wheel.
-#   dv-solve     Linux x86_64 and Windows AMD64. dv-solve builds wheels for
-#                more platforms than it publishes, and has no sdist, so a
-#                platform named here that it does not publish for fails
-#                `pip install pyvsc`. Windows is named AHEAD of dv-solve's
-#                Windows publish (its wheels.yml ships linux-x86_64 only today):
-#                Windows installs fail without it anyway, for want of
-#                pyboolector, and this way they start working the day dv-solve
-#                publishes, with no pyvsc release. Widen as its publish set does.
-#
-# The extras below install a solver on any platform, unconditionally, for
-# anyone building one from source.
+# dv-solve has no sdist, so a platform outside its wheel set (e.g. musl Linux)
+# fails `pip install pyvsc`; install dv-solve from source there first.
 dependencies = [
-    "pyboolector>=3.2.2; sys_platform != 'win32'",
-    "dv-solve>=0.2.2; (sys_platform == 'linux' and platform_machine == 'x86_64') or (sys_platform == 'win32' and platform_machine == 'AMD64')",
+    "dv-solve>=0.2.4",
     "pyucis>=0.1.4",
     "toposort",
 ]
 
 [project.optional-dependencies]
 boolector = ["pyboolector>=3.2.2"]
-dv-solve = ["dv-solve>=0.2.2"]
+# Kept so existing `pyvsc[dv-solve]` install lines keep working.
+dv-solve = ["dv-solve>=0.2.4"]
 
 [project.urls]
 Homepage = "https://github.com/fvutils/pyvsc"
