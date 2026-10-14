@@ -23,5 +23,6 @@ from vsc.model.solver.backend import (
     SolverBackendIF,
     SolveResult,
     BackendIncomplete,
+    BackendInternalError,
     select_backend,
 )

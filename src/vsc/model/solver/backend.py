@@ -45,6 +45,17 @@ class BackendIncomplete(Exception):
         self.reason_code = reason_code
 
 
+class BackendInternalError(Exception):
+    """A back-end reached a state its front end never produces: a bug in the
+    back-end, not a construct it lacks. Unlike ``BackendIncomplete`` this is
+    never a fallback trigger; it propagates to the caller as a bug to report
+    (v2 plan V21/V22)."""
+
+    def __init__(self, msg):
+        super().__init__(
+            "dv-solve internal error (please report this as a bug): " + msg)
+
+
 class SolveResult(object):
     """Optional result struct returned by ``solve_randset`` to feed
     ``SolveInfo``. ``solve_randset`` writes solved values directly into the

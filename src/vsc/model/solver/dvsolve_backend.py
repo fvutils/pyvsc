@@ -24,7 +24,8 @@
 import os
 from typing import Dict
 
-from vsc.model.solver.backend import SolverBackendIF, SolveResult, BackendIncomplete
+from vsc.model.solver.backend import (
+    SolverBackendIF, SolveResult, BackendIncomplete, BackendInternalError)
 from vsc.model.solve_failure import SolveFailure
 from vsc.model.model_visitor import ModelVisitor
 from vsc.model.constraint_expr_model import ConstraintExprModel
@@ -1597,11 +1598,6 @@ class DvSolveBackend(SolverBackendIF):
             for r in range_l])
         return ExprInModel(ExprFieldRefModel(field), rl)
 
-    # int64 envelope for native DistEntry lo/hi; a range outside it can't be
-    # encoded → defer. (Weights over uint32 are scaled: _fit_weights_u32.)
-    _I64_MIN = -(1 << 63)
-    _I64_MAX = (1 << 63) - 1
-
     def _add_dist_for_field(self, b, idmap, f, scopes, tr=None):
         """Emit the native ``add_dist`` weighting for field ``f`` from its dist
         scope(s), resolving conditional dist (if/else/implies) where possible:
@@ -1780,16 +1776,23 @@ class DvSolveBackend(SolverBackendIF):
         Each ``DistWeightExprModel`` becomes one entry: a single value → a
         ``[v, v]`` per-value entry; a range → a ``[lo, hi]`` entry whose
         ``is_per_value`` follows the ``:=``/``:/`` flag. Zero-weight entries are
-        kept so native does the exclusion. Raises ``BackendIncomplete`` for any
-        shape that can't be encoded soundly (Phase-B §5): non-constant
-        weight/range, a bound outside int64, or a >64-bit field (the BV-SAT
-        completeness engine ignores ``add_dist``, so weighting a wide field would
-        be silently lost)."""
+        kept so native does the exclusion; a negative weight counts as zero, as
+        on Boolector. An entry is clipped to the field's domain, or dropped when
+        none of it is in the domain: a value the field can't hold can't be
+        chosen, which is what the engine already does with one inside int64
+        (and keeps every bound inside int64). Raises ``BackendIncomplete`` for
+        a >64-bit field (the BV-SAT completeness engine ignores ``add_dist``,
+        so weighting a wide field would be silently lost)."""
         if field.width > 64:
             raise BackendIncomplete(
                 "dv-solve: dist on >64-bit field '%s' not supported" %
                 getattr(field, "name", "?"),
                 reason_code="dist")
+        w_f = int(field.width)
+        if field.is_signed:
+            dom_lo, dom_hi = -(1 << (w_f - 1)), (1 << (w_f - 1)) - 1
+        else:
+            dom_lo, dom_hi = 0, (1 << w_f) - 1
         entries = []
         for w in dist_c.weights:
             try:
@@ -1801,28 +1804,15 @@ class DvSolveBackend(SolverBackendIF):
                     hi = lo
                     is_per_value = True       # single value: := and :/ coincide
                 weight = int(w.weight.val())
-            except Exception:
-                raise BackendIncomplete(
-                    "dv-solve: dist on '%s' has a non-constant weight or range" %
-                    getattr(field, "name", "?"),
-                    reason_code="dist")
-            lim_lo, lim_hi = self._I64_MIN, self._I64_MAX
-            if not field.is_signed and field.width == 64:
-                # Upper-half values are passed as int64 bit patterns at
-                # add_dist (_dist_patterns); the engine orders them unsigned.
-                lim_lo, lim_hi = 0, (1 << 64) - 1
-            if not (lim_lo <= lo <= lim_hi and lim_lo <= hi <= lim_hi):
-                raise BackendIncomplete(
-                    "dv-solve: dist range on '%s' exceeds int64" %
-                    getattr(field, "name", "?"),
-                    reason_code="dist")
-            if weight < 0:
-                raise BackendIncomplete(
-                    "dv-solve: dist weight on '%s' is negative" %
-                    getattr(field, "name", "?"),
-                    reason_code="dist")
+            except Exception as e:
+                raise BackendInternalError(
+                    "dist on '%s': cannot evaluate a weight or range (%s)" % (
+                        getattr(field, "name", "?"), e))
             if hi < lo:
                 lo, hi = hi, lo
-            entries.append({"lo": lo, "hi": hi, "weight": weight,
+            lo, hi = max(lo, dom_lo), min(hi, dom_hi)
+            if lo > hi:
+                continue
+            entries.append({"lo": lo, "hi": hi, "weight": max(weight, 0),
                             "is_per_value": is_per_value})
         return _fit_weights_u32(entries)
