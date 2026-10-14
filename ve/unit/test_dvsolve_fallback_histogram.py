@@ -66,10 +66,8 @@ _RESIDUAL_ALLOWLIST = {
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
                     # to the fallback for distribution / solve_order. Expected,
                     # correct two-engine operation — NOT a completeness gap (F-E1).
-    "translator-unsupported",  # a constraint/expression node the translator does
-                    # not yet encode (e.g. constraint override / inline scope).
-                    # Replaces the old default `incomplete` code so every
-                    # translator defer is tracked, not catch-all (F-E6).
+    # `translator-unsupported` is gone: every translator site that no shape
+    # reaches raises BackendInternalError instead (v2 plan V21).
 }
 
 # F-2c — the residual manifest: for each allowlisted reason code, the *product
@@ -94,9 +92,6 @@ _RESIDUAL_MANIFEST = {
     "array":        ("closable",
                      "variable-index select over > 1024 elements, object-array "
                      "variable index, wide sum — v2 plan V5/V8-V10"),
-    "translator-unsupported": ("closable",
-                     "a constraint/expression node the translator does not yet "
-                     "encode — translator coverage"),
     "bvsat-sat-deferred": ("closable",
                      "SAT-proved but not served: an unsigned upper-half constant "
                      "bound (pyvsc literal-width inference, Phase G residual), "

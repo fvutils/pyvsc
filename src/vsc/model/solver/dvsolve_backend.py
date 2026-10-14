@@ -1268,10 +1268,11 @@ class DvSolveBackend(SolverBackendIF):
                                   cond_dist_targets=cond_dist_targets,
                                   dist_guard_vids=dist_guard_vids, n_softs=n_softs)
             return False
-        raise BackendIncomplete(
-            "dv-solve search did not find a solution "
-            "(rc=%d); deferring to fallback" % rc,
-            reason_code="search-incomplete")
+        # Both callers pass the problem buffer (the reuse path from its
+        # cached SolveCtx).
+        raise BackendInternalError(
+            "primary search returned rc=%d with no problem buffer for BV-SAT"
+            % rc)
 
     @staticmethod
     def _as_field_value(raw, width, signed):
@@ -1598,7 +1599,7 @@ class DvSolveBackend(SolverBackendIF):
             for r in range_l])
         return ExprInModel(ExprFieldRefModel(field), rl)
 
-    def _add_dist_for_field(self, b, idmap, f, scopes, tr=None):
+    def _add_dist_for_field(self, b, idmap, f, scopes, tr):
         """Emit the native ``add_dist`` weighting for field ``f`` from its dist
         scope(s), resolving conditional dist (if/else/implies) where possible:
 
@@ -1702,11 +1703,6 @@ class DvSolveBackend(SolverBackendIF):
         if len(per) == 1:
             entries = per[0]
         else:
-            if tr is None:
-                raise BackendIncomplete(
-                    "dv-solve: multiple dist constraints on field '%s'" %
-                    getattr(f, "name", "?"),
-                    reason_code="dist")
             self._exclude_zero_weight(b, f, per, tr)
             entries = _mix_dist_entries(per)
         if entries:

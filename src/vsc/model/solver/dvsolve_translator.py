@@ -39,7 +39,7 @@ from vsc.model.unary_expr_type import UnaryExprType
 from vsc.model.expr_range_model import ExprRangeModel
 from vsc.model.expr_fieldref_model import ExprFieldRefModel
 from vsc.model.field_array_model import FieldArrayModel
-from vsc.model.solver.backend import BackendIncomplete
+from vsc.model.solver.backend import BackendIncomplete, BackendInternalError
 
 # Fold an implication / if-else guard that reads only fields this RandSet does
 # not solve (non-rand state, or vars an earlier RandSet already solved) to its
@@ -219,9 +219,8 @@ class DvSolveExprTranslator(ModelVisitor):
         self._want_var = saved_wv
         self._result = saved_res
         if r is _UNSET:
-            raise BackendIncomplete(
-                "dv-solve translator does not handle node %s" % type(node).__name__,
-                reason_code="translator-unsupported")
+            raise BackendInternalError(
+                "translator produced no result for node %s" % type(node).__name__)
         self._memo[key] = (r, simple)
         self._last_simple = simple
         return r
@@ -497,8 +496,8 @@ class DvSolveExprTranslator(ModelVisitor):
         else:
             op = _BIN_OP.get(e.op)
             if op is None:
-                raise BackendIncomplete("dv-solve: unsupported binary op %s" % str(e.op),
-                                        reason_code="translator-unsupported")
+                # Only BinExprType.Not, which no front end builds.
+                raise BackendInternalError("binary op %s" % str(e.op))
 
         # Context width = max(inherited, operand widths) — Boolector's rule. The
         # operands are translated at this width and an arithmetic result is
@@ -638,8 +637,7 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def visit_expr_unary(self, e):
         if e.op != UnaryExprType.Not:
-            raise BackendIncomplete("dv-solve: unsupported unary op %s" % str(e.op),
-                                    reason_code="translator-unsupported")
+            raise BackendInternalError("unary op %s" % str(e.op))
         # De Morgan rewrite for negated membership `!(x in S)` (`not_inside`).
         # By De Morgan it is a *conjunction* of per-entry negations — `x != v` for
         # each scalar, `(x < lo) || (x > hi)` for each range. The bounds engine
@@ -1302,15 +1300,16 @@ class DvSolveExprTranslator(ModelVisitor):
         as Boolector's ``get_sum_expr`` does (it reads ``size.get_val()``). The
         guard: if ``size`` is instead *co-solved* in this same RandSet (in the
         idmap), its value is not yet known here, so the aggregate would need a
-        size-guarded ``ite``-prefix — defer rather than read a stale size."""
+        size-guarded ``ite``-prefix, which the aggregates build themselves
+        (``_array_terms``); they ask only for ``all_elems``."""
         if self._cosolved_size(arr):
             if all_elems:
                 # Every pre-allocated element; the caller guards by the size
                 # or the index is constrained below it.
                 return len(arr.field_l)
-            raise BackendIncomplete(
-                "dv-solve: aggregate over a co-solved random-sized array "
-                "(size-guarded prefix not yet supported)", reason_code="array")
+            raise BackendInternalError(
+                "aggregate over the co-solved random-sized array '%s' without "
+                "a size guard" % getattr(arr, "name", "?"))
         n = int(arr.size.get_val())
         if getattr(arr, "is_rand_sz", False):
             # Baked into the problem like a non-rand field's value: a cached
@@ -1578,16 +1577,17 @@ class DvSolveExprTranslator(ModelVisitor):
         # Boolector then builds arr[idx_final] and validates dv-solve's model.
         if not isinstance(e.lhs, ExprFieldRefModel) \
                 or not isinstance(e.lhs.fm, FieldArrayModel):
-            # Nested/object-array subscript chains are not in scope here.
-            raise BackendIncomplete(
-                "dv-solve: variable-indexed subscript over a non-array lvalue",
-                reason_code="array")
+            # The front end subscripts only scalar arrays here (an object
+            # array goes through visit_expr_indexed_fieldref).
+            raise BackendInternalError(
+                "variable-indexed subscript over a non-array lvalue")
         arr = e.lhs.fm
         n = self._array_elem_count(arr, all_elems=True)
         if n < 1:
-            raise BackendIncomplete(
-                "dv-solve: variable-indexed select over an empty array",
-                reason_code="array")
+            # The model raises IndexError before a solver runs (v2 plan V11).
+            raise BackendInternalError(
+                "variable-indexed select over the empty array '%s'"
+                % getattr(arr, "name", "?"))
         if n > self._MAX_SELECT_ELEMS:
             raise BackendIncomplete(
                 "dv-solve: variable-indexed select over %d elements exceeds the "
@@ -1667,23 +1667,23 @@ class DvSolveExprTranslator(ModelVisitor):
             self._last_simple = False
 
     # ------------------------------------------------------------------ #
-    # Explicitly-unsupported nodes (request fallback). Listed individually   #
+    # Nodes the backend never hands the translator (fields, dist, foreach:   #
+    # each is expanded or handled before translation). Listed individually  #
     # so traversing base-class visits never silently clobber the result.    #
     # ------------------------------------------------------------------ #
 
     def _unsupported(self, node):
-        raise BackendIncomplete(
-            "dv-solve translator does not yet handle %s" % type(node).__name__,
-            reason_code="translator-unsupported")
+        raise BackendInternalError(
+            "translator was given a %s node" % type(node).__name__)
 
     # Composite / structural
     visit_composite_field = _unsupported
     visit_generator = _unsupported
     visit_field_scalar_array = _unsupported
-    # Dist (native support arrives in Phase 2)
+    # Dist (emitted natively by the backend, never translated)
     visit_constraint_dist = _unsupported
     visit_dist_weight = _unsupported
-    # Arrays / foreach (pre-expanded; residuals -> Phase 2)
+    # Arrays / foreach (pre-expanded)
     visit_constraint_foreach = _unsupported
     visit_constraint_unique_vec = _unsupported
     # An array/foreach inline scope (ArrayConstraintBuilder's expansion) is a
@@ -1692,7 +1692,7 @@ class DvSolveExprTranslator(ModelVisitor):
     # this hard context (visit_constraint_soft) and is enforced via the native soft
     # list instead, mirroring Boolector's `build(soft=False)` (SC-1).
     visit_constraint_inline_scope = visit_constraint_scope
-    # Expression forms still routed to fallback
+    # Expression forms only reached inside nodes handled above
     visit_expr_dynamic = _unsupported
     visit_expr_range = _unsupported
     visit_expr_rangelist = _unsupported
