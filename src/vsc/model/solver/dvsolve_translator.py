@@ -475,9 +475,11 @@ class DvSolveExprTranslator(ModelVisitor):
         # pattern's unsigned value.
         to_w = max(ctx_width, w + 1)
         if to_w > self._AUX_MAX_W:
-            raise BackendIncomplete(
-                "dv-solve: mixed-sign operand wider than %d bits"
-                % (self._AUX_MAX_W - 1), reason_code="translator-unsupported")
+            # Past the primary engine's widths (a 64-bit signed operand needs
+            # 65): emit the zero-extend as is and serve the RandSet on BV-SAT,
+            # which is width-agnostic (v2 plan V20).
+            self.requires_bvsat = True
+            return self._b.expr_extend(ref, w, to_w, False)
         return self._materialize(self._b.expr_extend(ref, w, to_w, False),
                                  to_w, False)
 
