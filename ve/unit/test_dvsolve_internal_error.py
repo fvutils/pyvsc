@@ -87,6 +87,35 @@ class TestDvSolveInternalError(VscTestCase):
             DvSolveExprTranslator.translate = saved_tr
             ctor.set_solver_backend(None)
 
+    def test_bvsat_undecided(self):
+        """V22: BV-SAT undecided on a RandSet is a bug, not a defer, even with
+        the fallback on. An 80-bit field routes the RandSet to BV-SAT."""
+        import vsc.model.randomizer as rnd
+        from dv_solve.bvsat import BVSatCtx, BVSAT_UNKNOWN
+
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.a = vsc.rand_bit_t(80)
+
+            @vsc.constraint
+            def c(s):
+                s.a > 3
+
+        saved_nf, saved_check = rnd._NO_FALLBACK, BVSatCtx.check
+        rnd._NO_FALLBACK = False
+        BVSatCtx.check = lambda self, *a, **k: BVSAT_UNKNOWN
+        ctor.set_solver_backend("dv-solve")
+        self.disable_t0()
+        try:
+            with self.assertRaises(BackendInternalError) as cm:
+                C().randomize()
+            self.assertIn("could not decide", str(cm.exception))
+        finally:
+            rnd._NO_FALLBACK = saved_nf
+            BVSatCtx.check = saved_check
+            ctor.set_solver_backend(None)
+
 
 if __name__ == "__main__":
     unittest.main()

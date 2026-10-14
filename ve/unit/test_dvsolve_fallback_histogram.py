@@ -54,6 +54,8 @@ def _dvsolve_available():
 # `bvsat-undecided` here means a *genuine* BV-SAT UNKNOWN/ERROR — the case where
 # BV-SAT proves SAT but defers for distribution/solve_order is the separate,
 # expected `bvsat-sat-deferred` residual (F-E1), not a correctness signal.
+# Neither is raised as a defer any more (each is a BackendInternalError, v2
+# plan V21/V22); the check stays as a guard against one coming back.
 _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 
 # The documented residual allowlist: reason codes dv-solve may *consciously*

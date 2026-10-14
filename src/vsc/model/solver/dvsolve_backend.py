@@ -1220,9 +1220,9 @@ class DvSolveBackend(SolverBackendIF):
 
         Returns ``True`` if the primary engine solved it (reusable), ``False`` if
         the BV-SAT completeness engine produced the solution instead. On a
-        non-OK primary search, falls back to BV-SAT on ``problem_buf`` (when
-        provided); BV-SAT UNSAT raises ``SolveFailure``, UNKNOWN/ERROR raises
-        ``BackendIncomplete`` (external fallback)."""
+        non-OK primary search, falls back to BV-SAT on ``problem_buf``;
+        BV-SAT UNSAT raises ``SolveFailure``, UNKNOWN/ERROR raises
+        ``BackendInternalError``."""
         from dv_solve.ctx import SOLVE_OK
         seed = randstate.randint(0, (1 << 63) - 1)
         if solve_info is not None:
@@ -1326,8 +1326,9 @@ class DvSolveBackend(SolverBackendIF):
                          n_softs=0) -> SolveResult:
         """Solve ``problem_buf`` with the internal BV-SAT completeness engine and
         write values back. Authoritative: SAT -> set values & return; UNSAT ->
-        ``SolveFailure``; UNKNOWN/ERROR (A-4 guard / timeout) -> ``BackendIncomplete``
-        so the external fallback decides. Honors ``VSC_DVSOLVE_BVSAT=0``.
+        ``SolveFailure``; UNKNOWN/ERROR -> ``BackendInternalError`` (the
+        translator emits nothing BV-SAT can't decide). Honors
+        ``VSC_DVSOLVE_BVSAT=0``.
 
         When serving SAT (``_serve_sat_enabled()`` — i.e. mode ``1``, the
         default — or ``force_serve``) and a ``make_base``
@@ -1429,8 +1430,7 @@ class DvSolveBackend(SolverBackendIF):
                     for f, vid in readback:
                         f.set_val(self._bb_value(bb, vid, sample_vars))
                     return SolveResult(status=0)
-            # Two distinct deferrals share this exit — keep their reason codes
-            # SEPARATE so the burn-down dashboard's correctness signal is honest:
+            # Two distinct outcomes share this exit:
             #
             #  * rc == BVSAT_SAT: the problem IS satisfiable (BV-SAT proved it),
             #    but we are not serving it here — either serve-SAT is off and
@@ -1441,18 +1441,21 @@ class DvSolveBackend(SolverBackendIF):
             #    Defer to the distribution-preserving fallback to pick the values.
             #    This is EXPECTED, correct operation of the two-engine
             #    architecture, not a completeness gap — tag `bvsat-sat-deferred`.
-            #  * rc == UNKNOWN/ERROR: an A-4 guard tripped or the engine genuinely
-            #    could not decide. This is the real completeness gap the dashboard
-            #    must drive to zero — tag it `bvsat-undecided`.
+            #  * rc == UNKNOWN/ERROR: the complete engine could not decide. Its
+            #    causes are a signed `>>` operand, nesting deeper than 4096, a
+            #    sum or constant wider than 65535 bits, a clog2 operand wider
+            #    than 64 bits, a select over undefined vars, a Source group, an
+            #    env conflict cap (DV_BB_MAX_CONFLICTS) and out-of-memory. The
+            #    translator emits none of them (pyvsc's own recursion limit
+            #    stops a deep expression first), so this is a bug, not a
+            #    fallback (v2 plan V22).
             if rc == BVSAT_SAT:
                 raise BackendIncomplete(
                     "dv-solve BV-SAT proved SAT but is not serving it "
                     "(distribution / solve_order); deferring to fallback",
                     reason_code="bvsat-sat-deferred")
-            raise BackendIncomplete(
-                "dv-solve BV-SAT verdict=%d (undecided); deferring to fallback"
-                % rc,
-                reason_code="bvsat-undecided")
+            raise BackendInternalError(
+                "BV-SAT could not decide a RandSet (verdict %d)" % rc)
         finally:
             bb.destroy()
 
