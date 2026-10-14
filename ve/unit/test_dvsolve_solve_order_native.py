@@ -106,5 +106,98 @@ class TestDvSolveSolveOrderNative(VscTestCase):
             "(expected all)" % (a_pos, samples))
 
 
+    # ------------------------------------------------------------------ #
+    # V18 — an ordered field wider than 64 bits                            #
+    # ------------------------------------------------------------------ #
+    # A stage's value was frozen with an int64 constant, so a wider ordered
+    # field deferred (`bvsat-sat-deferred`). It is now frozen as one wide
+    # constant, drawn from the field's own domain, not the int64 envelope
+    # its `add_var` bounds are clamped to.
+
+    def _strict_draws(self, obj, n, field="a"):
+        saved = rnd._NO_FALLBACK
+        rnd._NO_FALLBACK = True
+        try:
+            out = []
+            for _ in range(n):
+                obj.randomize()
+                out.append(int(getattr(obj, field)))
+            return out
+        finally:
+            rnd._NO_FALLBACK = saved
+
+    def test_wide_order_served_and_honored(self):
+        @vsc.randobj
+        class wide_c(object):
+            def __init__(s):
+                s.a = vsc.rand_bit_t(128)
+                s.c = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def k(s):
+                vsc.solve_order(s.a, s.c)
+                with vsc.implies(s.c == 0):
+                    s.a == 0
+        vals = self._strict_draws(wide_c(), 40)
+        self.assertTrue(all(v > 0 for v in vals), vals)
+        # Drawn from the 128-bit domain, not the int64 envelope.
+        self.assertTrue(any(v >= (1 << 64) for v in vals), vals)
+
+    def test_wide_order_draws_inside_a_wide_bound(self):
+        """`5 < a < 2**70` on 128 bits: the pin is drawn from the bound. Drawn
+        from the whole 128-bit range, every target missed the bound, and each
+        call paid 8 failed SAT checks before serving the stage with a plain
+        uniform sample (about 9x slower). Only the final stage may use it."""
+        from vsc.model.solver import bvsat_sampler
+
+        @vsc.randobj
+        class bounded_c(object):
+            def __init__(s):
+                s.a = vsc.rand_bit_t(128)
+                s.c = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def k(s):
+                vsc.solve_order(s.a, s.c)
+                s.a < (1 << 70)
+                s.a > 5
+                with vsc.implies(s.c == 0):
+                    s.a == 0
+        calls = []
+        real = bvsat_sampler.sample
+
+        def counting(make_base, readback, *a, **kw):
+            calls.append([vid for (_f, vid) in readback])
+            return real(make_base, readback, *a, **kw)
+        bvsat_sampler.sample = counting
+        try:
+            vals = self._strict_draws(bounded_c(), 40)
+        finally:
+            bvsat_sampler.sample = real
+        self.assertTrue(all(5 < v < (1 << 70) for v in vals), vals)
+        self.assertGreater(len({v >> 64 for v in vals}), 8, vals)
+        self.assertEqual(len(calls), len(vals),
+                         "the `a` stage fell back to a uniform sample")
+
+    def test_wide_signed_order(self):
+        """A signed 100-bit ordered field pins negative values too."""
+        @vsc.randobj
+        class signed_c(object):
+            def __init__(s):
+                s.a = vsc.rand_int_t(100)
+                s.c = vsc.rand_bit_t(8)
+
+            @vsc.constraint
+            def k(s):
+                vsc.solve_order(s.a, s.c)
+                with vsc.implies(s.c == 0):
+                    s.a == 0
+        vals = self._strict_draws(signed_c(), 40)
+        self.assertTrue(all(-(1 << 99) <= v < (1 << 99) and v != 0
+                            for v in vals), vals)
+        self.assertTrue(any(v < -(1 << 64) for v in vals), vals)
+        self.assertTrue(any(v > (1 << 64) for v in vals), vals)
+
+
 if __name__ == "__main__":
     unittest.main()

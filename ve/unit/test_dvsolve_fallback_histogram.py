@@ -96,10 +96,9 @@ _RESIDUAL_MANIFEST = {
                      "object-array variable index — v2 plan V10 (large "
                      "selects are native since V8/V9)"),
     "bvsat-sat-deferred": ("closable",
-                     "SAT-proved but not served (serve-SAT off): sampler "
-                     "dist-weighting (F-2b), or a >64-bit ordered-field freeze "
-                     "(the F-2a wide-order residual, V18). The upper-half "
-                     "constant bound is native since V17"),
+                     "SAT-proved but not served (serve-SAT off, or no "
+                     "sampler). The upper-half constant bound is native since "
+                     "V17; a >64-bit ordered field is served since V18"),
 }
 
 

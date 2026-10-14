@@ -249,26 +249,13 @@ _INT64_MIN = -(1 << 63)
 _INT64_MAX = (1 << 63) - 1
 
 
-def stage_sampleable(sample_vars):
-    """Return ``True`` iff every field is ``<=64`` bits, so each chosen value can
-    be frozen as a single ``expr_const`` (an int64 carrier; a 64-bit unsigned
-    value that overflows int64 goes in as its two's-complement reinterpretation,
-    exactly as the translator packs a wide literal — see ``_pack_const64``). A
-    ``>64``-bit ordered field would need a limb-concat constant; that rarer
-    wide-and-order case keeps deferring its *serving* to the fallback (a
-    documented residual)."""
-    for (_vid, width, _lo, _hi, _signed) in sample_vars:
-        if width > 64:
-            return False
-    return True
-
-
 def _pack_const64(v, width, signed):
     """Pack a chosen field value into the int64 carrier ``expr_const`` takes,
     mirroring ``dvsolve_translator.visit_expr_literal``: a value that fits a
     signed int64 goes in directly; a ``<=64``-bit pattern that overflows signed
     int64 (a uint64 ``>= 2^63``) goes in as its two's-complement reinterpretation
-    (the same bit pattern). Width is ``<=64`` here (gated by ``stage_sampleable``).
+    (the same bit pattern). Width is ``<=64`` here (``_pin_eq`` takes wider
+    values as a wide constant).
 
     ``expr_const`` is unsized, so the carrier must hold the field's *value*, not
     its bit pattern at ``width``: a signed field keeps its sign (masking -7 on an
@@ -279,6 +266,18 @@ def _pack_const64(v, width, signed):
     if v > _INT64_MAX:
         v -= (1 << 64)
     return v
+
+
+def _pin_eq(b, vid, v, width, signed):
+    """``var == v`` for a chosen value ``v`` of a field of ``width`` bits. A
+    ``<=64``-bit value goes in the int64 carrier (``_pack_const64``); a wider
+    one is a single wide-constant node at the field's own width and sign."""
+    from dv_solve.problem import BIN_EQ
+    if width > 64:
+        k = b.expr_const_wide(v, width, is_signed=signed)
+    else:
+        k = b.expr_const(_pack_const64(v, width, signed), signed)
+    return b.expr_binary(BIN_EQ, b.expr_var(vid), k)
 
 
 # Per-stage attempts at a random domain target before giving up and serving that
@@ -307,20 +306,18 @@ def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None,
 
     Returns ``True`` on success (all fields written) or ``None`` if a stage found
     no model (caller should fall back — should not happen, base is SAT)."""
-    from dv_solve.problem import BIN_EQ
     from dv_solve.bvsat import BVSatCtx, BVSAT_SAT
 
     sv_by_vid = {vid: (width, lo, hi, signed)
                  for (vid, width, lo, hi, signed) in sample_vars}
     rng = random.Random(seed & _U64)
-    pinned = []  # list of (vid, int64_const, is_signed) accumulated across stages
+    pinned = []  # (vid, value, width, signed) accumulated across stages
 
     def _make_base_pinned(extra):
-        """Fresh base with ``pinned + extra`` applied as ``var == const``."""
+        """Fresh base with ``pinned + extra`` applied as ``var == value``."""
         b = make_base()
-        for (vid, val, signed) in pinned + extra:
-            b.add_constraint(b.expr_binary(
-                BIN_EQ, b.expr_var(vid), b.expr_const(val, signed)))
+        for pin in pinned + extra:
+            b.add_constraint(_pin_eq(b, *pin))
         return b
 
     def _is_sat(extra):
@@ -350,7 +347,7 @@ def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None,
                     width, lo, hi, signed = sv_by_vid[vid]
                     t = rng.randint(lo, hi)
                     trial.append((f, vid, t, width, signed))
-                extra = [(vid, _pack_const64(t, width, signed), signed)
+                extra = [(vid, t, width, signed)
                          for (_f, vid, t, width, signed) in trial]
                 if _is_sat(extra):
                     for (f, vid, t, _w, _s) in trial:
@@ -373,8 +370,7 @@ def sample_ordered(make_base, order_stages, sample_vars, seed, solve_info=None,
         if not is_final:
             for (f, vid) in stage:
                 width, _lo, _hi, signed = sv_by_vid[vid]
-                pinned.append(
-                    (vid, _pack_const64(int(f.get_val()), width, signed), signed))
+                pinned.append((vid, int(f.get_val()), width, signed))
 
     return True
 
@@ -468,23 +464,20 @@ def sample_dist_conditional(make_base, readback, sample_vars, seed,
       3. **Uniform-sample the rest** with all pins applied.
 
     ``guard_vids`` — set of var ids to freeze before branch selection.
-    Gated by the caller on ``stage_sampleable`` (all fields ``<=64`` bits).
 
     Returns ``True`` on success, or ``None`` if the uniform pass found no model
     (caller falls back — should not happen, the base is SAT)."""
-    from dv_solve.problem import BIN_EQ
     from dv_solve.bvsat import BVSatCtx, BVSAT_SAT
 
     sv_by_vid = {vid: (width, lo, hi, signed)
                  for (vid, width, lo, hi, signed) in sample_vars}
     rng = random.Random(seed & _U64)
-    pinned = []  # (vid, int64_const, signed)
+    pinned = []  # (vid, value, width, signed)
 
     def _make_base_pinned(extra):
         b = make_base()
-        for (vid, val, signed) in pinned + extra:
-            b.add_constraint(b.expr_binary(
-                BIN_EQ, b.expr_var(vid), b.expr_const(val, signed)))
+        for pin in pinned + extra:
+            b.add_constraint(_pin_eq(b, *pin))
         return b
 
     def _is_sat(extra):
@@ -510,10 +503,10 @@ def sample_dist_conditional(make_base, readback, sample_vars, seed,
         width, lo, hi, signed = sv_by_vid[vid]
         for _ in range(_STAGE_PIN_ATTEMPTS):
             t = rng.randint(lo, hi)
-            const = _pack_const64(t, width, signed)
-            if _is_sat([(vid, const, signed)]):
+            pin = (vid, t, width, signed)
+            if _is_sat([pin]):
                 f.set_val(t)
-                pinned.append((vid, const, signed))
+                pinned.append(pin)
                 break
 
     # 2. Per conditional dist field: pick the active branch (guards now frozen) and
@@ -541,14 +534,14 @@ def sample_dist_conditional(make_base, readback, sample_vars, seed,
                 break
             if not (lo <= t <= hi):
                 continue
-            const = _pack_const64(t, width, signed)
-            if _is_sat([(vid, const, signed)]):
+            pin = (vid, t, width, signed)
+            if _is_sat([pin]):
                 f.set_val(t)
-                pinned.append((vid, const, signed))
+                pinned.append(pin)
                 break
 
     # 3. Uniform-sample everything not yet pinned, with the pins applied.
-    pinned_vids = {vid for (vid, _v, _s) in pinned}
+    pinned_vids = {pin[0] for pin in pinned}
     rest = [(f, vid) for (f, vid) in readback if vid not in pinned_vids]
     if not rest:
         return True
@@ -571,24 +564,21 @@ def sample_dist(make_base, readback, sample_vars, seed, dist_targets,
     swizzler / ``sample_ordered``); if no weighted target lands SAT the field is
     left free for the uniform pass. The remaining non-dist (and any un-pinnable
     dist) fields are then served by the ordinary uniform ``sample`` with the dist
-    pins applied. Gated on ``stage_sampleable`` by the caller (all fields ``<=64``
-    bits, so each target packs into the int64 carrier).
+    pins applied.
 
     Returns ``True`` on success or ``None`` if the uniform pass found no model
     (caller should fall back — should not happen, the base is SAT)."""
-    from dv_solve.problem import BIN_EQ
     from dv_solve.bvsat import BVSatCtx, BVSAT_SAT
 
     sv_by_vid = {vid: (width, lo, hi, signed)
                  for (vid, width, lo, hi, signed) in sample_vars}
     rng = random.Random(seed & _U64)
-    pinned = []  # (vid, int64_const, signed)
+    pinned = []  # (vid, value, width, signed)
 
     def _make_base_pinned(extra):
         b = make_base()
-        for (vid, val, signed) in pinned + extra:
-            b.add_constraint(b.expr_binary(
-                BIN_EQ, b.expr_var(vid), b.expr_const(val, signed)))
+        for pin in pinned + extra:
+            b.add_constraint(_pin_eq(b, *pin))
         return b
 
     def _is_sat(extra):
@@ -618,13 +608,13 @@ def sample_dist(make_base, readback, sample_vars, seed, dist_targets,
                 break
             if not (lo <= t <= hi):
                 continue                     # target outside declared domain
-            const = _pack_const64(t, width, signed)
-            if _is_sat([(vid, const, signed)]):
+            pin = (vid, t, width, signed)
+            if _is_sat([pin]):
                 f.set_val(t)
-                pinned.append((vid, const, signed))
+                pinned.append(pin)
                 break
 
-    pinned_vids = {vid for (vid, _v, _s) in pinned}
+    pinned_vids = {pin[0] for pin in pinned}
     rest = [(f, vid) for (f, vid) in readback if vid not in pinned_vids]
     if not rest:
         return True

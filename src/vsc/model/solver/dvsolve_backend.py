@@ -601,6 +601,29 @@ def _mix_dist_entries(per):
     return _fit_weights_u32(out)
 
 
+def _sample_domain(f, lo, hi, bound_m):
+    """The domain the BV-SAT samplers draw a value of ``f`` from: the
+    ``add_var`` bounds ``lo``/``hi`` for a field of <= 64 bits. Those bounds
+    are int64, so a wider field's are clamped to the int64 envelope (see
+    ``_domain_of``); its domain is instead the field's natural range cut to
+    the bound visitor's enclosing range, or a solve-order or ``dist`` pin
+    could only take an int64 value."""
+    if f.width <= 64:
+        return lo, hi
+    if f.is_signed:
+        lo, hi = -(1 << (f.width - 1)), (1 << (f.width - 1)) - 1
+    else:
+        lo, hi = 0, (1 << f.width) - 1
+    bound = bound_m.get(f) if bound_m is not None else None
+    range_l = bound.domain.range_l if bound is not None else None
+    if range_l:
+        blo = max(lo, min(r[0] for r in range_l))
+        bhi = min(hi, max(r[1] for r in range_l))
+        if blo <= bhi:
+            lo, hi = blo, bhi
+    return lo, hi
+
+
 def _dist_patterns(f, entries):
     """``add_dist`` entries for field ``f`` as the engine takes them: int64
     bounds. An unsigned 64-bit field's values above INT64_MAX become their
@@ -827,7 +850,8 @@ class DvSolveBackend(SolverBackendIF):
                 continue
             lo, hi, gap_ranges = dom
             b.add_var(vid, f.width, bool(f.is_signed), lo, hi)
-            sample_vars.append((vid, int(f.width), lo, hi, bool(f.is_signed)))
+            sample_vars.append((vid, int(f.width), *_sample_domain(f, lo, hi, bound_m),
+                                bool(f.is_signed)))
             if gap_ranges is not None:
                 gapped.append((f, gap_ranges))
 
@@ -1382,15 +1406,11 @@ class DvSolveBackend(SolverBackendIF):
                 if has_order:
                     # Honor `solve_order` natively via *staged* sampling: freeze
                     # each order stage's values before sampling the next, matching
-                    # the Boolector swizzler's per-stage assume/assert. Only when
-                    # we can serve it natively — sampler available and every
-                    # ordered field's domain fits the int64 freeze carrier;
-                    # otherwise fall through to the distribution-preserving
-                    # fallback (the prior behavior for order-bearing RandSets).
+                    # the Boolector swizzler's per-stage assume/assert. A field of
+                    # any width is frozen (a wide one as a wide constant, V18).
                     stages = self._order_stages(readback, rand_order_l)
                     if (_BVSAT_SAMPLER and make_base is not None and sample_vars
-                            and stages is not None
-                            and bvsat_sampler.stage_sampleable(sample_vars)):
+                            and stages is not None):
                         ok = bvsat_sampler.sample_ordered(
                             make_base, stages, sample_vars, seed,
                             solve_info=solve_info, soft_keep=soft_keep)
@@ -1404,8 +1424,7 @@ class DvSolveBackend(SolverBackendIF):
                         # weighting via a weighted assume-then-assert pre-stage
                         # (EF-1b), then uniform-sample the rest. Otherwise the
                         # plain uniform sampler.
-                        if (cond_dist_targets
-                                and bvsat_sampler.stage_sampleable(sample_vars)):
+                        if cond_dist_targets:
                             # Rand-guarded conditional dist: freeze the guard vars
                             # first, then apply the *active* branch's weighting so
                             # the ratio is guard-correlated (not the uniform mean).
@@ -1413,8 +1432,7 @@ class DvSolveBackend(SolverBackendIF):
                                 make_base, readback, sample_vars, seed,
                                 cond_dist_targets, dist_guard_vids or set(),
                                 solve_info=solve_info, soft_keep=soft_keep)
-                        elif (dist_targets
-                                and bvsat_sampler.stage_sampleable(sample_vars)):
+                        elif dist_targets:
                             ok = bvsat_sampler.sample_dist(
                                 make_base, readback, sample_vars, seed,
                                 dist_targets, solve_info=solve_info,
@@ -1433,12 +1451,10 @@ class DvSolveBackend(SolverBackendIF):
             # Two distinct outcomes share this exit:
             #
             #  * rc == BVSAT_SAT: the problem IS satisfiable (BV-SAT proved it),
-            #    but we are not serving it here — either serve-SAT is off and
-            #    BV-SAT's model is too clustered for stimulus, or the RandSet is
-            #    order-bearing AND not natively stage-sampleable (a wide /
-            #    unsigned-64 ordered field whose domain overflows the int64 freeze
-            #    carrier — staged serving handles the common narrow case above).
-            #    Defer to the distribution-preserving fallback to pick the values.
+            #    but we are not serving it here — serve-SAT is off and BV-SAT's
+            #    model is too clustered for stimulus, or (with no sampler) the
+            #    RandSet is order-bearing. Defer to the distribution-preserving
+            #    fallback to pick the values.
             #    This is EXPECTED, correct operation of the two-engine
             #    architecture, not a completeness gap — tag `bvsat-sat-deferred`.
             #  * rc == UNKNOWN/ERROR: the complete engine could not decide. Its
