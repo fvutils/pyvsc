@@ -475,6 +475,21 @@ class _RangelistCollector(ModelVisitor):
         super().visit_expr_rangelist(r)
 
 
+class _FieldReadCollector(ModelVisitor):
+    """Collect every field a source (pre-expansion) constraint reads. Array
+    expansion consumes some non-rand reads (an index `arr[k]` resolved to
+    the element k names, a `foreach` guard `i == k` folded with k's value),
+    so those fields reach no randset; the plan signature takes them from
+    here."""
+
+    def __init__(self):
+        super().__init__()
+        self.fields = set()
+
+    def visit_expr_fieldref(self, e):
+        self.fields.add(e.fm)
+
+
 class _RefsUsedRand(ModelVisitor):
     """Does this expression read any field the solver owns this call?"""
 
@@ -1507,10 +1522,15 @@ class Randomizer(RandIF):
                                 + list(inline_key))
                 _plan_rangelist_state = _collect_rangelist_state(_plan_blocks)
                 _plan_dist_state = _collect_dist_state(_plan_blocks)
+                _ix = _FieldReadCollector()
+                for _b in _plan_blocks:
+                    _b.accept(_ix)
+                _plan_read_fields = _ix.fields
             else:
                 _plan_blocks = None
                 _plan_rangelist_state = None
                 _plan_dist_state = None
+                _plan_read_fields = ()
             PT.add("plan_snapshot", _t)
 
             # TODO: need to handle inline constraints that impact arrays
@@ -1602,6 +1622,9 @@ class Randomizer(RandIF):
                         refd = set()
                         for _rs in ri.all_randsets():
                             refd.update(_rs.all_fields())
+                        # Array expansion may have consumed a non-rand
+                        # read (see _FieldReadCollector).
+                        refd.update(_plan_read_fields)
                         field_state = [
                             (f, f.is_used_rand,
                              (None if (f.is_used_rand or f not in refd)
