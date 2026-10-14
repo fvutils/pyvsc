@@ -588,6 +588,21 @@ def _mix_dist_entries(per):
     return _fit_weights_u32(out)
 
 
+def _dist_patterns(f, entries):
+    """``add_dist`` entries for field ``f`` as the engine takes them: int64
+    bounds. An unsigned 64-bit field's values above INT64_MAX become their
+    two's-complement bit patterns, which the engine orders unsigned for such
+    a var. The natural (Python int) entries are what the BV-SAT samplers
+    draw from, so only the native call is converted."""
+    if f.is_signed or f.width != 64:
+        return entries
+    if all(e["hi"] < (1 << 63) for e in entries):
+        return entries
+    def pat(v):
+        return v - (1 << 64) if v >= (1 << 63) else v
+    return [{**e, "lo": pat(e["lo"]), "hi": pat(e["hi"])} for e in entries]
+
+
 def _make_solve_ctx(buf, problem_sz=0, label=None):
     """Create a SolveCtx. A dynamic-pool dv-solve sizes itself; on an older
     fixed-pool one, a generic compile failure (likely pool overflow) is retried
@@ -1624,7 +1639,7 @@ class DvSolveBackend(SolverBackendIF):
         if len(scopes) == 1 and not conditional:
             entries = self._dist_entries(f, scopes[0].dist_c)
             if entries:
-                b.add_dist(idmap.id_of(f), entries)
+                b.add_dist(idmap.id_of(f), _dist_patterns(f, entries))
                 return entries, None
             return None, None
 
@@ -1658,7 +1673,7 @@ class DvSolveBackend(SolverBackendIF):
                 for e in br_entries:
                     union.append({**e, "weight": 1})
             if union:
-                b.add_dist(idmap.id_of(f), union)
+                b.add_dist(idmap.id_of(f), _dist_patterns(f, union))
             if branches and guard_vids:
                 return None, {"branches": branches, "guard_vids": guard_vids}
             return None, None            # no stageable guard → weighting dropped
@@ -1686,7 +1701,7 @@ class DvSolveBackend(SolverBackendIF):
             self._exclude_zero_weight(b, f, per, tr)
             entries = _mix_dist_entries(per)
         if entries:
-            b.add_dist(idmap.id_of(f), entries)
+            b.add_dist(idmap.id_of(f), _dist_patterns(f, entries))
             return entries, None
         return None, None
 
@@ -1769,8 +1784,12 @@ class DvSolveBackend(SolverBackendIF):
                     "dv-solve: dist on '%s' has a non-constant weight or range" %
                     getattr(field, "name", "?"),
                     reason_code="dist")
-            if not (self._I64_MIN <= lo <= self._I64_MAX
-                    and self._I64_MIN <= hi <= self._I64_MAX):
+            lim_lo, lim_hi = self._I64_MIN, self._I64_MAX
+            if not field.is_signed and field.width == 64:
+                # Upper-half values are passed as int64 bit patterns at
+                # add_dist (_dist_patterns); the engine orders them unsigned.
+                lim_lo, lim_hi = 0, (1 << 64) - 1
+            if not (lim_lo <= lo <= lim_hi and lim_lo <= hi <= lim_hi):
                 raise BackendIncomplete(
                     "dv-solve: dist range on '%s' exceeds int64" %
                     getattr(field, "name", "?"),
