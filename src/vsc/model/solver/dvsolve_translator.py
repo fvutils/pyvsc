@@ -1185,81 +1185,66 @@ class DvSolveExprTranslator(ModelVisitor):
     # so a large `unique` is slower, never deferred (v2 plan V6).
     def visit_constraint_unique(self, c):
         # Expand to pairwise != (functionally identical to native all_different;
-        # composes cleanly as a returned boolean root). A fixed-size array operand
-        # is expanded into its element fields (Phase C-4, mirroring Boolector's
-        # ConstraintUniqueModel._add_list_elems); a random-sized array is served by
-        # the size-guarded encoding in `_unique_randsz` (Phase F arrays burn-down).
-        from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
-        # A lone `unique(arr)` over a random-sized array is served size-guarded.
-        # Mixing a randsz array with other operands is not a corpus shape — defer.
-        if len(c.unique_l) == 1:
-            only = c.unique_l[0]
-            if isinstance(only, ExprFieldRefModel) \
-                    and isinstance(only.fm, FieldArrayModel) \
-                    and getattr(only.fm, "is_rand_sz", False):
-                self._result = self._unique_randsz(only.fm)
-                return
-        elems = []
-        for i in c.unique_l:
-            if isinstance(i, ExprFieldRefModel) and isinstance(i.fm, FieldArrayModel):
-                arr = i.fm
-                if getattr(arr, "is_rand_sz", False):
-                    raise BackendIncomplete(
-                        "dv-solve: unique mixing a random-sized array with other "
-                        "operands (size-guarded mix not supported)",
-                        reason_code="array")
-                for f in arr.field_l:
-                    elems.append(_FR(f))
-            else:
-                elems.append(i)
-        if len(elems) > 1:
-            refs = [self.translate(e) for e in elems]
-            terms = []
-            for i in range(len(refs)):
-                for j in range(i + 1, len(refs)):
-                    terms.append(self._b.expr_binary(BIN_NEQ, refs[i], refs[j]))
-            self._result = self._conj(terms)
-        else:
-            self._result = self._b.expr_const(1)
-
-    def _unique_randsz(self, arr):
-        """Size-guarded `unique` over a random-sized array — the active set is
-        ``field_l[0:size]`` and only active elements must be distinct.
-
-        Two cases (mirroring `_array_elem_count`):
-          * `size` resolved earlier (not co-solved in this RandSet) — the active
-            prefix is fixed, so we pairwise-`!=` the resolved prefix directly
-            (sound because we only read `size.get_val()` when `size` is NOT in the
-            idmap, so its value is committed by a prior RandSet, never stale).
-          * `size` co-solved in this RandSet — its value is solver-chosen, so each
-            pair is guarded: ``(j < size) -> elem[i] != elem[j]`` for i<j, encoded
-            as ``(j >= size) || (elem[i] != elem[j])`` (j is the larger index, and
-            j<size implies i<size, so guarding the larger index alone is exact)."""
+        # composes cleanly as a returned boolean root). An array operand is
+        # expanded into its element fields (Phase C-4, mirroring Boolector's
+        # ConstraintUniqueModel._add_list_elems). A random-sized array
+        # contributes only its active prefix ``field_l[0:size]``:
+        #   * `size` resolved earlier (not co-solved in this RandSet) — the
+        #     prefix is fixed, so its elements join as plain operands (sound
+        #     because `size.get_val()` is read only when `size` is NOT in the
+        #     idmap, so its value is committed by a prior RandSet; recorded in
+        #     const_fields so a changed size invalidates the cached plan);
+        #   * `size` co-solved — element k is active iff ``k < size``, so it
+        #     carries the guard ``inactive = (k >= size)`` and each pair is
+        #     ``inactive_a || inactive_b || a != b``. Within one array only the
+        #     larger index is guarded: j<size implies i<size, so that is exact.
+        # Scalars and fixed-size elements are always active (no guard). Boolector
+        # instead makes all max-size elements distinct, which over-constrains
+        # (it can be UNSAT when max size exceeds the distinct values).
         from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
         from vsc.model.expr_bin_model import ExprBinModel
         from vsc.model.expr_literal_model import ExprLiteralModel
-        if not self._m.has(arr.size):
-            # Resolved size: fixed active prefix. Baked into the problem, so
-            # a cached plan must not be reused once the size changes.
-            n = int(arr.size.get_val())
-            self.const_fields[arr.size] = n
-            refs = [self.translate(_FR(arr.field_l[k])) for k in range(n)]
+        ops = []    # (operand model, inactive guard model or None, group)
+        for i in c.unique_l:
+            if isinstance(i, ExprFieldRefModel) and isinstance(i.fm, FieldArrayModel):
+                arr = i.fm
+                if not getattr(arr, "is_rand_sz", False):
+                    ops.extend((_FR(f), None, None) for f in arr.field_l)
+                elif not self._m.has(arr.size):
+                    # Baked into the problem: a cached plan must not be
+                    # reused once the size changes.
+                    n = int(arr.size.get_val())
+                    self.const_fields[arr.size] = n
+                    ops.extend((_FR(arr.field_l[k]), None, None) for k in range(n))
+                else:
+                    sw = int(arr.size.width)
+                    for k, f in enumerate(arr.field_l):
+                        inactive = ExprBinModel(ExprLiteralModel(k, False, sw),
+                                                BinExprType.Ge, _FR(arr.size))
+                        ops.append((_FR(f), inactive, id(arr)))
+            else:
+                ops.append((i, None, None))
+        if len(ops) < 2:
+            self._result = self._b.expr_const(1)
+            return
+        if all(g is None for _, g, _ in ops):
+            refs = [self.translate(e) for e, _, _ in ops]
             terms = [self._b.expr_binary(BIN_NEQ, refs[i], refs[j])
                      for i in range(len(refs)) for j in range(i + 1, len(refs))]
-            return self._conj(terms)
-        # Co-solved size: guard each max-size pair on the active prefix.
-        M = len(arr.field_l)
-        sw = int(arr.size.width)
+            self._result = self._conj(terms)
+            return
         terms = []
-        for i in range(M):
-            for j in range(i + 1, M):
-                guard = ExprBinModel(ExprLiteralModel(j, False, sw),
-                                     BinExprType.Ge, _FR(arr.size))
-                neq = ExprBinModel(_FR(arr.field_l[i]), BinExprType.Ne,
-                                   _FR(arr.field_l[j]))
-                terms.append(self.translate(
-                    ExprBinModel(guard, BinExprType.Or, neq)))
-        return self._conj(terms)
+        for i in range(len(ops)):
+            ei, gi, grp_i = ops[i]
+            for j in range(i + 1, len(ops)):
+                ej, gj, grp_j = ops[j]
+                term = ExprBinModel(ei, BinExprType.Ne, ej)
+                guards = [gj] if (grp_i is not None and grp_i == grp_j) \
+                    else [g for g in (gi, gj) if g is not None]
+                for g in reversed(guards):
+                    term = ExprBinModel(g, BinExprType.Or, term)
+                terms.append(self.translate(term))
+        self._result = self._conj(terms)
 
     def visit_constraint_solve_order(self, c):
         # Ordering metadata only; contributes nothing to satisfiability.
