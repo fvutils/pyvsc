@@ -15,7 +15,15 @@ class ExprArraySubscriptModel(ExprModel):
         
     def build(self, btor, ctx_width=-1):
         from vsc.visitors.refs_used_rand_visitor import refs_used_rand
-        if isinstance(self.lhs, ExprFieldRefModel) and refs_used_rand(self.rhs):
+        if not isinstance(self.lhs, ExprFieldRefModel):
+            # An array reached through an object (`objs[i].arr[j]`).
+            from vsc.model.expr_indexed_field_ref_model import (
+                ref_alternatives, is_symbolic, build_select)
+            alts = ref_alternatives(self)
+            if is_symbolic(alts):
+                return build_select(btor, alts)
+            return alts[0][1].build(btor)
+        if refs_used_rand(self.rhs):
             return self._build_select(btor)
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):
@@ -70,21 +78,18 @@ class ExprArraySubscriptModel(ExprModel):
             raise Exception("List size: " + str(len(self.lhs.fm.field_l)) + " index: " + str(index))
         
         
-    def is_signed(self):
-        index = self._type_index()
+    def _type_field(self):
+        """A field whose type stands for the result's."""
         if isinstance(self.lhs, ExprFieldRefModel):
-            return self.lhs.fm.field_l[index].is_signed
-        else:
-            # TODO: support array slicing
-            raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
+            return self.lhs.fm.field_l[self._type_index()]
+        from vsc.model.expr_indexed_field_ref_model import ref_alternatives
+        return ref_alternatives(self)[0][1]
+
+    def is_signed(self):
+        return self._type_field().is_signed
         
     def width(self):
-        index = self._type_index()
-        if isinstance(self.lhs, ExprFieldRefModel):
-            return self.lhs.fm.field_l[index].width
-        else:
-            # TODO: support array slicing
-            raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
+        return self._type_field().width
         
     def accept(self, v):
         v.visit_expr_array_subscript(self)
@@ -93,9 +98,9 @@ class ExprArraySubscriptModel(ExprModel):
         index = int(self.rhs.val())
         if isinstance(self.lhs, ExprFieldRefModel):
             return self.lhs.fm.field_l[index].val()
-        else:
-            # TODO: support array slicing
-            raise NotImplementedError("Cannot subscript an lvalue of type " + str(type(self.lhs)))
+        # After the solve every index has its value.
+        from vsc.model.expr_indexed_field_ref_model import ref_alternatives
+        return ref_alternatives(self, lambda _: False)[0][1].val()
         
     def getFieldModel(self):
         index = int(self.rhs.val())

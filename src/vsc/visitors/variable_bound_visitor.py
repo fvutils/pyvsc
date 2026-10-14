@@ -58,8 +58,17 @@ _DECLARED_ONLY_NARROW_MAX_WIDTH = 32
 
 
 def _symbolic_subscript(e):
-    """True for ``arr[idx]`` whose index the solver chooses."""
-    return isinstance(e, ExprArraySubscriptModel) and refs_used_rand(e.rhs)
+    """True for ``arr[idx]`` or ``objs[idx].v`` (a reference whose chain has
+    an index the solver chooses). It names no particular field, and the
+    field its index's current value names must not be bounded."""
+    from vsc.model.expr_indexed_field_ref_model import (
+        ExprIndexedFieldRefModel, ref_alternatives, is_symbolic)
+    if isinstance(e, ExprArraySubscriptModel) \
+            and isinstance(e.lhs, ExprFieldRefModel):
+        return refs_used_rand(e.rhs)
+    if isinstance(e, (ExprArraySubscriptModel, ExprIndexedFieldRefModel)):
+        return is_symbolic(ref_alternatives(e))
+    return False
 
 
 class VariableBoundVisitor(ModelVisitor):

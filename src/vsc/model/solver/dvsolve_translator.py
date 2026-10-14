@@ -720,10 +720,10 @@ class DvSolveExprTranslator(ModelVisitor):
                 # 'in' over an array's elements: lhs ∈ {arr[0], …, arr[n-1]} ==
                 # OR_i (lhs == arr[i]) over the active elements — the unambiguous
                 # set-membership semantics (matches Boolector's expansion). n is
-                # the fixed size or a resolved randsz size; a co-solved randsz
-                # size defers (reason_code="array") via _array_elem_count, exactly
-                # as the aggregate path does. An empty active set also defers —
-                # its membership is the constant False, which the OR-fold below
+                # the fixed size or a resolved randsz size; with a co-solved
+                # randsz size each element's term is guarded by it
+                # (_cosolved_size), as on the aggregate path. An empty active
+                # set's membership is the constant False, which the OR-fold below
                 # can't represent as a model node without spuriously reading as
                 # always-true when it is the sole rangelist entry.
                 from vsc.model.expr_fieldref_model import ExprFieldRefModel as _FR
@@ -1456,9 +1456,9 @@ class DvSolveExprTranslator(ModelVisitor):
     # `foreach` expansion substitutes the loop index with a literal, so most
     # subscript / indexed-field references that reach the translator resolve to a
     # *fixed* element field. We translate those directly to the element's var/const
-    # ref. A genuinely variable (rand) index — no constant resolution — defers
-    # (native expr_array_select would handle it but needs contiguous element ids;
-    # no current corpus shape requires it, so it stays a guarded defer).
+    # ref. A rand index selects with an ITE chain (or, for a small contiguous
+    # scalar array, the native expr_array_select); see _ref_chain for one
+    # through objects.
 
     def _const_subscript_index(self, sub):
         """Return an ExprArraySubscriptModel's constant index, or None if its index
@@ -1470,26 +1470,6 @@ class DvSolveExprTranslator(ModelVisitor):
             return int(sub.rhs.val())
         except Exception:
             return None
-
-    def _indexed_ref_is_const(self, e):
-        """True iff an indexed/subscript reference chain resolves to a fixed field
-        — every subscript index along the chain is a constant — so ``get_target()``
-        / ``subscript()`` yield the correct element without reading a stale rand
-        value."""
-        from vsc.model.expr_indexed_field_ref_model import ExprIndexedFieldRefModel
-        from vsc.model.expr_array_subscript_model import ExprArraySubscriptModel
-        node = e
-        while True:
-            if isinstance(node, ExprArraySubscriptModel):
-                if self._const_subscript_index(node) is None:
-                    return False
-                node = node.lhs
-            elif isinstance(node, ExprIndexedFieldRefModel):
-                node = node.root
-            elif isinstance(node, ExprFieldRefModel):
-                return True
-            else:
-                return False
 
     # Native `expr_array_select` element cap (Workstream B). The C compiler's
     # EXPR_ARRAY_SELECT path (zsp_compile.c) builds flat guard-reified
@@ -1538,6 +1518,10 @@ class DvSolveExprTranslator(ModelVisitor):
         return result_ref
 
     def visit_expr_array_subscript(self, e):
+        if not isinstance(e.lhs, ExprFieldRefModel):
+            # An array reached through an object (`objs[i].arr[j]`).
+            self._ref_chain(e)
+            return
         if self._const_subscript_index(e) is not None:
             # Constant index -> the concrete element field (var if rand, else const).
             self._result = self._ref_for_field(e.subscript())
@@ -1613,14 +1597,45 @@ class DvSolveExprTranslator(ModelVisitor):
             self._last_simple = False
 
     def visit_expr_indexed_fieldref(self, e):
-        if self._indexed_ref_is_const(e):
-            # Fixed path -> the concrete target field.
-            self._result = self._ref_for_field(e.get_target())
+        self._ref_chain(e)
+
+    def _ref_chain(self, e):
+        """A reference through objects or arrays (`objs[i].v`,
+        `objs[i].arr[j]`). With every index fixed it is the one field it
+        names. An index the solver chooses selects, as for a scalar
+        `arr[idx]`, with an ITE chain over every field the chain may name:
+        the first alternative whose index conditions hold, the last one
+        otherwise."""
+        from vsc.model.expr_indexed_field_ref_model import (
+            ref_alternatives, is_symbolic)
+        alts = ref_alternatives(e)
+        if not is_symbolic(alts):
+            self._result = self._ref_for_field(alts[0][1])
             self._last_simple = True
             return
-        raise BackendIncomplete(
-            "dv-solve: variable-indexed object-array reference (Phase C-1)",
-            reason_code="array")
+        want_var = self._want_var
+        f0 = alts[0][1]
+        w = int(f0.width)
+        signed = bool(f0.is_signed)
+        idx_m = {}
+
+        def eq(ie, k):
+            if id(ie) not in idx_m:
+                idx_m[id(ie)] = (self.translate(ie, want_var=True),
+                                 bool(ie.is_signed()))
+            ref, idx_signed = idx_m[id(ie)]
+            return self._b.expr_binary(
+                BIN_EQ, ref, self._b.expr_const(k, idx_signed))
+        chain = self._ref_for_field(alts[-1][1])
+        for conds, f in reversed(alts[:-1]):
+            cond = self._conj([eq(ie, k) for ie, k in conds])
+            chain = self._b.expr_ite(cond, self._ref_for_field(f), chain)
+        if want_var and self._AUX_MIN_W <= w <= self._AUX_MAX_W:
+            self._result = self._materialize(chain, w, signed)
+            self._last_simple = True
+        else:
+            self._result = chain
+            self._last_simple = False
 
     # ------------------------------------------------------------------ #
     # Bit-select expression (native via flattening)                        #

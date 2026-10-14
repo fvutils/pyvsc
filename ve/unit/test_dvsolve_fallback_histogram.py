@@ -63,14 +63,13 @@ _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 # doc/notes/dv_solve_phaseE_selfsufficiency_plan.md and solver_backends.rst.
 _RESIDUAL_ALLOWLIST = {
     "width",        # field width > 65535 bits (uint16 add_var width); V26 lifts it
-    "array",        # object-array variable index (V10); fails on Boolector too,
-                    # so it has no residual-corpus shape
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
                     # to the fallback for distribution / solve_order. Expected,
                     # correct two-engine operation — NOT a completeness gap (F-E1).
     # `translator-unsupported` is gone: every translator site that no shape
     # reaches raises BackendInternalError instead (v2 plan V21). `dist` is
-    # gone too: a dist on a >64-bit field is served since V15.
+    # gone too: a dist on a >64-bit field is served since V15. So is `array`:
+    # an object-array variable index is served since V10.
 }
 
 # F-2c — the residual manifest: for each allowlisted reason code, the *product
@@ -89,9 +88,6 @@ _RESIDUAL_MANIFEST = {
     "width":        ("closable",
                      "field width > 65535 bits — C ABI uint16 add_var width; "
                      "V26 widens it to uint32"),
-    "array":        ("closable",
-                     "object-array variable index — v2 plan V10 (large "
-                     "selects are native since V8/V9)"),
     "bvsat-sat-deferred": ("closable",
                      "SAT-proved but not served (serve-SAT off, or no "
                      "sampler). The upper-half constant bound is native since "
@@ -334,6 +330,25 @@ def _native_corpus():
             vsc.dist(s.a, [vsc.weight((1, 3), 1),
                            vsc.weight(((1 << 80), (1 << 80) + 5), 2)])
 
+    @vsc.randobj
+    class ObjElem(object):
+        def __init__(s):
+            s.v = vsc.rand_uint8_t()
+
+    @vsc.randobj
+    class ObjArrayVarIndex(object):
+        # `objs[i].v` with a random i: an ITE chain over every element's v
+        # (v2 plan V10). It deferred on `array`, and failed on Boolector.
+        def __init__(s):
+            s.objs = vsc.rand_list_t(ObjElem(), 0)
+            for _ in range(4):
+                s.objs.append(ObjElem())
+            s.i = vsc.rand_uint8_t()
+        @vsc.constraint
+        def c(s):
+            s.i < 4
+            s.objs[s.i].v == 3
+
     return [
         ("scalar", Scalar),
         ("dist", Dist),
@@ -351,6 +366,7 @@ def _native_corpus():
         ("large_select", LargeSelect),
         ("upper_half_const_bound", UpperHalfConstBound),
         ("wide_dist", WideDist),
+        ("obj_array_var_index", ObjArrayVarIndex),
     ]
 
 

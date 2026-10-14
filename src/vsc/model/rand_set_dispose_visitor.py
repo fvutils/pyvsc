@@ -34,7 +34,13 @@ class RandSetDisposeVisitor(ModelVisitor):
         c.dispose()
         
     def visit_expr_indexed_fieldref(self, e):
-        e.get_target().accept(self)
+        from vsc.model.expr_indexed_field_ref_model import (
+            ref_alternatives, index_exprs)
+        alts = ref_alternatives(e)
+        for ie in index_exprs(alts):
+            ie.accept(self)
+        for _, f in alts:
+            f.accept(self)
         
     def visit_expr_fieldref(self, e):
         e.fm.accept(self)

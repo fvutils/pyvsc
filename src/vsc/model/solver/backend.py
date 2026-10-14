@@ -33,7 +33,7 @@ class BackendIncomplete(Exception):
     next available back-end (Phase 2). A bare/abstract back-end raises this
     rather than producing a wrong answer.
 
-    ``reason_code`` is a coarse category (e.g. ``"array"``, ``"width"``,
+    ``reason_code`` is a coarse category (e.g. ``"width"``,
     ``"bvsat-sat-deferred"``) used by the
     fallback telemetry (SolveInfo.fallback_reasons) to drive the per-phase
     burn-down. Defaults to ``"incomplete"`` when a raise site doesn't classify

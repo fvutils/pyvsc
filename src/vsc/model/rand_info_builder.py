@@ -355,6 +355,10 @@ class RandInfoBuilder(ModelVisitor,RandIF):
         return v.check(idx_e)
 
     def visit_expr_array_subscript(self, s : ExprArraySubscriptModel):
+        if not isinstance(s.lhs, ExprFieldRefModel):
+            # An array reached through an object (`objs[i].arr[j]`).
+            self._visit_ref_chain(s)
+            return
         if self._pass == 1 \
                 and isinstance(s.lhs, ExprFieldRefModel) \
                 and isinstance(s.lhs.fm, FieldArrayModel) \
@@ -474,7 +478,27 @@ class RandInfoBuilder(ModelVisitor,RandIF):
             c_stmt.accept(self)
         
     def visit_expr_indexed_fieldref(self, e):
-        self.process_fieldref(e.get_target())
+        self._visit_ref_chain(e)
+
+    def _visit_ref_chain(self, e):
+        """A reference through objects or arrays (`objs[i].v`). With every
+        index fixed it names one field. An index the solver chooses may
+        select any element, so, as for a scalar `arr[idx]`, the index and
+        every rand field the chain may name go into one randset."""
+        from vsc.model.expr_indexed_field_ref_model import (
+            ref_alternatives, is_symbolic, index_exprs)
+        alts = ref_alternatives(e, self._index_is_used_rand)
+        if not is_symbolic(alts):
+            self.process_fieldref(alts[0][1])
+            return
+        if self._pass != 1:
+            # A random index has no value yet; pass 0 needs no element.
+            return
+        for ie in index_exprs(alts):
+            ie.accept(self)
+        for _, f in alts:
+            if getattr(f, "is_used_rand", False):
+                self.process_fieldref(f)
         
     def process_fieldref(self, fm):
         if RandInfoBuilder.EN_DEBUG > 0:
