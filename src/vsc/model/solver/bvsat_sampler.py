@@ -125,14 +125,19 @@ def _append_one_plane(b, bits, rng):
     was added."""
     from dv_solve.problem import BIN_BXOR, BIN_EQ
     for _ in range(8):  # re-draw a few times if the random subset came up empty
-        acc = None
-        for (vid, bit) in bits:
-            if rng.getrandbits(1):
-                e = b.expr_extract(b.expr_var(vid), bit, bit)
-                acc = e if acc is None else b.expr_binary(BIN_BXOR, acc, e)
-        if acc is not None:
+        terms = [b.expr_extract(b.expr_var(vid), bit, bit)
+                 for (vid, bit) in bits if rng.getrandbits(1)]
+        if terms:
+            # Balanced XOR tree (depth log2(n)): a left-deep chain over a large
+            # RandSet exceeds BV-SAT's expression-depth limit.
+            while len(terms) > 1:
+                nxt = [b.expr_binary(BIN_BXOR, terms[i], terms[i + 1])
+                       for i in range(0, len(terms) - 1, 2)]
+                if len(terms) % 2:
+                    nxt.append(terms[-1])
+                terms = nxt
             r = rng.getrandbits(1)
-            b.add_constraint(b.expr_binary(BIN_EQ, acc, b.expr_const(r)))
+            b.add_constraint(b.expr_binary(BIN_EQ, terms[0], b.expr_const(r)))
             return True
     return False
 

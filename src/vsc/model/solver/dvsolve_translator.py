@@ -345,13 +345,21 @@ class DvSolveExprTranslator(ModelVisitor):
         return self._to_bool(ref, cond_e)
 
     def _conj(self, refs) -> int:
-        """Logical-AND-combine a list of boolean refs; empty list -> true."""
-        result = None
-        for r in refs:
-            result = r if result is None else self._b.expr_binary(BIN_AND, result, r)
-        if result is None:
-            result = self._b.expr_const(1)
-        return result
+        """Logical-AND-combine a list of boolean refs; empty list -> true.
+
+        Built as a balanced tree, so its depth is log2(n): a left-deep chain
+        over a large body (a guarded `foreach` over 25000 elements, or a
+        large `unique`) exceeds the engines' expression-depth limits."""
+        refs = list(refs)
+        if not refs:
+            return self._b.expr_const(1)
+        while len(refs) > 1:
+            nxt = [self._b.expr_binary(BIN_AND, refs[i], refs[i + 1])
+                   for i in range(0, len(refs) - 1, 2)]
+            if len(refs) % 2:
+                nxt.append(refs[-1])
+            refs = nxt
+        return refs[0]
 
     # ------------------------------------------------------------------ #
     # Expression nodes                                                     #
