@@ -182,7 +182,8 @@ class TestDvSolveWide(VscTestCase):
         self.assertGreater(hit_high, 0)
 
     def test_width_255_max(self):
-        """255 bits — the hard ceiling (add_var width is a uint8)."""
+        """255 bits — the old ceiling; wider fields are covered by
+        test_dvsolve_width_guard."""
         @vsc.randobj
         class W(object):
             def __init__(self):

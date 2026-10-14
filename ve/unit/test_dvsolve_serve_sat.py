@@ -143,12 +143,14 @@ class TestDvSolveServeSatAuto(VscTestCase):
 
     @requires_boolector
     def test_gap_still_falls_back(self):
-        # A real gap (a field wider than 255 bits) is still served by
-        # Boolector, built on the first defer.
+        # A real gap (a field wider than dv-solve can encode) is still
+        # served by Boolector, built on the first defer.
+        import vsc.model.solver.dvsolve_backend as dvb
+
         @vsc.randobj
         class Wide(object):
             def __init__(self):
-                self.w = vsc.rand_bit_t(300)
+                self.w = vsc.rand_bit_t(dvb._MAX_FIELD_WIDTH + 1)
 
             @vsc.constraint
             def wc(self):

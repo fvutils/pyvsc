@@ -60,7 +60,7 @@ _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 # defer to the Boolector net. Keep this in sync with the §5 residual table in
 # doc/notes/dv_solve_phaseE_selfsufficiency_plan.md and solver_backends.rst.
 _RESIDUAL_ALLOWLIST = {
-    "width",        # field width > 255 bits (uint8 add_var width) — permanent
+    "width",        # field width > 65535 bits (uint16 add_var width); V26 lifts it
     "dist",         # >64-bit dist / conditional / multiple-dist-on-field
     "array",        # n>64 select, >64 summands, wide aggregate, object randsz
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
@@ -85,8 +85,9 @@ _RESIDUAL_ALLOWLIST = {
 # so this catalog, the allowlist, the §5 Phase-E residual table, and the F-2c plan
 # table cannot drift.
 _RESIDUAL_MANIFEST = {
-    "width":        ("permanent",
-                     "field width > 255 bits — C ABI uint8 add_var width cap"),
+    "width":        ("closable",
+                     "field width > 65535 bits — C ABI uint16 add_var width; "
+                     "V26 widens it to uint32"),
     "dist":         ("closable",
                      ">64-bit / conditional / multiple-dist-on-field — [dvs] dist "
                      "composition + wide encode"),
@@ -328,10 +329,11 @@ def _residual_corpus():
     only with these codes)."""
 
     @vsc.randobj
-    class Width256(object):
-        # > 255 bits: add_var width is a uint8 → permanent residual ("width").
+    class WidthOverMax(object):
+        # > 65535 bits: add_var width is a uint16 → residual ("width"). Up to
+        # 65535 bits is served by BV-SAT (test_dvsolve_width_guard).
         def __init__(s):
-            s.a = vsc.rand_bit_t(256)
+            s.a = vsc.rand_bit_t(65536)
         @vsc.constraint
         def c(s):
             s.a > 1
@@ -376,7 +378,7 @@ def _residual_corpus():
                 e > 0
 
     return [
-        ("width256", "width", Width256),
+        ("width_over_max", "width", WidthOverMax),
         ("wide_dist", "dist", WideDist),
         ("upper_half_const_bound", "bvsat-sat-deferred", UpperHalfConstBound),
         ("over_cap_sum", "array", OverCapSum),

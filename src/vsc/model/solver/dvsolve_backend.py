@@ -115,6 +115,11 @@ def _check_const_constraints(rs):
 # reset()+solve(seed) is bit-identical to a fresh compile+solve(seed), the value
 # stream and distribution are unchanged, and the full ve/unit suite passes. Set
 # VSC_DVSOLVE_REUSE=0 to disable (e.g. to isolate a suspected stale-cache issue).
+# Widest field dv-solve can encode: add_var and the expression nodes carry
+# width as a uint16. Fields over 64 bits are served by BV-SAT, which is
+# width-agnostic (checked correct to 16k bits).
+_MAX_FIELD_WIDTH = 65535
+
 _REUSE_ENABLED = os.environ.get("VSC_DVSOLVE_REUSE", "1") != "0"
 
 # Cap on the total variable count of a whole-problem merged solve (see
@@ -637,17 +642,17 @@ class DvSolveBackend(SolverBackendIF):
         # Field width vs the engines:
         #  - <=64 bits: the primary bounds-propagation engine (64-bit) handles it
         #    — the optimized common path, unchanged.
-        #  - 65..255 bits: the primary engine can't represent it, but the
-        #    width-agnostic BV-SAT engine can (Phase D). add_var carries width as
-        #    a uint8, so 255 is the hard ceiling.
-        #  - >255 bits: not encodable (uint8 width) — defer the whole RandSet.
+        #  - 65.._MAX_FIELD_WIDTH bits: the primary engine can't represent
+        #    it, but the width-agnostic BV-SAT engine can (Phase D).
+        #  - wider: not encodable (add_var carries width as a uint16) — defer
+        #    the whole RandSet.
         # A RandSet with any wide field is routed straight to BV-SAT serving
         # (there is no 64-bit primary path for it); see _build_and_solve.
         for f in rand_fields:
-            if f.width > 255:
+            if f.width > _MAX_FIELD_WIDTH:
                 raise BackendIncomplete(
-                    "dv-solve: field '%s' width %d exceeds 255 bits" % (
-                        getattr(f, "name", "?"), f.width),
+                    "dv-solve: field '%s' width %d exceeds %d bits" % (
+                        getattr(f, "name", "?"), f.width, _MAX_FIELD_WIDTH),
                     reason_code="width")
         has_wide = any(f.width > 64 for f in rand_fields)
 
