@@ -1180,10 +1180,9 @@ class DvSolveExprTranslator(ModelVisitor):
             right = self._b.expr_binary(BIN_OR, cond, false_c)
             self._result = self._b.expr_binary(BIN_AND, left, right)
 
-    # Pairwise-!= expansion of `unique` is O(n^2); above this many operands the
-    # term count is impractical for the bounds engine — defer (Phase C §5).
-    _MAX_UNIQUE_ELEMS = 64
-
+    # `unique` is expanded to pairwise != with no element cap: the term count
+    # is O(n^2), but the engine compiles what it can and BV-SAT serves the rest,
+    # so a large `unique` is slower, never deferred (v2 plan V6).
     def visit_constraint_unique(self, c):
         # Expand to pairwise != (functionally identical to native all_different;
         # composes cleanly as a returned boolean root). A fixed-size array operand
@@ -1213,10 +1212,6 @@ class DvSolveExprTranslator(ModelVisitor):
                     elems.append(_FR(f))
             else:
                 elems.append(i)
-        if len(elems) > self._MAX_UNIQUE_ELEMS:
-            raise BackendIncomplete(
-                "dv-solve: unique over %d elements exceeds the pairwise cap"
-                % len(elems), reason_code="array")
         if len(elems) > 1:
             refs = [self.translate(e) for e in elems]
             terms = []
@@ -1246,20 +1241,12 @@ class DvSolveExprTranslator(ModelVisitor):
         if not self._m.has(arr.size):
             # Resolved size: fixed active prefix.
             n = int(arr.size.get_val())
-            if n > self._MAX_UNIQUE_ELEMS:
-                raise BackendIncomplete(
-                    "dv-solve: unique over %d elements exceeds the pairwise cap"
-                    % n, reason_code="array")
             refs = [self.translate(_FR(arr.field_l[k])) for k in range(n)]
             terms = [self._b.expr_binary(BIN_NEQ, refs[i], refs[j])
                      for i in range(len(refs)) for j in range(i + 1, len(refs))]
             return self._conj(terms)
         # Co-solved size: guard each max-size pair on the active prefix.
         M = len(arr.field_l)
-        if M > self._MAX_UNIQUE_ELEMS:
-            raise BackendIncomplete(
-                "dv-solve: unique over %d elements exceeds the pairwise cap"
-                % M, reason_code="array")
         sw = int(arr.size.width)
         terms = []
         for i in range(M):
