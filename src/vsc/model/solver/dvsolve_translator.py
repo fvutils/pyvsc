@@ -1354,14 +1354,13 @@ class DvSolveExprTranslator(ModelVisitor):
         arr = e.arr
         if getattr(arr, "is_rand_sz", False) and self._m.has(arr.size):
             rw = int(e.width())
-            if rw > self._AUX_MAX_W:
-                raise BackendIncomplete(
-                    "dv-solve: guarded sum result width %d exceeds aux range"
-                    % rw, reason_code="array")
             terms, _ = self._array_terms(arr, rw, 0, e.is_signed())
             if not terms:
                 self._result = self._b.expr_const(0)
                 self._last_simple = True
+                return
+            if rw > self._AUX_MAX_W:
+                self._wide_sum(terms)
                 return
             result_ref = self._new_aux(rw, e.is_signed())
             self._b.add_constraint(self._b.expr_sum(result_ref, terms))
@@ -1377,9 +1376,16 @@ class DvSolveExprTranslator(ModelVisitor):
         # can't overflow and width reconciliation with the comparison RHS matches.
         rw = int(e.width())
         if rw > self._AUX_MAX_W:
-            raise BackendIncomplete(
-                "dv-solve: array sum result width %d exceeds aux range" % rw,
-                reason_code="array")
+            terms = []
+            for f in arr.field_l[:n]:
+                t = self.translate(ExprFieldRefModel(f), ctx_width=rw,
+                                   want_var=True)
+                if int(f.width) < rw:
+                    t = self._b.expr_extend(t, int(f.width), rw,
+                                            bool(f.is_signed))
+                terms.append(t)
+            self._wide_sum(terms)
+            return
         elem_refs = [self.translate(ExprFieldRefModel(arr.field_l[i]),
                                     ctx_width=rw, want_var=True)
                      for i in range(n)]
@@ -1387,6 +1393,22 @@ class DvSolveExprTranslator(ModelVisitor):
         self._b.add_constraint(self._b.expr_sum(result_ref, elem_refs))
         self._result = result_ref
         self._last_simple = True
+
+    def _wide_sum(self, terms):
+        """A sum whose result is wider than the primary engine's 63 bits
+        (e.g. ``uint64`` elements): a balanced tree of adds over the terms,
+        already at the result width, served on BV-SAT, which is
+        width-agnostic (v2 plan V5)."""
+        self.requires_bvsat = True
+        terms = list(terms)
+        while len(terms) > 1:
+            nxt = [self._b.expr_binary(BIN_ADD, terms[i], terms[i + 1])
+                   for i in range(0, len(terms) - 1, 2)]
+            if len(terms) % 2:
+                nxt.append(terms[-1])
+            terms = nxt
+        self._result = terms[0]
+        self._last_simple = False
 
     def visit_expr_array_product(self, e):
         # arr.product -> a left-folded BIN_MUL chain (decision §6.4; no native
