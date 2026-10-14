@@ -116,10 +116,18 @@ def _check_const_constraints(rs):
 # reset()+solve(seed) is bit-identical to a fresh compile+solve(seed), the value
 # stream and distribution are unchanged, and the full ve/unit suite passes. Set
 # VSC_DVSOLVE_REUSE=0 to disable (e.g. to isolate a suspected stale-cache issue).
-# Widest field dv-solve can encode: add_var and the expression nodes carry
-# width as a uint16. Fields over 64 bits are served by BV-SAT, which is
-# width-agnostic (checked correct to 16k bits).
-_MAX_FIELD_WIDTH = 65535
+# Widest field dv-solve solves: the engine's DVS_MAX_WIDTH (2^24 bits since
+# widths went 32-bit, v2 plan V26). Fields over 64 bits are served by BV-SAT.
+# A dv-solve without dvs_max_width() carries widths as a uint16.
+def _engine_max_width():
+    try:
+        from dv_solve.lib import max_width
+        return max_width() or 65535
+    except (ImportError, AttributeError, OSError):
+        return 65535
+
+
+_MAX_FIELD_WIDTH = _engine_max_width()
 
 _REUSE_ENABLED = os.environ.get("VSC_DVSOLVE_REUSE", "1") != "0"
 
@@ -732,8 +740,8 @@ class DvSolveBackend(SolverBackendIF):
         #    — the optimized common path, unchanged.
         #  - 65.._MAX_FIELD_WIDTH bits: the primary engine can't represent
         #    it, but the width-agnostic BV-SAT engine can (Phase D).
-        #  - wider: not encodable (add_var carries width as a uint16) — defer
-        #    the whole RandSet.
+        #  - wider: past the engine's ceiling (DVS_MAX_WIDTH) — the whole
+        #    RandSet is unsupported.
         # A RandSet with any wide field is routed straight to BV-SAT serving
         # (there is no 64-bit primary path for it); see _build_and_solve.
         for f in rand_fields:
@@ -1421,7 +1429,7 @@ class DvSolveBackend(SolverBackendIF):
                 return SolveResult(status=0)
             # UNKNOWN/ERROR: the complete engine could not decide. Its causes
             # are a signed `>>` operand, nesting deeper than 4096, a sum or
-            # constant wider than 65535 bits, a clog2 operand wider than 64
+            # constant wider than DVS_MAX_WIDTH, a clog2 operand wider than 64
             # bits, a select over undefined vars, a Source group, an env
             # conflict cap (DV_BB_MAX_CONFLICTS) and out-of-memory. The
             # translator emits none of them (pyvsc's own recursion limit stops

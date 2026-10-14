@@ -78,8 +78,10 @@ Available back-ends
    native value-selection (per-value ``:=`` / per-range ``:/`` / zero-weight
    exclusion) rather than being expanded into ordinary constraints. dv-solve
    solves every constraint shape PyVSC can express by itself; the one limit
-   is a field wider than 65535 bits (see *When dv-solve cannot solve a set*
-   below).
+   is a field wider than 2\ :sup:`24` (16,777,216) bits (see *When dv-solve
+   cannot solve a set* below). Fields over 64 bits are solved by bit-blasting;
+   a very wide one is correct but slow to sample (around a second at 70,000
+   bits, over a minute at 1,000,000).
 
 How dv-solve decides
 ====================
@@ -111,11 +113,11 @@ When dv-solve cannot solve a set
 
 A set of constraints dv-solve cannot solve raises
 ``vsc.SolverUnsupported``. Today that means only a random field wider
-than 65535 bits. The message names the reason and the construct, for
-example::
+than 2\ :sup:`24` bits, dv-solve's width ceiling. The message names the reason
+and the construct, for example::
 
     vsc.SolverUnsupported: dv-solve cannot solve this set of constraints
-    (reason: width): field 'w' width 65536 exceeds 65535 bits. ...
+    (reason: width): field 'w' width 16777217 exceeds 16777216 bits. ...
 
 This is a gap in dv-solve, not an unsatisfiable problem (which raises
 ``SolveFailure`` as before); please report it. To solve such a set for now:

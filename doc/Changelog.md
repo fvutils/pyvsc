@@ -11,6 +11,7 @@
 - vdc `randomize_with` bodies are parsed with the same grammar instead of run;
   values from the caller are read on every call. See
   doc/source/dataclass/inline_constraints.rst.
+- dv-solve solves fields and constants up to 2^24 bits wide (was 65535).
 
 ### Behavior changes
 - vdc `randomize_with` bodies are parsed by default. A body written for the
@@ -27,7 +28,7 @@
   statements (same meaning; lets `1 < len(arr) < 4` bound a random-size array).
 - dv-solve no longer hands a set of constraints it cannot solve to Boolector:
   it raises `vsc.SolverUnsupported`, naming the reason. The only such set left
-  is a random field wider than 65535 bits. `VSC_DVSOLVE_FALLBACK=boolector`
+  is a random field wider than 2^24 bits. `VSC_DVSOLVE_FALLBACK=boolector`
   restores the fallback for 2.0 (it is removed in 2.1), and
   `VSC_SOLVER=boolector` uses Boolector throughout. `VSC_DVSOLVE_BVSAT=0` and
   `VSC_DVSOLVE_BVSAT_SERVE_SAT=0`, which deferred to Boolector, are gone. See

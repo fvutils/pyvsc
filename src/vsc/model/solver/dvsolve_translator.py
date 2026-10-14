@@ -406,7 +406,8 @@ class DvSolveExprTranslator(ModelVisitor):
                 self._result = self._wide_const(v, w, signed or v < 0)
         self._last_simple = True
 
-    _MAX_WIDE_CONST = 65535     # dvs_builder_expr_const_wide's cap (V26 lifts it)
+    # dvs_builder_expr_const_wide's cap: the engine's DVS_MAX_WIDTH.
+    from vsc.model.solver.dvsolve_backend import _MAX_FIELD_WIDTH as _MAX_WIDE_CONST
 
     def _wide_const(self, v, w, signed=False):
         """A >64-bit constant ``v`` of width ``w``: one native wide-constant
@@ -415,10 +416,9 @@ class DvSolveExprTranslator(ModelVisitor):
         itself by value, so a 65535-bit constant came to 65536 bits and was
         refused.) A signed constant sign-extends into a wider context.
 
-        Widths are capped at 65535 bits until V26, so a signed literal
-        needing more (2**65534 is 65536 bits signed) defers on ``width``,
-        as a field over the cap does. Typing it unsigned to fit would change
-        what it means next to a signed operand."""
+        A constant past the engine's width ceiling is unsupported on
+        ``width``, as a field over it is. Typing a signed literal unsigned to
+        fit would change what it means next to a signed operand."""
         if w > self._MAX_WIDE_CONST:
             raise BackendIncomplete(
                 "dv-solve: a %d-bit constant exceeds %d bits"

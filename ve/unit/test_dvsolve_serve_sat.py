@@ -130,8 +130,11 @@ class TestDvSolveServeSatAuto(VscTestCase):
     @requires_boolector
     def test_gap_still_falls_back(self):
         # With the fallback enabled, a real gap (a field wider than dv-solve
-        # can encode) is served by Boolector, built on the first defer.
+        # can encode) is served by Boolector, built on the first defer. The
+        # cap is lowered so Boolector's solve stays small.
         rnd._FALLBACK = True
+        saved_cap, dvb._MAX_FIELD_WIDTH = dvb._MAX_FIELD_WIDTH, 300
+        self.addCleanup(setattr, dvb, "_MAX_FIELD_WIDTH", saved_cap)
 
         @vsc.randobj
         class Wide(object):

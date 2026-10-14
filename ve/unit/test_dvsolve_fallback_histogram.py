@@ -38,6 +38,7 @@ import vsc
 from vsc.impl import ctor
 from vsc.model.solver.backend import select_backend
 import vsc.model.randomizer as rnd
+import vsc.model.solver.dvsolve_backend as dvb
 from vsc_test_case import VscTestCase, requires_boolector
 
 
@@ -59,7 +60,7 @@ _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 # defer to the Boolector net. Keep this in sync with the §5 residual table in
 # doc/notes/dv_solve_phaseE_selfsufficiency_plan.md and solver_backends.rst.
 _RESIDUAL_ALLOWLIST = {
-    "width",        # field width > 65535 bits (uint16 add_var width); V26 lifts it
+    "width",        # field width > DVS_MAX_WIDTH (2^24 bits since V26)
     # `translator-unsupported` is gone: every translator site that no shape
     # reaches raises BackendInternalError instead (v2 plan V21). `dist` is
     # gone too: a dist on a >64-bit field is served since V15. So is `array`:
@@ -81,9 +82,9 @@ _RESIDUAL_ALLOWLIST = {
 # so this catalog, the allowlist, the §5 Phase-E residual table, and the F-2c plan
 # table cannot drift.
 _RESIDUAL_MANIFEST = {
-    "width":        ("closable",
-                     "field width > 65535 bits — C ABI uint16 add_var width; "
-                     "V26 widens it to uint32"),
+    "width":        ("permanent",
+                     "field width > DVS_MAX_WIDTH (2^24 bits), the engine's "
+                     "ceiling since V26 made widths 32-bit"),
 }
 
 
@@ -369,10 +370,11 @@ def _residual_corpus():
 
     @vsc.randobj
     class WidthOverMax(object):
-        # > 65535 bits: add_var width is a uint16 → residual ("width"). Up to
-        # 65535 bits is served by BV-SAT (test_dvsolve_width_guard).
+        # Past the engine's width ceiling (DVS_MAX_WIDTH, 2^24 bits) → residual
+        # ("width"). The test lowers the ceiling to 300 bits so the fallback's
+        # Boolector solve stays small (see setUp).
         def __init__(s):
-            s.a = vsc.rand_bit_t(65536)
+            s.a = vsc.rand_bit_t(dvb._MAX_FIELD_WIDTH + 1)
         @vsc.constraint
         def c(s):
             s.a > 1
@@ -393,9 +395,11 @@ class TestDvSolveFallbackHistogram(VscTestCase):
         # off by default since v2 plan V23).
         self._saved_fb = rnd._FALLBACK
         rnd._FALLBACK = True
+        self._saved_cap, dvb._MAX_FIELD_WIDTH = dvb._MAX_FIELD_WIDTH, 300
 
     def tearDown(self):
         rnd._FALLBACK = self._saved_fb
+        dvb._MAX_FIELD_WIDTH = self._saved_cap
         ctor.set_solver_backend(None)
         super().tearDown()
 

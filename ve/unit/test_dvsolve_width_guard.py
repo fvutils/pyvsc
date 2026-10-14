@@ -3,9 +3,11 @@
 
 The back-end used to defer any RandSet with a field over 255 bits
 (``reason_code="width"``), on the grounds that ``add_var`` carried width as a
-uint8. The API has carried uint16 widths since, and BV-SAT is width-agnostic,
-so the cap is now the encodable maximum (65535). Each test runs in strict mode
-(no fallback), so a deferral fails the test rather than reaching Boolector.
+uint8. The API carried uint16 widths, and BV-SAT is width-agnostic, so the cap
+became the encodable maximum (65535); since V26 widths are 32-bit and the cap
+is the engine's own ceiling, DVS_MAX_WIDTH (2^24 bits). Each test runs in
+strict mode (no fallback), so a deferral fails the test rather than reaching
+Boolector.
 
 Skipped when the dv-solve native library is unavailable.
 """
@@ -142,19 +144,20 @@ class TestDvSolveWidthGuard(VscTestCase):
         (v2 plan V17)."""
         self._run(65534, "lt", 2)
 
-    def test_constant_over_max_defers(self):
-        """2^65534 is a 65536-bit signed literal, over the 65535-bit cap:
-        the RandSet defers with the `width` reason until V26 raises it."""
-        obj = _mk(65535, "lt")
-        with _strict_no_fallback():
-            with self.assertRaises(Exception) as cm:
-                obj.randomize()
-        self.assertIn("width", str(cm.exception))
-        self.assertIn("constant", str(cm.exception))
+    def test_constant_past_16_bits_of_width(self):
+        """2^65534 is a 65536-bit signed literal: over the old uint16 width
+        cap it deferred on `width`; with 32-bit widths it is served (V26)."""
+        self._run(65535, "lt", 2)
+
+    def test_70000(self):
+        """Fields past 65535 bits: bit slices and a comparison (V26)."""
+        for shape in ("slice", "lt"):
+            with self.subTest(shape=shape):
+                self._run(70000, shape, 2)
 
     def test_over_max_still_defers(self):
-        """Above the encodable maximum the RandSet still defers with the
-        `width` reason (V26 raises the maximum to 2^32-1)."""
+        """Above the engine's ceiling (DVS_MAX_WIDTH, 2^24 bits) the RandSet
+        is unsupported, with the `width` reason."""
         @vsc.randobj
         class C(object):
             def __init__(self):

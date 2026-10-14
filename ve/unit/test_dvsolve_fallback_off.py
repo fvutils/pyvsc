@@ -5,7 +5,9 @@ reason, instead of being solved by Boolector. ``VSC_DVSOLVE_FALLBACK=boolector``
 (``randomizer._FALLBACK``) is the safety valve for 2.0; strict mode
 (``VSC_DVSOLVE_NO_FALLBACK``) beats it.
 
-The gap used is a field wider than dv-solve's 65535-bit limit (until V26).
+The gap used is a field wider than dv-solve's width ceiling. The ceiling is
+2^24 bits since V26; the tests lower it to 300 bits, so the valve's Boolector
+solve stays small, except test_engine_ceiling, which uses the real one.
 Skipped when the dv-solve native library is unavailable.
 """
 import os
@@ -46,11 +48,12 @@ class TestDvSolveFallbackOff(VscTestCase):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()   # T0 would serve `w > 5` without a solver
-        self._saved = (rnd._FALLBACK, rnd._NO_FALLBACK)
+        self._saved = (rnd._FALLBACK, rnd._NO_FALLBACK, dvb._MAX_FIELD_WIDTH)
         rnd._FALLBACK, rnd._NO_FALLBACK = False, False
+        dvb._MAX_FIELD_WIDTH = 300
 
     def tearDown(self):
-        rnd._FALLBACK, rnd._NO_FALLBACK = self._saved
+        rnd._FALLBACK, rnd._NO_FALLBACK, dvb._MAX_FIELD_WIDTH = self._saved
         ctor.set_solver_backend(None)
         super().tearDown()
 
@@ -60,11 +63,23 @@ class TestDvSolveFallbackOff(VscTestCase):
         e = cm.exception
         self.assertEqual(e.reason_code, "width")
         self.assertIn("reason: width", str(e))
-        self.assertIn("65536", str(e))
+        self.assertIn("width 301 exceeds 300 bits", str(e))
         self.assertIn("VSC_DVSOLVE_FALLBACK=boolector", str(e))
         # Code that caught the old error still catches it.
         self.assertIsInstance(e, BackendIncomplete)
         self.assertIs(vsc.SolverUnsupported, SolverUnsupported)
+
+    def test_engine_ceiling(self):
+        """The real ceiling is the engine's DVS_MAX_WIDTH (2^24 bits), read
+        from the library, and one bit past it raises before anything is
+        built."""
+        dvb._MAX_FIELD_WIDTH = self._saved[2]
+        self.assertEqual(dvb._MAX_FIELD_WIDTH, dvb._engine_max_width())
+        self.assertEqual(dvb._MAX_FIELD_WIDTH, 1 << 24)
+        with self.assertRaises(SolverUnsupported) as cm:
+            _wide().randomize()
+        self.assertIn("width %d exceeds %d bits" % ((1 << 24) + 1, 1 << 24),
+                      str(cm.exception))
 
     def test_default_never_builds_boolector(self):
         calls = []
