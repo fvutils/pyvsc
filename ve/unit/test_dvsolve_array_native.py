@@ -345,20 +345,15 @@ class TestDvSolveArrayNative(VscTestCase):
                     s.l[i] < 6
                 vsc.unique(s.l)
 
-        saved = dvb._BVSAT_SERVE_SAT_MODE
-        dvb._BVSAT_SERVE_SAT_MODE = "on"
-        try:
-            with _no_fallback():
-                c = C()
-                for _ in range(40):
-                    c.randomize()
-                    v = [int(x) for x in c.l]
-                    self.assertEqual(len(v), 4, "active size != 4: %s" % v)
-                    self.assertEqual(len(set(v)), len(v),
-                                     "active prefix not unique: %s" % v)
-                    self.assertTrue(all(x < 6 for x in v), "out of range: %s" % v)
-        finally:
-            dvb._BVSAT_SERVE_SAT_MODE = saved
+        with _no_fallback():
+            c = C()
+            for _ in range(40):
+                c.randomize()
+                v = [int(x) for x in c.l]
+                self.assertEqual(len(v), 4, "active size != 4: %s" % v)
+                self.assertEqual(len(set(v)), len(v),
+                                 "active prefix not unique: %s" % v)
+                self.assertTrue(all(x < 6 for x in v), "out of range: %s" % v)
 
 
     # ------------------------------------------------------------------ #

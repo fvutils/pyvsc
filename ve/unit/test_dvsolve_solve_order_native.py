@@ -8,7 +8,7 @@ sample_ordered`): per order stage, pin a random domain value and assert it (the
 Boolector swizzler's assume→assert), so dv-solve serves the values itself and
 honors the ordering's distribution.
 
-These tests lock both halves with serve-SAT forced on in-process:
+These tests lock both halves:
   * **native serve** — the order-bearing RandSet defers *nothing*
     (no `bvsat-sat-deferred` in the tally);
   * **order semantics** — the canonical `c==0 -> a==0` shape with `a` solved
@@ -40,14 +40,8 @@ class TestDvSolveSolveOrderNative(VscTestCase):
     def setUp(self):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
-        # Force serve-SAT on (default is `auto`, which defers while a Boolector
-        # fallback is present): the path under test only serves SAT models when
-        # serve-SAT is enabled.
-        self._saved_serve = dvb._BVSAT_SERVE_SAT_MODE
-        dvb._BVSAT_SERVE_SAT_MODE = "on"
 
     def tearDown(self):
-        dvb._BVSAT_SERVE_SAT_MODE = self._saved_serve
         ctor.set_solver_backend(None)
         super().tearDown()
 

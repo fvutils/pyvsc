@@ -19,7 +19,6 @@ import vsc
 _STRICT = {
     "VSC_SOLVER": "dvsolve",
     "VSC_DVSOLVE_NO_FALLBACK": "1",
-    "VSC_DVSOLVE_BVSAT_SERVE_SAT": "on",
 }
 
 

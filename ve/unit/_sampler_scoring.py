@@ -3,7 +3,7 @@ cases that route to dv-solve's BV-SAT SAT-serving path.
 
 Not a pytest test — a manual measurement harness (plan §2.5). Run:
 
-    VSC_DVSOLVE_BVSAT_SERVE_SAT=1 python _sampler_scoring.py
+    python _sampler_scoring.py
 """
 import random
 import sys

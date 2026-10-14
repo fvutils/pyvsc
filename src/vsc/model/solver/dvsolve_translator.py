@@ -636,8 +636,8 @@ class DvSolveExprTranslator(ModelVisitor):
         # each scalar, `(x < lo) || (x > hi)` for each range. The bounds engine
         # decides that conjunctive form natively (each `x != v` simply punches a
         # hole in x's domain), whereas the literal `NOT(OR(x == v ...))` this would
-        # otherwise lower to stalls its disjunction propagation and defers to
-        # BV-SAT (`bvsat-sat-deferred`). The rewrite is semantics-preserving
+        # otherwise lower to stalls its disjunction propagation and goes to
+        # BV-SAT. The rewrite is semantics-preserving
         # (verified against Boolector by XCHECK) and lives here, in the dv-solve
         # translator, on purpose: it re-expresses the constraint using primitives
         # the dv-solve engine already has, and leaves Boolector's own encoding

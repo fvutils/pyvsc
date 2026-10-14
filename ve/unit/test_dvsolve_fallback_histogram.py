@@ -50,11 +50,8 @@ def _dvsolve_available():
 
 # Reason codes that signal a *bug*, not a feature gap: dv-solve accepted a
 # problem it could neither solve nor authoritatively decide. These must be zero
-# on the corpus (both the served and ":hard" re-raised variants). Note
-# `bvsat-undecided` here means a *genuine* BV-SAT UNKNOWN/ERROR — the case where
-# BV-SAT proves SAT but defers for distribution/solve_order is the separate,
-# expected `bvsat-sat-deferred` residual (F-E1), not a correctness signal.
-# Neither is raised as a defer any more (each is a BackendInternalError, v2
+# on the corpus (both the served and ":hard" re-raised variants).
+# `bvsat-undecided` means a BV-SAT UNKNOWN/ERROR. Neither is raised as a defer any more (each is a BackendInternalError, v2
 # plan V21/V22); the check stays as a guard against one coming back.
 _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 
@@ -63,13 +60,12 @@ _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 # doc/notes/dv_solve_phaseE_selfsufficiency_plan.md and solver_backends.rst.
 _RESIDUAL_ALLOWLIST = {
     "width",        # field width > 65535 bits (uint16 add_var width); V26 lifts it
-    "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
-                    # to the fallback for distribution / solve_order. Expected,
-                    # correct two-engine operation — NOT a completeness gap (F-E1).
     # `translator-unsupported` is gone: every translator site that no shape
     # reaches raises BackendInternalError instead (v2 plan V21). `dist` is
     # gone too: a dist on a >64-bit field is served since V15. So is `array`:
-    # an object-array variable index is served since V10.
+    # an object-array variable index is served since V10. And
+    # `bvsat-sat-deferred` / `bvsat-disabled`: BV-SAT always serves what it
+    # proves SAT since the serve-SAT and BV-SAT opt-outs went (V24).
 }
 
 # F-2c — the residual manifest: for each allowlisted reason code, the *product
@@ -88,10 +84,6 @@ _RESIDUAL_MANIFEST = {
     "width":        ("closable",
                      "field width > 65535 bits — C ABI uint16 add_var width; "
                      "V26 widens it to uint32"),
-    "bvsat-sat-deferred": ("closable",
-                     "SAT-proved but not served (serve-SAT off, or no "
-                     "sampler). The upper-half constant bound is native since "
-                     "V17; a >64-bit ordered field is served since V18"),
 }
 
 
@@ -397,22 +389,12 @@ class TestDvSolveFallbackHistogram(VscTestCase):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()   # the histogram counts back-end deferrals
-        # The documented residual taxonomy includes `bvsat-sat-deferred`, which
-        # only occurs with serve-SAT off (the opt-out; F-3a made "on" the
-        # default). Pin it off so the dashboard covers every defer shape: with
-        # serve-SAT on, a `bvsat-sat-deferred` shape (e.g. `bitand_eq`) is
-        # *served* by the sampler instead of deferring.
-        import vsc.model.solver.dvsolve_backend as _dvb
-        self._saved_serve = _dvb._BVSAT_SERVE_SAT_MODE
-        _dvb._BVSAT_SERVE_SAT_MODE = "off"
         # The dashboard counts defers the fallback serves: enable it (it is
         # off by default since v2 plan V23).
         self._saved_fb = rnd._FALLBACK
         rnd._FALLBACK = True
 
     def tearDown(self):
-        import vsc.model.solver.dvsolve_backend as _dvb
-        _dvb._BVSAT_SERVE_SAT_MODE = self._saved_serve
         rnd._FALLBACK = self._saved_fb
         ctor.set_solver_backend(None)
         super().tearDown()
@@ -488,10 +470,8 @@ class TestDvSolveFallbackHistogram(VscTestCase):
                 s.a <= 100
                 vsc.soft(s.a == 5)
 
-        # Isolate the global fallback tally: this shape defers to the net (serve-SAT
-        # is off while a fallback is present — the expected two-engine behavior), so
-        # without snapshot/restore its `bvsat-sat-deferred` events would leak into
-        # the suite-wide self-sufficiency audit and read as a real serving residual.
+        # Isolate the global fallback tally, so a defer here would not leak into
+        # the suite-wide self-sufficiency audit.
         with _tally():
             obj = DynSoft()
             for _ in range(4):

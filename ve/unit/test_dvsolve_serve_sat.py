@@ -1,16 +1,12 @@
-"""Phase F / F-3a — dv-solve serves the problems it proves SAT.
+"""Phase F / F-3a: dv-solve serves the problems it proves SAT.
 
-`VSC_DVSOLVE_BVSAT_SERVE_SAT` defaults to ``"1"``: a RandSet the primary search
-cannot decide, but BV-SAT proves SAT, is served by dv-solve (uniform sampler)
-even when Boolector is installed. Boolector runs only where dv-solve has a gap
-(a reason code such as ``width``) and the fallback is enabled
+A RandSet the primary search cannot decide, but BV-SAT proves SAT, is served
+by dv-solve (uniform sampler), with or without Boolector installed. The
+`VSC_DVSOLVE_BVSAT_SERVE_SAT=0` opt-out, which deferred it to Boolector, is
+gone (v2 plan V24). Boolector runs only where dv-solve has a gap (a reason
+code such as ``width``) and the fallback is enabled
 (``VSC_DVSOLVE_FALLBACK=boolector``), and the Randomizer builds it only on the
 first such defer, so a randomize dv-solve serves never imports pyboolector.
-
-  * ``"1"``    — (default) serve SAT from BV-SAT;
-  * ``"0"``    — never; defer SAT to the external fallback (the A/B opt-out);
-  * ``"auto"`` — the F-1a default, which deferred whenever Boolector was
-                 installed; now the same as ``"1"``.
 
 Skipped when the dv-solve native library is unavailable.
 """
@@ -34,9 +30,8 @@ def _dvsolve_available():
 
 @vsc.randobj
 class _SatDeferShape(object):
-    # A shape the CDCL compile leaves out, so BV-SAT *proves it SAT*: exactly
-    # the `bvsat-sat-deferred` (serve / defer) decision point, and
-    # deterministic. A uint32 compared with non-rand uint8 fields elaborates
+    # A shape the CDCL compile leaves out, so BV-SAT *proves it SAT* and
+    # serves it, deterministically. A uint32 compared with non-rand uint8 fields elaborates
     # to `t != <SV cast>`, which the CDCL engine does not compile (today; when
     # it does, pick another uncompiled shape: run with DV_LOG=<file> and look
     # for `cdcl-uncompiled`). It was `x > 2**63` on a u64 until v2 plan V17
@@ -60,44 +55,19 @@ class TestDvSolveServeSatAuto(VscTestCase):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()   # these tests observe back-end dispatch
-        self._saved_mode = dvb._BVSAT_SERVE_SAT_MODE
-        self._saved_fb = rnd._FALLBACK
+        self._saved = (rnd._FALLBACK, rnd._NO_FALLBACK, dvb._BVSAT_SAMPLER)
 
     def tearDown(self):
-        dvb._BVSAT_SERVE_SAT_MODE = self._saved_mode
-        rnd._FALLBACK = self._saved_fb
+        rnd._FALLBACK, rnd._NO_FALLBACK, dvb._BVSAT_SAMPLER = self._saved
         ctor.set_solver_backend(None)
         super().tearDown()
 
     # ------------------------------------------------------------------ #
-    # The mode                                                             #
-    # ------------------------------------------------------------------ #
-    def test_mode_parsing(self):
-        import os
-        saved = os.environ.pop("VSC_DVSOLVE_BVSAT_SERVE_SAT", None)
-        try:
-            self.assertEqual(dvb._serve_sat_mode(), "on", "default")
-            for raw, expected in (("1", "on"), ("0", "off"), ("auto", "on"),
-                                  ("AUTO", "on")):
-                os.environ["VSC_DVSOLVE_BVSAT_SERVE_SAT"] = raw
-                self.assertEqual(dvb._serve_sat_mode(), expected, raw)
-        finally:
-            os.environ.pop("VSC_DVSOLVE_BVSAT_SERVE_SAT", None)
-            if saved is not None:
-                os.environ["VSC_DVSOLVE_BVSAT_SERVE_SAT"] = saved
-
-    def test_serve_sat_enabled(self):
-        be = DvSolveBackend()
-        for mode, expected in (("on", True), ("off", False)):
-            dvb._BVSAT_SERVE_SAT_MODE = mode
-            self.assertEqual(be._serve_sat_enabled(), expected, mode)
-
-    # ------------------------------------------------------------------ #
-    # End-to-end: the SAT-deferring shape, per mode                        #
+    # End-to-end                                                           #
     # ------------------------------------------------------------------ #
     def _deferred_codes(self, n=8):
-        """Run the SAT-deferring shape `n` times and return the set
-        of `bvsat-sat-deferred` tally keys it produced."""
+        """Run the BV-SAT shape `n` times and return the reason codes of any
+        defers it produced."""
         snap = rnd.snapshot_fallback_tally()
         rnd.set_fallback_tally(True)
         rnd.reset_fallback_tally()
@@ -108,32 +78,40 @@ class TestDvSolveServeSatAuto(VscTestCase):
             hist = rnd.get_fallback_tally()
         finally:
             rnd.restore_fallback_tally(snap)
-        return {k for k in hist if k.split(":")[0] == "bvsat-sat-deferred"}
+        return {k.split(":")[0] for k in hist}
 
-    def test_default_serves_natively(self):
-        # With Boolector installed or not, the default serves the SAT shape in
-        # dv-solve: nothing is deferred.
-        import os
-        saved = os.environ.pop("VSC_DVSOLVE_BVSAT_SERVE_SAT", None)
-        try:
-            dvb._BVSAT_SERVE_SAT_MODE = dvb._serve_sat_mode()
-        finally:
-            if saved is not None:
-                os.environ["VSC_DVSOLVE_BVSAT_SERVE_SAT"] = saved
-        self.assertEqual(self._deferred_codes(), set(),
-                         "the default should serve SAT natively")
+    def test_serves_natively(self):
+        # With Boolector installed or not, the SAT shape is served in dv-solve:
+        # nothing is deferred.
+        self.assertEqual(self._deferred_codes(), set())
 
-    @requires_boolector
-    def test_explicit_off_defers(self):
-        dvb._BVSAT_SERVE_SAT_MODE = "off"
-        rnd._FALLBACK = True
-        self.assertNotEqual(self._deferred_codes(), set(),
-                            "off should always defer SAT to the fallback")
+    def test_ordered_without_sampler_still_served(self):
+        # An ordered RandSet the staged sampler does not take (here: sampler
+        # off) is served without the ordering, which shapes the distribution
+        # only. It deferred (`bvsat-sat-deferred`) before V24.
+        rnd._NO_FALLBACK = True
+        dvb._BVSAT_SAMPLER = False
+
+        @vsc.randobj
+        class Ordered(_SatDeferShape):
+            def __init__(s):
+                super().__init__()
+                s.u = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def oc(s):
+                vsc.solve_order(s.t, s.u)
+                s.u < s.t
+
+        obj = Ordered()
+        for _ in range(8):
+            obj.randomize()
+            self.assertTrue(obj.t < 20 and obj.t not in (3, 9)
+                            and obj.u < obj.t, (obj.t, obj.u))
 
     def test_served_randomize_builds_no_fallback(self):
         # F-3c: a randomize dv-solve serves never resolves the Boolector
         # back-end, so pyboolector is not imported for it.
-        dvb._BVSAT_SERVE_SAT_MODE = "on"
         calls = []
         orig = rnd.select_backend
 
@@ -185,7 +163,6 @@ class TestDvSolveServeSatAuto(VscTestCase):
         # F-3a, the default deferred this shape to Boolector) -- and
         # VSC_DVSOLVE_VALIDATE could not, since it checks the model against the
         # same mistranslated formula.
-        dvb._BVSAT_SERVE_SAT_MODE = "on"
 
         @vsc.randobj
         class Sum(object):

@@ -71,12 +71,8 @@ class TestDvSolveSignedPin(VscTestCase):
     def setUp(self):
         super().setUp()
         ctor.set_solver_backend("dv-solve")
-        # The ordered sampler only serves SAT models with serve-SAT on.
-        self._saved_serve = dvb._BVSAT_SERVE_SAT_MODE
-        dvb._BVSAT_SERVE_SAT_MODE = "on"
 
     def tearDown(self):
-        dvb._BVSAT_SERVE_SAT_MODE = self._saved_serve
         ctor.set_solver_backend(None)
         super().tearDown()
 

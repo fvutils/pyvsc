@@ -9,9 +9,9 @@ It is **completely inert** unless that env var is set — normal test runs see n
 behavior change. Pair it with the audit env to enumerate dv-solve's serving
 dependencies:
 
-    # what still defers even with serve-SAT on (the F-2 work list / F-3 blockers):
+    # what still defers (the fallback enabled, so the run completes):
     PYTHONPATH=src VSC_SOLVER=dv-solve \
-      VSC_DVSOLVE_BVSAT_SERVE_SAT=1 VSC_DVSOLVE_FALLBACK_TALLY=1 \
+      VSC_DVSOLVE_FALLBACK=boolector VSC_DVSOLVE_FALLBACK_TALLY=1 \
       python -m pytest --no-cov -q ve/unit
 
 The tally is process-global, so a test that measures its own corpus must restore

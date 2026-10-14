@@ -130,45 +130,21 @@ _REUSE_ENABLED = os.environ.get("VSC_DVSOLVE_REUSE", "1") != "0"
 # so above this cap the per-RandSet path (linear) is used instead.
 _MERGE_MAX_VARS = int(os.environ.get("VSC_DVSOLVE_MERGE_MAX_VARS", "256"))
 
-# Use dv-solve's internal BV-SAT completeness engine (zsp_bbsolver, via BVSatCtx)
-# as the fallback when the primary bounds-propagation engine can't give an
-# authoritative answer (compile-time UNSAT, compile-incomplete, or a search that
-# returned no solution). The BV-SAT engine is complete, so it is authoritative
-# for both SAT and UNSAT — this is what lets dv-solve stop deferring those cases
-# to the external Boolector back-end (Phase A). Set VSC_DVSOLVE_BVSAT=0 to revert
-# to the old behavior (defer to Boolector), e.g. to isolate a suspected encoding
-# issue. On BVSAT_UNKNOWN/ERROR (an A-4 soundness guard tripped, or a timeout) we
-# still defer to the external fallback rather than guess.
-_BVSAT_ENABLED = os.environ.get("VSC_DVSOLVE_BVSAT", "1") != "0"
-
-# Whether the BV-SAT engine also *serves* satisfiable problems (writes their
-# solved values) — via the uniform sampler (see _BVSAT_SAMPLER) — or only decides
-# SAT-vs-UNSAT and defers SAT to the external fallback (VSC_DVSOLVE_BVSAT_SERVE_SAT):
-#   "1"    — (default) serve SAT from BV-SAT. The external fallback (Boolector)
-#            then runs only where dv-solve has a gap, never for a problem
-#            dv-solve has already proved SAT (F-3a).
-#   "0"    — never serve from BV-SAT; defer SAT to the external fallback (the
-#            original Phase-A posture, kept as the A/B opt-out).
-#   "auto" — accepted for compatibility with the F-1a tri-state; same as "1".
-#            (F-1a's "auto" deferred whenever Boolector was installed.)
-# Raw kissat models are too clustered for stimulus (e.g. a uint64 `inside [0..19]`
-# left bins 13-15 unhit over 400 draws), which is why serving routes through the
-# uniform sampler rather than the raw readback. `force_serve` paths (>64-bit,
-# implies-aux) serve regardless of this mode — the primary is not an option there.
-def _serve_sat_mode():
-    raw = os.environ.get("VSC_DVSOLVE_BVSAT_SERVE_SAT", "1").lower()
-    if raw == "0":
-        return "off"
-    return "on"
-
-
-_BVSAT_SERVE_SAT_MODE = _serve_sat_mode()
+# When the primary bounds-propagation engine can't give an authoritative answer
+# (compile-time UNSAT, compile-incomplete, or a search that returned no
+# solution), dv-solve's internal BV-SAT completeness engine (zsp_bbsolver, via
+# BVSatCtx) decides the RandSet and serves it: complete, so authoritative for
+# both SAT and UNSAT. Raw kissat models are too clustered for stimulus (e.g. a
+# uint64 `inside [0..19]` left bins 13-15 unhit over 400 draws), so a SAT model
+# is drawn through the uniform sampler rather than read back. Its old opt-outs,
+# VSC_DVSOLVE_BVSAT=0 and VSC_DVSOLVE_BVSAT_SERVE_SAT=0, deferred to Boolector
+# and went with the fallback (v2 plan V24).
 
 # When BV-SAT serves SAT, route the model through the XOR/parity-hashing uniform
 # sampler (bvsat_sampler) instead of reading back kissat's clustered model. This
-# is what makes serve-SAT usable for stimulus (see bvsat_sampler.py). On by
-# default whenever serve-SAT is on; set VSC_DVSOLVE_BVSAT_SAMPLER=0 to A/B against
-# the raw clustered readback.
+# is what makes BV-SAT's models usable for stimulus (see bvsat_sampler.py). On
+# by default; set VSC_DVSOLVE_BVSAT_SAMPLER=0 to A/B against the raw clustered
+# readback.
 _BVSAT_SAMPLER = os.environ.get("VSC_DVSOLVE_BVSAT_SAMPLER", "1") != "0"
 
 # Attribute under which a RandSet's compiled plan is cached on its anchor field.
@@ -716,12 +692,6 @@ class DvSolveBackend(SolverBackendIF):
     # See doc/notes/dv_solve_native_full_problem_plan.md (Stage 1 / Option A).
     derives_bounds = os.environ.get("VSC_DVSOLVE_DECLARED_ONLY", "1") != "0"
 
-    def _serve_sat_enabled(self) -> bool:
-        """Whether BV-SAT serves a problem it proved SAT (mode ``"on"``) or
-        defers it to the external fallback (``"off"``). Read at solve time so a
-        mid-run mode change (tests) applies."""
-        return _BVSAT_SERVE_SAT_MODE == "on"
-
     @classmethod
     def available(cls) -> bool:
         try:
@@ -1027,9 +997,8 @@ class DvSolveBackend(SolverBackendIF):
             readback = [(f, idmap.id_of(f)) for f in rand_fields]
             n_softs = len(rs.soft_constraints())
 
-            # A RandSet the primary engine cannot solve soundly must be served by
-            # the complete BV-SAT engine, forced (regardless of the serve-SAT
-            # default) since the primary is not an option:
+            # A RandSet the primary engine cannot solve soundly goes straight
+            # to the complete BV-SAT engine:
             #  - a >64-bit field has no 64-bit primary path at all (Phase D);
             #  - an aux-lifted logical-combination implication guard makes the
             #    primary's disjunction propagation unsound (F-E3), but the emitted
@@ -1039,7 +1008,7 @@ class DvSolveBackend(SolverBackendIF):
                 return self._solve_via_bvsat(
                     buf, readback, randstate, solve_info,
                     make_base=make_base, sample_vars=sample_vars,
-                    has_order=has_order, force_serve=True,
+                    has_order=has_order,
                     rand_order_l=rand_order_l, dist_targets=tr.dist_targets,
                     cond_dist_targets=tr.cond_dist_targets,
                     dist_guard_vids=tr.dist_guard_vids, n_softs=n_softs)
@@ -1353,27 +1322,19 @@ class DvSolveBackend(SolverBackendIF):
 
     def _solve_via_bvsat(self, problem_buf, readback, randstate,
                          solve_info, make_base=None, sample_vars=None,
-                         has_order=False, force_serve=False,
+                         has_order=False,
                          rand_order_l=None, dist_targets=None,
                          cond_dist_targets=None, dist_guard_vids=None,
                          n_softs=0) -> SolveResult:
         """Solve ``problem_buf`` with the internal BV-SAT completeness engine and
         write values back. Authoritative: SAT -> set values & return; UNSAT ->
         ``SolveFailure``; UNKNOWN/ERROR -> ``BackendInternalError`` (the
-        translator emits nothing BV-SAT can't decide). Honors
-        ``VSC_DVSOLVE_BVSAT=0``.
+        translator emits nothing BV-SAT can't decide).
 
-        When serving SAT (``_serve_sat_enabled()`` — i.e. mode ``1``, the
-        default — or ``force_serve``) and a ``make_base``
-        factory is available, the model is drawn through the
-        XOR-hashing uniform sampler (``bvsat_sampler``) so the value distribution
-        is usable as stimulus; otherwise the raw (clustered) kissat model is read
-        back. ``force_serve`` is set for >64-bit RandSets, which have no other
-        engine to serve them."""
-        if not _BVSAT_ENABLED:
-            raise BackendIncomplete(
-                "dv-solve primary could not decide; BV-SAT disabled, deferring",
-                reason_code="bvsat-disabled")
+        When a ``make_base`` factory is available, a SAT model is drawn
+        through the XOR-hashing uniform sampler (``bvsat_sampler``) so the
+        value distribution is usable as stimulus; otherwise the raw
+        (clustered) kissat model is read back."""
         from dv_solve.bvsat import (
             BVSatCtx, BVSAT_SAT, BVSAT_UNSAT, maxsat_keepset)
         seed = randstate.randint(0, (1 << 63) - 1)
@@ -1407,7 +1368,7 @@ class DvSolveBackend(SolverBackendIF):
                 raise SolveFailure(
                     "dv-solve BV-SAT engine proved unsatisfiable",
                     "dv-solve BV-SAT engine proved the constraints unsatisfiable")
-            if rc == BVSAT_SAT and (self._serve_sat_enabled() or force_serve):
+            if rc == BVSAT_SAT:
                 # Prefer the uniform sampler: kissat's raw model is too clustered
                 # for stimulus. The base SAT verdict above guarantees the sampler
                 # converges (m==0 is this same satisfiable problem).
@@ -1425,60 +1386,47 @@ class DvSolveBackend(SolverBackendIF):
                             solve_info=solve_info, soft_keep=soft_keep)
                         if ok:
                             return SolveResult(status=0)
-                    # Not natively serveable in order → defer (raise below).
-                else:
-                    if _BVSAT_SAMPLER and make_base is not None and sample_vars:
-                        # A dist-bearing RandSet force-served via BV-SAT (the
-                        # primary's add_dist is ignored here): honor the dist
-                        # weighting via a weighted assume-then-assert pre-stage
-                        # (EF-1b), then uniform-sample the rest. Otherwise the
-                        # plain uniform sampler.
-                        if cond_dist_targets:
-                            # Rand-guarded conditional dist: freeze the guard vars
-                            # first, then apply the *active* branch's weighting so
-                            # the ratio is guard-correlated (not the uniform mean).
-                            ok = bvsat_sampler.sample_dist_conditional(
-                                make_base, readback, sample_vars, seed,
-                                cond_dist_targets, dist_guard_vids or set(),
-                                solve_info=solve_info, soft_keep=soft_keep)
-                        elif dist_targets:
-                            ok = bvsat_sampler.sample_dist(
-                                make_base, readback, sample_vars, seed,
-                                dist_targets, solve_info=solve_info,
-                                soft_keep=soft_keep)
-                        else:
-                            ok = bvsat_sampler.sample(
-                                make_base, readback, sample_vars, seed,
-                                solve_info=solve_info, soft_keep=soft_keep)
-                        if ok:
-                            return SolveResult(status=0)
-                        # Sampler couldn't serve (shouldn't happen): fall through
-                        # to the raw readback so we still return a valid model.
-                    for f, vid in readback:
-                        f.set_val(self._bb_value(bb, vid, sample_vars))
-                    return SolveResult(status=0)
-            # Two distinct outcomes share this exit:
-            #
-            #  * rc == BVSAT_SAT: the problem IS satisfiable (BV-SAT proved it),
-            #    but we are not serving it here — serve-SAT is off and BV-SAT's
-            #    model is too clustered for stimulus, or (with no sampler) the
-            #    RandSet is order-bearing. Defer to the distribution-preserving
-            #    fallback to pick the values.
-            #    This is EXPECTED, correct operation of the two-engine
-            #    architecture, not a completeness gap — tag `bvsat-sat-deferred`.
-            #  * rc == UNKNOWN/ERROR: the complete engine could not decide. Its
-            #    causes are a signed `>>` operand, nesting deeper than 4096, a
-            #    sum or constant wider than 65535 bits, a clog2 operand wider
-            #    than 64 bits, a select over undefined vars, a Source group, an
-            #    env conflict cap (DV_BB_MAX_CONFLICTS) and out-of-memory. The
-            #    translator emits none of them (pyvsc's own recursion limit
-            #    stops a deep expression first), so this is a bug, not a
-            #    fallback (v2 plan V22).
-            if rc == BVSAT_SAT:
-                raise BackendIncomplete(
-                    "dv-solve BV-SAT proved SAT but is not serving it "
-                    "(distribution / solve_order); deferring to fallback",
-                    reason_code="bvsat-sat-deferred")
+                    # Not staged (no sampler, or it gave up, which should
+                    # not happen): serve it unordered below. solve_order
+                    # shapes the distribution only; the constraints hold.
+                if _BVSAT_SAMPLER and make_base is not None and sample_vars:
+                    # A dist-bearing RandSet served via BV-SAT (the
+                    # primary's add_dist is ignored here): honor the dist
+                    # weighting via a weighted assume-then-assert pre-stage
+                    # (EF-1b), then uniform-sample the rest. Otherwise the
+                    # plain uniform sampler.
+                    if cond_dist_targets:
+                        # Rand-guarded conditional dist: freeze the guard vars
+                        # first, then apply the *active* branch's weighting so
+                        # the ratio is guard-correlated (not the uniform mean).
+                        ok = bvsat_sampler.sample_dist_conditional(
+                            make_base, readback, sample_vars, seed,
+                            cond_dist_targets, dist_guard_vids or set(),
+                            solve_info=solve_info, soft_keep=soft_keep)
+                    elif dist_targets:
+                        ok = bvsat_sampler.sample_dist(
+                            make_base, readback, sample_vars, seed,
+                            dist_targets, solve_info=solve_info,
+                            soft_keep=soft_keep)
+                    else:
+                        ok = bvsat_sampler.sample(
+                            make_base, readback, sample_vars, seed,
+                            solve_info=solve_info, soft_keep=soft_keep)
+                    if ok:
+                        return SolveResult(status=0)
+                    # Sampler couldn't serve (shouldn't happen): fall through
+                    # to the raw readback so we still return a valid model.
+                for f, vid in readback:
+                    f.set_val(self._bb_value(bb, vid, sample_vars))
+                return SolveResult(status=0)
+            # UNKNOWN/ERROR: the complete engine could not decide. Its causes
+            # are a signed `>>` operand, nesting deeper than 4096, a sum or
+            # constant wider than 65535 bits, a clog2 operand wider than 64
+            # bits, a select over undefined vars, a Source group, an env
+            # conflict cap (DV_BB_MAX_CONFLICTS) and out-of-memory. The
+            # translator emits none of them (pyvsc's own recursion limit stops
+            # a deep expression first), so this is a bug, not a fallback (v2
+            # plan V22).
             raise BackendInternalError(
                 "BV-SAT could not decide a RandSet (verdict %d)" % rc)
         finally:
