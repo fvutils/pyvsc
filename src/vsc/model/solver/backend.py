@@ -29,9 +29,10 @@ class BackendIncomplete(Exception):
 
     This is an internal control-flow signal: it means the back-end cannot
     (yet) handle some construct in the RandSet, but the problem is not known
-    to be UNSAT. The Randomizer responds by retrying the same RandSet on the
-    next available back-end (Phase 2). A bare/abstract back-end raises this
-    rather than producing a wrong answer.
+    to be UNSAT. When the fallback is enabled (``VSC_DVSOLVE_FALLBACK``) the
+    Randomizer retries the same RandSet on Boolector; otherwise it raises
+    ``SolverUnsupported``. A bare/abstract back-end raises this rather than
+    producing a wrong answer.
 
     ``reason_code`` is a coarse category (e.g. ``"width"``,
     ``"bvsat-sat-deferred"``) used by the
@@ -43,6 +44,15 @@ class BackendIncomplete(Exception):
     def __init__(self, *args, reason_code="incomplete"):
         super().__init__(*args)
         self.reason_code = reason_code
+
+
+class SolverUnsupported(BackendIncomplete):
+    """No back-end in use can solve a RandSet: the solver lacks a construct in
+    it, and no fallback is enabled (v2 plan V23). The message names the
+    construct and ``reason_code``, and how to get it solved for now.
+
+    A subclass of ``BackendIncomplete`` so code that caught the old "no
+    back-end could handle this RandSet" error keeps working."""
 
 
 class BackendInternalError(Exception):

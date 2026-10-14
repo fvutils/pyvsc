@@ -405,10 +405,15 @@ class TestDvSolveFallbackHistogram(VscTestCase):
         import vsc.model.solver.dvsolve_backend as _dvb
         self._saved_serve = _dvb._BVSAT_SERVE_SAT_MODE
         _dvb._BVSAT_SERVE_SAT_MODE = "off"
+        # The dashboard counts defers the fallback serves: enable it (it is
+        # off by default since v2 plan V23).
+        self._saved_fb = rnd._FALLBACK
+        rnd._FALLBACK = True
 
     def tearDown(self):
         import vsc.model.solver.dvsolve_backend as _dvb
         _dvb._BVSAT_SERVE_SAT_MODE = self._saved_serve
+        rnd._FALLBACK = self._saved_fb
         ctor.set_solver_backend(None)
         super().tearDown()
 

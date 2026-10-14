@@ -40,6 +40,7 @@ from vsc.rand_obj import *
 from vsc.types import *
 from vsc.visitors.coverage_save_visitor import CoverageSaveVisitor
 from vsc import profile
+from vsc.model.solver.backend import SolverUnsupported
 from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug
 
 from vsc import util

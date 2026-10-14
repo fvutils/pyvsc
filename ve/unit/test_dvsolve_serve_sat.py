@@ -3,7 +3,8 @@
 `VSC_DVSOLVE_BVSAT_SERVE_SAT` defaults to ``"1"``: a RandSet the primary search
 cannot decide, but BV-SAT proves SAT, is served by dv-solve (uniform sampler)
 even when Boolector is installed. Boolector runs only where dv-solve has a gap
-(a reason code such as ``width``), and the Randomizer builds it only on the
+(a reason code such as ``width``) and the fallback is enabled
+(``VSC_DVSOLVE_FALLBACK=boolector``), and the Randomizer builds it only on the
 first such defer, so a randomize dv-solve serves never imports pyboolector.
 
   * ``"1"``    — (default) serve SAT from BV-SAT;
@@ -60,9 +61,11 @@ class TestDvSolveServeSatAuto(VscTestCase):
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()   # these tests observe back-end dispatch
         self._saved_mode = dvb._BVSAT_SERVE_SAT_MODE
+        self._saved_fb = rnd._FALLBACK
 
     def tearDown(self):
         dvb._BVSAT_SERVE_SAT_MODE = self._saved_mode
+        rnd._FALLBACK = self._saved_fb
         ctor.set_solver_backend(None)
         super().tearDown()
 
@@ -123,6 +126,7 @@ class TestDvSolveServeSatAuto(VscTestCase):
     @requires_boolector
     def test_explicit_off_defers(self):
         dvb._BVSAT_SERVE_SAT_MODE = "off"
+        rnd._FALLBACK = True
         self.assertNotEqual(self._deferred_codes(), set(),
                             "off should always defer SAT to the fallback")
 
@@ -147,9 +151,9 @@ class TestDvSolveServeSatAuto(VscTestCase):
 
     @requires_boolector
     def test_gap_still_falls_back(self):
-        # A real gap (a field wider than dv-solve can encode) is still
-        # served by Boolector, built on the first defer.
-        import vsc.model.solver.dvsolve_backend as dvb
+        # With the fallback enabled, a real gap (a field wider than dv-solve
+        # can encode) is served by Boolector, built on the first defer.
+        rnd._FALLBACK = True
 
         @vsc.randobj
         class Wide(object):

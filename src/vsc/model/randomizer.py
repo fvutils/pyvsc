@@ -58,7 +58,8 @@ from vsc.profile import randomize_start, randomize_done, profile_on
 from vsc.model.source_info import SourceInfo
 from vsc.profile.solve_info import SolveInfo
 from vsc.visitors.lint_visitor import LintVisitor
-from vsc.model.solver.backend import SolverBackendIF, BackendIncomplete, select_backend
+from vsc.model.solver.backend import (
+    SolverBackendIF, BackendIncomplete, SolverUnsupported, select_backend)
 from vsc.model.solver import xcheck
 from vsc.impl.ctor import glbl_debug, glbl_solvefail_debug, get_solver_backend
 from vsc.model import phase_timers as PT
@@ -249,11 +250,23 @@ _MERGE_ENABLED = os.environ.get("VSC_DVSOLVE_MERGE", "1") != "0"
 # the classic and dataclass front-ends get it alike.
 _T0_ENABLED = os.environ.get("VSC_T0", "1") != "0"
 
-# Strict no-fallback mode (feature-completeness plan, Phase 0). When set, the
-# Randomizer does NOT fall back from the primary back-end to another on
-# BackendIncomplete — it re-raises, so any residual dependence on the fallback
-# back-end (e.g. Boolector) surfaces loudly in CI. Used to enumerate and
-# burn down the remaining defers per phase. Off by default.
+# The Boolector fallback (v2 plan V23, decision D2). Off by default: a RandSet
+# the primary back-end cannot serve (BackendIncomplete) raises SolverUnsupported.
+# VSC_DVSOLVE_FALLBACK=boolector retries such a RandSet on Boolector instead; it
+# is a safety valve for 2.0 and goes away in 2.1.
+def _fallback_setting():
+    raw = os.environ.get("VSC_DVSOLVE_FALLBACK", "").strip().lower()
+    if raw in ("", "0", "off", "none"):
+        return False
+    if raw == "boolector":
+        return True
+    raise Exception(
+        "VSC_DVSOLVE_FALLBACK=%r: expected 'boolector' or unset" % raw)
+
+_FALLBACK = _fallback_setting()
+
+# Strict mode (feature-completeness plan, Phase 0): never fall back, even with
+# VSC_DVSOLVE_FALLBACK set. Tests set it to prove a shape is served natively.
 _NO_FALLBACK = os.environ.get("VSC_DVSOLVE_NO_FALLBACK", "0") != "0"
 
 # Always-on fallback histogram (feature-completeness plan, Phase E / P0-T). The
@@ -276,6 +289,33 @@ def record_fallback(reason_code, served=True):
         return
     key = reason_code if served else "%s:hard" % reason_code
     _FALLBACK_TALLY[key] = _FALLBACK_TALLY.get(key, 0) + 1
+
+
+def _unsupported_message(backend, reason, cause):
+    """The SolverUnsupported text: what the back-end could not do, and how to
+    get the RandSet solved for now."""
+    import importlib.util
+    detail = str(cause)
+    if detail.startswith(backend + ": "):
+        detail = detail[len(backend) + 2:]
+    msg = ("%s cannot solve this set of constraints (reason: %s): %s. "
+           "Please report it at https://github.com/fvutils/pyvsc/issues."
+           % (backend, reason, detail))
+    have_btor = importlib.util.find_spec("pyboolector") is not None
+    if _NO_FALLBACK:
+        msg += " (VSC_DVSOLVE_NO_FALLBACK is set, so Boolector was not tried.)"
+    elif _FALLBACK and not have_btor:
+        msg += (" VSC_DVSOLVE_FALLBACK=boolector is set, but pyboolector is"
+                " not installed (pip install pyvsc[boolector]).")
+    elif have_btor:
+        msg += (" To solve it with Boolector for now, set"
+                " VSC_DVSOLVE_FALLBACK=boolector (pyvsc 2.0 only), or use"
+                " Boolector for everything with VSC_SOLVER=boolector.")
+    else:
+        msg += (" To solve it with Boolector for now, install pyboolector"
+                " (pip install pyvsc[boolector]) and set"
+                " VSC_DVSOLVE_FALLBACK=boolector (pyvsc 2.0 only).")
+    return msg
 
 
 def get_fallback_tally():
@@ -809,12 +849,11 @@ class Randomizer(RandIF):
             backend = select_backend(get_solver_backend())
         self.backend : SolverBackendIF = backend
 
-        # Fallback chain: if the primary back-end reports BackendIncomplete for
-        # a RandSet (a construct it can't yet handle), retry that RandSet on the
-        # next available back-end. Boolector handles the full feature set, so it
-        # is the fallback when the primary is something else. Built on the first
-        # defer (see _fallback_chain), so a randomize that dv-solve serves never
-        # imports pyboolector (F-3c).
+        # Fallback chain: with VSC_DVSOLVE_FALLBACK=boolector, a RandSet the
+        # primary back-end reports BackendIncomplete for (a construct it can't
+        # handle) is retried on Boolector. Built on the first defer (see
+        # _fallback_chain), so a randomize that dv-solve serves never imports
+        # pyboolector (F-3c).
         self._fallback_backends = None
     
     _state_p = [0,1]
@@ -1088,10 +1127,12 @@ class Randomizer(RandIF):
         end = int(round(time.time() * 1000))
 
     def _fallback_chain(self):
-        """The back-ends to try after the primary, built on first use."""
+        """The back-ends to try after the primary, built on first use: Boolector
+        when the fallback is enabled, otherwise none."""
         if self._fallback_backends is None:
             self._fallback_backends = []
-            if self.backend.name != "boolector":
+            if (_FALLBACK and not _NO_FALLBACK
+                    and self.backend.name != "boolector"):
                 try:
                     self._fallback_backends.append(select_backend("boolector"))
                 except Exception:
@@ -1099,11 +1140,11 @@ class Randomizer(RandIF):
         return self._fallback_backends
 
     def _solve_randset(self, rs, bound_m):
-        """Solve one RandSet on the primary back-end, falling back to the next
-        available back-end if the primary raises BackendIncomplete (a construct
-        it can't yet handle). SolveFailure (UNSAT) is *not* a fallback trigger
-        and propagates to the caller. Raises BackendIncomplete if no back-end
-        can handle the RandSet."""
+        """Solve one RandSet on the primary back-end, falling back to Boolector
+        (when enabled) if the primary raises BackendIncomplete (a construct it
+        can't handle). SolveFailure (UNSAT) is *not* a fallback trigger and
+        propagates to the caller. Raises SolverUnsupported if no back-end can
+        handle the RandSet."""
         backends = [self.backend]
         last_exc = None
         for i, be in enumerate(backends):
@@ -1123,16 +1164,6 @@ class Randomizer(RandIF):
             except BackendIncomplete as e:
                 last_exc = e
                 reason = getattr(e, "reason_code", "incomplete")
-                # Strict mode: surface the would-be fallback loudly instead of
-                # silently serving it from the fallback back-end (Phase 0). Still
-                # tally it (as a hard-fail) so strict-mode runs populate the
-                # Phase-E histogram before raising.
-                if _NO_FALLBACK:
-                    record_fallback(reason, served=False)
-                    raise BackendIncomplete(
-                        "VSC_DVSOLVE_NO_FALLBACK: back-end '%s' incomplete for "
-                        "RandSet (reason=%s): %s" % (be.name, reason, str(e)),
-                        reason_code=reason)
                 if i == 0:
                     backends.extend(self._fallback_chain())
                 if i + 1 < len(backends):
@@ -1143,12 +1174,12 @@ class Randomizer(RandIF):
                         print("Note: back-end '%s' incomplete for RandSet "
                               "(reason=%s; %s); falling back to '%s'" % (
                                   be.name, reason, str(e), backends[i + 1].name))
-                # else: no further back-end to try; loop ends and we re-raise
-        record_fallback(getattr(last_exc, "reason_code", "incomplete"),
-                        served=False)
-        raise BackendIncomplete(
-            "No solver back-end could handle this RandSet: %s" % str(last_exc),
-            reason_code=getattr(last_exc, "reason_code", "incomplete"))
+                # else: no further back-end to try; loop ends and we raise
+        reason = getattr(last_exc, "reason_code", "incomplete")
+        record_fallback(reason, served=False)
+        raise SolverUnsupported(
+            _unsupported_message(self.backend.name, reason, last_exc),
+            reason_code=reason)
 
     def create_diagnostics_1(self, active_randsets) -> str:
         import pyboolector

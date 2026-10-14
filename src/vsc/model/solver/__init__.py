@@ -24,5 +24,6 @@ from vsc.model.solver.backend import (
     SolveResult,
     BackendIncomplete,
     BackendInternalError,
+    SolverUnsupported,
     select_backend,
 )

@@ -73,9 +73,9 @@ class TestDvSolveInternalError(VscTestCase):
             def c(s):
                 s.a > 3
 
-        saved_nf = rnd._NO_FALLBACK
+        saved_nf, saved_fb = rnd._NO_FALLBACK, rnd._FALLBACK
         saved_tr = DvSolveExprTranslator.translate
-        rnd._NO_FALLBACK = False
+        rnd._NO_FALLBACK, rnd._FALLBACK = False, True
         DvSolveExprTranslator.translate = boom
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()
@@ -83,7 +83,7 @@ class TestDvSolveInternalError(VscTestCase):
             with self.assertRaises(BackendInternalError):
                 C().randomize()
         finally:
-            rnd._NO_FALLBACK = saved_nf
+            rnd._NO_FALLBACK, rnd._FALLBACK = saved_nf, saved_fb
             DvSolveExprTranslator.translate = saved_tr
             ctor.set_solver_backend(None)
 
@@ -103,7 +103,8 @@ class TestDvSolveInternalError(VscTestCase):
                 s.a > 3
 
         saved_nf, saved_check = rnd._NO_FALLBACK, BVSatCtx.check
-        rnd._NO_FALLBACK = False
+        saved_fb = rnd._FALLBACK
+        rnd._NO_FALLBACK, rnd._FALLBACK = False, True
         BVSatCtx.check = lambda self, *a, **k: BVSAT_UNKNOWN
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()
@@ -112,7 +113,7 @@ class TestDvSolveInternalError(VscTestCase):
                 C().randomize()
             self.assertIn("could not decide", str(cm.exception))
         finally:
-            rnd._NO_FALLBACK = saved_nf
+            rnd._NO_FALLBACK, rnd._FALLBACK = saved_nf, saved_fb
             BVSatCtx.check = saved_check
             ctor.set_solver_backend(None)
 
