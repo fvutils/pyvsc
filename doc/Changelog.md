@@ -25,6 +25,13 @@
   (SystemVerilog); a signed operand is read as its bit pattern.
 - vdc: a statement-level `and` or comparison chain is split into separate
   statements (same meaning; lets `1 < len(arr) < 4` bound a random-size array).
+- dv-solve no longer hands a set of constraints it cannot solve to Boolector:
+  it raises `vsc.SolverUnsupported`, naming the reason. The only such set left
+  is a random field wider than 65535 bits. `VSC_DVSOLVE_FALLBACK=boolector`
+  restores the fallback for 2.0 (it is removed in 2.1), and
+  `VSC_SOLVER=boolector` uses Boolector throughout. `VSC_DVSOLVE_BVSAT=0` and
+  `VSC_DVSOLVE_BVSAT_SERVE_SAT=0`, which deferred to Boolector, are gone. See
+  doc/source/solver_backends.rst.
 
 ### Fixes (classic and vdc)
 - `arr[i]` with a random `i` used `i`'s value from before the solve (fresh
@@ -40,6 +47,10 @@
 - Boolector reused a destroyed instance's node for `arr.product` on the next
   randomize.
 - A reused inline constraint block kept the previous solve's array expansion.
+- `objs[i].v`, `objs[i].sub.w` and `objs[i].arr[j]` with a random `i` used
+  `i`'s value from before the solve, so the constraint held on that one element
+  whatever `i` was solved to; `objs[2].arr[j]` with a random `j` raised
+  `NotImplementedError`.
 
 ### Fixes (vdc)
 - A constant-false constraint statement was dropped; `~` of a class constant

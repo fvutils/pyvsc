@@ -76,14 +76,10 @@ Available back-ends
    *How dv-solve decides* below). Supports soft constraints and handles
    distribution (``dist``) **natively** — each ``dist`` becomes one weighted
    native value-selection (per-value ``:=`` / per-range ``:/`` / zero-weight
-   exclusion) rather than being expanded into ordinary constraints. A few
-   ``dist`` shapes still defer to the fallback: ``dist`` over array elements,
-   conditional/multiple ``dist`` on one field, and ``dist`` on a field wider
-   than 64 bits. An implication/``if`` whose **guard** combines comparisons over
-   lifted arithmetic (e.g. ``((b-1) >= 4) & ((b-1) < 8) -> ...``) also defers, so
-   it is solved correctly by the fallback rather than risk an unsound native
-   model. *(Introduced incrementally; see the integration notes under*
-   ``doc/notes`` *for current coverage.)*
+   exclusion) rather than being expanded into ordinary constraints. dv-solve
+   solves every constraint shape PyVSC can express by itself; the one limit
+   is a field wider than 65535 bits (see *When dv-solve cannot solve a set*
+   below).
 
 How dv-solve decides
 ====================
@@ -105,12 +101,33 @@ On that fallback:
 * **UNSAT** from BV-SAT is a sound proof, so dv-solve reports a genuine solve
   failure **without** consulting the external Boolector back-end. dv-solve is
   now authoritative for unsatisfiability on its own.
-* **SAT** from BV-SAT confirms the problem is solvable, but the BV-SAT engine's
-  *model distribution* is clustered (good for "find a solution", not for
-  coverage stimulus). When Boolector is installed, dv-solve therefore defers
-  the actual value selection for such a RandSet to it rather than emitting
-  BV-SAT's biased model. Without Boolector, dv-solve serves the RandSet
-  itself, drawing the values through a uniform (XOR-hashing) sampler.
+* **SAT** from BV-SAT confirms the problem is solvable. The BV-SAT engine's
+  own model is clustered (good for "find a solution", not for coverage
+  stimulus), so dv-solve draws the values through a uniform (XOR-hashing)
+  sampler instead, honoring ``dist``, ``solve_order`` and soft constraints.
+
+When dv-solve cannot solve a set
+================================
+
+A set of constraints dv-solve cannot solve raises
+``vsc.SolverUnsupported``. Today that means only a random field wider
+than 65535 bits. The message names the reason and the construct, for
+example::
+
+    vsc.SolverUnsupported: dv-solve cannot solve this set of constraints
+    (reason: width): field 'w' width 65536 exceeds 65535 bits. ...
+
+This is a gap in dv-solve, not an unsatisfiable problem (which raises
+``SolveFailure`` as before); please report it. To solve such a set for now:
+
+* ``VSC_DVSOLVE_FALLBACK=boolector`` -- solve the sets dv-solve cannot with
+  Boolector, and everything else with dv-solve. Requires ``pyboolector``
+  (``pip install pyvsc[boolector]``). This setting exists in pyvsc 2.0 only.
+* ``VSC_SOLVER=boolector`` -- use Boolector for everything.
+
+Before pyvsc 2.0 dv-solve handed such sets to Boolector silently whenever
+``pyboolector`` was installed. ``SolverUnsupported`` is a subclass of the
+internal ``BackendIncomplete``, so code that caught that keeps working.
 
 Soft constraints
 ================
@@ -145,19 +162,12 @@ is required for soft.
 Environment toggles (advanced / debugging)
 ------------------------------------------
 
-* ``VSC_DVSOLVE_BVSAT=0`` — disable the internal BV-SAT engine entirely
-  (revert to deferring un-decidable RandSets to the external fallback).
-* ``VSC_DVSOLVE_BVSAT_SERVE_SAT`` — whether BV-SAT also *serves* the problems
-  it proves satisfiable (writes their values, via the uniform sampler). ``1``
-  (the default) serves them, so Boolector, when installed, runs only for the
-  constructs dv-solve cannot handle; ``0`` defers them to Boolector instead.
-  ``auto`` is accepted and means ``1``.
-* ``VSC_DVSOLVE_NO_FALLBACK=1`` — strict mode: the Randomizer raises instead of
-  falling back to another back-end on ``BackendIncomplete``, so any residual
-  dependence on the fallback (e.g. Boolector) surfaces loudly. A diagnostic for
-  enumerating which constructs still defer; off by default.
+* ``VSC_DVSOLVE_FALLBACK=boolector`` — see *When dv-solve cannot solve a set*.
+* ``VSC_DVSOLVE_NO_FALLBACK=1`` — strict mode: never fall back, even with
+  ``VSC_DVSOLVE_FALLBACK`` set. For tests that check a shape is solved by
+  dv-solve alone.
 * ``VSC_DVSOLVE_FALLBACK_TALLY=1`` — collect a process-global histogram of
-  fallback reason codes across a run (queryable via
+  reason codes for the sets dv-solve could not solve across a run (queryable via
   ``vsc.model.randomizer.get_fallback_tally()``), without enabling full
   profiling. The burn-down dashboard for dv-solve self-sufficiency. Off by
   default (zero overhead).
