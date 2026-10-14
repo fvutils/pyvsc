@@ -63,14 +63,14 @@ _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 # doc/notes/dv_solve_phaseE_selfsufficiency_plan.md and solver_backends.rst.
 _RESIDUAL_ALLOWLIST = {
     "width",        # field width > 65535 bits (uint16 add_var width); V26 lifts it
-    "dist",         # >64-bit dist / conditional / multiple-dist-on-field
     "array",        # object-array variable index (V10); fails on Boolector too,
                     # so it has no residual-corpus shape
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
                     # to the fallback for distribution / solve_order. Expected,
                     # correct two-engine operation — NOT a completeness gap (F-E1).
     # `translator-unsupported` is gone: every translator site that no shape
-    # reaches raises BackendInternalError instead (v2 plan V21).
+    # reaches raises BackendInternalError instead (v2 plan V21). `dist` is
+    # gone too: a dist on a >64-bit field is served since V15.
 }
 
 # F-2c — the residual manifest: for each allowlisted reason code, the *product
@@ -89,9 +89,6 @@ _RESIDUAL_MANIFEST = {
     "width":        ("closable",
                      "field width > 65535 bits — C ABI uint16 add_var width; "
                      "V26 widens it to uint32"),
-    "dist":         ("closable",
-                     ">64-bit / conditional / multiple-dist-on-field — [dvs] dist "
-                     "composition + wide encode"),
     "array":        ("closable",
                      "object-array variable index — v2 plan V10 (large "
                      "selects are native since V8/V9)"),
@@ -327,6 +324,16 @@ def _native_corpus():
         def sc(s):
             s.x > (1 << 63)
 
+    @vsc.randobj
+    class WideDist(object):
+        # dist on a > 64-bit field: served by the BV-SAT samplers (V15).
+        def __init__(s):
+            s.a = vsc.rand_bit_t(96)
+        @vsc.constraint
+        def c(s):
+            vsc.dist(s.a, [vsc.weight((1, 3), 1),
+                           vsc.weight(((1 << 80), (1 << 80) + 5), 2)])
+
     return [
         ("scalar", Scalar),
         ("dist", Dist),
@@ -343,6 +350,7 @@ def _native_corpus():
         ("soft_priority_ladder", SoftPriorityLadder),
         ("large_select", LargeSelect),
         ("upper_half_const_bound", UpperHalfConstBound),
+        ("wide_dist", WideDist),
     ]
 
 
@@ -361,19 +369,8 @@ def _residual_corpus():
         def c(s):
             s.a > 1
 
-    @vsc.randobj
-    class WideDist(object):
-        # dist on a > 64-bit field → not natively encodable ("dist").
-        def __init__(s):
-            s.a = vsc.rand_bit_t(96)
-        @vsc.constraint
-        def c(s):
-            vsc.dist(s.a, [vsc.weight((1, 3), 1),
-                           vsc.weight(((1 << 80), (1 << 80) + 5), 2)])
-
     return [
         ("width_over_max", "width", WidthOverMax),
-        ("wide_dist", "dist", WideDist),
     ]
 
 

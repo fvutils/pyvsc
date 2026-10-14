@@ -348,24 +348,10 @@ class TestDvSolveDistNative(VscTestCase):
                 c.randomize()
                 self.assertTrue(1 <= int(c.a) <= 8 or 200 <= int(c.a) <= 255)
 
-    def test_b6_deferrals_carry_dist_reason(self):
-        """The §5 dist shapes that can't be native yet (>64-bit) defer with
-        reason_code 'dist' under strict mode — the enumerated, expected
-        burn-down residue. (Conditional dist is served natively — see
-        test_conditional_dist_native; several dists on one field are served
-        as a mixture — see test_dvsolve_dist_multi.)"""
-        from vsc.model.solver.backend import BackendIncomplete
-
-        def expect_defer(make, label):
-            with _strict_no_fallback():
-                try:
-                    make().randomize()
-                except BackendIncomplete as e:
-                    self.assertEqual(getattr(e, "reason_code", None), "dist",
-                                     "%s: reason=%r" % (label, getattr(e, "reason_code", None)))
-                    return
-            self.fail("%s: expected a dist deferral, got none" % label)
-
+    def test_b6_wide_dist_served(self):
+        """A dist on a >64-bit field, the last §5 shape that deferred with
+        reason 'dist', is served under strict mode (v2 plan V15; more in
+        test_dvsolve_dist_wide)."""
         @vsc.randobj
         class WideDist(object):
             def __init__(s):
@@ -373,7 +359,14 @@ class TestDvSolveDistNative(VscTestCase):
             @vsc.constraint
             def d(s):
                 vsc.dist(s.a, [vsc.weight((0, 9), 1), vsc.weight((10, 19), 3)])
-        expect_defer(lambda: WideDist(), ">64-bit dist")
+        with _strict_no_fallback():
+            c = WideDist()
+            hi = 0
+            for _ in range(400):
+                c.randomize()
+                self.assertLess(int(c.a), 20)
+                hi += int(c.a) >= 10
+        self.assertTrue(0.65 < hi / 400 < 0.85, hi / 400)
 
     # ------------------------------------------------------------------ #
     # B-F2 — conditional dist (if/else) is served natively                 #

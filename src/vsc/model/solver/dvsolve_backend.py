@@ -639,6 +639,15 @@ def _dist_patterns(f, entries):
     return [{**e, "lo": pat(e["lo"]), "hi": pat(e["hi"])} for e in entries]
 
 
+def _native_dist(b, vid, f, entries):
+    """Give ``entries`` to the engine's value picker (``add_dist``). Its
+    bounds are int64, so a field over 64 bits gets none: such a RandSet is
+    always served by BV-SAT, whose samplers take the weighting from the
+    captured entries (``sample_dist``, ``sample_dist_conditional``), V15."""
+    if f.width <= 64:
+        b.add_dist(vid, _dist_patterns(f, entries))
+
+
 def _make_solve_ctx(buf, problem_sz=0, label=None):
     """Create a SolveCtx. A dynamic-pool dv-solve sizes itself; on an older
     fixed-pool one, a generic compile failure (likely pool overflow) is retried
@@ -678,14 +687,14 @@ class DvSolveBackend(SolverBackendIF):
     soft constraints.
 
     ``dist`` is handled natively (Phase B): each ``ConstraintDistModel`` becomes
-    one native ``add_dist`` (weighted, per-value/per-range, zero-weight
-    exclusion) on the distributed var, layered on top of the hard ``inside``
-    membership that the upstream ``DistConstraintBuilder`` expansion already
-    emits (which doubles as the BV-SAT "Domain-Twin" so the completeness engine
-    stays sound). Shapes that can't be encoded natively — non-constant weight,
-    non-constant/wide range, >64-bit field, multiple dist on one field, or dist
-    over array elements — raise ``BackendIncomplete`` and defer to the fallback
-    rather than emit a mis-weighted solve."""
+    one native ``add_dist`` (weighted, per-value/per-range) on the distributed
+    var, layered on top of the hard ``inside`` membership that the upstream
+    ``DistConstraintBuilder`` expansion already emits (which doubles as the
+    BV-SAT "Domain-Twin" so the completeness engine stays sound), with each
+    zero-weight entry excluded as a hard constraint. Several dists on one field
+    are their mixture; a rand-guarded dist is staged by the BV-SAT samplers,
+    which also serve every dist on a field over 64 bits from the same entries
+    (``_add_dist_for_field``)."""
 
     name = "dv-solve"
     supports_soft = True
@@ -1669,7 +1678,7 @@ class DvSolveBackend(SolverBackendIF):
             entries = self._dist_entries(f, scopes[0].dist_c)
             self._exclude_zero_weight(b, f, [entries], tr)
             if entries:
-                b.add_dist(idmap.id_of(f), _dist_patterns(f, entries))
+                _native_dist(b, idmap.id_of(f), f, entries)
                 return entries, None
             return None, None
 
@@ -1703,7 +1712,7 @@ class DvSolveBackend(SolverBackendIF):
                 for e in br_entries:
                     union.append({**e, "weight": 1})
             if union:
-                b.add_dist(idmap.id_of(f), _dist_patterns(f, union))
+                _native_dist(b, idmap.id_of(f), f, union)
             if branches and guard_vids:
                 return None, {"branches": branches, "guard_vids": guard_vids}
             return None, None            # no stageable guard → weighting dropped
@@ -1723,7 +1732,7 @@ class DvSolveBackend(SolverBackendIF):
         self._exclude_zero_weight(b, f, per, tr)
         entries = per[0] if len(per) == 1 else _mix_dist_entries(per)
         if entries:
-            b.add_dist(idmap.id_of(f), _dist_patterns(f, entries))
+            _native_dist(b, idmap.id_of(f), f, entries)
             return entries, None
         return None, None
 
@@ -1797,14 +1806,9 @@ class DvSolveBackend(SolverBackendIF):
         Boolector. An entry is clipped to the field's domain, or dropped when
         none of it is in the domain: a value the field can't hold can't be
         chosen, which is what the engine already does with one inside int64
-        (and keeps every bound inside int64). Raises ``BackendIncomplete`` for
-        a >64-bit field (the BV-SAT completeness engine ignores ``add_dist``,
-        so weighting a wide field would be silently lost)."""
-        if field.width > 64:
-            raise BackendIncomplete(
-                "dv-solve: dist on >64-bit field '%s' not supported" %
-                getattr(field, "name", "?"),
-                reason_code="dist")
+        (and keeps every bound of a <= 64-bit field inside int64). A wider
+        field's entries are not given to the engine (``_native_dist``); its
+        RandSet is served by BV-SAT, whose samplers draw from them."""
         w_f = int(field.width)
         if field.is_signed:
             dom_lo, dom_hi = -(1 << (w_f - 1)), (1 << (w_f - 1)) - 1
