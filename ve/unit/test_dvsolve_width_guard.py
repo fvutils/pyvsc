@@ -135,6 +135,23 @@ class TestDvSolveWidthGuard(VscTestCase):
                 v = int(obj.a)
                 self.assertTrue(-(1 << 200) - 1000 < v < -(1 << 200), hex(v))
 
+    def test_constant_at_the_width_cap(self):
+        """`b < 2^(W-1)` at W = 65534: 2^65533 is a 65535-bit signed literal.
+        Its concat chain had an unsized, so 64-bit, top limb and came to 65536
+        bits, over the cap; it is now one exact-width native constant node
+        (v2 plan V17)."""
+        self._run(65534, "lt", 2)
+
+    def test_constant_over_max_defers(self):
+        """2^65534 is a 65536-bit signed literal, over the 65535-bit cap:
+        the RandSet defers with the `width` reason until V26 raises it."""
+        obj = _mk(65535, "lt")
+        with _strict_no_fallback():
+            with self.assertRaises(Exception) as cm:
+                obj.randomize()
+        self.assertIn("width", str(cm.exception))
+        self.assertIn("constant", str(cm.exception))
+
     def test_over_max_still_defers(self):
         """Above the encodable maximum the RandSet still defers with the
         `width` reason (V26 raises the maximum to 2^32-1)."""

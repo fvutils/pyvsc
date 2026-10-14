@@ -96,10 +96,10 @@ _RESIDUAL_MANIFEST = {
                      "object-array variable index — v2 plan V10 (large "
                      "selects are native since V8/V9)"),
     "bvsat-sat-deferred": ("closable",
-                     "SAT-proved but not served: an unsigned upper-half constant "
-                     "bound (pyvsc literal-width inference, Phase G residual), "
-                     "sampler dist-weighting (F-2b), or a >64-bit ordered-field "
-                     "freeze (the F-2a wide-order residual)"),
+                     "SAT-proved but not served (serve-SAT off): sampler "
+                     "dist-weighting (F-2b), or a >64-bit ordered-field freeze "
+                     "(the F-2a wide-order residual, V18). The upper-half "
+                     "constant bound is native since V17"),
 }
 
 
@@ -315,6 +315,19 @@ def _native_corpus():
             s.i < 1025
             s.arr[s.i] == 7
 
+    @vsc.randobj
+    class UpperHalfConstBound(object):
+        # `x > 2**63` on an unsigned u64. pyvsc types the literal 65-bit
+        # signed, which made a 65-bit comparison only BV-SAT took
+        # (`bvsat-sat-deferred` with serve-SAT off). dv-solve's SV elaboration
+        # now rewrites it at x's own 64 bits, and the CDCL engine compiles it
+        # (v2 plan V17).
+        def __init__(s):
+            s.x = vsc.rand_bit_t(64)
+        @vsc.constraint
+        def sc(s):
+            s.x > (1 << 63)
+
     return [
         ("scalar", Scalar),
         ("dist", Dist),
@@ -330,6 +343,7 @@ def _native_corpus():
         ("soft_on_bvsat_serve", SoftOnBVSatServe),
         ("soft_priority_ladder", SoftPriorityLadder),
         ("large_select", LargeSelect),
+        ("upper_half_const_bound", UpperHalfConstBound),
     ]
 
 
@@ -358,25 +372,9 @@ def _residual_corpus():
             vsc.dist(s.a, [vsc.weight((1, 3), 1),
                            vsc.weight(((1 << 80), (1 << 80) + 5), 2)])
 
-    @vsc.randobj
-    class UpperHalfConstBound(object):
-        # `x > 2**63` on an unsigned u64: a *constant* bound in the unsigned upper
-        # half. The literal is inferred signed (width 65) and lowered to a concat
-        # wide-const the comparison compiler can't fold, so the constraint is left
-        # uncompiled and BV-SAT *proves it SAT* — `bvsat-sat-deferred`, served by
-        # the net (sound). A pyvsc literal-width inference residual, independent of
-        # the C engine (Phase G §"Residual"); the upper half is reachable natively
-        # via *relational* constraints. Deterministic (unlike a bitwise search).
-        def __init__(s):
-            s.x = vsc.rand_bit_t(64)
-        @vsc.constraint
-        def sc(s):
-            s.x > (1 << 63)
-
     return [
         ("width_over_max", "width", WidthOverMax),
         ("wide_dist", "dist", WideDist),
-        ("upper_half_const_bound", "bvsat-sat-deferred", UpperHalfConstBound),
     ]
 
 

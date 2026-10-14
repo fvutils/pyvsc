@@ -402,35 +402,28 @@ class DvSolveExprTranslator(ModelVisitor):
                 # the same bit pattern, sized to context by the engine.
                 self._result = self._b.expr_const(v - (1 << 64), signed)
             else:
-                # >64-bit literal can't be a single int64 const node; lower it to
-                # a concat of <=64-bit const limbs (Phase D).
-                self._result = self._wide_const(v, w)
+                # >64-bit literal can't be a single int64 const node.
+                self._result = self._wide_const(v, w, signed or v < 0)
         self._last_simple = True
 
-    def _wide_const(self, v, w):
-        """Lower a >64-bit constant ``v`` of width ``w`` into a concat of
-        <=64-bit const limbs (``expr_const`` is int64). limb 0 is the low 64
-        bits; the engine's ``concat(hi, lo, lo_width)`` stacks them MSB-first."""
-        v &= (1 << w) - 1                      # unsigned bit pattern
-        limbs = []                             # (value, width), low -> high
-        rem, rest = w, v
-        while rem > 0:
-            lw = 64 if rem >= 64 else rem
-            limbs.append((rest & ((1 << lw) - 1), lw))
-            rest >>= lw
-            rem -= lw
+    _MAX_WIDE_CONST = 65535     # dvs_builder_expr_const_wide's cap (V26 lifts it)
 
-        def const_limb(limb, lw):
-            # Pass the bit pattern; a full 64-bit limb with bit 63 set must go in
-            # as its signed reinterpretation (lw<64 limbs are always < 2^63).
-            sv = limb - (1 << 64) if (lw == 64 and limb >= (1 << 63)) else limb
-            return self._b.expr_const(sv, False)
+    def _wide_const(self, v, w, signed=False):
+        """A >64-bit constant ``v`` of width ``w``: one native wide-constant
+        node (``expr_const_wide``) at exactly ``w`` bits, its limbs inline.
+        (It was a concat chain of 64-bit limbs whose unsized top limb typed
+        itself by value, so a 65535-bit constant came to 65536 bits and was
+        refused.) A signed constant sign-extends into a wider context.
 
-        acc = const_limb(*limbs[-1])           # highest limb
-        for i in range(len(limbs) - 2, -1, -1):
-            limb, lw = limbs[i]
-            acc = self._b.expr_concat(acc, const_limb(limb, lw), lw)
-        return acc
+        Widths are capped at 65535 bits until V26, so a signed literal
+        needing more (2**65534 is 65536 bits signed) defers on ``width``,
+        as a field over the cap does. Typing it unsigned to fit would change
+        what it means next to a signed operand."""
+        if w > self._MAX_WIDE_CONST:
+            raise BackendIncomplete(
+                "dv-solve: a %d-bit constant exceeds %d bits"
+                % (w, self._MAX_WIDE_CONST), reason_code="width")
+        return self._b.expr_const_wide(v, w, is_signed=signed)
 
     @staticmethod
     def _value_fits_width(v, w, signed):

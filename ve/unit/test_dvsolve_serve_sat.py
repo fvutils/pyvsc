@@ -32,20 +32,24 @@ def _dvsolve_available():
 
 
 @vsc.randobj
-class _UpperHalfConstBound(object):
-    # `x > 2**63` on an unsigned u64: a constant bound in the unsigned upper half.
-    # The literal is inferred signed (width 65) and lowered to a concat wide-const
-    # the comparison compiler can't fold, so the constraint is left uncompiled and
-    # BV-SAT *proves it SAT* — exactly the `bvsat-sat-deferred` (serve / defer)
-    # decision point, and deterministic. (A gapped value-set / multi-range
-    # membership is no longer a valid example — Phase G's native EXPR_IN_RANGES
-    # membership solves those directly.)
+class _SatDeferShape(object):
+    # A shape the CDCL compile leaves out, so BV-SAT *proves it SAT*: exactly
+    # the `bvsat-sat-deferred` (serve / defer) decision point, and
+    # deterministic. A uint32 compared with non-rand uint8 fields elaborates
+    # to `t != <SV cast>`, which the CDCL engine does not compile (today; when
+    # it does, pick another uncompiled shape: run with DV_LOG=<file> and look
+    # for `cdcl-uncompiled`). It was `x > 2**63` on a u64 until v2 plan V17
+    # made that native.
     def __init__(s):
-        s.x = vsc.rand_bit_t(64)
+        s.t = vsc.rand_uint32_t()
+        s.a = vsc.uint8_t(3)
+        s.b = vsc.uint8_t(9)
 
     @vsc.constraint
     def sc(s):
-        s.x > (1 << 63)
+        s.t != s.a
+        s.t != s.b
+        s.t < 20
 
 
 @unittest.skipUnless(_dvsolve_available(), "dv-solve native library not available")
@@ -89,13 +93,13 @@ class TestDvSolveServeSatAuto(VscTestCase):
     # End-to-end: the SAT-deferring shape, per mode                        #
     # ------------------------------------------------------------------ #
     def _deferred_codes(self, n=8):
-        """Run the upper-half const-bound SAT shape `n` times and return the set
+        """Run the SAT-deferring shape `n` times and return the set
         of `bvsat-sat-deferred` tally keys it produced."""
         snap = rnd.snapshot_fallback_tally()
         rnd.set_fallback_tally(True)
         rnd.reset_fallback_tally()
         try:
-            obj = _UpperHalfConstBound()
+            obj = _SatDeferShape()
             for _ in range(n):
                 obj.randomize()
             hist = rnd.get_fallback_tally()
@@ -134,7 +138,7 @@ class TestDvSolveServeSatAuto(VscTestCase):
             return orig(name)
         rnd.select_backend = spy
         try:
-            obj = _UpperHalfConstBound()
+            obj = _SatDeferShape()
             for _ in range(4):
                 obj.randomize()
         finally:
