@@ -349,11 +349,11 @@ class TestDvSolveDistNative(VscTestCase):
                 self.assertTrue(1 <= int(c.a) <= 8 or 200 <= int(c.a) <= 255)
 
     def test_b6_deferrals_carry_dist_reason(self):
-        """The §5 dist shapes that genuinely can't be native (multiple
-        *unconditional* dists per field, >64-bit) defer with reason_code 'dist'
-        under strict mode — the enumerated, expected burn-down residue.
-        (Conditional dist is now served natively — see
-        test_conditional_dist_native.)"""
+        """The §5 dist shapes that can't be native yet (>64-bit) defer with
+        reason_code 'dist' under strict mode — the enumerated, expected
+        burn-down residue. (Conditional dist is served natively — see
+        test_conditional_dist_native; several dists on one field are served
+        as a mixture — see test_dvsolve_dist_multi.)"""
         from vsc.model.solver.backend import BackendIncomplete
 
         def expect_defer(make, label):
@@ -365,16 +365,6 @@ class TestDvSolveDistNative(VscTestCase):
                                      "%s: reason=%r" % (label, getattr(e, "reason_code", None)))
                     return
             self.fail("%s: expected a dist deferral, got none" % label)
-
-        @vsc.randobj
-        class MultiDist(object):
-            def __init__(s):
-                s.a = vsc.rand_uint8_t()
-            @vsc.constraint
-            def d(s):
-                vsc.dist(s.a, [vsc.weight(1, 1), vsc.weight(2, 1)])
-                vsc.dist(s.a, [vsc.weight(3, 1), vsc.weight(4, 1)])
-        expect_defer(lambda: MultiDist(), "multiple dist on one field")
 
         @vsc.randobj
         class WideDist(object):

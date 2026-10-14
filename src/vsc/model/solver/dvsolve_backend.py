@@ -561,6 +561,33 @@ def _fit_weights_u32(entries):
 _U32_MAX = (1 << 32) - 1
 
 
+def _dist_mass(entries):
+    """Total selection mass of an ``add_dist`` entry list: ``weight`` per
+    ``:/`` entry, ``weight * count`` per ``:=`` entry."""
+    return sum(e["weight"] * ((e["hi"] - e["lo"] + 1) if e["is_per_value"] else 1)
+               for e in entries)
+
+
+def _mix_dist_entries(per):
+    """One entry list whose distribution is the equal-probability mixture of
+    the dists in ``per``: dist i's weights are multiplied by the product of the
+    other dists' total masses, so every dist ends with the same total mass.
+    Zero-weight entries are dropped (the caller excludes them as hard
+    constraints), as is a dist with no mass at all. Exact, then fitted to
+    uint32 by a common factor."""
+    per = [[e for e in ents if e["weight"]] for ents in per]
+    per = [ents for ents in per if ents]
+    masses = [_dist_mass(ents) for ents in per]
+    out = []
+    for i, ents in enumerate(per):
+        k = 1
+        for j, m in enumerate(masses):
+            if j != i:
+                k *= m
+        out.extend({**e, "weight": e["weight"] * k} for e in ents)
+    return _fit_weights_u32(out)
+
+
 def _make_solve_ctx(buf, problem_sz=0, label=None):
     """Create a SolveCtx. A dynamic-pool dv-solve sizes itself; on an older
     fixed-pool one, a generic compile failure (likely pool overflow) is retried
@@ -842,7 +869,8 @@ class DvSolveBackend(SolverBackendIF):
         tr.dist_guard_vids = set()
         for f in dist_fields:
             scopes = dist_field_m[f]
-            entries, cond_target = self._add_dist_for_field(b, idmap, f, scopes)
+            entries, cond_target = self._add_dist_for_field(
+                b, idmap, f, scopes, tr)
             if entries:
                 tr.dist_targets[idmap.id_of(f)] = entries
             if cond_target is not None:
@@ -1547,7 +1575,7 @@ class DvSolveBackend(SolverBackendIF):
     _I64_MIN = -(1 << 63)
     _I64_MAX = (1 << 63) - 1
 
-    def _add_dist_for_field(self, b, idmap, f, scopes):
+    def _add_dist_for_field(self, b, idmap, f, scopes, tr=None):
         """Emit the native ``add_dist`` weighting for field ``f`` from its dist
         scope(s), resolving conditional dist (if/else/implies) where possible:
 
@@ -1563,8 +1591,17 @@ class DvSolveBackend(SolverBackendIF):
            evenly. The conditional *weighting* is dropped (documented
            reduced-distribution guarantee for rand-guarded dist, Phase-B §5) —
            correctness is unaffected since the hard membership is guarded.
-         * A plain dist mixed with others, or >1 active constant-guard branch:
-           genuinely ambiguous — defer (``reason_code="dist"``).
+         * Several active dists (plain ones plus constant-guard branches whose
+           guard holds): Boolector's swizzler picks one of them uniformly per
+           call and steers to its weighted target. Over calls that is the
+           *mixture* of their distributions, each with probability 1/k, so we
+           emit one ``add_dist`` holding every active dist's entries, each
+           dist's weights normalised to equal total mass
+           (``_mix_dist_entries``). Deterministic, so the plan stays cacheable.
+           Each dist's zero-weight values are excluded as hard constraints:
+           in a mixture another dist could otherwise give them weight.
+         * A plain dist mixed with a rand-guarded conditional one: defer
+           (``reason_code="dist"``).
 
         Returns ``(entries, cond_target)``:
 
@@ -1591,13 +1628,17 @@ class DvSolveBackend(SolverBackendIF):
                 return entries, None
             return None, None
 
-        # A plain dist mixed with others on one field is ambiguous (which
-        # weighting wins?) — defer, as before.
+        rand_guarded = [s for s in conditional
+                        if _guard_references_rand(getattr(s, "cond_l", []))]
         if plain:
-            raise BackendIncomplete(
-                "dv-solve: multiple dist constraints on field '%s'" %
-                getattr(f, "name", "?"),
-                reason_code="dist")
+            if rand_guarded:
+                raise BackendIncomplete(
+                    "dv-solve: plain and rand-guarded conditional dist on "
+                    "field '%s'" % getattr(f, "name", "?"),
+                    reason_code="dist")
+            active = plain + [s for s in conditional
+                              if self._guard_true(getattr(s, "cond_l", []))]
+            return self._emit_dist_mixture(b, idmap, f, active, tr)
 
         # All scopes conditional. A rand guard can't be resolved at build time.
         # Rather than drop the weighting to a uniform union (the old Phase-B §5
@@ -1605,8 +1646,7 @@ class DvSolveBackend(SolverBackendIF):
         # the sampler freezes the guard, then applies the *active* branch's weights.
         # Still emit the uniform union as the native primary's fallback picker (it
         # is ignored on the BV-SAT serve path but keeps the non-served path sound).
-        if any(_guard_references_rand(getattr(s, "cond_l", []))
-               for s in conditional):
+        if rand_guarded:
             branches = []
             guard_vids = set()
             union = []
@@ -1626,18 +1666,53 @@ class DvSolveBackend(SolverBackendIF):
         # Constant guards: keep the branch(es) whose guard currently holds.
         active = [s for s in conditional
                   if self._guard_true(getattr(s, "cond_l", []))]
-        if len(active) == 0:
-            return None, None            # no active branch -> membership suffices
-        if len(active) > 1:
-            raise BackendIncomplete(
-                "dv-solve: multiple active conditional dist on field '%s'" %
-                getattr(f, "name", "?"),
-                reason_code="dist")
-        entries = self._dist_entries(f, active[0].dist_c)
+        return self._emit_dist_mixture(b, idmap, f, active, tr)
+
+    def _emit_dist_mixture(self, b, idmap, f, active, tr):
+        """Emit the weighting for the ``active`` dist scopes of field ``f``:
+        none → nothing (the membership suffices); one → its entries as they
+        are; several → their mixture (see ``_add_dist_for_field``)."""
+        if not active:
+            return None, None
+        per = [self._dist_entries(f, s.dist_c) for s in active]
+        if len(per) == 1:
+            entries = per[0]
+        else:
+            if tr is None:
+                raise BackendIncomplete(
+                    "dv-solve: multiple dist constraints on field '%s'" %
+                    getattr(f, "name", "?"),
+                    reason_code="dist")
+            self._exclude_zero_weight(b, f, per, tr)
+            entries = _mix_dist_entries(per)
         if entries:
             b.add_dist(idmap.id_of(f), entries)
             return entries, None
         return None, None
+
+    @staticmethod
+    def _exclude_zero_weight(b, f, per, tr):
+        """Assert ``f`` outside every zero-weight entry of every dist in
+        ``per`` (``f < lo || f > hi``). A lone dist gets this from its own
+        ``add_dist``; a mixture drops zero-weight entries (they carry no mass),
+        so it must be explicit."""
+        from vsc.model.expr_bin_model import ExprBinModel
+        from vsc.model.expr_fieldref_model import ExprFieldRefModel
+        from vsc.model.expr_literal_model import ExprLiteralModel
+        from vsc.model.bin_expr_type import BinExprType
+        seen = set()
+        for entries in per:
+            for e in entries:
+                key = (e["lo"], e["hi"])
+                if e["weight"] or key in seen:
+                    continue
+                seen.add(key)
+                lo = ExprLiteralModel(e["lo"], f.is_signed, f.width)
+                hi = ExprLiteralModel(e["hi"], f.is_signed, f.width)
+                below = ExprBinModel(ExprFieldRefModel(f), BinExprType.Lt, lo)
+                above = ExprBinModel(ExprFieldRefModel(f), BinExprType.Gt, hi)
+                b.add_constraint(tr.translate(
+                    ExprBinModel(below, BinExprType.Or, above)))
 
     @staticmethod
     def _guard_true(cond_l):
