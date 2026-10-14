@@ -92,9 +92,8 @@ _RESIDUAL_MANIFEST = {
                      ">64-bit / conditional / multiple-dist-on-field — [dvs] dist "
                      "composition + wide encode"),
     "array":        ("closable",
-                     "Phase C §5 tail after EF-1a closed var-indexed select: "
-                     "randsz/co-solved aggregate, >64 element/summand caps — "
-                     "[dvs] C work"),
+                     "variable-index select over > 1024 elements, object-array "
+                     "variable index, wide sum — v2 plan V5/V8-V10"),
     "translator-unsupported": ("closable",
                      "a constraint/expression node the translator does not yet "
                      "encode — translator coverage"),
@@ -364,24 +363,24 @@ def _residual_corpus():
             s.x > (1 << 63)
 
     @vsc.randobj
-    class OverCapSum(object):
-        # An array aggregate (`sum`) over more elements than the native n-ary sum
-        # propagator's summand cap (`_MAX_SUM_VARS`=64). The translator defers it
-        # ("array"); served by the net. This is the surviving `array` residual
-        # tail after EF-1a closed the variable-indexed-select shape (now native).
+    class OverCapSelect(object):
+        # A variable-index select over more elements than the translator's
+        # select cap (`_MAX_SELECT_ELEMS`=1024) defers ("array"; v2 plan V8/V9).
+        # The over-64-summand `sum` that used to stand here is native since
+        # V3/V4.
         def __init__(s):
-            s.arr = vsc.rand_list_t(vsc.uint8_t(), 100)
+            s.arr = vsc.rand_list_t(vsc.uint8_t(), 1025)
+            s.i = vsc.rand_uint16_t()
         @vsc.constraint
         def c(s):
-            s.arr.sum < 5000
-            with vsc.foreach(s.arr) as e:
-                e > 0
+            s.i < 1025
+            s.arr[s.i] == 7
 
     return [
         ("width_over_max", "width", WidthOverMax),
         ("wide_dist", "dist", WideDist),
         ("upper_half_const_bound", "bvsat-sat-deferred", UpperHalfConstBound),
-        ("over_cap_sum", "array", OverCapSum),
+        ("over_cap_select", "array", OverCapSelect),
     ]
 
 

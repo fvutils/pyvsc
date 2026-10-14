@@ -1287,8 +1287,6 @@ class DvSolveExprTranslator(ModelVisitor):
     # size-guarded encoding lands (Phase C-3).
 
     # The native n-ary sum propagator (EXPR_SUM) caps the summand count.
-    _MAX_SUM_VARS = 64
-
     def _cosolved_size(self, arr):
         """True when ``arr``'s random size is solved in this RandSet."""
         return getattr(arr, "is_rand_sz", False) and self._m.has(arr.size)
@@ -1349,16 +1347,17 @@ class DvSolveExprTranslator(ModelVisitor):
 
     def visit_expr_array_sum(self, e):
         # arr.sum -> a result aux constrained `result == Σ elem[i]` via the native
-        # n-ary sum propagator. The result is returned as a plain var so the
+        # n-ary sum propagator, any summand count (dv-solve 76546ea sized it to
+        # its summands; v2 plan V4). The result is returned as a plain var so the
         # enclosing constraint (`arr.sum == X`, `arr.sum < K`) compiles directly.
         from vsc.model.expr_fieldref_model import ExprFieldRefModel
         arr = e.arr
         if getattr(arr, "is_rand_sz", False) and self._m.has(arr.size):
             rw = int(e.width())
-            if rw > self._AUX_MAX_W or len(arr.field_l) > self._MAX_SUM_VARS:
+            if rw > self._AUX_MAX_W:
                 raise BackendIncomplete(
-                    "dv-solve: guarded sum over %d elements, %d bits"
-                    % (len(arr.field_l), rw), reason_code="array")
+                    "dv-solve: guarded sum result width %d exceeds aux range"
+                    % rw, reason_code="array")
             terms, _ = self._array_terms(arr, rw, 0, e.is_signed())
             if not terms:
                 self._result = self._b.expr_const(0)
@@ -1374,10 +1373,6 @@ class DvSolveExprTranslator(ModelVisitor):
             self._result = self._b.expr_const(0)
             self._last_simple = True
             return
-        if n > self._MAX_SUM_VARS:
-            raise BackendIncomplete(
-                "dv-solve: array sum over %d elements exceeds the native "
-                "%d-summand cap" % (n, self._MAX_SUM_VARS), reason_code="array")
         # Width matches pyvsc's get_sum_width() (elem_w + clog2(size)) so the sum
         # can't overflow and width reconciliation with the comparison RHS matches.
         rw = int(e.width())

@@ -426,21 +426,25 @@ class TestDvSolveArrayNative(VscTestCase):
                               "a inside arr violated: a=%d arr=%s" %
                               (int(c.a), [int(x) for x in c.arr]))
 
-    def test_c5b_oversized_array_sum_still_defers(self):
-        """A genuinely-unsupported array construct (a ``sum`` over more elements
-        than the native n-ary summand cap) still defers with reason_code=="array"
-        under strict mode — i.e. unsupported shapes fail loudly, not silently."""
+    def test_c5b_oversized_array_select_still_defers(self):
+        """A still-unsupported array construct (a variable-index select over
+        more elements than the translator's select cap) defers with
+        reason_code=="array" under strict mode — i.e. unsupported shapes fail
+        loudly, not silently. (This used a sum over > 64 elements, which is
+        native since v2 plan V3/V4.)"""
         import vsc.model.randomizer as rnd
         from vsc.model.solver.backend import BackendIncomplete
 
         @vsc.randobj
         class C(object):
             def __init__(s):
-                s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), 100)  # > 64-summand cap
+                s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), 1025)  # > 1024 cap
+                s.i = vsc.rand_uint16_t()
 
             @vsc.constraint
             def c(s):
-                s.arr.sum < 50
+                s.i < 1025
+                s.arr[s.i] == 7
 
         saved = rnd._NO_FALLBACK
         rnd._NO_FALLBACK = True
