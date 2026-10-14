@@ -234,6 +234,33 @@ class TestVariableBoundsVisitor(VscTestCase):
         vals = [v for lo, hi in a_bounds.domain.range_l for v in range(lo, hi + 1)]
         self.assertEqual([0, 1, 2], vals)
         
+    def test_in_range_inside_another(self):
+        """A range inside an earlier one (as a `dist` expansion lists them:
+        `[10:13] :/ 1, 12 := 0`) must not cut the merged range at its own
+        end: the domain is [10..13], not [10..12]."""
+        from vsc.model.expr_literal_model import ExprLiteralModel
+        from vsc.model.expr_range_model import ExprRangeModel
+        from vsc.model.expr_rangelist_model import ExprRangelistModel
+        from vsc.model.variable_bound_in_propagator import (
+            VariableBoundInPropagator)
+        from vsc.model.variable_bound_model import VariableBoundModel
+
+        @vsc.randobj
+        class my_c(object):
+            def __init__(self):
+                self.a = vsc.rand_uint8_t()
+
+        model = my_c().get_model()
+        a = model.find_field("a")
+        lit = lambda v: ExprLiteralModel(v, False, 8)  # noqa: E731
+        rl = ExprRangelistModel()
+        rl.add_range(ExprRangeModel(lit(10), lit(13)))
+        rl.add_range(lit(12))
+        bounds = VariableBoundModel(a)
+        bounds.domain.range_l = [[0, 255]]
+        VariableBoundInPropagator(bounds, rl).propagate()
+        self.assertEqual([[10, 13]], bounds.domain.range_l)
+
 #     def test_var2var_max(self):
 #         @vsc.randobj
 #         class my_c(object):

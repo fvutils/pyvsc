@@ -36,7 +36,8 @@ class VariableBoundInPropagator(VariableBoundPropagator):
         
         for i in range(0,len(in_r_l_t)):
             if len(in_r_l) > 0 and in_r_l[-1][1]+1 >= in_r_l_t[i][0]:
-                in_r_l[-1][1] = in_r_l_t[i][1]
+                # A range inside the previous one must not shrink it.
+                in_r_l[-1][1] = max(in_r_l[-1][1], in_r_l_t[i][1])
             else:
                 in_r_l.append(in_r_l_t[i])
         
