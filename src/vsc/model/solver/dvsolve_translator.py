@@ -1498,17 +1498,13 @@ class DvSolveExprTranslator(ModelVisitor):
             else:
                 return False
 
-    # The variable-indexed-select element cap. The ITE-chain encoding is O(n)
-    # nodes; cap it so a pathologically large rand array defers (retained)
-    # rather than emit an unbounded chain.
-    _MAX_SELECT_ELEMS = 1024
-
     # Native `expr_array_select` element cap (Workstream B). The C compiler's
     # EXPR_ARRAY_SELECT path (zsp_compile.c) builds flat guard-reified
     # propagators; benchmarking showed it beats the ITE chain up to ~64 elements
-    # and degrades past ~96 (its 2n guard propagators fire poorly at scale, and
-    # the freed element set nears MAX_DECISION_DEPTH). Above this the ITE chain is
-    # both faster and correct (see the propagator side-table fix), so cap here.
+    # and degrades past that (128: 117 ms against the chain's 2 ms; 2000: 2.1 s
+    # against 65 ms). Above this the ITE chain is used, at any size: the engine
+    # serves it natively since dv-solve sized its decision depth to the problem
+    # and indexed its guard wakes (v2 plan V8/V9).
     _NATIVE_SELECT_MAX = 64
 
     def _try_native_array_select(self, e, arr, n, w, signed):
@@ -1588,11 +1584,6 @@ class DvSolveExprTranslator(ModelVisitor):
             raise BackendInternalError(
                 "variable-indexed select over the empty array '%s'"
                 % getattr(arr, "name", "?"))
-        if n > self._MAX_SELECT_ELEMS:
-            raise BackendIncomplete(
-                "dv-solve: variable-indexed select over %d elements exceeds the "
-                "native %d-element cap" % (n, self._MAX_SELECT_ELEMS),
-                reason_code="array")
         # Element width/sign come from the homogeneous element type.
         elem0 = arr.field_l[0]
         w = int(elem0.width)

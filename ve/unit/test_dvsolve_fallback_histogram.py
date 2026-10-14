@@ -64,7 +64,8 @@ _CORRECTNESS_CODES = ("search-incomplete", "bvsat-undecided")
 _RESIDUAL_ALLOWLIST = {
     "width",        # field width > 65535 bits (uint16 add_var width); V26 lifts it
     "dist",         # >64-bit dist / conditional / multiple-dist-on-field
-    "array",        # n>64 select, >64 summands, wide aggregate, object randsz
+    "array",        # object-array variable index (V10); fails on Boolector too,
+                    # so it has no residual-corpus shape
     "bvsat-sat-deferred",  # primary couldn't decide, BV-SAT *proved SAT*, deferred
                     # to the fallback for distribution / solve_order. Expected,
                     # correct two-engine operation — NOT a completeness gap (F-E1).
@@ -92,8 +93,8 @@ _RESIDUAL_MANIFEST = {
                      ">64-bit / conditional / multiple-dist-on-field — [dvs] dist "
                      "composition + wide encode"),
     "array":        ("closable",
-                     "variable-index select over > 1024 elements, object-array "
-                     "variable index, wide sum — v2 plan V5/V8-V10"),
+                     "object-array variable index — v2 plan V10 (large "
+                     "selects are native since V8/V9)"),
     "bvsat-sat-deferred": ("closable",
                      "SAT-proved but not served: an unsigned upper-half constant "
                      "bound (pyvsc literal-width inference, Phase G residual), "
@@ -302,6 +303,18 @@ def _native_corpus():
             vsc.soft(s.x == 2)
             vsc.soft(s.x == 3)
 
+    @vsc.randobj
+    class LargeSelect(object):
+        # A variable-index select over more than the old 1024-element cap
+        # (v2 plan V8/V9): the ITE chain is served natively at any size.
+        def __init__(s):
+            s.arr = vsc.rand_list_t(vsc.uint8_t(), 1025)
+            s.i = vsc.rand_uint16_t()
+        @vsc.constraint
+        def c(s):
+            s.i < 1025
+            s.arr[s.i] == 7
+
     return [
         ("scalar", Scalar),
         ("dist", Dist),
@@ -316,6 +329,7 @@ def _native_corpus():
         ("guarded_soft_primary", GuardedSoftPrimary),
         ("soft_on_bvsat_serve", SoftOnBVSatServe),
         ("soft_priority_ladder", SoftPriorityLadder),
+        ("large_select", LargeSelect),
     ]
 
 
@@ -359,25 +373,10 @@ def _residual_corpus():
         def sc(s):
             s.x > (1 << 63)
 
-    @vsc.randobj
-    class OverCapSelect(object):
-        # A variable-index select over more elements than the translator's
-        # select cap (`_MAX_SELECT_ELEMS`=1024) defers ("array"; v2 plan V8/V9).
-        # The over-64-summand `sum` that used to stand here is native since
-        # V3/V4.
-        def __init__(s):
-            s.arr = vsc.rand_list_t(vsc.uint8_t(), 1025)
-            s.i = vsc.rand_uint16_t()
-        @vsc.constraint
-        def c(s):
-            s.i < 1025
-            s.arr[s.i] == 7
-
     return [
         ("width_over_max", "width", WidthOverMax),
         ("wide_dist", "dist", WideDist),
         ("upper_half_const_bound", "bvsat-sat-deferred", UpperHalfConstBound),
-        ("over_cap_select", "array", OverCapSelect),
     ]
 
 

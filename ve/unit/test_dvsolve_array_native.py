@@ -426,37 +426,34 @@ class TestDvSolveArrayNative(VscTestCase):
                               "a inside arr violated: a=%d arr=%s" %
                               (int(c.a), [int(x) for x in c.arr]))
 
-    def test_c5b_oversized_array_select_still_defers(self):
-        """A still-unsupported array construct (a variable-index select over
-        more elements than the translator's select cap) defers with
-        reason_code=="array" under strict mode — i.e. unsupported shapes fail
-        loudly, not silently. (This used a sum over > 64 elements, which is
-        native since v2 plan V3/V4.)"""
-        import vsc.model.randomizer as rnd
-        from vsc.model.solver.backend import BackendIncomplete
+    def test_c5b_large_array_select_native(self):
+        """A variable-index select over more than 1024 elements is served
+        natively (v2 plan V8/V9): it used to defer with reason_code "array"
+        at a 1024-element cap, and from about 300 elements the engine's
+        fixed 256-level decision depth sent it to BV-SAT (1024: 5.6 s per
+        call). Now 2000 elements take about 65 ms (Boolector ~160 ms)."""
+        for n in (300, 1025, 2000):
+            @vsc.randobj
+            class C(object):
+                def __init__(s):
+                    s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), n)
+                    s.i = vsc.rand_uint16_t()
 
-        @vsc.randobj
-        class C(object):
-            def __init__(s):
-                s.arr = vsc.rand_list_t(vsc.rand_uint8_t(), 1025)  # > 1024 cap
-                s.i = vsc.rand_uint16_t()
+                @vsc.constraint
+                def c(s):
+                    s.i < n
+                    s.arr[s.i] == 7
 
-            @vsc.constraint
-            def c(s):
-                s.i < 1025
-                s.arr[s.i] == 7
-
-        saved = rnd._NO_FALLBACK
-        rnd._NO_FALLBACK = True
-        try:
-            with self.assertRaises(BackendIncomplete) as ctx:
-                C().randomize()
-            self.assertEqual(getattr(ctx.exception, "reason_code", None), "array",
-                             "defer should carry reason_code='array': %s" %
-                             ctx.exception)
-        finally:
-            rnd._NO_FALLBACK = saved
-
+            with _no_fallback():
+                c = C()
+                seen = set()
+                for _ in range(5):
+                    c.randomize()
+                    i = int(c.i)
+                    self.assertTrue(0 <= i < n, (n, i))
+                    self.assertEqual(int(c.arr[i]), 7, (n, i))
+                    seen.add(i)
+                self.assertGreater(len(seen), 1, (n, seen))
 
 if __name__ == "__main__":
     unittest.main()
