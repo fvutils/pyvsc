@@ -1239,8 +1239,10 @@ class DvSolveExprTranslator(ModelVisitor):
         from vsc.model.expr_bin_model import ExprBinModel
         from vsc.model.expr_literal_model import ExprLiteralModel
         if not self._m.has(arr.size):
-            # Resolved size: fixed active prefix.
+            # Resolved size: fixed active prefix. Baked into the problem, so
+            # a cached plan must not be reused once the size changes.
             n = int(arr.size.get_val())
+            self.const_fields[arr.size] = n
             refs = [self.translate(_FR(arr.field_l[k])) for k in range(n)]
             terms = [self._b.expr_binary(BIN_NEQ, refs[i], refs[j])
                      for i in range(len(refs)) for j in range(i + 1, len(refs))]

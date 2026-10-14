@@ -105,6 +105,32 @@ class TestDvSolveUniqueRandsz(VscTestCase):
                 sizes.add(len(vals))
         self.assertEqual(sizes, {2, 3, 4})
 
+    def test_unique_resolved_size_plan_not_stale(self):
+        """Size solved in its own, earlier RandSet: the active prefix is baked
+        into the element problem, so the cached plan must not be reused once
+        the size changes. It was, and elements past the old size went
+        unconstrained (duplicates in ~60% of draws over 3-bit values)."""
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.l = vsc.randsz_list_t(vsc.bit_t(3))
+
+            @vsc.constraint
+            def l_c(s):
+                s.l.size in vsc.rangelist((1, 8))
+                vsc.unique(s.l)
+
+        obj = C()
+        sizes = set()
+        with _strict_no_fallback():
+            for _ in range(200):
+                obj.randomize()
+                vals = [int(v) for v in obj.l]
+                self.assertTrue(1 <= len(vals) <= 8, vals)
+                self.assertEqual(len(set(vals)), len(vals), vals)
+                sizes.add(len(vals))
+        self.assertGreater(len(sizes), 3, sizes)
+
 
 if __name__ == "__main__":
     unittest.main()
