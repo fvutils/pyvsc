@@ -28,3 +28,30 @@ class TestDistOverlap(VscTestCase):
                 vsc.dist(s.a, [vsc.weight((10, 13), 1), vsc.weight(12, 1)])
 
         self.assertEqual(self._values(C()), {10, 11, 12, 13})
+
+    def test_zero_weight_inside_a_range_is_excluded(self):
+        """`[10:13] :/ 1, 12 := 0`: 12 is excluded, as on Boolector, which
+        asserts `!(a == 12)` for a zero weight. dv-solve's value picker only
+        gave the entry no mass, and 12 kept the range's."""
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def c(s):
+                vsc.dist(s.a, [vsc.weight((10, 13), 1), vsc.weight(12, 0)])
+
+        self.assertEqual(self._values(C()), {10, 11, 13})
+
+    def test_zero_weight_range_inside_a_range_is_excluded(self):
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+
+            @vsc.constraint
+            def c(s):
+                vsc.dist(s.a, [vsc.weight((0, 15), 1), vsc.weight((4, 11), 0)])
+
+        self.assertEqual(self._values(C()), {0, 1, 2, 3, 12, 13, 14, 15})

@@ -1667,6 +1667,7 @@ class DvSolveBackend(SolverBackendIF):
         # Common path: exactly one unconditional dist.
         if len(scopes) == 1 and not conditional:
             entries = self._dist_entries(f, scopes[0].dist_c)
+            self._exclude_zero_weight(b, f, [entries], tr)
             if entries:
                 b.add_dist(idmap.id_of(f), _dist_patterns(f, entries))
                 return entries, None
@@ -1719,11 +1720,8 @@ class DvSolveBackend(SolverBackendIF):
         if not active:
             return None, None
         per = [self._dist_entries(f, s.dist_c) for s in active]
-        if len(per) == 1:
-            entries = per[0]
-        else:
-            self._exclude_zero_weight(b, f, per, tr)
-            entries = _mix_dist_entries(per)
+        self._exclude_zero_weight(b, f, per, tr)
+        entries = per[0] if len(per) == 1 else _mix_dist_entries(per)
         if entries:
             b.add_dist(idmap.id_of(f), _dist_patterns(f, entries))
             return entries, None
@@ -1733,8 +1731,11 @@ class DvSolveBackend(SolverBackendIF):
     def _exclude_zero_weight(b, f, per, tr, cond_l=()):
         """Assert ``f`` outside every zero-weight entry of every dist in
         ``per`` (``f < lo || f > hi``), under the guard ``cond_l`` when one is
-        given. A lone dist gets this from its own ``add_dist``; a mixture drops
-        zero-weight entries (they carry no mass), so it must be explicit."""
+        given, as Boolector's dist expansion does. The engine's ``add_dist``
+        only gives such an entry no mass: a value another entry also covers
+        (``[0:255] :/ 1, 0 := 0``) kept that entry's mass, and the BV-SAT
+        samplers, which serve every dist on a field over 64 bits, ignore
+        ``add_dist``. A mixture drops zero-weight entries altogether."""
         from vsc.model.expr_bin_model import ExprBinModel
         from vsc.model.expr_fieldref_model import ExprFieldRefModel
         from vsc.model.expr_literal_model import ExprLiteralModel
@@ -1791,8 +1792,9 @@ class DvSolveBackend(SolverBackendIF):
         Each ``DistWeightExprModel`` becomes one entry: a single value → a
         ``[v, v]`` per-value entry; a range → a ``[lo, hi]`` entry whose
         ``is_per_value`` follows the ``:=``/``:/`` flag. Zero-weight entries are
-        kept so native does the exclusion; a negative weight counts as zero, as
-        on Boolector. An entry is clipped to the field's domain, or dropped when
+        kept (the caller also excludes their values as hard constraints,
+        ``_exclude_zero_weight``); a negative weight counts as zero, as on
+        Boolector. An entry is clipped to the field's domain, or dropped when
         none of it is in the domain: a value the field can't hold can't be
         chosen, which is what the engine already does with one inside int64
         (and keeps every bound inside int64). Raises ``BackendIncomplete`` for
