@@ -539,22 +539,30 @@ def _ctx_nbytes(ctx):
 
 
 def _make_solve_ctx(buf, problem_sz=0, label=None):
-    """Create a SolveCtx with a problem-sized working-pool buffer, growing on
-    pool overflow. Compile *verdicts* (UNSAT / incomplete) are real and not
-    retried; a generic compile failure (likely pool overflow) is retried at 4x
-    until ``_CTX_BUF_MAX``, then propagates. ``label`` names the context in the
-    oracle check's records."""
+    """Create a SolveCtx. A dynamic-pool dv-solve sizes itself; on an older
+    fixed-pool one, a generic compile failure (likely pool overflow) is retried
+    with a problem-sized buffer, growing 4x up to ``_CTX_BUF_MAX``, then
+    propagates. Compile *verdicts* (UNSAT / incomplete) are real and not
+    retried. ``label`` names the context in the oracle check's records."""
     from dv_solve.ctx import (
         SolveCtx, CompileUnsatError, CompileIncompleteError)
-    # First estimate from the problem, rounded up to a 64 KiB multiple.
-    size = max(_CTX_BUF_FLOOR,
-               (problem_sz * _CTX_BUF_PER_PROBLEM_BYTE + 0xFFFF) & ~0xFFFF)
-    last = None
+    kw = {"label": label} if label is not None else {}
+    # A dv-solve with the dynamic pool grows the context itself (and ignores
+    # ctx_buf_size), so try that first. Only an older, fixed-pool dv-solve
+    # fails here on a large problem and needs the sized retries below.
+    try:
+        return SolveCtx(buf, **kw)
+    except (CompileUnsatError, CompileIncompleteError):
+        raise
+    except RuntimeError as e:
+        last = e
+    # First estimate from the problem, rounded up to a 64 KiB multiple, and
+    # capped so a large problem still gets an attempt at _CTX_BUF_MAX.
+    size = min(_CTX_BUF_MAX,
+               max(_CTX_BUF_FLOOR,
+                   (problem_sz * _CTX_BUF_PER_PROBLEM_BYTE + 0xFFFF) & ~0xFFFF))
     while size <= _CTX_BUF_MAX:
         try:
-            # label only with an oracle on: a dv-solve older than the oracle
-            # check has no such parameter.
-            kw = {"label": label} if label is not None else {}
             return SolveCtx(buf, ctx_buf_size=size, **kw)
         except (CompileUnsatError, CompileIncompleteError):
             raise
