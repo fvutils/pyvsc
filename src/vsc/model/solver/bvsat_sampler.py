@@ -459,11 +459,12 @@ def sample_dist_conditional(make_base, readback, sample_vars, seed,
          assume-random-then-assert the swizzler / ``sample_ordered`` use. Freezing
          the guards fixes which branch is active for each conditional dist field.
       2. **Per conditional dist field** (``cond_dist_targets`` — ``{vid:
-         [(cond_l, entries), ...]}``): evaluate which branch's guard now holds
-         (``_guard_holds``, reading the frozen guard values) and draw a weighted
-         target from *that* branch's entries (``_weighted_target``), assume→assert.
-         No active branch → leave the field free (the guarded ``inside`` membership
-         still constrains it).
+         [(cond_l, entries), ...]}``): find the branches whose guard now holds
+         (``_guard_holds``, reading the frozen guard values; a plain dist's empty
+         guard always holds) and draw a weighted target from their entries, or
+         from their mixture when several hold (``_weighted_target``),
+         assume→assert. No active branch → leave the field free (the guarded
+         ``inside`` membership still constrains it).
       3. **Uniform-sample the rest** with all pins applied.
 
     ``guard_vids`` — set of var ids to freeze before branch selection.
@@ -521,11 +522,16 @@ def sample_dist_conditional(make_base, readback, sample_vars, seed,
         branches = cond_dist_targets.get(vid)
         if not branches or vid not in sv_by_vid:
             continue
-        entries = None
-        for (cond_l, br_entries) in branches:
-            if _guard_holds(cond_l):
-                entries = br_entries
-                break
+        # Several active dists (a plain one is a branch with an empty guard)
+        # apply as their equal-probability mixture, as on the constant-guard
+        # path (DvSolveBackend._add_dist_for_field).
+        active = [br for (cond_l, br) in branches
+                  if br and _guard_holds(cond_l)]
+        if len(active) > 1:
+            from vsc.model.solver.dvsolve_backend import _mix_dist_entries
+            entries = _mix_dist_entries(active)
+        else:
+            entries = active[0] if active else None
         if not entries:
             continue                         # no active branch -> leave field free
         width, lo, hi, signed = sv_by_vid[vid]

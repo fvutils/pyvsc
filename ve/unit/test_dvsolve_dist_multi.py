@@ -184,6 +184,65 @@ class TestDvSolveDistMulti(VscTestCase):
         self.assertGreater(h0[2], 400, h0)
         self.assertGreater(h1[1], 400, h1)
 
+    def _draw_with(self, obj, n, *guards):
+        h = collections.Counter()
+        with _strict_no_fallback():
+            for _ in range(n):
+                obj.randomize()
+                h[(int(obj.a),) + tuple(int(getattr(obj, g)) for g in guards)] += 1
+        return h
+
+    def test_plain_with_rand_guarded(self):
+        """A plain dist plus one under a rand guard (this deferred before
+        V21). Guard false: the plain dist alone, uniform over 0..3. Guard
+        true: the mixture, renormalised over its feasible values: the
+        guarded dist excludes 3, so P(0) = 32/56 ~ 0.57."""
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+                s.b = vsc.rand_bit_t(1)
+
+            @vsc.constraint
+            def c(s):
+                vsc.dist(s.a, [vsc.weight(0, 1), vsc.weight(1, 1),
+                               vsc.weight(2, 1), vsc.weight(3, 1)])
+                with vsc.if_then(s.b == 1):
+                    vsc.dist(s.a, [vsc.weight(0, 6), vsc.weight(1, 1),
+                                   vsc.weight(2, 1), vsc.weight(3, 0)])
+
+        h = self._draw_with(C(), 1200, "b")
+        n0 = sum(c for (a, b), c in h.items() if b == 0)
+        n1 = sum(c for (a, b), c in h.items() if b == 1)
+        self.assertEqual(h[(3, 1)], 0, h)
+        for v in range(4):
+            self.assertTrue(0.17 < h[(v, 0)] / n0 < 0.33, h)
+        self.assertTrue(0.48 < h[(0, 1)] / n1 < 0.66, h)
+
+    def test_two_rand_guarded_both_active(self):
+        """Two dists under different rand guards: when both guards hold they
+        apply as their mixture, P(1) = (1/2 + 3/4) / 2 = 0.625, not as the
+        first branch alone (0.5)."""
+        @vsc.randobj
+        class C(object):
+            def __init__(s):
+                s.a = vsc.rand_uint8_t()
+                s.b = vsc.rand_bit_t(1)
+                s.c = vsc.rand_bit_t(1)
+
+            @vsc.constraint
+            def cc(s):
+                s.a < 2
+                with vsc.if_then(s.b == 1):
+                    vsc.dist(s.a, [vsc.weight(0, 1), vsc.weight(1, 1)])
+                with vsc.if_then(s.c == 1):
+                    vsc.dist(s.a, [vsc.weight(0, 1), vsc.weight(1, 3)])
+
+        h = self._draw_with(C(), 2000, "b", "c")
+        both = h[(0, 1, 1)] + h[(1, 1, 1)]
+        self.assertGreater(both, 300, h)
+        self.assertTrue(0.56 < h[(1, 1, 1)] / both < 0.69, h)
+
 
 if __name__ == "__main__":
     unittest.main()

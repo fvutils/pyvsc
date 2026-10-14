@@ -568,6 +568,18 @@ def _dist_mass(entries):
                for e in entries)
 
 
+def _guard_ref(tr, c):
+    """A dist scope's guard expression as a boolean ref, read logically as
+    ``_guard_holds`` reads it: an if/else false branch's ``Not(..)`` wrapper
+    is a logical not of its operand's truth."""
+    from vsc.model.expr_unary_model import ExprUnaryModel
+    from vsc.model.unary_expr_type import UnaryExprType
+    from dv_solve.problem import UN_NOT
+    if isinstance(c, ExprUnaryModel) and c.op == UnaryExprType.Not:
+        return tr._b.expr_unary(UN_NOT, _guard_ref(tr, c.expr))
+    return tr._translate_guarded_cond(c)
+
+
 def _mix_dist_entries(per):
     """One entry list whose distribution is the equal-probability mixture of
     the dists in ``per``: dist i's weights are multiplied by the product of the
@@ -1615,8 +1627,9 @@ class DvSolveBackend(SolverBackendIF):
            (``_mix_dist_entries``). Deterministic, so the plan stays cacheable.
            Each dist's zero-weight values are excluded as hard constraints:
            in a mixture another dist could otherwise give them weight.
-         * A plain dist mixed with a rand-guarded conditional one: defer
-           (``reason_code="dist"``).
+         * Any rand-guarded conditional dist (with or without plain ones): a
+           guard-staged target (below), the plain dists as always-active
+           branches.
 
         Returns ``(entries, cond_target)``:
 
@@ -1645,31 +1658,31 @@ class DvSolveBackend(SolverBackendIF):
 
         rand_guarded = [s for s in conditional
                         if _guard_references_rand(getattr(s, "cond_l", []))]
-        if plain:
-            if rand_guarded:
-                raise BackendIncomplete(
-                    "dv-solve: plain and rand-guarded conditional dist on "
-                    "field '%s'" % getattr(f, "name", "?"),
-                    reason_code="dist")
+        if plain and not rand_guarded:
             active = plain + [s for s in conditional
                               if self._guard_true(getattr(s, "cond_l", []))]
             return self._emit_dist_mixture(b, idmap, f, active, tr)
 
-        # All scopes conditional. A rand guard can't be resolved at build time.
-        # Rather than drop the weighting to a uniform union (the old Phase-B §5
-        # reduced-distribution behavior), build a guard-staged conditional target:
-        # the sampler freezes the guard, then applies the *active* branch's weights.
-        # Still emit the uniform union as the native primary's fallback picker (it
-        # is ignored on the BV-SAT serve path but keeps the non-served path sound).
+        # A rand guard can't be resolved at build time. Rather than drop the
+        # weighting to a uniform union (the old Phase-B §5 reduced-distribution
+        # behavior), build a guard-staged conditional target: the sampler
+        # freezes the guards, then applies the mixture of the dists active
+        # under them. A plain dist is a branch whose (empty) guard always
+        # holds. Each dist's zero-weight values are excluded under its guard,
+        # since a mixture drops them (_mix_dist_entries). Still emit the
+        # uniform union as the native primary's fallback picker (it is ignored
+        # on the BV-SAT serve path but keeps the non-served path sound).
         if rand_guarded:
             branches = []
             guard_vids = set()
             union = []
-            for s in conditional:
-                cond_l = getattr(s, "cond_l", [])
+            for s in plain + conditional:
+                cond_l = getattr(s, "cond_l", []) \
+                    if getattr(s, "is_conditional", False) else []
                 br_entries = self._dist_entries(f, s.dist_c)
                 branches.append((cond_l, br_entries))
                 guard_vids |= _guard_field_vids(cond_l, idmap)
+                self._exclude_zero_weight(b, f, [br_entries], tr, cond_l)
                 for e in br_entries:
                     union.append({**e, "weight": 1})
             if union:
@@ -1706,15 +1719,20 @@ class DvSolveBackend(SolverBackendIF):
         return None, None
 
     @staticmethod
-    def _exclude_zero_weight(b, f, per, tr):
+    def _exclude_zero_weight(b, f, per, tr, cond_l=()):
         """Assert ``f`` outside every zero-weight entry of every dist in
-        ``per`` (``f < lo || f > hi``). A lone dist gets this from its own
-        ``add_dist``; a mixture drops zero-weight entries (they carry no mass),
-        so it must be explicit."""
+        ``per`` (``f < lo || f > hi``), under the guard ``cond_l`` when one is
+        given. A lone dist gets this from its own ``add_dist``; a mixture drops
+        zero-weight entries (they carry no mass), so it must be explicit."""
         from vsc.model.expr_bin_model import ExprBinModel
         from vsc.model.expr_fieldref_model import ExprFieldRefModel
         from vsc.model.expr_literal_model import ExprLiteralModel
         from vsc.model.bin_expr_type import BinExprType
+        from dv_solve.problem import BIN_AND, BIN_OR, UN_NOT
+        guard = None
+        for c in cond_l:
+            g = _guard_ref(tr, c)
+            guard = g if guard is None else b.expr_binary(BIN_AND, guard, g)
         seen = set()
         for entries in per:
             for e in entries:
@@ -1726,8 +1744,12 @@ class DvSolveBackend(SolverBackendIF):
                 hi = ExprLiteralModel(e["hi"], f.is_signed, f.width)
                 below = ExprBinModel(ExprFieldRefModel(f), BinExprType.Lt, lo)
                 above = ExprBinModel(ExprFieldRefModel(f), BinExprType.Gt, hi)
-                b.add_constraint(tr.translate(
-                    ExprBinModel(below, BinExprType.Or, above)))
+                outside = tr.translate(
+                    ExprBinModel(below, BinExprType.Or, above))
+                if guard is not None:
+                    outside = b.expr_binary(
+                        BIN_OR, b.expr_unary(UN_NOT, guard), outside)
+                b.add_constraint(outside)
 
     @staticmethod
     def _guard_true(cond_l):
