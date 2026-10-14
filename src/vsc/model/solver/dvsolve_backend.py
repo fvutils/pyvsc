@@ -538,6 +538,29 @@ def _ctx_nbytes(ctx):
     return n
 
 
+def _fit_weights_u32(entries):
+    """Scale ``add_dist`` weights by one common factor so the largest fits the
+    native uint32 weight, keeping their ratios. Each entry's mass is
+    ``weight`` (or ``weight * count`` for ``:=``), so a common factor keeps
+    every mass ratio too. Rounding: a nonzero weight stays at least 1 (so it
+    is never turned into a zero-weight exclusion); otherwise the relative
+    error of a weight w' after scaling is at most 1/(2 w'). Entries that
+    already fit are returned unchanged."""
+    wmax = max((e["weight"] for e in entries), default=0)
+    if wmax <= _U32_MAX:
+        return entries
+    out = []
+    for e in entries:
+        w = e["weight"]
+        if w:
+            w = max(1, (w * _U32_MAX + wmax // 2) // wmax)
+        out.append({**e, "weight": w})
+    return out
+
+
+_U32_MAX = (1 << 32) - 1
+
+
 def _make_solve_ctx(buf, problem_sz=0, label=None):
     """Create a SolveCtx. A dynamic-pool dv-solve sizes itself; on an older
     fixed-pool one, a generic compile failure (likely pool overflow) is retried
@@ -1519,11 +1542,10 @@ class DvSolveBackend(SolverBackendIF):
             for r in range_l])
         return ExprInModel(ExprFieldRefModel(field), rl)
 
-    # int64 / uint32 envelopes for native DistEntry fields (lo/hi int64,
-    # weight uint32). A dist outside these can't be encoded → defer.
+    # int64 envelope for native DistEntry lo/hi; a range outside it can't be
+    # encoded → defer. (Weights over uint32 are scaled: _fit_weights_u32.)
     _I64_MIN = -(1 << 63)
     _I64_MAX = (1 << 63) - 1
-    _U32_MAX = (1 << 32) - 1
 
     def _add_dist_for_field(self, b, idmap, f, scopes):
         """Emit the native ``add_dist`` weighting for field ``f`` from its dist
@@ -1678,13 +1700,13 @@ class DvSolveBackend(SolverBackendIF):
                     "dv-solve: dist range on '%s' exceeds int64" %
                     getattr(field, "name", "?"),
                     reason_code="dist")
-            if not (0 <= weight <= self._U32_MAX):
+            if weight < 0:
                 raise BackendIncomplete(
-                    "dv-solve: dist weight on '%s' out of uint32 range" %
+                    "dv-solve: dist weight on '%s' is negative" %
                     getattr(field, "name", "?"),
                     reason_code="dist")
             if hi < lo:
                 lo, hi = hi, lo
             entries.append({"lo": lo, "hi": hi, "weight": weight,
                             "is_per_value": is_per_value})
-        return entries
+        return _fit_weights_u32(entries)
