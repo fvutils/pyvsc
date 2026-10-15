@@ -79,9 +79,10 @@ Available back-ends
    exclusion) rather than being expanded into ordinary constraints. dv-solve
    solves every constraint shape PyVSC can express by itself; the one limit
    is a field wider than 2\ :sup:`24` (16,777,216) bits (see *When dv-solve
-   cannot solve a set* below). Fields over 64 bits are solved by bit-blasting;
-   a very wide one is correct but slow to sample (around a second at 70,000
-   bits, over a minute at 1,000,000).
+   cannot solve a set* below). Fields over 64 bits are solved by
+   bit-blasting. A draw of a 65,536-bit ``a < b`` takes tens of milliseconds
+   once the object has been randomized twice (the encoded problem is kept);
+   the first ``randomize()`` of a 1,000,000-bit field takes a few seconds.
 
 How dv-solve decides
 ====================
@@ -107,6 +108,9 @@ On that fallback:
   own model is clustered (good for "find a solution", not for coverage
   stimulus), so dv-solve draws the values through a uniform (XOR-hashing)
   sampler instead, honoring ``dist``, ``solve_order`` and soft constraints.
+  The sampler runs in the engine: the problem is bit-blasted once and each
+  hashing plane is a SAT assumption, so a draw is one or a few incremental
+  solves.
 
 When dv-solve cannot solve a set
 ================================

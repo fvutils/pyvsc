@@ -349,12 +349,17 @@ class _CompiledPlan(object):
     """
 
     __slots__ = ("ctx", "readback", "struct_sig", "const_fields", "_keepalive",
-                 "bulk", "nbytes", "cached", "__weakref__")
+                 "bulk", "nbytes", "cached", "sample_vars", "__weakref__")
 
-    def __init__(self, ctx, readback, struct_sig, const_fields, keepalive):
+    def __init__(self, ctx, readback, struct_sig, const_fields, keepalive,
+                 sample_vars=None):
+        # sample_vars set: `ctx` is an incremental BV-SAT context that serves by
+        # drawing again (bvsat_sampler.draw_native), not a SolveCtx (V19).
+        self.sample_vars = sample_vars
         # Native memory this plan keeps alive: the context's working buffer and
         # the problem buffer (the block allocator's growth isn't visible here).
-        self.nbytes = _ctx_nbytes(ctx)
+        self.nbytes = (_bvsat_nbytes(ctx) if sample_vars is not None
+                       else _ctx_nbytes(ctx))
         self.cached = False
         # Lazily-built _BulkReadback for `readback` (S1.2). Built on the first
         # reuse rather than here, so a plan that is never reused pays nothing.
@@ -520,6 +525,24 @@ def _ctx_nbytes(ctx):
             n += ctypes.sizeof(b)
         except TypeError:
             n += len(getattr(b, "raw", b"") or b"") if b is not None else 0
+    return n
+
+
+# Smallest encoded problem (AIG gates) worth keeping between randomize() calls
+# for the BV-SAT sampler; see retain() in _build_and_solve.
+_BVSAT_KEEP_MIN_ANDS = 20000
+
+
+def _bvsat_nbytes(bb):
+    """Native memory an incremental BV-SAT context holds, roughly: the AIG and
+    the SAT solver's clauses and variables, plus the problem buffer."""
+    import ctypes
+    st = bb.stats()
+    n = 16 * st["aig_ands"] + 32 * st["sat_clauses"] + 64 * st["sat_vars"]
+    try:
+        n += ctypes.sizeof(bb._problem)
+    except TypeError:
+        pass
     return n
 
 
@@ -773,7 +796,26 @@ class DvSolveBackend(SolverBackendIF):
             sig = self._reuse_signature(rs, rand_fields, bound_m)
             plan = getattr(anchor, _PLAN_ATTR, None)
             if plan is not None:
-                if plan.struct_sig == sig and plan.values_unchanged():
+                if (plan.sample_vars is not None and plan.struct_sig == sig
+                        and plan.values_unchanged()):
+                    # A BV-SAT-served RandSet: draw again from the encoded
+                    # instance. Anything but SAT rebuilds, below, which gives
+                    # the authoritative verdict.
+                    from vsc.model.solver import bvsat_sampler
+                    from dv_solve.bvsat import BVSAT_SAT
+                    _PLAN_CACHE.touch(plan)
+                    rc = bvsat_sampler.draw_native(
+                        plan.ctx, plan.readback, plan.sample_vars,
+                        randstate.randint(0, (1 << 63) - 1), solve_info=solve_info)
+                    if rc == BVSAT_SAT:
+                        if plan.ctx.sample_stale():
+                            # Earlier draws' planes now outweigh the problem
+                            # and slow every solve: drop the instance; the
+                            # next randomize() encodes a fresh one.
+                            setattr(anchor, _PLAN_ATTR, None)
+                            plan.destroy()
+                        return SolveResult(status=0)
+                elif plan.struct_sig == sig and plan.values_unchanged():
                     _PLAN_CACHE.touch(plan)
                     plan.ctx.reset()
                     # The cached SolveCtx keeps its own problem buffer
@@ -1013,13 +1055,37 @@ class DvSolveBackend(SolverBackendIF):
             #    encoding is correct and BV-SAT is complete (Phase F / F-2).
             # The <=64-bit, primary-sound common path below is unchanged.
             if has_wide or tr.requires_bvsat:
+                def retain(bb, _sv=sample_vars, _rb=readback, _tr=tr, _rs=rs):
+                    # Keep the encoded BV-SAT instance for the next randomize(),
+                    # admitted as a compiled plan is (the second time this
+                    # anchor builds this problem). Only a big one: a reused
+                    # instance carries earlier draws' planes and learned
+                    # clauses, which costs more than encoding a small problem
+                    # again (measured: a 64-bit `a == b` draws in 33 ms fresh,
+                    # 60-90 ms reused; a 65536-bit `a < b` in 25 ms reused).
+                    if anchor is None or sig is None:
+                        return False
+                    if bb.stats()["aig_ands"] < _BVSAT_KEEP_MIN_ANDS:
+                        return False
+                    if getattr(anchor, _SEEN_ATTR, None) != sig:
+                        setattr(anchor, _SEEN_ATTR, sig)
+                        return False
+                    keepalive = (list(_rs.constraints()), list(_rs.soft_constraints()))
+                    plan = _CompiledPlan(bb, _rb, sig, list(_tr.const_fields.items()),
+                                         keepalive, sample_vars=_sv)
+                    if _PLAN_CACHE.add(anchor, _PLAN_ATTR, plan):
+                        setattr(anchor, _PLAN_ATTR, plan)
+                        return True
+                    plan.ctx = None
+                    return False
                 return self._solve_via_bvsat(
                     buf, readback, randstate, solve_info,
                     make_base=make_base, sample_vars=sample_vars,
                     has_order=has_order,
                     rand_order_l=rand_order_l, dist_targets=tr.dist_targets,
                     cond_dist_targets=tr.cond_dist_targets,
-                    dist_guard_vids=tr.dist_guard_vids, n_softs=n_softs)
+                    dist_guard_vids=tr.dist_guard_vids, n_softs=n_softs,
+                    retain=retain)
 
             try:
                 ctx = _make_solve_ctx(buf, problem_sz,
@@ -1333,7 +1399,7 @@ class DvSolveBackend(SolverBackendIF):
                          has_order=False,
                          rand_order_l=None, dist_targets=None,
                          cond_dist_targets=None, dist_guard_vids=None,
-                         n_softs=0) -> SolveResult:
+                         n_softs=0, retain=None) -> SolveResult:
         """Solve ``problem_buf`` with the internal BV-SAT completeness engine and
         write values back. Authoritative: SAT -> set values & return; UNSAT ->
         ``SolveFailure``; UNKNOWN/ERROR -> ``BackendInternalError`` (the
@@ -1358,6 +1424,31 @@ class DvSolveBackend(SolverBackendIF):
         # across rebuilds (no Python-side soft-index mapping). A soft that conflicts
         # is relaxed by the engine, never dropped silently or enforced as hard.
         soft_keep = None
+        if (n_softs == 0 and not has_order and not dist_targets
+                and not cond_dist_targets and _BVSAT_SAMPLER
+                and make_base is not None and sample_vars):
+            # Plain uniform serve: the engine's sampler decides SAT/UNSAT
+            # itself (a complete engine), so the problem is blasted once, not
+            # once to check and again to sample (V19). `retain` may keep the
+            # encoded instance for the next randomize(). UNKNOWN/ERROR fall
+            # through to the check below, which reports them.
+            from vsc.model.solver import bvsat_sampler
+            nb = bvsat_sampler.open_native(problem_buf)
+            if nb is not None:
+                kept = False
+                try:
+                    rc = bvsat_sampler.draw_native(
+                        nb, readback, sample_vars, seed, solve_info=solve_info)
+                    if rc == BVSAT_SAT:
+                        kept = retain is not None and retain(nb)
+                        return SolveResult(status=0)
+                    if rc == BVSAT_UNSAT:
+                        raise SolveFailure(
+                            "dv-solve BV-SAT engine proved unsatisfiable",
+                            "dv-solve BV-SAT engine proved the constraints unsatisfiable")
+                finally:
+                    if not kept:
+                        nb.destroy()
         bb = BVSatCtx(problem_buf)
         try:
             if n_softs > 0:

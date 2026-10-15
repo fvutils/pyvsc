@@ -43,6 +43,15 @@ Determinism: the plane coefficients and the per-level kissat seed are derived
 deterministically from the caller's ``seed``, so the same pyvsc seed reproduces
 the same value stream (per-seed determinism; cross-version is not promised, like
 any sampler change).
+
+**Native sampling (v2 plan V19).** The schedule above now runs in the engine
+(``dvs_bbsolver_sample``): the problem is bit-blasted once on an incremental
+SAT backend (CaDiCaL), each plane is an assumption literal, and the level is
+found top-first (one solve when the feasible set is too big to empty, else a
+binary search), with the free bits diversified once, on the final model. A
+65536-bit ``a < b`` draw went from ~1.2 s to ~25 ms. The Python loop below is
+kept for a dv-solve built without CaDiCaL, and as an A/B reference
+(``_NATIVE = False``).
 """
 from __future__ import annotations
 
@@ -53,6 +62,10 @@ _U64 = (1 << 64) - 1
 # Cap the plane count. A feasible set above 2^_M_CAP cannot be covered by the
 # handful of draws a randomize loop makes, so more planes only cost solves.
 _M_CAP = 16
+
+# Draw through the engine's sampler (dvs_bbsolver_sample) when the build has an
+# incremental SAT backend. False forces the Python level loop (A/B).
+_NATIVE = True
 
 # Cap the bits hashed per variable. Critical for performance: kissat is plain
 # CDCL and is *pathologically slow* on XOR/parity constraints (the CDCL worst
@@ -142,13 +155,75 @@ def _append_one_plane(b, bits, rng):
     return False
 
 
+def _read_model(bb, vid, ws_by_vid):
+    """Variable ``vid``'s value in ``bb``'s model, as its field reads it."""
+    ws = ws_by_vid.get(vid)
+    if ws is None:
+        return bb.value(vid)
+    width, signed = ws
+    if width > 64:
+        return bb.value_wide(vid, width, signed)
+    # int64 fast path: reinterpret as unsigned for an unsigned field whose
+    # top bit is set (only at width 64), matching the field's declared sign.
+    v = bb.value(vid)
+    return v if signed else v & ((1 << width) - 1)
+
+
+def open_native(problem_buf):
+    """An incremental BV-SAT context over the finalized ``problem_buf`` for
+    :func:`draw_native`, or ``None`` when ``_NATIVE`` is off or the build has
+    no incremental SAT backend. The caller destroys it."""
+    if not _NATIVE:
+        return None
+    from dv_solve.bvsat import BVSatCtx
+    bb = BVSatCtx(problem_buf, incremental=True)
+    if not bb.is_incremental():
+        bb.destroy()
+        return None
+    return bb
+
+
+def draw_native(bb, readback, sample_vars, seed, solve_info=None, soft_keep=None):
+    """Draw a near-uniform model with the engine's sampler
+    (``dvs_bbsolver_sample``) on ``bb`` (from :func:`open_native`) and, on SAT,
+    write it into the readback fields. The first draw encodes the problem;
+    later draws on the same ``bb`` only solve. Returns the BV-SAT verdict, which
+    is authoritative (a complete engine): ``BVSAT_SAT``, ``BVSAT_UNSAT`` (no
+    model at all), or UNKNOWN / ERROR."""
+    from dv_solve.bvsat import BVSAT_SAT
+    if solve_info is not None:
+        solve_info.n_sat_calls += 1
+    rc = bb.sample([sv[0] for sv in sample_vars], seed, soft_keep=soft_keep)
+    if rc == BVSAT_SAT:
+        ws = {vid: (width, signed) for (vid, width, _lo, _hi, signed) in sample_vars}
+        for f, vid in readback:
+            f.set_val(_read_model(bb, vid, ws))
+    return rc
+
+
+def sample_problem(problem_buf, readback, sample_vars, seed,
+                   solve_info=None, soft_keep=None):
+    """One :func:`draw_native` on a fresh context over ``problem_buf``.
+    Returns its verdict, or ``None``, having done nothing, when there is no
+    native sampler (see :func:`open_native`)."""
+    bb = open_native(problem_buf)
+    if bb is None:
+        return None
+    try:
+        return draw_native(bb, readback, sample_vars, seed,
+                           solve_info=solve_info, soft_keep=soft_keep)
+    finally:
+        bb.destroy()
+
+
 def sample(make_base, readback, sample_vars, seed,
            solve_info=None, m_max=None, soft_keep=None):
     """Draw a near-uniform model and write it into the readback fields.
 
     ``make_base``  — zero-arg factory returning a fresh, finalize-ready
                      ``SolveProblemBuilder`` for the base problem (same vars/ids
-                     as ``readback``). Invoked exactly once.
+                     as ``readback``). Invoked once (twice on a dv-solve
+                     without CaDiCaL, which takes the Python loop).
     ``readback``   — list of ``(field, var_id)`` to write the model into.
     ``sample_vars``— list of ``(var_id, width, lo, hi, is_signed)`` describing
                      the declared domain of each rand field (for bit selection
@@ -170,17 +245,23 @@ def sample(make_base, readback, sample_vars, seed,
     _ws = {vid: (width, signed)
            for (vid, width, _lo, _hi, signed) in sample_vars}
 
+    if _NATIVE and m_max is None:
+        b = make_base()
+        try:
+            buf, _sz = b.finalize()
+        finally:
+            b.destroy()
+        rc = sample_problem(buf, readback, sample_vars, seed,
+                            solve_info=solve_info, soft_keep=soft_keep)
+        if rc is not None:
+            return True if rc == BVSAT_SAT else None
+        # No incremental backend in this build: the Python loop, below.
+
     def _read(bb, vid):
         ws = _ws.get(vid)
         if ws is None:
             return bb.value(vid)
-        width, signed = ws
-        if width > 64:
-            return bb.value_wide(vid, width, signed)
-        # int64 fast path: reinterpret as unsigned for an unsigned field whose
-        # top bit is set (only at width 64), matching the field's declared sign.
-        v = bb.value(vid)
-        return v if signed else v & ((1 << width) - 1)
+        return _read_model(bb, vid, _ws)
 
     bits = _sampling_bits(sample_vars)
     if m_max is None:

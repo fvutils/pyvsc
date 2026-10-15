@@ -103,9 +103,13 @@ class TestDvSolveInternalError(VscTestCase):
                 s.a > 3
 
         saved_nf, saved_check = rnd._NO_FALLBACK, BVSatCtx.check
+        saved_sample = BVSatCtx.sample
         saved_fb = rnd._FALLBACK
         rnd._NO_FALLBACK, rnd._FALLBACK = False, True
+        # Undecided both ways in: the engine's sampler (V19), which gives the
+        # verdict on a plain serve, and the check it falls through to.
         BVSatCtx.check = lambda self, *a, **k: BVSAT_UNKNOWN
+        BVSatCtx.sample = lambda self, *a, **k: BVSAT_UNKNOWN
         ctor.set_solver_backend("dv-solve")
         self.disable_t0()
         try:
@@ -114,7 +118,7 @@ class TestDvSolveInternalError(VscTestCase):
             self.assertIn("could not decide", str(cm.exception))
         finally:
             rnd._NO_FALLBACK, rnd._FALLBACK = saved_nf, saved_fb
-            BVSatCtx.check = saved_check
+            BVSatCtx.check, BVSatCtx.sample = saved_check, saved_sample
             ctor.set_solver_backend(None)
 
 

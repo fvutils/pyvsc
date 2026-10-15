@@ -12,6 +12,9 @@
   values from the caller are read on every call. See
   doc/source/dataclass/inline_constraints.rst.
 - dv-solve solves fields and constants up to 2^24 bits wide (was 65535).
+- dv-solve's BV-SAT sampler (fields over 64 bits, and the shapes the primary
+  engine cannot compile soundly) runs in the engine: a 65536-bit draw went from
+  ~1.2 s to tens of ms, a 4096-bit one from 72 ms to 5 ms.
 
 ### Behavior changes
 - vdc `randomize_with` bodies are parsed by default. A body written for the
