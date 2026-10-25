@@ -9,12 +9,13 @@ form its underlying engine understands, solving it, and writing the solved
 values back into the fields.
 
 .. note::
-   The default back-end is **Boolector**, the engine PyVSC has always used,
-   whenever ``pyboolector`` is installed, so a given seed keeps producing the
-   values it always has. Where it is not installed -- Windows, which has no
-   ``pyboolector`` wheel -- the default is **dv-solve**. ``pip install pyvsc``
-   installs whichever solvers publish a wheel for the platform; the extras
-   ``pyvsc[boolector]`` and ``pyvsc[dv-solve]`` request one explicitly.
+   In pyvsc 1.x the default back-end is **Boolector**, the engine PyVSC has
+   always used, wherever ``pyboolector`` is installed. ``pip install pyvsc``
+   installs it on Linux x86_64 and macOS, which have ``pyboolector`` wheels.
+   On Windows and Linux aarch64, which don't, the default is **dv-solve**.
+   dv-solve is opt-in everywhere else (see below). It becomes the default in
+   a later major release, once it has been proven in the field. The extras
+   ``pyvsc[boolector]`` and ``pyvsc[dv-solve]`` request a solver explicitly.
 
 Selecting a back-end
 ====================
@@ -128,10 +129,10 @@ This is a gap in dv-solve, not an unsatisfiable problem (which raises
 
 * ``VSC_DVSOLVE_FALLBACK=boolector`` -- solve the sets dv-solve cannot with
   Boolector, and everything else with dv-solve. Requires ``pyboolector``
-  (``pip install pyvsc[boolector]``). This setting exists in pyvsc 2.0 only.
+  (``pip install pyvsc[boolector]``). This setting exists in pyvsc 1.x only.
 * ``VSC_SOLVER=boolector`` -- use Boolector for everything.
 
-Before pyvsc 2.0 dv-solve handed such sets to Boolector silently whenever
+Before pyvsc 1.0 dv-solve handed such sets to Boolector silently whenever
 ``pyboolector`` was installed. ``SolverUnsupported`` is a subclass of the
 internal ``BackendIncomplete``, so code that caught that keeps working.
 
@@ -249,9 +250,9 @@ sign rules, for the classic and the dataclass front-end alike:
 * ``~a`` inverts ``a`` *after* it is widened to the context width, so
   ``~a == 0xF0`` with an 8-bit ``a`` never holds (the upper bits of ``~a`` are
   set). Write ``(~a & 0xFF) == 0xF0``. (Boolector inverted at ``a``'s own
-  width before pyvsc 2.0.)
+  width before pyvsc 1.0.)
 * An expression with a signed and an unsigned operand is **unsigned**: the
   signed operand is read as its bit pattern. For a signed 8-bit ``s`` and an
   unsigned 8-bit ``b``, ``s == b`` holds for ``s = -56, b = 200``. (dv-solve
-  compared signed values before pyvsc 2.0.)
+  compared signed values before pyvsc 1.0.)
 * Signed ``//`` and ``%`` truncate toward zero; ``>>`` is a logical shift.

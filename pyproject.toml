@@ -20,29 +20,35 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
 ]
-# THE SOLVER. dv-solve is the one required solver: it publishes a wheel for
+# SOLVERS (pyvsc 1.x). dv-solve is always installed: it publishes a wheel for
 # Linux x86_64 and aarch64, macOS x86_64 and arm64, and Windows AMD64 (one
 # py3-none wheel per platform, so new Python versions need no new build), and
-# PyVSC imports and solves with it alone. pyboolector is OPTIONAL
-# (`pip install pyvsc[boolector]`): it has no Windows or Linux aarch64 wheel,
-# and falling back to its sdist build is where most install failures came from
-# (#141, #170, #171, #184, #187, #254). Install it for the XCHECK cross-check
-# oracle, the few shapes dv-solve hands to an external solver, or the old
-# default. When it is installed, Boolector is still the default back-end (see
-# src/vsc/impl/ctor.py); VSC_SOLVER / vsc.set_solver_backend() choose.
+# PyVSC imports and solves with it alone.
+#
+# pyboolector is installed wherever it publishes a wheel (Linux x86_64 and
+# macOS), and there Boolector stays the DEFAULT back-end (src/vsc/impl/ctor.py),
+# so an upgrade -- including a fresh venv in CI -- keeps the solver users have
+# always had. dv-solve is opt-in on those platforms (VSC_SOLVER /
+# vsc.set_solver_backend()). Windows and Linux aarch64 have no pyboolector
+# wheel; its sdist build is where most install failures came from (#141, #170,
+# #171, #184, #187, #254), so it is not required there and dv-solve is the
+# default (0.9.x could not be installed there at all). dv-solve becomes the
+# default everywhere in a later major release, once proven in the field.
 #
 # dv-solve has no sdist, so a platform outside its wheel set (e.g. musl Linux)
 # fails `pip install pyvsc`; install dv-solve from source there first.
 dependencies = [
-    "dv-solve>=0.2.4",
+    "dv-solve>=0.2.5",
+    "pyboolector>=3.2.2; (sys_platform == 'linux' and platform_machine == 'x86_64') or sys_platform == 'darwin'",
     "pyucis>=0.1.4",
     "toposort",
 ]
 
 [project.optional-dependencies]
+# Requests Boolector explicitly (e.g. to build it from source where it has no wheel).
 boolector = ["pyboolector>=3.2.2"]
 # Kept so existing `pyvsc[dv-solve]` install lines keep working.
-dv-solve = ["dv-solve>=0.2.4"]
+dv-solve = ["dv-solve>=0.2.5"]
 # The vsc.sphinx documentation extension (extensions = ["vsc.sphinx"]).
 docs = ["sphinx>=7"]
 

@@ -13,12 +13,27 @@ Installation via PyPi
 
    pip install pyvsc
 
-This installs the constraint solvers that publish a wheel for your platform:
-Boolector on Linux and macOS, and dv-solve on Linux x86_64. Windows has no
-Boolector wheel, so there PyVSC runs on dv-solve alone and selects it
-automatically; it installs from PyPI once dv-solve publishes a Windows wheel,
-and builds from source (``pip install`` of a dv-solve checkout) until then. See
-:doc:`solver_backends`.
+This installs two constraint solvers:
+
+* **Boolector**, the solver PyVSC has always used. It is installed on Linux
+  x86_64 and macOS, and it remains the default there.
+* **dv-solve**, PyVSC's new native solver, installed on every platform
+  (Linux x86_64 and aarch64, macOS x86_64 and arm64, Windows AMD64). It is
+  the default on Windows and Linux aarch64, where Boolector has no wheel.
+
+To try dv-solve where Boolector is the default, select it with an environment
+variable or from Python:
+
+.. code-block:: bash
+
+   VSC_SOLVER=dv-solve python my_test.py
+
+.. code-block:: python
+
+   import vsc
+   vsc.set_solver_backend("dv-solve")
+
+See :doc:`solver_backends`.
 
 Installation from Source
 ------------------------
