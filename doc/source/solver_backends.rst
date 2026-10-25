@@ -17,6 +17,13 @@ values back into the fields.
    a later major release, once it has been proven in the field. The extras
    ``pyvsc[boolector]`` and ``pyvsc[dv-solve]`` request a solver explicitly.
 
+   On Boolector a given seed produces the same values as pyvsc 0.9.x. pyvsc 1.x
+   can also draw fields whose constraints are simple bounds without calling a
+   solver at all, which is much faster on large arrays but produces different
+   values for a seed. That is on by default with dv-solve and off with
+   Boolector; ``VSC_T0=1`` turns it on for Boolector too, and ``VSC_T0=0``
+   turns it off everywhere.
+
 Selecting a back-end
 ====================
 

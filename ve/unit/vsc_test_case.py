@@ -38,9 +38,9 @@ class VscTestCase(TestCase):
         the solver; it is not a workaround for a T0 defect.
         """
         import vsc.model.randomizer as _rnd
-        saved = _rnd._T0_ENABLED
-        _rnd._T0_ENABLED = False
+        saved = _rnd._T0_SETTING
+        _rnd._T0_SETTING = False
 
         def _restore():
-            _rnd._T0_ENABLED = saved
+            _rnd._T0_SETTING = saved
         self.addCleanup(_restore)

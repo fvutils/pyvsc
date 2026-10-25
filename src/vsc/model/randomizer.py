@@ -240,7 +240,7 @@ _ARRAY_PLAN_CACHE = os.environ.get("VSC_DVSOLVE_ARRAY_PLAN_CACHE", "1") != "0"
 # doc/notes/dv_solve_native_full_problem_plan.md.
 _MERGE_ENABLED = os.environ.get("VSC_DVSOLVE_MERGE", "1") != "0"
 
-# T0 tier: no-solver direct draw (default on; kill-switch VSC_T0=0). A RandSet
+# T0 tier: no-solver direct draw. A RandSet
 # whose every rand field is separable and constrained only by expressions with
 # an exactly-computable value set is promoted into ri.unconstrained_l and drawn
 # uniformly over that set — which is the distribution the solver is meant to
@@ -248,7 +248,32 @@ _MERGE_ENABLED = os.environ.get("VSC_DVSOLVE_MERGE", "1") != "0"
 # decided in vsc.model.separability and is conservative: anything unrecognized
 # stays on the solver. Back-end independent (it operates on the RandInfo), so
 # the classic and dataclass front-ends get it alike.
-_T0_ENABLED = os.environ.get("VSC_T0", "1") != "0"
+#
+# Default: on under dv-solve, off under Boolector. T0 draws in a different order
+# from the solver, so it changes the values a seed produces; Boolector is the
+# 1.x default and keeps the 0.9.x value stream for a given seed. VSC_T0=1 turns
+# it on for every back-end (the large array speedup on Boolector), VSC_T0=0 off.
+def _t0_setting():
+    raw = os.environ.get("VSC_T0", "").strip()
+    if raw == "":
+        return None
+    return raw != "0"
+
+_T0_SETTING = _t0_setting()
+
+def _t0_enabled(backend):
+    if _T0_SETTING is not None:
+        return _T0_SETTING
+    return getattr(backend, "name", None) != "boolector"
+
+
+def _randint_compat(backend):
+    """True when the unconstrained draw must consume random bits exactly as
+    ``random.randint`` does (``n.bit_length()`` bits per try, a draw even for a
+    one-value range), so Boolector keeps the 0.9.x value stream for a seed.
+    Other back-ends use ``(n-1).bit_length()``: on a power-of-two range (any
+    full-width field) that halves the rejection rate."""
+    return getattr(backend, "name", None) == "boolector"
 
 # The Boolector fallback (v2 plan V23, decision D2). Off by default: a RandSet
 # the primary back-end cannot serve (BackendIncomplete) raises SolverUnsupported.
@@ -743,12 +768,14 @@ def _collect_array_state(field_model_l):
     return array_state, has_rand_sized
 
 
-def _build_draw_plan(ri, bound_m):
+def _build_draw_plan(ri, bound_m, compat=False):
     """Split the used-rand unconstrained fields into a fast lane and the rest.
 
     A fast-lane entry is ``(value_obj, lo, n, k, field)`` for a plain scalar
     over one contiguous range: ``n`` values starting at ``lo``, drawn with
-    ``k = (n-1).bit_length()`` random bits and rejection. Hoisting the
+    ``k = (n-1).bit_length()`` random bits and rejection (``n.bit_length()``
+    with ``compat``, which consumes bits as ``random.randint`` does; see
+    ``_randint_compat``). Hoisting the
     ``ValueScalar`` and the range arithmetic out of the per-call loop removes a
     dict lookup, three attribute hops and two type checks per field per
     randomize; on a plan-cached object it is computed once.
@@ -771,7 +798,8 @@ def _build_draw_plan(ri, bound_m):
         if len(range_l) == 1 and type(f) is FieldScalarModel:
             lo, hi = range_l[0][0], range_l[0][1]
             n = hi - lo + 1
-            fast.append((f.val, lo, n, (n - 1).bit_length(), f))
+            k = n.bit_length() if compat else (n - 1).bit_length()
+            fast.append((f.val, lo, n, k, f))
         else:
             rest.append(f)
     return fast, rest
@@ -932,15 +960,16 @@ class Randomizer(RandIF):
         # (multi-range, empty, non-scalar, debug) falls through to the general
         # loop below, unchanged.
         _t = PT.now()
+        compat = _randint_compat(self.backend)
         if self.debug > 0:
             fast_l = ()
             uc_rand = list(filter(lambda f:f.is_used_rand, ri.unconstrained()))
         elif plan is not None:
             if plan.draw_plan is None:
-                plan.draw_plan = _build_draw_plan(ri, bound_m)
+                plan.draw_plan = _build_draw_plan(ri, bound_m, compat)
             fast_l, uc_rand = plan.draw_plan
         else:
-            fast_l, uc_rand = _build_draw_plan(ri, bound_m)
+            fast_l, uc_rand = _build_draw_plan(ri, bound_m, compat)
 
         if fast_l:
             # Inlined uniform rejection draw. Calling RandState.draw per field
@@ -979,8 +1008,9 @@ class Randomizer(RandIF):
 
             if len(range_l) == 1:
                 # Single (likely domain-based) range
-                uf.set_val(
-                    self.randstate.draw(range_l[0][0], range_l[0][1]))
+                lo, hi = range_l[0][0], range_l[0][1]
+                uf.set_val(self.randstate.randint(lo, hi) if compat
+                           else self.randstate.draw(lo, hi))
             else:
                 uf.set_val(self._draw_multi_range(range_l))
 
@@ -1616,7 +1646,7 @@ class Randomizer(RandIF):
             # gets cached; the plan signature below uses ri.all_randsets(), so
             # a promoted RandSet's referenced fields/constraints are still
             # tracked and a change still invalidates the cached domain.
-            if _T0_ENABLED:
+            if _t0_enabled(backend):
                 _t = PT.now()
                 bound_m.update(t0_promote(ri))
                 PT.add("t0_promote", _t)

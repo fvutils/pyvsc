@@ -5,7 +5,7 @@ The T0 tier answers a separable, exactly-analyzable RandSet without calling a
 back-end. That is the highest-risk kind of change in this codebase, so the
 primary gate here is *equivalence*: for every shape T0 claims, the values it
 produces must satisfy every constraint and be distributed the same way the
-solver distributes them. The kill-switch (VSC_T0 / randomizer._T0_ENABLED) is
+solver distributes them. The kill-switch (VSC_T0 / randomizer._T0_SETTING) is
 the test methodology -- each equivalence test runs the same model both ways.
 
 The second gate is *eligibility*: a shape T0 must not claim (coupled fields,
@@ -33,12 +33,12 @@ from dc_test_case import DcTestCase, requires_dvsolve
 
 @contextlib.contextmanager
 def t0(enabled):
-    saved = rnd._T0_ENABLED
-    rnd._T0_ENABLED = enabled
+    saved = rnd._T0_SETTING
+    rnd._T0_SETTING = enabled
     try:
         yield
     finally:
-        rnd._T0_ENABLED = saved
+        rnd._T0_SETTING = saved
 
 
 @contextlib.contextmanager

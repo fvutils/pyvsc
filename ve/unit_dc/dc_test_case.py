@@ -52,9 +52,9 @@ class DcTestCase(TestCase):
         """Keep this test on the solver. Mirrors VscTestCase.disable_t0 -- see
         there for why a back-end test needs it."""
         import vsc.model.randomizer as _rnd
-        saved = _rnd._T0_ENABLED
-        _rnd._T0_ENABLED = False
+        saved = _rnd._T0_SETTING
+        _rnd._T0_SETTING = False
 
         def _restore():
-            _rnd._T0_ENABLED = saved
+            _rnd._T0_SETTING = saved
         self.addCleanup(_restore)

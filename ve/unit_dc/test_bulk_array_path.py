@@ -318,12 +318,12 @@ class TestBulkBackends(DcTestCase):
     def test_all_backends_agree_on_support(self):
         import vsc.model.randomizer as rnd
         cur = vsc.get_solver_backend()
-        saved_t0 = rnd._T0_ENABLED
+        saved_t0 = rnd._T0_SETTING
         try:
             for name in self._backends():
                 for t0 in (True, False):
                     vsc.set_solver_backend(name)
-                    rnd._T0_ENABLED = t0
+                    rnd._T0_SETTING = t0
                     with self.subTest(backend=name, t0=t0):
                         o = Scalars()
                         for _ in range(50):
@@ -334,7 +334,7 @@ class TestBulkBackends(DcTestCase):
                             self.assertTrue(
                                 all(type(v) is int for v in o.arr))
         finally:
-            rnd._T0_ENABLED = saved_t0
+            rnd._T0_SETTING = saved_t0
             vsc.set_solver_backend(cur)
 
 
