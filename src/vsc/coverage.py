@@ -22,6 +22,7 @@
 from enum import Enum, auto
 import enum
 import inspect
+import sys
 
 from vsc.impl import ctor
 from vsc.impl.coverage_registry import CoverageRegistry
@@ -305,8 +306,8 @@ def covergroup(T):
             cg_i = self._get_int()
 
             # Capture the instantiation location of this covergroup            
-            frame = inspect.stack()[1]
-            cg_i.srcinfo_inst = SourceInfo(frame.filename, frame.lineno)
+            frame = sys._getframe(1)
+            cg_i.srcinfo_inst = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
 
             self.buildable_l = []
             
@@ -351,8 +352,8 @@ class bin(object):
         self.range_l = args
         
         # Capture the declaration location of this bin
-        frame = inspect.stack()[1]
-        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        frame = sys._getframe(1)
+        self.srcinfo_decl = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
         
     def build_cov_model(self, parent, name, exclude_bins : RangelistModel):
         # Construct a range model
@@ -446,8 +447,8 @@ class bin_array(object):
         # which is incorrect for bin distribution.
         
         # Capture the declaration location of this bin
-        frame = inspect.stack()[1]
-        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        frame = sys._getframe(1)
+        self.srcinfo_decl = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
     
     def build_cov_model(self, parent, name, exclude_bins : RangelistModel):
         ret = None
@@ -581,8 +582,8 @@ class wildcard_bin_array(object):
             raise Exception("No bins range specified")
         
         # Capture the declaration location of this bin
-        frame = inspect.stack()[1]
-        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        frame = sys._getframe(1)
+        self.srcinfo_decl = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
     
     def build_cov_model(self, parent, name, excluded_bins):
         ret = None
@@ -669,8 +670,8 @@ class coverpoint(object):
         self.iff_f = None
         
         # Capture the declaration location of this coverpoint
-        frame = inspect.stack()[1]
-        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        frame = sys._getframe(1)
+        self.srcinfo_decl = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
         
         ctor.clear_exprs()
         
@@ -957,8 +958,8 @@ class cross(object):
                     raise Exception("Unknown iff type " + str(iff))
         
         # Capture the declaration location of this cross
-        frame = inspect.stack()[1]
-        self.srcinfo_decl = SourceInfo(frame.filename, frame.lineno)
+        frame = sys._getframe(1)
+        self.srcinfo_decl = SourceInfo(frame.f_code.co_filename, frame.f_lineno)
         self.name = name
         
         self.model = None
