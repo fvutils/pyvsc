@@ -12,7 +12,7 @@ import random
 
 import vsc
 import vsc.model.randomizer as rnd
-from vsc.model.solver.backend import select_backend
+from types import SimpleNamespace
 
 from vsc_test_case import VscTestCase, requires_boolector
 
@@ -26,24 +26,30 @@ class _Free(object):
         self.d = vsc.rand_uint32_t()
 
 
+# The defaults depend only on the back-end's name, so a stand-in object lets
+# these run on CI legs where one of the solvers isn't installed.
+_BTOR = SimpleNamespace(name="boolector")
+_DVS = SimpleNamespace(name="dv-solve")
+
+
 class TestBoolectorStreamCompat(VscTestCase):
 
     def test_t0_default_follows_backend(self):
         saved = rnd._T0_SETTING
         try:
             rnd._T0_SETTING = None
-            self.assertFalse(rnd._t0_enabled(select_backend("boolector")))
-            self.assertTrue(rnd._t0_enabled(select_backend("dv-solve")))
+            self.assertFalse(rnd._t0_enabled(_BTOR))
+            self.assertTrue(rnd._t0_enabled(_DVS))
             rnd._T0_SETTING = True        # VSC_T0=1 opts every back-end in
-            self.assertTrue(rnd._t0_enabled(select_backend("boolector")))
+            self.assertTrue(rnd._t0_enabled(_BTOR))
             rnd._T0_SETTING = False       # VSC_T0=0 turns it off everywhere
-            self.assertFalse(rnd._t0_enabled(select_backend("dv-solve")))
+            self.assertFalse(rnd._t0_enabled(_DVS))
         finally:
             rnd._T0_SETTING = saved
 
     def test_draw_width_follows_backend(self):
-        self.assertTrue(rnd._randint_compat(select_backend("boolector")))
-        self.assertFalse(rnd._randint_compat(select_backend("dv-solve")))
+        self.assertTrue(rnd._randint_compat(_BTOR))
+        self.assertFalse(rnd._randint_compat(_DVS))
 
     @requires_boolector
     def test_unconstrained_draw_matches_randint(self):
