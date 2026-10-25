@@ -9,6 +9,7 @@ unconstrained draw on Boolector consumes the random stream exactly as
 ``random.randint`` (what 0.9.x called) does.
 '''
 import random
+from enum import IntEnum
 
 import vsc
 import vsc.model.randomizer as rnd
@@ -24,6 +25,21 @@ class _Free(object):
         self.b = vsc.rand_bit_t(1)
         self.c = vsc.rand_bit_t(13)
         self.d = vsc.rand_uint32_t()
+
+
+class _E(IntEnum):
+    A = 1
+    B = 2
+
+
+@vsc.randobj
+class _Mixed(object):
+    # The shape of v0.9.6's test_attr_enum::test_rand_int_enum: the enum takes
+    # the general draw loop and the scalar the fast lane.
+    def __init__(self):
+        self.a = vsc.rand_enum_t(_E)
+        self.b = vsc.enum_t(_E)
+        self.c = vsc.rand_uint8_t()
 
 
 # The defaults depend only on the back-end's name, so a stand-in object lets
@@ -70,4 +86,24 @@ class TestBoolectorStreamCompat(VscTestCase):
         exp = [(rng.randint(0, 255), rng.randint(0, 1),
                 rng.randint(0, 8191), rng.randint(0, 0xFFFFFFFF))
                for _ in range(20)]
+        self.assertEqual(got, exp)
+
+    @requires_boolector
+    def test_mixed_kinds_keep_draw_order(self):
+        # 0.9.x drew a first, then c. The fast lane must not move c ahead.
+        from vsc.impl import ctor
+        saved = ctor._solver_override
+        vsc.set_solver_backend("boolector")
+        try:
+            o = _Mixed()
+            o.set_randstate(vsc.RandState.mkFromSeed(11))
+            got = []
+            for _ in range(20):
+                o.randomize()
+                got.append((int(o.a), o.c))
+        finally:
+            vsc.set_solver_backend(saved)
+
+        rng = vsc.RandState.mkFromSeed(11).rng
+        exp = [(rng.randint(1, 2), rng.randint(0, 255)) for _ in range(20)]
         self.assertEqual(got, exp)

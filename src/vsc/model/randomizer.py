@@ -802,6 +802,11 @@ def _build_draw_plan(ri, bound_m, compat=False):
             fast.append((f.val, lo, n, k, f))
         else:
             rest.append(f)
+    if compat and fast and rest:
+        # The fast lane draws before the general loop, which reorders the draws
+        # whenever the two kinds are mixed. 0.9.x drew every field in
+        # ri.unconstrained() order, so keep that order with the general loop.
+        return [], [f for f in ri.unconstrained() if f.is_used_rand]
     return fast, rest
 
 
