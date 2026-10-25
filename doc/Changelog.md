@@ -1,3 +1,17 @@
+## 0.9.7
+Performance only. For a given seed, every randomized value is the same as in
+0.9.6.
+- Record source locations with `sys._getframe` instead of `inspect.stack()`. This
+  applies when constructing randobj, covergroup and generator objects, and on
+  every `randomize()` and `randomize_with` call. The cost no longer grows with
+  call-stack depth: constructing an object 40 frames deep is about 7x faster, and
+  `randomize()` is 1.2x faster at depth 0 and 2x at depth 100.
+- `ValueScalar.__int__` returns a plain `int`. This also removes a Python
+  `DeprecationWarning`.
+- `list_t` defines its iterator classes once instead of on every `__iter__` call.
+- Release packaging: the tag is the version, and the ungated Azure publisher is
+  removed.
+
 
 ## 0.9.6
 - (#282) - Enusre that dist weights respect randomized value of rand fields in expressions
