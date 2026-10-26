@@ -89,7 +89,7 @@ for every body.
 Moving from the operator path
 =============================
 
-Until pyvsc 2.0 a ``randomize_with`` body ran on the operator path. A body
+Until pyvsc 1.0 a ``randomize_with`` body ran on the operator path. A body
 written for it behaves differently when parsed:
 
 * ``it.a / 2`` was silently integer division; it is now an error (use ``//``).

@@ -3,7 +3,7 @@ import os
 # The single source of pyvsc's version. pyproject.toml reads _pkg_version, and
 # the release job checks that the v* tag equals BASE. CI stamps SUFFIX on every
 # non-tag build (see .github/workflows/ci.yml); a tag build leaves it empty.
-BASE = "0.9.6"
+BASE = "1.0.0"
 SUFFIX = ""
 
 __version__ = (BASE, SUFFIX)

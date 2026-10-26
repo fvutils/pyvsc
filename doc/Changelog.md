@@ -1,7 +1,22 @@
 
-## 2.0.0 (unreleased)
+## 1.0.0
+
+Boolector is still the default solver. pyvsc now also installs dv-solve, a new
+native solver, which you opt in to with `vsc.set_solver_backend("dv-solve")` or
+`VSC_SOLVER=dv-solve`. Where `pyboolector` has no wheel (Windows, Linux on
+arm64), dv-solve is the default. See doc/source/solver_backends.rst.
+
+On Boolector, a given seed produces the same values as 0.9.7, except where one
+of the fixes below changes the result. Those changes are corrections: 0.9.7
+either broke a constraint or ignored it. `pyvsc<1` keeps the 0.9.7 behavior
+exactly. With the default settings, Boolector also keeps 0.9.7's draw order, so
+the direct-draw tier (T0) is off by default on Boolector. `VSC_T0=1` turns it
+on. That changes the values drawn for a seed and makes large unconstrained
+arrays much faster.
 
 ### New
+- dv-solve back-end (opt-in, see above). On dv-solve the direct-draw tier is on
+  by default; `VSC_T0=0` turns it off.
 - Dataclass front-end (`import vsc.dc as vdc`): constraint bodies follow a
   Python grammar. `and`/`or`/`not`, `if`/`elif`/`else`, `match`, `for` over
   arrays and constants, `x in {...}` / `range(...)` / named collections,
@@ -29,10 +44,10 @@
   (SystemVerilog); a signed operand is read as its bit pattern.
 - vdc: a statement-level `and` or comparison chain is split into separate
   statements (same meaning; lets `1 < len(arr) < 4` bound a random-size array).
-- dv-solve no longer hands a set of constraints it cannot solve to Boolector:
+- dv-solve does not hand a set of constraints it cannot solve to Boolector:
   it raises `vsc.SolverUnsupported`, naming the reason. The only such set left
   is a random field wider than 2^24 bits. `VSC_DVSOLVE_FALLBACK=boolector`
-  restores the fallback for 2.0 (it is removed in 2.1), and
+  restores the fallback for 1.x (it is removed in 2.0), and
   `VSC_SOLVER=boolector` uses Boolector throughout. `VSC_DVSOLVE_BVSAT=0` and
   `VSC_DVSOLVE_BVSAT_SERVE_SAT=0`, which deferred to Boolector, are gone. See
   doc/source/solver_backends.rst.
@@ -51,6 +66,9 @@
 - Boolector reused a destroyed instance's node for `arr.product` on the next
   randomize.
 - A reused inline constraint block kept the previous solve's array expansion.
+- A non-random array's size could be overwritten during a randomize call.
+- `dist` with a range followed by a value inside it (`[10:13] :/ 1, 12 := 1`)
+  cut the field's domain short, so 13 was never drawn on dv-solve.
 - `objs[i].v`, `objs[i].sub.w` and `objs[i].arr[j]` with a random `i` used
   `i`'s value from before the solve, so the constraint held on that one element
   whatever `i` was solved to; `objs[2].arr[j]` with a random `j` raised
@@ -65,6 +83,20 @@
 - `randomize_with`: `it.arr[k]` failed.
 - `self.arr[-1]` on a random-size array read the previous solve's last
   element.
+
+## 0.9.7
+Performance only. For a given seed, every randomized value is the same as in
+0.9.6.
+- Record source locations with `sys._getframe` instead of `inspect.stack()`. This
+  applies when constructing randobj, covergroup and generator objects, and on
+  every `randomize()` and `randomize_with` call. The cost no longer grows with
+  call-stack depth: constructing an object 40 frames deep is about 7x faster, and
+  `randomize()` is 1.2x faster at depth 0 and 2x at depth 100.
+- `ValueScalar.__int__` returns a plain `int`. This also removes a Python
+  `DeprecationWarning`.
+- `list_t` defines its iterator classes once instead of on every `__iter__` call.
+- Release packaging: the tag is the version, and the ungated Azure publisher is
+  removed.
 
 ## 0.9.6
 - (#282) - Enusre that dist weights respect randomized value of rand fields in expressions

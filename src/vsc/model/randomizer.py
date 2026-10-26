@@ -278,7 +278,7 @@ def _randint_compat(backend):
 # The Boolector fallback (v2 plan V23, decision D2). Off by default: a RandSet
 # the primary back-end cannot serve (BackendIncomplete) raises SolverUnsupported.
 # VSC_DVSOLVE_FALLBACK=boolector retries such a RandSet on Boolector instead; it
-# is a safety valve for 2.0 and goes away in 2.1.
+# is a safety valve for 1.x and goes away in 2.0.
 def _fallback_setting():
     raw = os.environ.get("VSC_DVSOLVE_FALLBACK", "").strip().lower()
     if raw in ("", "0", "off", "none"):
