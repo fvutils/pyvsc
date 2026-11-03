@@ -263,8 +263,7 @@ jobs:
   # instead of quietly building from source. The other legs build dv-solve
   # from its main branch; these test the released wheel.
   #
-  # NOT YET RELEASE GATES: publish-pypi does not need these jobs. Add them to
-  # publish-pypi's `needs` once they have run green.
+  # RELEASE GATES: publish-pypi needs both jobs.
   # ---------------------------------------------------------------------- #
   ci-windows:
     runs-on: windows-latest
@@ -358,7 +357,7 @@ jobs:
   # on a release is this repo's standing preference; see the gate job.
   # ---------------------------------------------------------------------- #
   publish-pypi:
-    needs: [gate, ci-linux, ci-no-boolector]
+    needs: [gate, ci-linux, ci-no-boolector, ci-windows, ci-linux-aarch64]
     runs-on: ubuntu-latest
     # GATED 2026-08-31 (wave 3b). Two clauses, and both are load-bearing:
     #

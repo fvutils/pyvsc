@@ -1,4 +1,16 @@
 
+## 1.1.0
+
+No change to pyvsc's code or behavior since 1.0.0. This release adds CI
+coverage for the platforms where dv-solve is the default solver.
+
+- CI: a Linux aarch64 job. On Windows, CI now installs dv-solve as the
+  prebuilt wheel from PyPI rather than building it from source. Both jobs
+  install pyvsc the way a user would and fail if dv-solve has no wheel for
+  the platform.
+- Releases now require the Windows and Linux aarch64 jobs to pass, alongside
+  the Linux and no-Boolector jobs.
+
 ## 1.0.0
 
 Boolector is still the default solver. pyvsc now also installs dv-solve, a new
