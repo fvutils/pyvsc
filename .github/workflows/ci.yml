@@ -255,16 +255,16 @@ jobs:
         (cd ve/unit_dc && ../../python/bin/python3 -m coverage run -m pytest -q test_inline_skip.py test_inline_parse_switch.py)
 
   # ---------------------------------------------------------------------- #
-  # WINDOWS. The platform itself, dv-solve only. dv-solve is built from source
-  # here because PyPI has no Windows dv-solve wheel yet (its wheels.yml builds
-  # one but publishes linux-x86_64 only) -- so this proves pyvsc runs on
-  # Windows, not that `pip install pyvsc` does. The build setup mirrors
-  # dv-solve's own Windows job: Ninja + MSVC, with CaDiCaL fetched beside it
-  # exactly as on Linux (MSVC builds CaDiCaL too; cmake/cadical.cmake stops if
-  # the sources are missing).
+  # WINDOWS and LINUX AARCH64: the platforms where pyboolector has no wheel,
+  # so pyvsc's dependency markers leave it out and dv-solve is the default.
+  # These legs test what `pip install pyvsc` gives a user there: pyvsc's
+  # dependencies come from PyPI, and dv-solve must come from a prebuilt
+  # wheel (--only-binary), so a platform that loses its wheel fails here
+  # instead of quietly building from source. The other legs build dv-solve
+  # from its main branch; these test the released wheel.
   #
-  # NOT YET A RELEASE GATE: publish-pypi does not need this job. Add it to
-  # publish-pypi's `needs` once it has run green.
+  # NOT YET RELEASE GATES: publish-pypi does not need these jobs. Add them to
+  # publish-pypi's `needs` once they have run green.
   # ---------------------------------------------------------------------- #
   ci-windows:
     runs-on: windows-latest
@@ -276,29 +276,49 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: '3.10'
-    - name: Install ninja
-      run: choco install ninja --no-progress
-    - name: Set up MSVC
-      uses: ilammy/msvc-dev-cmd@v1
-      with:
-        arch: x64
     - name: Configure Python
       run: |
         python -m pip install pip setuptools wheel --upgrade
-        python -m pip install pytest toposort 'git+https://github.com/fvutils/pyucis.git#egg=pyucis'
-        git clone -q --depth 1 https://github.com/fvutils/dv-solve.git packages/dv-solve
-        cadical_tag=$(sed -n '/name: cadical/,/tag:/s/.*tag: *//p' packages/dv-solve/ivpm.yaml)
-        git -c advice.detachedHead=false clone -q --depth 1 -b "$cadical_tag" https://github.com/arminbiere/cadical.git packages/cadical
-        python -m pip install ./packages/dv-solve
-        python -m pip install --no-deps -e .
+        python -m pip install --only-binary=dv-solve . pytest
+        if python -c 'import pyboolector' 2>/dev/null; then
+          echo "::error::pyboolector is installed; this job must run without it"
+          exit 1
+        fi
     - name: Run Tests
       env:
         VSC_DVSOLVE_VALIDATE: '1'
       run: |
+        python -m pip show dv-solve | head -2
         test "$(python -c 'import vsc; print(vsc.get_solver_backend())')" = dv-solve
         tests=`ls ve/unit/*.py | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
         python -m pytest -v $tests
         (cd ve/unit_dc && python -m pytest -q .)
+
+  ci-linux-aarch64:
+    runs-on: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: '3.10'
+    - name: Configure Python
+      run: |
+        python3 -m venv python
+        ./python/bin/python3 -m pip install pip setuptools wheel --upgrade
+        ./python/bin/python3 -m pip install --only-binary=dv-solve . pytest
+        if ./python/bin/python3 -c 'import pyboolector' 2>/dev/null; then
+          echo "::error::pyboolector is installed; this job must run without it"
+          exit 1
+        fi
+    - name: Run Tests
+      env:
+        VSC_DVSOLVE_VALIDATE: '1'
+      run: |
+        ./python/bin/python3 -m pip show dv-solve | head -2
+        test "$(./python/bin/python3 -c 'import vsc; print(vsc.get_solver_backend())')" = dv-solve
+        tests=`ls ve/unit/*.py | grep -v vsc_test_case | grep -v test_covergroup_programmatic | grep -v test_rand_mode`
+        ./python/bin/python3 -m pytest -v $tests
+        (cd ve/unit_dc && ../../python/bin/python3 -m pytest -q .)
 
   # ---------------------------------------------------------------------- #
   # vsc.sphinx, the documentation extension, under the three autodoc regimes
